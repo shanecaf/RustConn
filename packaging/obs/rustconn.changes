@@ -9,6 +9,9 @@ Wed Mar 04 2026 Anton Isaiev <totoshko88@gmail.com> - 0.9.7
 - Crash on session reconnect — close_tab held immutable borrow on
   sessions while close_page synchronously fired signal handler needing
   mutable borrow; separated borrow from close call (#39)
+- Bitwarden credential lookup speed — removed per-retrieve bw sync and
+  added 120s verification cache for bw status; vault syncs once on
+  unlock, making reconnect and batch operations significantly faster
 
 -------------------------------------------------------------------
 Mon Mar 02 2026 Anton Isaiev <totoshko88@gmail.com> - 0.9.6

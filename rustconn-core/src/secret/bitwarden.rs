@@ -69,6 +69,41 @@ static BW_SESSION_STORE: RwLock<Option<String>> = RwLock::new(None);
 /// Falls back to `"bw"` when no custom path has been stored.
 static BW_CMD_STORE: RwLock<Option<String>> = RwLock::new(None);
 
+/// Timestamp of the last successful vault unlock/status verification.
+///
+/// Used to skip redundant `bw status` calls when the session key is
+/// already present and was verified recently. The threshold is
+/// [`UNLOCK_VERIFY_TTL_SECS`].
+static BW_LAST_VERIFIED: RwLock<Option<std::time::Instant>> = RwLock::new(None);
+
+/// How long (in seconds) a successful `bw status` result is trusted
+/// before re-checking. Keeps reconnect fast while still detecting
+/// vault locks within a reasonable window.
+const UNLOCK_VERIFY_TTL_SECS: u64 = 120;
+
+/// Records that the vault was just verified as unlocked.
+fn mark_verified() {
+    if let Ok(mut guard) = BW_LAST_VERIFIED.write() {
+        *guard = Some(std::time::Instant::now());
+    }
+}
+
+/// Returns `true` if the vault was verified as unlocked within the TTL.
+fn is_recently_verified() -> bool {
+    BW_LAST_VERIFIED
+        .read()
+        .ok()
+        .and_then(|guard| *guard)
+        .is_some_and(|t| t.elapsed().as_secs() < UNLOCK_VERIFY_TTL_SECS)
+}
+
+/// Clears the verification timestamp (e.g. on lock/logout).
+fn clear_verified() {
+    if let Ok(mut guard) = BW_LAST_VERIFIED.write() {
+        *guard = None;
+    }
+}
+
 /// Stores the Bitwarden session key in thread-safe in-process storage.
 ///
 /// Call this instead of `std::env::set_var("BW_SESSION", ...)`.
@@ -93,6 +128,7 @@ pub fn clear_session_key() {
     if let Ok(mut guard) = BW_SESSION_STORE.write() {
         *guard = None;
     }
+    clear_verified();
 }
 
 /// Stores the resolved `bw` CLI command path.
@@ -371,10 +407,28 @@ impl BitwardenBackend {
 
     /// Checks if the vault is unlocked
     pub async fn is_unlocked(&self) -> bool {
-        self.get_status()
+        let unlocked = self
+            .get_status()
             .await
             .map(|s| s.status == "unlocked")
-            .unwrap_or(false)
+            .unwrap_or(false);
+        if unlocked {
+            mark_verified();
+        }
+        unlocked
+    }
+
+    /// Fast check: returns `true` if the vault was recently verified as
+    /// unlocked and a session key is available, without spawning `bw status`.
+    /// Falls back to the full [`is_unlocked`] check when the cached result
+    /// has expired.
+    pub async fn is_unlocked_fast(&self) -> bool {
+        // If we have a session key and recently verified, skip the CLI call
+        let has_session = self.session_key.is_some() || get_session_key().is_some();
+        if has_session && is_recently_verified() {
+            return true;
+        }
+        self.is_unlocked().await
     }
 
     /// Syncs the vault with the server
@@ -477,7 +531,7 @@ impl SecretBackend for BitwardenBackend {
         );
 
         // Check if vault is unlocked
-        if !self.is_unlocked().await {
+        if !self.is_unlocked_fast().await {
             tracing::error!("Bitwarden store: vault is locked");
             return Err(SecretError::BackendUnavailable(
                 "Bitwarden vault is locked. Please unlock with 'bw unlock'".to_string(),
@@ -565,16 +619,18 @@ impl SecretBackend for BitwardenBackend {
             "Bitwarden retrieve: starting"
         );
 
-        // Check if vault is unlocked
-        if !self.is_unlocked().await {
+        // Fast unlock check — skips `bw status` if recently verified
+        if !self.is_unlocked_fast().await {
             return Err(SecretError::BackendUnavailable(
                 "Bitwarden vault is locked. Please unlock with 'bw unlock'".to_string(),
             ));
         }
 
-        // Sync vault to get latest data from server
-        // This ensures we have the most recent credentials
-        let _ = self.sync().await; // Ignore sync errors, proceed with local data
+        // Note: `bw sync` is intentionally NOT called here. The vault is
+        // synced once during `auto_unlock` and on explicit user request.
+        // Skipping the per-retrieve sync eliminates a ~0.5-2s network
+        // round-trip on every credential lookup, which is critical for
+        // fast reconnect and batch operations.
 
         let item = if let Some(item) = self.find_item(connection_id).await? {
             tracing::debug!(
@@ -606,7 +662,7 @@ impl SecretBackend for BitwardenBackend {
 
     async fn delete(&self, connection_id: &str) -> SecretResult<()> {
         // Check if vault is unlocked
-        if !self.is_unlocked().await {
+        if !self.is_unlocked_fast().await {
             return Err(SecretError::BackendUnavailable(
                 "Bitwarden vault is locked. Please unlock with 'bw unlock'".to_string(),
             ));
@@ -826,6 +882,7 @@ fn extract_session_key(output: &str) -> Option<String> {
 /// # Errors
 /// Returns `SecretError` if the lock command fails
 pub async fn lock_vault() -> SecretResult<()> {
+    clear_verified();
     let bw_cmd = get_bw_cmd();
     let output = Command::new(&bw_cmd)
         .arg("lock")
@@ -886,6 +943,7 @@ pub async fn login_with_api_key(
 /// # Errors
 /// Returns `SecretError` if logout fails
 pub async fn logout() -> SecretResult<()> {
+    clear_verified();
     let bw_cmd = get_bw_cmd();
     let output = Command::new(&bw_cmd)
         .arg("logout")
@@ -1145,14 +1203,27 @@ async fn try_relogin_and_unlock(
 pub async fn auto_unlock(
     settings: &crate::config::SecretSettings,
 ) -> SecretResult<BitwardenBackend> {
-    // 1. Check in-process session store, then fall back to BW_SESSION env var
-    //    (supports externally unlocked vaults, e.g. `export BW_SESSION=...` in shell)
+    // 0. Fast path: if session key exists and was recently verified, skip
+    //    all CLI calls entirely. This makes reconnect near-instant.
     let stored_session =
         get_session_key().or_else(|| std::env::var("BW_SESSION").ok().filter(|s| !s.is_empty()));
+    if let Some(ref session) = stored_session
+        && is_recently_verified()
+    {
+        tracing::debug!("Bitwarden: using cached session key (recently verified)");
+        return Ok(BitwardenBackend::with_session(SecretString::from(
+            session.clone(),
+        )));
+    }
+
+    // 1. Check in-process session store, then fall back to BW_SESSION env var
+    //    (supports externally unlocked vaults, e.g. `export BW_SESSION=...` in shell)
     if let Some(session) = stored_session {
         let backend = BitwardenBackend::with_session(SecretString::from(session));
         if backend.is_unlocked().await {
             tracing::debug!("Bitwarden: using existing session key");
+            // Sync once per verified session to pick up remote changes
+            let _ = backend.sync().await;
             return Ok(backend);
         }
         tracing::debug!("Bitwarden: stored session key present but vault not unlocked");
@@ -1172,6 +1243,8 @@ pub async fn auto_unlock(
         .unwrap_or(false)
     {
         tracing::debug!("Bitwarden: vault already unlocked");
+        mark_verified();
+        let _ = bare.sync().await;
         return Ok(bare);
     }
 
@@ -1193,7 +1266,9 @@ pub async fn auto_unlock(
         match unlock_vault(&password).await {
             Ok(session_key) => {
                 set_session_key(session_key.expose_secret());
-                return Ok(BitwardenBackend::with_session(session_key));
+                let backend = BitwardenBackend::with_session(session_key);
+                let _ = backend.sync().await;
+                return Ok(backend);
             }
             Err(e) => {
                 let is_key_type_error = e.to_string().contains("key type mismatch");
@@ -1221,7 +1296,9 @@ pub async fn auto_unlock(
             match unlock_vault(password).await {
                 Ok(session_key) => {
                     set_session_key(session_key.expose_secret());
-                    return Ok(BitwardenBackend::with_session(session_key));
+                    let backend = BitwardenBackend::with_session(session_key);
+                    let _ = backend.sync().await;
+                    return Ok(backend);
                 }
                 Err(e) => {
                     let is_key_type_error = e.to_string().contains("key type mismatch");

@@ -2745,7 +2745,9 @@ pub fn load_variable_from_vault(
 /// values have their values loaded from the configured vault backend.
 /// Vault load failures are logged but do not prevent other variables
 /// from being returned.
-pub fn resolve_global_variables(settings: &rustconn_core::config::AppSettings) -> Vec<rustconn_core::Variable> {
+pub fn resolve_global_variables(
+    settings: &rustconn_core::config::AppSettings,
+) -> Vec<rustconn_core::Variable> {
     let mut vars = settings.global_variables.clone();
     for var in &mut vars {
         if var.is_secret && var.value.is_empty() {

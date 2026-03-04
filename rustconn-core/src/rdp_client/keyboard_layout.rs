@@ -98,9 +98,9 @@ pub fn xkb_name_to_klid(name: &str) -> Option<u32> {
         "pt" => Some(0x0816),
         "br" => Some(0x0416),
         "nl" => Some(0x0413),
-        "be" => Some(0x080C), // Belgian French
-        "ch" => Some(0x0807), // Swiss German
-        "at" => Some(0x0C07), // Austrian German
+        "be" => Some(0x080C), // French - Belgium
+        "ch" => Some(0x0807), // German - Switzerland
+        "at" => Some(0x0C07), // German - Austria
         "se" => Some(0x041D),
         "no" => Some(0x0414),
         "dk" => Some(0x0406),

@@ -48,11 +48,11 @@ const KEYBOARD_LAYOUT_KLIDS: &[u32] = &[
     0x040A, // Spanish
     0x0410, // Italian
     0x0816, // Portuguese
-    0x0416, // Brazilian
-    0x0809, // UK English
-    0x0807, // Swiss German
-    0x0C07, // Austrian
-    0x080C, // Belgian
+    0x0416, // Portuguese - Brazil
+    0x0809, // English - UK
+    0x0807, // German - Switzerland
+    0x0C07, // German - Austria
+    0x080C, // French - Belgium
     0x0413, // Dutch
     0x041D, // Swedish
     0x0414, // Norwegian
@@ -2618,11 +2618,11 @@ impl ConnectionDialog {
             i18n("Spanish (es)"),
             i18n("Italian (it)"),
             i18n("Portuguese (pt)"),
-            i18n("Brazilian (br)"),
-            i18n("UK English (gb)"),
-            i18n("Swiss German (ch)"),
-            i18n("Austrian (at)"),
-            i18n("Belgian (be)"),
+            i18n("Portuguese - Brazil (br)"),
+            i18n("English - UK (gb)"),
+            i18n("German - Switzerland (ch)"),
+            i18n("German - Austria (at)"),
+            i18n("French - Belgium (be)"),
             i18n("Dutch (nl)"),
             i18n("Swedish (se)"),
             i18n("Norwegian (no)"),

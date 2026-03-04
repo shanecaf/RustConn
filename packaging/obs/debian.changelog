@@ -8,6 +8,9 @@ rustconn (0.9.7-1) unstable; urgency=medium
   * Crash on session reconnect — close_tab held immutable borrow on
     sessions while close_page synchronously fired signal handler needing
     mutable borrow; separated borrow from close call (#39)
+  * Bitwarden credential lookup speed — removed per-retrieve bw sync and
+    added 120s verification cache for bw status; vault syncs once on
+    unlock, making reconnect and batch operations significantly faster
 
  -- Anton Isaiev <totoshko88@gmail.com>  Wed, 04 Mar 2026 12:00:00 +0200
 
