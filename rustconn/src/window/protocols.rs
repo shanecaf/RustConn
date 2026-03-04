@@ -483,16 +483,15 @@ fn start_ssh_connection_internal(
                 ),
                 ..settings
             };
-            let identity_file_mon = if let rustconn_core::ProtocolConfig::Ssh(ref ssh_cfg) =
-                conn.protocol_config
-            {
-                ssh_cfg
-                    .key_path
-                    .as_ref()
-                    .map(|p| p.to_string_lossy().to_string())
-            } else {
-                None
-            };
+            let identity_file_mon =
+                if let rustconn_core::ProtocolConfig::Ssh(ref ssh_cfg) = conn.protocol_config {
+                    ssh_cfg
+                        .key_path
+                        .as_ref()
+                        .map(|p| p.to_string_lossy().to_string())
+                } else {
+                    None
+                };
             let cached_pw = state_ref
                 .get_cached_credentials(connection_id)
                 .and_then(|c| {

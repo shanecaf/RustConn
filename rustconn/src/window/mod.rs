@@ -4228,19 +4228,15 @@ impl MainWindow {
         }
 
         let session_id = match protocol.as_str() {
-            "ssh" => {
-                let session_id = protocols::start_ssh_connection(
-                    state,
-                    notebook,
-                    sidebar,
-                    monitoring,
-                    connection_id,
-                    &conn_clone,
-                    logging_enabled,
-                );
-
-                session_id
-            }
+            "ssh" => protocols::start_ssh_connection(
+                state,
+                notebook,
+                sidebar,
+                monitoring,
+                connection_id,
+                &conn_clone,
+                logging_enabled,
+            ),
             "vnc" => protocols::start_vnc_connection(
                 state,
                 notebook,
