@@ -398,6 +398,7 @@ impl MonitoringCoordinator {
     /// * `username` - Optional SSH username
     /// * `identity_file` - Optional SSH key path
     /// * `password` - Optional password for sshpass authentication
+    /// * `jump_host` - Optional jump host chain for `-J` flag
     #[allow(clippy::too_many_arguments)]
     pub fn start_monitoring(
         &self,
@@ -409,6 +410,7 @@ impl MonitoringCoordinator {
         username: Option<&str>,
         identity_file: Option<&str>,
         password: Option<&str>,
+        jump_host: Option<&str>,
     ) {
         // Don't start if monitoring is disabled
         if !settings.enabled {
@@ -431,6 +433,7 @@ impl MonitoringCoordinator {
             username.map(String::from),
             identity_file.map(String::from),
             password.map(String::from),
+            jump_host.map(String::from),
         );
 
         let (handle, mut rx) =

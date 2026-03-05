@@ -90,6 +90,19 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.9.9" date="2026-03-06">
+      <description>
+        <p>Jump host fixes, sshpass detection, and dependency updates.</p>
+        <ul>
+          <li>Fixed sshpass not installed error in Flatpak SSH connections</li>
+          <li>Fixed jump host connections failing port check — skipped when jump host is configured</li>
+          <li>Fixed jump host dropdown — shows host address in labels with search filtering</li>
+          <li>Fixed jump host monitoring — SSH commands include jump host chain for bastion hosts</li>
+          <li>Fixed jump host false positive connection status — checks for SSH failure patterns</li>
+          <li>Dependencies: Bitwarden CLI 2026.2.0, uuid 1.22.0, winnow 0.7.15</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.9.8" date="2026-03-05">
       <description>
         <p>Security fix, SSH status detection, protocol dialog improvements, and code decomposition.</p>

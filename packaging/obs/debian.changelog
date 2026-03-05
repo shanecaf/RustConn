@@ -1,3 +1,19 @@
+rustconn (0.9.9-1) unstable; urgency=medium
+
+  * Fixed sshpass not installed in Flatpak (#42)
+  * Fixed jump host connections fail port check — skipped when jump_host_id
+    or proxy_jump is configured (#41)
+  * Fixed jump host dropdown hard to use — added host address to labels
+    and enabled search filtering
+  * Fixed jump host monitoring fails — SSH commands now include -J jump
+    host chain for metrics collection through bastion hosts (#41)
+  * Fixed jump host false positive connection status — SSH status detection
+    checks terminal text for failure patterns before marking connected (#41)
+  * Dependencies: Bitwarden CLI 2026.1.0→2026.2.0, uuid 1.21.0→1.22.0,
+    winnow 0.7.14→0.7.15
+
+ -- Anton Isaiev <totoshko88@gmail.com>  Fri, 06 Mar 2026 12:00:00 +0200
+
 rustconn (0.9.8-1) unstable; urgency=medium
 
   * Security: RDP password no longer exposed on command line (uses /from-stdin)

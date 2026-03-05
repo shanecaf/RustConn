@@ -641,7 +641,7 @@ pub static DOWNLOADABLE_COMPONENTS: &[DownloadableComponent] = &[
         install_method: InstallMethod::Download,
         download_url: Some(
             "https://github.com/bitwarden/clients/releases/download/\
-             cli-v2026.1.0/bw-linux-2026.1.0.zip",
+             cli-v2026.2.0/bw-linux-2026.2.0.zip",
         ),
         aarch64_url: None,
         checksum: ChecksumPolicy::SkipLatest,
@@ -649,7 +649,7 @@ pub static DOWNLOADABLE_COMPONENTS: &[DownloadableComponent] = &[
         size_hint: "~50 MB",
         binary_name: "bw",
         install_subdir: "bitwarden",
-        pinned_version: Some("2026.1.0"),
+        pinned_version: Some("2026.2.0"),
         works_in_sandbox: true,
     },
     DownloadableComponent {

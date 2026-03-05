@@ -23,12 +23,14 @@ const SSH_EXEC_TIMEOUT_SECS: u64 = 10;
 /// * `username` - Optional SSH username
 /// * `identity_file` - Optional path to SSH private key
 /// * `password` - Optional password for `sshpass` authentication
+/// * `jump_host` - Optional jump host chain for `-J` flag (e.g. `"user@bastion:22"`)
 pub fn ssh_exec_factory(
     host: String,
     port: u16,
     username: Option<String>,
     identity_file: Option<String>,
     password: Option<String>,
+    jump_host: Option<String>,
 ) -> impl Fn(
     String,
 ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<String, String>> + Send>>
@@ -48,6 +50,7 @@ pub fn ssh_exec_factory(
         let username = username.clone();
         let identity_file = identity_file.clone();
         let password = password.clone();
+        let jump_host = jump_host.clone();
         let use_sshpass = use_sshpass;
 
         Box::pin(async move {
@@ -78,6 +81,11 @@ pub fn ssh_exec_factory(
 
             // Short connection timeout
             cmd.arg("-o").arg("ConnectTimeout=5");
+
+            // Jump host chain for tunneled connections
+            if let Some(ref jh) = jump_host {
+                cmd.arg("-J").arg(jh);
+            }
 
             if port != 22 {
                 cmd.arg("-p").arg(port.to_string());

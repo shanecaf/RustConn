@@ -39,6 +39,34 @@ fn substitute_variables(input: &str, global_variables: &[Variable]) -> String {
         .substitute_for_command(input, VariableScope::Global)
         .unwrap_or_else(|_| input.to_string())
 }
+
+/// SSH failure patterns in terminal output.
+///
+/// When connecting through a jump host, the terminal cursor may advance
+/// past the detection threshold due to jump host banners or SSH error
+/// messages, even though the final destination is unreachable. This
+/// function checks for known SSH error strings to avoid false positives.
+const SSH_FAILURE_PATTERNS: &[&str] = &[
+    "Connection timed out",
+    "Connection refused",
+    "No route to host",
+    "Network is unreachable",
+    "Host key verification failed",
+    "Permission denied",
+    "Too many authentication failures",
+    "Connection closed by",
+    "Connection reset by",
+    "ssh: connect to host",
+];
+
+/// Returns `true` if the terminal text contains an SSH connection failure pattern
+fn contains_ssh_failure(text: &str) -> bool {
+    let lower = text.to_lowercase();
+    SSH_FAILURE_PATTERNS
+        .iter()
+        .any(|p| lower.contains(&p.to_lowercase()))
+}
+
 /// Starts an SSH connection
 ///
 /// Creates a terminal tab and spawns the SSH process with the given configuration.
@@ -54,7 +82,25 @@ pub fn start_ssh_connection(
 ) -> Option<Uuid> {
     // Check if port check is needed
     let settings = state.borrow().settings().clone();
-    let should_check = settings.connection.pre_connect_port_check && !conn.skip_port_check;
+    let has_jump_host = matches!(
+        &conn.protocol_config,
+        rustconn_core::ProtocolConfig::Ssh(ssh)
+            if ssh.jump_host_id.is_some() || ssh.proxy_jump.is_some()
+    );
+    // Skip port check when a jump host is configured — the destination
+    // is only reachable through the jump host, so a direct TCP probe
+    // will always time out.
+    let should_check =
+        settings.connection.pre_connect_port_check && !conn.skip_port_check && !has_jump_host;
+
+    if has_jump_host && settings.connection.pre_connect_port_check && !conn.skip_port_check {
+        tracing::debug!(
+            protocol = "ssh",
+            host = %conn.host,
+            port = conn.port,
+            "Skipping port check — connection uses a jump host"
+        );
+    }
 
     if should_check {
         let host = conn.host.clone();
@@ -171,6 +217,13 @@ fn start_ssh_connection_internal(
     // Build and spawn SSH command
     let port = conn.port;
 
+    // Detect jump host for status detection and monitoring
+    let has_jump_host = matches!(
+        &conn.protocol_config,
+        rustconn_core::ProtocolConfig::Ssh(ssh)
+            if ssh.jump_host_id.is_some() || ssh.proxy_jump.is_some()
+    );
+
     // Get global variables for substitution (secret values resolved from vault)
     let global_variables = state
         .try_borrow()
@@ -186,7 +239,7 @@ fn start_ssh_connection_internal(
         .map(|u| substitute_variables(u, &global_variables));
 
     // Get SSH-specific options
-    let (identity_file, extra_args, use_waypipe) =
+    let (identity_file, extra_args, use_waypipe, jump_host_chain) =
         if let rustconn_core::ProtocolConfig::Ssh(ssh_config) = &conn.protocol_config {
             let key = ssh_config
                 .key_path
@@ -249,9 +302,15 @@ fn start_ssh_connection_internal(
                 }
             }
 
-            if !jump_hosts.is_empty() {
+            let jump_host_str = if jump_hosts.is_empty() {
+                None
+            } else {
+                Some(jump_hosts.join(","))
+            };
+
+            if let Some(ref jh) = jump_host_str {
                 args.push("-J".to_string());
-                args.push(jump_hosts.join(","));
+                args.push(jh.clone());
             }
 
             if ssh_config.use_control_master {
@@ -302,9 +361,9 @@ fn start_ssh_connection_internal(
                 );
             }
 
-            (key, args, waypipe)
+            (key, args, waypipe, jump_host_str)
         } else {
-            (None, Vec::new(), false)
+            (None, Vec::new(), false, None)
         };
 
     // Update last_connected timestamp
@@ -364,13 +423,12 @@ fn start_ssh_connection_internal(
 
     // If we have a vault password and sshpass is available, use it
     if let Some(ref password) = cached_password {
-        let sshpass_available = rustconn_core::flatpak::is_flatpak()
-            || std::process::Command::new("sshpass")
-                .arg("-V")
-                .stdout(std::process::Stdio::null())
-                .stderr(std::process::Stdio::null())
-                .status()
-                .is_ok();
+        let sshpass_available = std::process::Command::new("sshpass")
+            .arg("-V")
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .is_ok();
 
         if sshpass_available {
             // Build argv: sshpass -e [waypipe] ssh [args...] user@host
@@ -435,6 +493,8 @@ fn start_ssh_connection_internal(
     MainWindow::setup_child_exited_handler(state, notebook, sidebar, session_id, connection_id);
 
     // --- SSH status detection: mark sidebar "connected" once terminal output appears ---
+    // For jump host connections, also check terminal text for SSH failure patterns
+    // to avoid false positives (jump host connects but destination times out).
     {
         let sidebar_clone = sidebar.clone();
         let notebook_clone = notebook.clone();
@@ -442,6 +502,7 @@ fn start_ssh_connection_internal(
         let session_connected = std::rc::Rc::new(std::cell::Cell::new(false));
         let session_connected_clone = session_connected.clone();
         let protocol_str = String::from("ssh");
+        let uses_jump_host = has_jump_host;
 
         notebook.connect_contents_changed(session_id, move || {
             if session_connected_clone.get() {
@@ -455,6 +516,21 @@ fn start_ssh_connection_internal(
                     "SSH status detection: checking cursor row"
                 );
                 if row > 2 {
+                    // When using a jump host, the cursor may advance past row 2
+                    // due to jump host banners or SSH error output even if the
+                    // final destination is unreachable. Check terminal text for
+                    // known SSH failure patterns before marking as connected.
+                    if uses_jump_host
+                        && let Some(text) = notebook_clone.get_terminal_text(session_id)
+                        && contains_ssh_failure(&text)
+                    {
+                        tracing::debug!(
+                            protocol = "ssh",
+                            cursor_row = row,
+                            "Jump host connection: SSH failure detected in terminal"
+                        );
+                        return;
+                    }
                     sidebar_clone.increment_session_count(&connection_id_str);
                     session_connected_clone.set(true);
                     tracing::info!(
@@ -505,6 +581,7 @@ fn start_ssh_connection_internal(
             let mon_host = conn.host.clone();
             let mon_port = conn.port;
             let mon_username = conn.username.clone();
+            let mon_jump_host = jump_host_chain.clone();
             let monitoring_started = std::rc::Rc::new(std::cell::Cell::new(false));
             let monitoring_started_clone = monitoring_started.clone();
 
@@ -529,6 +606,7 @@ fn start_ssh_connection_internal(
                         mon_username.as_deref(),
                         identity_file_mon.as_deref(),
                         cached_pw.as_deref(),
+                        mon_jump_host.as_deref(),
                     );
                 }
             });

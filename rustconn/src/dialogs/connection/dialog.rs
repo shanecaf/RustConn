@@ -4750,7 +4750,20 @@ impl ConnectionDialog {
         sorted_conns.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
 
         for conn in sorted_conns {
-            connections_data.push((Some(conn.id), conn.name.clone()));
+            // Avoid duplicating the host when the connection name IS the host
+            let label = if conn.name == conn.host {
+                conn.name.clone()
+            } else {
+                format!("{} ({})", conn.name, conn.host)
+            };
+            // Truncate long labels to prevent the dropdown from stretching the dialog
+            let label = if label.chars().count() > 50 {
+                let truncated: String = label.chars().take(49).collect();
+                format!("{truncated}…")
+            } else {
+                label
+            };
+            connections_data.push((Some(conn.id), label));
         }
 
         *self.connections_data.borrow_mut() = connections_data.clone();
