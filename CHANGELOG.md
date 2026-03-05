@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Jump host monitoring fails** — monitoring SSH commands now include `-J` jump host chain so metrics collection works through bastion hosts ([#41](https://github.com/totoshko88/RustConn/issues/41))
 - **Jump host false positive connection status** — SSH status detection now checks terminal text for failure patterns (`Connection timed out`, `Connection refused`, etc.) before marking jump host connections as established ([#41](https://github.com/totoshko88/RustConn/issues/41))
 
+### Dependencies
+- Bitwarden CLI 2026.1.0→2026.2.0, uuid 1.21.0→1.22.0, winnow 0.7.14→0.7.15
+
 ## [0.9.8] - 2026-03-05
 
 ### Security
