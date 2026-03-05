@@ -11,10 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **sshpass not installed in Flatpak** — SSH password-authenticated connections broken in Flatpak 0.9.8 ([#42](https://github.com/totoshko88/RustConn/issues/42))
-- **Jump host connections fail port check** — pre-connect TCP probe always timed out for destinations reachable only through a jump host; now skipped when `jump_host_id` or `proxy_jump` is configured
+- **Jump host connections fail port check** — pre-connect TCP probe always timed out for destinations reachable only through a jump host; now skipped when `jump_host_id` or `proxy_jump` is configured ([#41](https://github.com/totoshko88/RustConn/issues/41))
 - **Jump host dropdown hard to use** — added host address to dropdown labels (`Name (host)`) and enabled search filtering for quick lookup
-- **Jump host monitoring fails** — monitoring SSH commands now include `-J` jump host chain so metrics collection works through bastion hosts
-- **Jump host false positive connection status** — SSH status detection now checks terminal text for failure patterns (`Connection timed out`, `Connection refused`, etc.) before marking jump host connections as established
+- **Jump host monitoring fails** — monitoring SSH commands now include `-J` jump host chain so metrics collection works through bastion hosts ([#41](https://github.com/totoshko88/RustConn/issues/41))
+- **Jump host false positive connection status** — SSH status detection now checks terminal text for failure patterns (`Connection timed out`, `Connection refused`, etc.) before marking jump host connections as established ([#41](https://github.com/totoshko88/RustConn/issues/41))
 
 ## [0.9.8] - 2026-03-05
 
