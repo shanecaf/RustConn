@@ -27,8 +27,8 @@ finish-args:
   - --talk-name=org.keepassxc.KeePassXC.BrowserServer
   # System tray (StatusNotifierItem)
   - --talk-name=org.kde.StatusNotifierWatcher
-  # Serial device access for picocom
-  - --device=serial
+  # Device access (serial ports for picocom require --device=all; no granular option exists)
+  - --device=all
   # Downloads directory for SFTP file transfers via mc
   - --filesystem=xdg-download:create
 
