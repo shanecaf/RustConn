@@ -1,9 +1,14 @@
 //! SSH command execution for monitoring
 //!
-//! Runs monitoring commands on remote hosts via `ssh` (or `sshpass -e ssh`
-//! for password-authenticated connections). This uses a separate SSH process
+//! Runs monitoring commands on remote hosts via `ssh` with `SSH_ASKPASS`
+//! for password-authenticated connections. This uses a separate SSH process
 //! (not the VTE terminal session) to avoid interfering with the user's
 //! interactive shell.
+//!
+//! Password authentication uses the `SSH_ASKPASS` mechanism instead of
+//! `sshpass`: a temporary script echoes the password from an environment
+//! variable, and `SSH_ASKPASS_REQUIRE=force` tells OpenSSH to use it
+//! even without a TTY. This eliminates the `sshpass` external dependency.
 
 use std::time::Duration;
 
@@ -13,18 +18,57 @@ use tokio::process::Command;
 /// Default timeout for SSH monitoring commands (seconds)
 const SSH_EXEC_TIMEOUT_SECS: u64 = 10;
 
+/// Environment variable name used to pass the password to the askpass script.
+/// Intentionally obscure to reduce exposure in `/proc/PID/environ`.
+const ASKPASS_ENV_VAR: &str = "_RC_MON_PW";
+
+/// Creates a temporary `SSH_ASKPASS` helper script that echoes the password
+/// from `ASKPASS_ENV_VAR`. The script is created with mode 0700 and lives
+/// in the system temp directory.
+///
+/// Returns the path to the script on success.
+fn create_askpass_script() -> Result<std::path::PathBuf, String> {
+    use std::io::Write;
+
+    let dir = std::env::temp_dir();
+    let path = dir.join(format!(
+        "rc-askpass-{}",
+        uuid::Uuid::new_v4().as_hyphenated()
+    ));
+
+    let script = format!("#!/bin/sh\necho \"${ASKPASS_ENV_VAR}\"\n");
+
+    let mut file = std::fs::File::create(&path)
+        .map_err(|e| format!("Failed to create askpass script: {e}"))?;
+    file.write_all(script.as_bytes())
+        .map_err(|e| format!("Failed to write askpass script: {e}"))?;
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700))
+            .map_err(|e| format!("Failed to set askpass script permissions: {e}"))?;
+    }
+
+    Ok(path)
+}
+
 /// Builds an SSH exec closure for use with [`super::start_collector`].
 ///
-/// The returned closure spawns `ssh` (or `sshpass -e ssh` when a password
-/// is provided and `sshpass` is available) with the given host/port/user
-/// and executes the provided shell command, returning stdout as a `String`.
+/// The returned closure spawns `ssh` with the given host/port/user and
+/// executes the provided shell command, returning stdout as a `String`.
+///
+/// When a password is provided, the `SSH_ASKPASS` mechanism is used:
+/// a temporary script echoes the password from an environment variable,
+/// and `SSH_ASKPASS_REQUIRE=force` tells OpenSSH to invoke it. This
+/// replaces the previous `sshpass` dependency.
 ///
 /// # Arguments
 /// * `host` - Remote hostname or IP
 /// * `port` - SSH port
 /// * `username` - Optional SSH username
 /// * `identity_file` - Optional path to SSH private key
-/// * `password` - Optional password for `sshpass` authentication (as `SecretString`)
+/// * `password` - Optional password (as `SecretString`) for SSH_ASKPASS auth
 /// * `jump_host` - Optional jump host chain for `-J` flag (e.g. `"user@bastion:22"`)
 pub fn ssh_exec_factory(
     host: String,
@@ -38,14 +82,23 @@ pub fn ssh_exec_factory(
 ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<String, String>> + Send>>
 + Send
 + 'static {
-    // Check sshpass availability once at factory creation time
-    let use_sshpass = password.is_some()
-        && std::process::Command::new("sshpass")
-            .arg("-V")
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .status()
-            .is_ok();
+    // Create the askpass script once at factory creation time.
+    // It is reused for every monitoring command invocation.
+    let askpass_path = if password.is_some() {
+        match create_askpass_script() {
+            Ok(p) => Some(p),
+            Err(e) => {
+                tracing::error!(
+                    error = %e,
+                    "Failed to create SSH_ASKPASS script; \
+                     password auth will not work for monitoring"
+                );
+                None
+            }
+        }
+    } else {
+        None
+    };
 
     move |command: String| {
         let host = host.clone();
@@ -53,21 +106,23 @@ pub fn ssh_exec_factory(
         let identity_file = identity_file.clone();
         let password = password.clone();
         let jump_host = jump_host.clone();
-        let use_sshpass = use_sshpass;
+        let askpass_path = askpass_path.clone();
 
         Box::pin(async move {
-            let mut cmd;
+            let mut cmd = Command::new("ssh");
 
-            if use_sshpass {
-                // Use sshpass for password auth
-                cmd = Command::new("sshpass");
-                cmd.arg("-e").arg("ssh");
-                // Set SSHPASS env var (sshpass reads it with -e flag)
-                if let Some(ref pw) = password {
-                    cmd.env("SSHPASS", pw.expose_secret());
+            if let (Some(pw), Some(ap)) = (&password, &askpass_path) {
+                // SSH_ASKPASS mechanism: OpenSSH calls the script to get
+                // the password. DISPLAY must be set (even empty) and
+                // SSH_ASKPASS_REQUIRE=force skips the TTY check.
+                cmd.env("SSH_ASKPASS", ap);
+                cmd.env("SSH_ASKPASS_REQUIRE", "force");
+                cmd.env(ASKPASS_ENV_VAR, pw.expose_secret());
+                // Ensure DISPLAY is set so SSH considers ASKPASS
+                if std::env::var("DISPLAY").is_err() {
+                    cmd.env("DISPLAY", "");
                 }
-            } else {
-                cmd = Command::new("ssh");
+            } else if password.is_none() {
                 // Batch mode only when NOT using password auth
                 cmd.arg("-o").arg("BatchMode=yes");
             }

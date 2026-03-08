@@ -1,6 +1,6 @@
 # RustConn User Guide
 
-**Version 0.9.11** | GTK4/libadwaita Connection Manager for Linux
+**Version 0.9.12** | GTK4/libadwaita Connection Manager for Linux
 
 RustConn is a modern connection manager designed for Linux with Wayland-first approach. It supports SSH, RDP, VNC, SPICE, SFTP, Telnet, Serial, Kubernetes protocols and Zero Trust integrations through a native GTK4/libadwaita interface.
 
@@ -502,7 +502,7 @@ creating a transparent Wayland proxy between the machines.
 2. In the **Session** options group, enable the **Waypipe** checkbox
 3. Save and connect
 
-RustConn will execute `waypipe ssh user@host` (or `sshpass -e waypipe ssh …`
+RustConn will execute `waypipe ssh user@host` (with automatic password injection
 for vault-authenticated connections). If `waypipe` is not found on PATH, the
 connection falls back to a standard SSH session with a log warning.
 
@@ -1687,7 +1687,7 @@ Monitoring uses the same authentication method as the main connection:
 | Auth Method | How Monitoring Connects |
 |-------------|------------------------|
 | SSH key | `ssh -i <key> -o BatchMode=yes` |
-| Password | `sshpass -e ssh` (reads password from `SSHPASS` env var) |
+| Password | `SSH_ASKPASS` mechanism (automatic password injection via temp script) |
 | Jump host | `-J user@bastion:port` flag added to SSH command |
 | Flatpak | Uses writable `known_hosts` path inside the sandbox |
 
@@ -1698,7 +1698,6 @@ Host key verification uses `StrictHostKeyChecking=accept-new` — new host keys 
 - Remote host must be **Linux** (reads `/proc/*` and standard GNU coreutils)
 - **No agent installation** needed on the remote host
 - Works with **SSH**, **Telnet**, and **Kubernetes** connections
-- For password authentication: `sshpass` must be available on the local system (auto-detected)
 - SSH connection timeout: 5 seconds; command timeout: 10 seconds
 
 ### Troubleshooting
@@ -1709,7 +1708,6 @@ Host key verification uses `StrictHostKeyChecking=accept-new` — new host keys 
 | Bar appears but shows "—" | First tick hasn't completed yet | Wait for the polling interval (default 3s) |
 | Bar dims with ⚠ icon | 3 consecutive collection errors | Check SSH connectivity; reconnect the session |
 | No private IP shown | `hostname -I` not available on remote host | Install `inetutils` or `hostname` package on the remote host |
-| Monitoring fails with password auth | `sshpass` not installed | Install `sshpass` (included in Flatpak builds) |
 | High CPU on remote host | Polling interval too low | Increase interval to 5–10 seconds in Settings |
 
 ---

@@ -60,13 +60,6 @@ modules:
           versions:
             <: '0.79.0'
 
-  - name: sshpass
-    buildsystem: autotools
-    sources:
-      - type: archive
-        url: https://downloads.sourceforge.net/sshpass/sshpass-1.10.tar.gz
-        sha256: ad1106c203cbb56185ca3bad8c6ccafca3b4064696194da879f81c8d7bdfeeda
-
   - name: inetutils
     buildsystem: autotools
     config-opts:
@@ -163,7 +156,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/totoshko88/RustConn.git
-        tag: v0.9.11
+        tag: v0.9.12
         x-checker-data:
           type: git
           tag-pattern: ^v([\d.]+)$

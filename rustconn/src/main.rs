@@ -66,6 +66,7 @@ pub mod toast;
 pub mod tray;
 pub mod utils;
 pub mod validation;
+mod vault_ops;
 pub mod wayland_surface;
 mod window;
 

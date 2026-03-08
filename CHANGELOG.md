@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.12] - 2026-03-08
+
+### Security
+- **Removed sshpass dependency** — interactive SSH sessions now use native VTE password injection via `feed_child()`; monitoring SSH uses `SSH_ASKPASS` mechanism with temporary script instead of `SSHPASS` environment variable (no longer visible in `/proc/PID/environ`)
+
+### Improved
+- **Reduced state.rs complexity** — extracted vault operations (~979 lines) into `vault_ops.rs`, trimming `state.rs` from 3143 to 2167 lines
+- **Reduced window/mod.rs complexity** — extracted `setup_edit_actions` (637 lines), `setup_terminal_actions` (298 lines), and `setup_split_view_actions` (746 lines) into separate modules, trimming `window/mod.rs` from 5316 to 3648 lines
+
+### Removed
+- **sshpass** — removed from all packaging manifests (Flatpak, Flathub, Debian, OBS RPM, Snap); no longer a runtime dependency
+
 ## [0.9.11] - 2026-03-08
 
 ### Security
@@ -14,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Config files written with 0600 permissions** — connection data (hostnames, usernames, port forwards) was world-readable on multi-user systems; config directory now created with 0700
 - **SSH monitoring host key verification** — removed unconditional `StrictHostKeyChecking=no`; now uses `accept-new` by default (accepts first-seen keys, rejects changed keys)
 - **Session log sanitization active by default** — built-in sensitive patterns (password prompts, API keys, tokens) were defined but never wired into the sanitizer; now active in `SanitizeConfig::default()`
-- **Flatpak device permissions scoped** — replaced `--device=all` with `--device=serial` in both Flatpak manifests; previously granted access to all device nodes when only serial ports are needed
+- **Flatpak device permissions documented** — `--device=all` retained in Flatpak manifests with justification comment (serial ports for picocom require it; Flatpak has no granular `--device=serial` option)
 - **Monitoring password uses SecretString** — `ssh_exec_factory` password parameter migrated from plain `String` to `SecretString` with zeroization; `expose_secret()` used only at `SSHPASS` env var injection point
 - **RDP TLS certificate policy documented** — `establish_connection` now documents that IronRDP does not validate server certificates (standard for RDP self-signed certs); added `tracing::warn!` on each connection
 

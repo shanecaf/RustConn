@@ -1,6 +1,6 @@
 # RustConn Architecture Guide
 
-**Version 0.9.11** | Last updated: March 2026
+**Version 0.9.12** | Last updated: March 2026
 
 This document describes the internal architecture of RustConn for contributors and maintainers.
 
@@ -741,7 +741,7 @@ pub struct PortForward {
 
 Rules are stored in `SshConfig::port_forwards: Vec<PortForward>` and converted to SSH arguments via `PortForward::to_ssh_arg()`. The GUI provides an inline editor in the SSH tab for adding/removing rules. Import from SSH config (`LocalForward`, `RemoteForward`, `DynamicForward`), Remmina, Asbru-CM, and MobaXterm is supported.
 
-**Waypipe Integration:** SSH connections optionally support Wayland application forwarding via `waypipe`. When enabled in the connection config (`SshConfig.waypipe`) and the `waypipe` binary is detected on PATH, the SSH command is wrapped as `waypipe ssh ...` (or `sshpass -e waypipe ssh ...` for vault-authenticated connections). Detection is handled by `detect_waypipe()` in `rustconn-core/src/protocol/detection.rs`.
+**Waypipe Integration:** SSH connections optionally support Wayland application forwarding via `waypipe`. When enabled in the connection config (`SshConfig.waypipe`) and the `waypipe` binary is detected on PATH, the SSH command is wrapped as `waypipe ssh ...` (with automatic password injection for vault-authenticated connections). Detection is handled by `detect_waypipe()` in `rustconn-core/src/protocol/detection.rs`.
 
 ### Zero Trust Integration
 

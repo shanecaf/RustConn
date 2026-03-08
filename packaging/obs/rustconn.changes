@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Sun Mar 08 2026 Anton Isaiev <totoshko88@gmail.com> - 0.9.12
+
+- Security: Removed sshpass dependency; uses native VTE injection and SSH_ASKPASS
+- Improved: Extracted vault operations from state.rs (~979 lines)
+- Improved: Extracted edit/terminal/split-view actions from window/mod.rs (~1671 lines)
+- Removed: sshpass from all packaging manifests
+
+-------------------------------------------------------------------
 Sat Mar 07 2026 Anton Isaiev <totoshko88@gmail.com> - 0.9.11
 
 - Security: Bitwarden session key uses SecretString with zeroization

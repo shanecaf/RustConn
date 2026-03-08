@@ -1,3 +1,14 @@
+rustconn (0.9.12-1) unstable; urgency=medium
+
+  * Security: Removed sshpass dependency; SSH password auth now uses native
+    VTE injection and SSH_ASKPASS mechanism
+  * Improved: Extracted vault operations from state.rs (~979 lines)
+  * Improved: Extracted edit/terminal/split-view actions from window/mod.rs
+    (~1671 lines total)
+  * Removed: sshpass from all packaging manifests
+
+ -- Anton Isaiev <totoshko88@gmail.com>  Sun, 08 Mar 2026 12:00:00 +0200
+
 rustconn (0.9.11-1) unstable; urgency=medium
 
   * Security: Bitwarden session key uses SecretString with zeroization

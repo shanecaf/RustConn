@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.9.11
+Version:        0.9.12
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -60,7 +60,6 @@ Requires:       gtk4 >= 4.14
 Requires:       libadwaita
 Requires:       vte >= 0.74
 Requires:       openssh-clients
-Requires:       sshpass
 Requires:       libasound2
 %endif
 
@@ -69,7 +68,6 @@ Requires:       gtk4 >= 4.14
 Requires:       libadwaita
 Requires:       vte291-gtk4
 Requires:       openssh-clients
-Requires:       sshpass
 Requires:       alsa-lib
 %endif
 
@@ -201,6 +199,12 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Sun Mar 08 2026 Anton Isaiev <totoshko88@gmail.com> - 0.9.12-0
+- Security: Removed sshpass dependency; uses native VTE injection and SSH_ASKPASS
+- Improved: Extracted vault operations from state.rs (~979 lines)
+- Improved: Extracted edit/terminal/split-view actions from window/mod.rs (~1671 lines)
+- Removed: sshpass from all packaging manifests
+
 * Sat Mar 07 2026 Anton Isaiev <totoshko88@gmail.com> - 0.9.11-0
 - Security: Bitwarden session key uses SecretString with zeroization
 - Security: Config files written with 0600 permissions, config dir 0700

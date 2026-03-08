@@ -12,6 +12,7 @@ use crate::utils::spawn_blocking_with_callback;
 use gtk4::prelude::*;
 use rustconn_core::connection::check_port;
 use rustconn_core::variables::{Variable, VariableManager, VariableScope};
+use secrecy::SecretString;
 use std::rc::Rc;
 use uuid::Uuid;
 
@@ -411,72 +412,23 @@ fn start_ssh_connection_internal(
     notebook.display_output(session_id, &feedback);
 
     // Retrieve cached credentials (resolved from vault earlier)
-    let cached_password = state
+    let cached_password: Option<SecretString> = state
         .try_borrow()
         .ok()
         .and_then(|s| s.get_cached_credentials(connection_id).cloned())
         .and_then(|c| {
             use secrecy::ExposeSecret;
-            let pw = c.password.expose_secret().to_string();
-            if pw.is_empty() { None } else { Some(pw) }
+            let pw = c.password.expose_secret();
+            if pw.is_empty() {
+                None
+            } else {
+                Some(c.password.clone())
+            }
         });
 
-    // If we have a vault password and sshpass is available, use it
-    if let Some(ref password) = cached_password {
-        let sshpass_available = std::process::Command::new("sshpass")
-            .arg("-V")
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .status()
-            .is_ok();
-
-        if sshpass_available {
-            // Build argv: sshpass -e [waypipe] ssh [args...] user@host
-            let mut argv: Vec<String> = vec!["sshpass".into(), "-e".into()];
-            if use_waypipe {
-                argv.push("waypipe".into());
-            }
-            argv.push("ssh".into());
-            let port_str = port.to_string();
-            if port != 22 {
-                argv.push("-p".into());
-                argv.push(port_str);
-            }
-            if let Some(ref key) = identity_file {
-                argv.push("-i".into());
-                argv.push(key.clone());
-            }
-            argv.extend(extra_args.clone());
-            let dest = if let Some(ref user) = username {
-                format!("{user}@{host}")
-            } else {
-                host.clone()
-            };
-            argv.push(dest);
-
-            let argv_refs: Vec<&str> = argv.iter().map(String::as_str).collect();
-            let sshpass_env = format!("SSHPASS={password}");
-            let env_vars = [sshpass_env.as_str()];
-
-            tracing::info!("Using sshpass for vault password authentication");
-            notebook.spawn_command(session_id, &argv_refs, Some(&env_vars), None);
-        } else {
-            // sshpass not available — fall back to interactive prompt
-            tracing::warn!("sshpass not found; vault password cannot be auto-filled");
-            let extra_refs: Vec<&str> =
-                extra_args.iter().map(std::string::String::as_str).collect();
-            notebook.spawn_ssh(
-                session_id,
-                &host,
-                port,
-                username.as_deref(),
-                identity_file.as_deref(),
-                &extra_refs,
-                use_waypipe,
-            );
-        }
-    } else {
-        // No cached password — spawn SSH normally (interactive auth)
+    // Spawn SSH normally — password injection happens via VTE feed_child
+    // when the terminal detects a password prompt (see below).
+    {
         let extra_refs: Vec<&str> = extra_args.iter().map(std::string::String::as_str).collect();
         notebook.spawn_ssh(
             session_id,
@@ -487,6 +439,55 @@ fn start_ssh_connection_internal(
             &extra_refs,
             use_waypipe,
         );
+    }
+
+    // --- VTE password injection: detect "password:" prompt and feed cached password ---
+    // This replaces the previous sshpass dependency. The terminal output is
+    // monitored for SSH password prompts; when detected, the vault password
+    // is sent via feed_child() exactly once.
+    if let Some(vault_password) = cached_password.clone() {
+        let notebook_clone = notebook.clone();
+        let password_sent = std::rc::Rc::new(std::cell::Cell::new(false));
+        let password_sent_clone = password_sent.clone();
+
+        tracing::info!(
+            protocol = "ssh",
+            host = %host,
+            "Vault password available; will auto-fill on prompt"
+        );
+
+        notebook.connect_contents_changed(session_id, move || {
+            if password_sent_clone.get() {
+                return;
+            }
+            let Some(text) = notebook_clone.get_terminal_text(session_id) else {
+                return;
+            };
+            // Check for common SSH password prompts (case-insensitive)
+            let lower = text.to_lowercase();
+            let has_prompt = lower.ends_with("password: ")
+                || lower.ends_with("password:")
+                || lower.contains("password: \n")
+                || lower.lines().last().is_some_and(|line| {
+                    let l = line.trim().to_lowercase();
+                    l.ends_with("password:")
+                        || l.ends_with("password: ")
+                        || l.contains("'s password:")
+                });
+
+            if has_prompt {
+                use secrecy::ExposeSecret;
+                let pw = vault_password.expose_secret();
+                // Send password + Enter
+                let input = format!("{pw}\n");
+                notebook_clone.send_text_to_session(session_id, &input);
+                password_sent_clone.set(true);
+                tracing::info!(
+                    protocol = "ssh",
+                    "Password prompt detected; credentials sent via VTE"
+                );
+            }
+        });
     }
 
     // Wire up child exited callback for session cleanup (second call for terminal monitoring)
