@@ -88,7 +88,7 @@ Protocols (embedded Rust implementations):
 - SSH with embedded VTE terminal and split view
 - RDP via IronRDP (embedded, with FreeRDP fallback)
 - VNC via vnc-rs (embedded, with TigerVNC fallback)
-- SPICE via remote-viewer (external)
+- SPICE via spice-client (embedded, with remote-viewer fallback)
 - Telnet via external telnet client (port 23)
 - Serial via picocom (RS-232/USB serial consoles)
 - Kubernetes via kubectl exec (shell access to pods)
@@ -201,6 +201,9 @@ done
 %changelog
 * Sun Mar 08 2026 Anton Isaiev <totoshko88@gmail.com> - 0.9.12-0
 - Security: Removed sshpass dependency; uses native VTE injection and SSH_ASKPASS
+- Security: Bitwarden master password zeroized on drop (Zeroizing<String>)
+- Security: SSH monitoring askpass script cleaned up automatically via RAII
+- Changed: SPICE embedded client enabled by default with remote-viewer fallback
 - Improved: Extracted vault operations from state.rs (~979 lines)
 - Improved: Extracted edit/terminal/split-view actions from window/mod.rs (~1671 lines)
 - Removed: sshpass from all packaging manifests

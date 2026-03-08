@@ -2,6 +2,9 @@ rustconn (0.9.12-1) unstable; urgency=medium
 
   * Security: Removed sshpass dependency; SSH password auth now uses native
     VTE injection and SSH_ASKPASS mechanism
+  * Security: Bitwarden master password zeroized on drop (Zeroizing<String>)
+  * Security: SSH monitoring askpass script cleaned up automatically via RAII
+  * Changed: SPICE embedded client enabled by default with remote-viewer fallback
   * Improved: Extracted vault operations from state.rs (~979 lines)
   * Improved: Extracted edit/terminal/split-view actions from window/mod.rs
     (~1671 lines total)

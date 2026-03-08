@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - **sshpass** — removed from all packaging manifests (Flatpak, Flathub, Debian, OBS RPM, Snap); no longer a runtime dependency
 
-## [0.9.11] - 2026-03-08
+## [0.9.11] - 2026-03-07
 
 ### Security
 - **Bitwarden session key now uses SecretString** — session key was stored as plain `String` in memory without zeroization; migrated to `SecretString` with `expose_secret()` only at CLI invocation point
@@ -226,7 +226,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Dependencies
 - **Updated**: deflate64 0.1.10→0.1.11, dispatch2 0.3.0→0.3.1, objc2 0.6.3→0.6.4, zerocopy 0.8.39→0.8.40
 
-## [0.9.2] - 2026-02-25
+## [0.9.2] - 2026-02-26
 
 ### Added
 - **Custom Icons** — Set emoji/unicode or GTK icon names on connections and groups ([#23](https://github.com/totoshko88/RustConn/issues/23))
@@ -271,7 +271,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Deduplicated `PassBackend` construction in CLI and GUI
 - Cached `has_secret_backend()` result in `AppState` to avoid repeated `block_on` calls
 
-## [0.9.0] - 2026-02-22
+## [0.9.0] - 2026-02-21
 
 ### Added
 - **Startup action** — configure which session opens automatically when RustConn starts: local shell, or any saved connection. Set in Settings → Appearance → Startup, or override via CLI flags `--shell` / `--connect <name|uuid>` ([#30](https://github.com/totoshko88/RustConn/issues/30))
@@ -326,7 +326,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Hundreds of `collapsible_if` patterns rewritten as let-chains (`if let ... && let ...`)
   - Import ordering updated to Rust 2024 `style_edition` rules via `cargo fmt`
 
-## [0.8.9] - 2026-02-19
+## [0.8.9] - 2026-02-20
 
 ### Security
 - Input validation hardening across all protocols — `custom_args`, device paths, shell paths, hostnames, proxy URLs, and shared folder names are now validated against injection attacks (null bytes, newlines, shell metacharacters, path traversal)
@@ -370,7 +370,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **cpal** `0.17.1` → `0.17.3`
 - **clap** `4.5.59` → `4.5.60`
 
-## [0.8.8] - 2026-02-19
+## [0.8.8] - 2026-02-18
 
 ### Security
 - **AES-256-GCM for stored credentials** — Replaced XOR obfuscation with AES-256-GCM + Argon2id key derivation for KeePassXC, Bitwarden, 1Password, and Passbolt passwords in settings; transparent migration from legacy format on first save
@@ -553,7 +553,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Passbolt Server URL Setting** — New field in `SecretSettings`
 - **Unified Credential Save Options** — Consistent "Save password" / "Save to keyring" across all backends
 
-## [0.8.1] - 2026-02-10
+## [0.8.1] - 2026-02-11
 
 ### Added
 - **Passbolt Secret Backend** — Passbolt password manager integration ([#6](https://github.com/totoshko88/RustConn/issues/6)):
@@ -1159,7 +1159,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-## [0.6.6] - 2026-01-29
+## [0.6.7] - 2026-01-29
+
+### Added
+- **Group-Level Secret Storage** — groups can now store passwords in secret backends (KeePassXC, libsecret, Bitwarden, 1Password, Passbolt)
+- **CLI Secret Management** — new `secret` command for managing credentials from the command line
+- **Hierarchical KeePass Storage** — KeePass storage mirrors group structure for organized credential management
+
+## [0.6.6] - 2026-01-27
 
 ### Added
 - **KeePass Password Saving for RDP/VNC** - Fixed password saving when creating/editing connections with KeePass password source:
@@ -1394,6 +1401,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `imagesize` 0.13 → 0.14
 - Updated `zune-jpeg` 0.4 → 0.5
 
+## [0.6.2] - 2026-01-15
+
+### Added
+- **MobaXterm Import/Export** — full support for `.mxtsessions` files
+- **Connection History Button** — quick access from sidebar toolbar
+- **Run Snippet from Context Menu** — right-click on connection → "Run Snippet..."
+- **Persistent Search History** — up to 20 recent searches saved across sessions
+
+### Dependencies
+- Updated `quick-xml` 0.38 → 0.39, `resvg` 0.45 → 0.46
+
 ## [0.6.1] - 2026-01-12
 
 ### Added
@@ -1418,6 +1436,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `libadwaita` to `0.7`
 - Updated `gtk4` to `0.10`
 - Updated `vte4` to `0.9`
+
 ## [0.6.0] - 2026-01-12
 
 ### Added

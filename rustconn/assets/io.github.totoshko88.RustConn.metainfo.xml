@@ -23,7 +23,7 @@
     </p>
     <ul>
       <li>SSH, Telnet, Serial, and Kubernetes with embedded VTE terminals</li>
-      <li>RDP via IronRDP and VNC via vnc-rs with external client fallback</li>
+      <li>RDP via IronRDP, VNC via vnc-rs, and SPICE via spice-client with external fallback</li>
       <li>Zero Trust tunnels: AWS SSM, GCP IAP, Azure Bastion, Cloudflare, Teleport, Tailscale</li>
       <li>Credential storage via KeePassXC, GNOME Keyring, Bitwarden, 1Password, or Passbolt</li>
       <li>Split view, cluster commands, session logging, and Wake-on-LAN</li>
@@ -95,6 +95,9 @@
         <p>Security hardening and code quality improvements:</p>
         <ul>
           <li>Removed sshpass dependency: native VTE password injection and SSH_ASKPASS mechanism</li>
+          <li>Bitwarden master password zeroized on drop to scrub heap memory</li>
+          <li>SSH monitoring askpass script cleaned up automatically via RAII</li>
+          <li>SPICE embedded client enabled by default with remote-viewer as fallback</li>
           <li>Extracted vault operations and window actions into separate modules for maintainability</li>
           <li>Removed sshpass from all packaging manifests</li>
         </ul>
@@ -415,7 +418,7 @@
         <p>Group-level secret storage and CLI secret management.</p>
       </description>
     </release>
-    <release version="0.6.6" date="2026-01-29">
+    <release version="0.6.6" date="2026-01-27">
       <description>
         <p>KeePass password saving, SSH X11 forwarding, and IronRDP enhancements.</p>
       </description>
