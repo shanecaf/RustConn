@@ -53,6 +53,15 @@ pub async fn process_command<W: FramedWrite>(
             let events = create_ctrl_alt_del_sequence();
             send_input_events(active_stage, image, writer, &events).await;
         }
+        RdpClientCommand::SendKeySequence { keys } => {
+            // Send each key event with a small delay so the remote OS can
+            // process the sequence (e.g. Win+R → type command → Enter).
+            for (scancode, pressed, extended) in keys {
+                let event = create_keyboard_event(scancode, pressed, extended);
+                send_input_events(active_stage, image, writer, &[event]).await;
+                tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+            }
+        }
         RdpClientCommand::WheelEvent {
             horizontal,
             vertical,

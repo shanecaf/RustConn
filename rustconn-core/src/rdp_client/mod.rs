@@ -60,6 +60,8 @@ pub mod multimonitor;
 pub mod rdpdr;
 pub mod reconnect;
 
+pub mod quick_actions;
+
 #[cfg(feature = "rdp-embedded")]
 pub use audio::AudioFormatInfo;
 pub use backend::{BackendDetectionResult, RdpBackend, RdpBackendSelector};
@@ -79,6 +81,8 @@ pub use graphics::{
 };
 pub use multimonitor::{MonitorArrangement, MonitorDefinition, MonitorLayout};
 pub use reconnect::{ConnectionQuality, DisconnectReason, ReconnectPolicy, ReconnectState};
+
+pub use quick_actions::{QUICK_ACTIONS, QuickAction, build_key_sequence};
 
 pub use keyboard_layout::{LAYOUT_US_ENGLISH, detect_keyboard_layout, xkb_name_to_klid};
 

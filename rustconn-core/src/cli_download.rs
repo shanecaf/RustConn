@@ -362,14 +362,33 @@ impl DownloadableComponent {
 
     /// Returns the download URL for the current system architecture.
     ///
-    /// Falls back to the default (x86_64) URL if no architecture-specific
-    /// URL is available.
+    /// Returns the download URL for the current architecture.
+    ///
+    /// On aarch64, returns the ARM64-specific URL. If no ARM64 URL is
+    /// available, returns `None` — the component cannot be downloaded on
+    /// this architecture. On x86_64, returns the default download URL.
     #[must_use]
     pub fn download_url_for_arch(&self) -> Option<&'static str> {
         if cfg!(target_arch = "aarch64") {
-            self.aarch64_url.or(self.download_url)
+            self.aarch64_url
         } else {
             self.download_url
+        }
+    }
+
+    /// Returns `true` if this component has a download available for the
+    /// current CPU architecture.
+    ///
+    /// Pip and system-package components are always architecture-compatible.
+    /// Download-based components require an explicit URL for the target arch.
+    #[must_use]
+    pub fn is_available_for_current_arch(&self) -> bool {
+        match self.install_method {
+            InstallMethod::Download | InstallMethod::CustomScript => {
+                self.download_url_for_arch().is_some()
+            }
+            // pip and system packages are arch-independent
+            InstallMethod::Pip | InstallMethod::SystemPackage { .. } => true,
         }
     }
 
@@ -815,17 +834,19 @@ pub fn get_components_by_category(
 /// Returns components filtered for the current environment.
 ///
 /// In Flatpak, excludes components that require host display access
-/// (e.g. xfreerdp, vncviewer). Outside Flatpak, returns all components.
+/// (e.g. xfreerdp, vncviewer). On ARM64, excludes components without
+/// an ARM64 download URL. Outside Flatpak on x86_64, returns all.
 #[must_use]
 pub fn get_available_components() -> Vec<&'static DownloadableComponent> {
-    if crate::flatpak::is_flatpak() {
-        DOWNLOADABLE_COMPONENTS
-            .iter()
-            .filter(|c| c.works_in_sandbox)
-            .collect()
-    } else {
-        DOWNLOADABLE_COMPONENTS.iter().collect()
-    }
+    DOWNLOADABLE_COMPONENTS
+        .iter()
+        .filter(|c| {
+            if crate::flatpak::is_flatpak() && !c.works_in_sandbox {
+                return false;
+            }
+            c.is_available_for_current_arch()
+        })
+        .collect()
 }
 
 /// Check installation status of all components
@@ -2289,10 +2310,15 @@ mod tests {
 
     #[test]
     fn test_get_available_components_outside_flatpak() {
-        // Outside Flatpak, get_available_components returns all
+        // Outside Flatpak on x86_64, get_available_components returns all.
+        // On aarch64 some components lack ARM64 URLs and are filtered out.
         if !crate::flatpak::is_flatpak() {
             let all = get_available_components();
-            assert_eq!(all.len(), DOWNLOADABLE_COMPONENTS.len());
+            let expected = DOWNLOADABLE_COMPONENTS
+                .iter()
+                .filter(|c| c.is_available_for_current_arch())
+                .count();
+            assert_eq!(all.len(), expected);
         }
     }
 

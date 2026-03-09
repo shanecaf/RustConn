@@ -1,3 +1,16 @@
+rustconn (0.9.13-1) unstable; urgency=medium
+
+  * Fixed RDP handshake timeout on heavily loaded servers — Phase 3
+    (TLS upgrade + NLA + connect_finalize) now wrapped in tokio timeout
+    with 2× configured timeout (minimum 60s)
+  * Fixed ARM64 binary download mismatch — download_url_for_arch() no longer
+    falls back to x86_64 URL; get_available_components() filters by arch
+  * Added RDP Quick Actions menu — dropdown on embedded RDP toolbar with
+    6 Windows admin shortcuts (Task Manager, Settings, PowerShell, CMD,
+    Event Viewer, Services) via scancode key sequences
+
+ -- Anton Isaiev <totoshko88@gmail.com>  Mon, 09 Mar 2026 12:00:00 +0200
+
 rustconn (0.9.12-1) unstable; urgency=medium
 
   * Security: Removed sshpass dependency; SSH password auth now uses native

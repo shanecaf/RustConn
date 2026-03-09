@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.9.12
+Version:        0.9.13
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -199,6 +199,13 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Mon Mar 09 2026 Anton Isaiev <totoshko88@gmail.com> - 0.9.13-0
+- Fixed RDP handshake timeout on heavily loaded servers — Phase 3
+  (TLS upgrade + NLA + connect_finalize) wrapped in tokio timeout
+- Fixed ARM64 binary download mismatch — no x86_64 fallback on aarch64
+- Added RDP Quick Actions menu — 6 Windows admin shortcuts on embedded
+  RDP toolbar (Task Manager, Settings, PowerShell, CMD, Event Viewer, Services)
+
 * Sun Mar 08 2026 Anton Isaiev <totoshko88@gmail.com> - 0.9.12-0
 - Security: Removed sshpass dependency; uses native VTE injection and SSH_ASKPASS
 - Security: Bitwarden master password zeroized on drop (Zeroizing<String>)

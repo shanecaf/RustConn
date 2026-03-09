@@ -1,6 +1,6 @@
 # RustConn User Guide
 
-**Version 0.9.12** | GTK4/libadwaita Connection Manager for Linux
+**Version 0.9.13** | GTK4/libadwaita Connection Manager for Linux
 
 RustConn is a modern connection manager designed for Linux with Wayland-first approach. It supports SSH, RDP, VNC, SPICE, SFTP, Telnet, Serial, Kubernetes protocols and Zero Trust integrations through a native GTK4/libadwaita interface.
 
@@ -343,6 +343,19 @@ RustConn/
 **RDP HiDPI Support:** On HiDPI/4K displays, the embedded IronRDP client automatically sends the correct scale factor to the Windows server (e.g. 200% on a 2× display), so remote UI elements render at the correct logical size. The Scale Override setting in the connection dialog allows manual adjustment if needed.
 
 **RDP Clipboard:** The embedded IronRDP client provides bidirectional clipboard sync via the CLIPRDR channel. Text copied on the remote desktop is automatically available locally (Ctrl+V), and local clipboard changes are announced to the server. The Copy/Paste toolbar buttons remain available as manual fallback. Clipboard sync requires the "Clipboard" option enabled in the RDP connection settings.
+
+**RDP Quick Actions:** The embedded RDP toolbar includes a Quick Actions dropdown menu for launching common Windows administration tools on the remote desktop. Actions send scancode key sequences directly through the RDP session with a 30ms inter-key delay for reliability.
+
+| Action | Shortcut Sent | Description |
+|--------|---------------|-------------|
+| Task Manager | Ctrl+Shift+Esc | Opens Windows Task Manager |
+| Settings | Win+I | Opens Windows Settings |
+| PowerShell | Win+R → `powershell` | Launches PowerShell via Run dialog |
+| CMD | Win+R → `cmd` | Launches Command Prompt via Run dialog |
+| Event Viewer | Win+R → `eventvwr` | Opens Event Viewer via Run dialog |
+| Services | Win+R → `services.msc` | Opens Services console via Run dialog |
+
+The Quick Actions menu is accessible via the dropdown button (arrow icon) on the RDP toolbar. All labels are translatable.
 | VNC | Embedded vnc-rs or external TigerVNC |
 | SPICE | Embedded spice-client or external remote-viewer |
 | Telnet | Embedded VTE terminal tab (external `telnet` client) |

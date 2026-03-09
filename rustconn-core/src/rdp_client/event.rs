@@ -618,6 +618,16 @@ pub enum RdpClientCommand {
     /// Send Ctrl+Alt+Del key sequence
     SendCtrlAltDel,
 
+    /// Send a predefined key sequence for Windows admin quick actions.
+    ///
+    /// Each step is a `(scancode, pressed, extended)` tuple. The client
+    /// inserts a small delay between steps so the remote OS can process
+    /// each keystroke.
+    SendKeySequence {
+        /// Ordered list of `(scancode, pressed, extended)` key events
+        keys: Vec<(u16, bool, bool)>,
+    },
+
     /// Provide authentication credentials
     Authenticate {
         /// Username

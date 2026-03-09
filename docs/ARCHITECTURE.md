@@ -1,6 +1,6 @@
 # RustConn Architecture Guide
 
-**Version 0.9.12** | Last updated: March 2026
+**Version 0.9.13** | Last updated: March 2026
 
 This document describes the internal architecture of RustConn for contributors and maintainers.
 
@@ -831,6 +831,33 @@ A `clipboard_sync_suppressed` flag is set before `clipboard.set_text()` in Phase
 **Cleanup:**
 The clipboard `connect_changed` handler is disconnected on: normal disconnect, protocol error, stale generation, and embedded mode exit (via `cleanup_embedded_mode()`).
 
+### RDP Quick Actions
+
+The `quick_actions` module (`rustconn-core/src/rdp_client/quick_actions.rs`) defines predefined Windows admin key sequences that can be sent through the embedded RDP session.
+
+**Architecture:**
+
+```
+rustconn-core/src/rdp_client/
+  quick_actions.rs          # QuickAction definitions + key sequence builders
+  event.rs                  # SendKeySequence(Vec<(u16, bool, bool)>) command variant
+  client/commands.rs        # Handler: sends scancodes with 30ms inter-key delay
+
+rustconn/src/embedded_rdp/
+  mod.rs                    # MenuButton dropdown + GIO action group on toolbar
+```
+
+**Data Flow:**
+1. `QUICK_ACTIONS` static array defines 6 actions with id, label, tooltip, icon
+2. `build_key_sequence(id)` returns `Vec<(scancode, pressed, extended)>` tuples
+3. GUI creates a `MenuButton` with `gio::Menu` items, each mapped to a GIO action
+4. Action handler sends `RdpClientCommand::SendKeySequence(keys)` via channel
+5. Command handler iterates scancodes with `tokio::time::sleep(30ms)` between each
+
+**Key Sequence Patterns:**
+- Direct hotkey: Task Manager (`Ctrl+Shift+Esc`), Settings (`Win+I`)
+- Win+R launch: PowerShell, CMD, Event Viewer, Services — opens Run dialog, types command, presses Enter
+
 ## GTK4/Libadwaita Patterns
 
 ### Sidebar Module Structure
@@ -1014,6 +1041,7 @@ rustconn-core/src/
 ├── rdp_client/            # RDP client implementation
 │   ├── mod.rs             # Module exports
 │   ├── backend.rs         # RdpBackendSelector
+│   ├── quick_actions.rs   # Windows admin quick actions (key sequences)
 │   └── ...
 ├── cli_download.rs        # Flatpak CLI download manager
 ├── sftp.rs                # SFTP URI/command builders, ssh-add, mc FISH VFS

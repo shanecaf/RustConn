@@ -131,77 +131,96 @@ pub async fn establish_connection(
         tracing::debug!("Audio channel enabled (without RDPDR)");
     }
 
-    // Phase 3: Perform RDP connection sequence
-    let mut framed = TokioFramed::new(stream);
+    // Phase 3: Perform RDP connection sequence (TLS + NLA + capabilities)
+    // Wrap the entire handshake in a timeout — on heavily loaded servers the
+    // TCP connect succeeds quickly but TLS/NLA can hang indefinitely.
+    let handshake_timeout = Duration::from_secs(config.timeout_secs.saturating_mul(2).max(60));
 
-    // Begin connection (X.224 negotiation)
-    let should_upgrade = ironrdp_tokio::connect_begin(&mut framed, &mut connector)
-        .await
-        .map_err(|e| RdpClientError::ConnectionFailed(format!("Connection begin failed: {e}")))?;
+    let handshake_result = timeout(handshake_timeout, async {
+        let mut framed = TokioFramed::new(stream);
 
-    // TLS upgrade - returns stream and server certificate.
-    // Note: IronRDP does not validate the server certificate against a CA
-    // store. This is equivalent to xfreerdp /cert:ignore and is standard
-    // for RDP where most servers use self-signed certificates.
-    let initial_stream = framed.into_inner_no_leftover();
+        // Begin connection (X.224 negotiation)
+        let should_upgrade = ironrdp_tokio::connect_begin(&mut framed, &mut connector)
+            .await
+            .map_err(|e| {
+                RdpClientError::ConnectionFailed(format!("Connection begin failed: {e}"))
+            })?;
 
-    let (upgraded_stream, server_cert) =
-        ironrdp_tls::upgrade(initial_stream, &config.host)
+        // TLS upgrade - returns stream and server certificate.
+        // Note: IronRDP does not validate the server certificate against a CA
+        // store. This is equivalent to xfreerdp /cert:ignore and is standard
+        // for RDP where most servers use self-signed certificates.
+        let initial_stream = framed.into_inner_no_leftover();
+
+        let (upgraded_stream, server_cert) = ironrdp_tls::upgrade(initial_stream, &config.host)
             .await
             .map_err(|e| RdpClientError::ConnectionFailed(format!("TLS upgrade failed: {e}")))?;
 
-    tracing::warn!(
-        protocol = "rdp",
-        host = %config.host,
-        port = %config.port,
-        "TLS certificate not validated (no CA verification). \
-         This is standard for RDP self-signed certificates."
-    );
-
-    // Extract server public key from certificate
-    let server_public_key = ironrdp_tls::extract_tls_server_public_key(&server_cert)
-        .map(|k| k.to_vec())
-        .unwrap_or_default();
-
-    let upgraded = ironrdp_tokio::mark_as_upgraded(should_upgrade, &mut connector);
-
-    let mut upgraded_framed = TokioFramed::new(upgraded_stream);
-
-    // Create network client for Kerberos/AAD authentication
-    let mut network_client = ReqwestNetworkClient::new();
-
-    // Log connection parameters for debugging
-    tracing::debug!(
-        "IronRDP connect_finalize: host={}, nla={}, has_username={}, has_password={}",
-        config.host,
-        config.nla_enabled,
-        config.username.is_some(),
-        config.password.is_some()
-    );
-
-    // Complete connection (NLA, licensing, capabilities)
-    // New API in ironrdp 0.14: connect_finalize(upgraded, connector, framed, network_client, server_name, server_public_key, kerberos_config)
-    let connection_result = ironrdp_tokio::connect_finalize(
-        upgraded,
-        connector,
-        &mut upgraded_framed,
-        &mut network_client,
-        ServerName::new(&config.host),
-        server_public_key,
-        None, // No Kerberos config
-    )
-    .await
-    .map_err(|e| {
-        // Log detailed error information for debugging
-        tracing::error!(
-            "IronRDP connect_finalize failed: {:?}, error_kind={:?}",
-            e,
-            e.kind()
+        tracing::warn!(
+            protocol = "rdp",
+            host = %config.host,
+            port = %config.port,
+            "TLS certificate not validated (no CA verification). \
+             This is standard for RDP self-signed certificates."
         );
-        RdpClientError::ConnectionFailed(format!("Connection finalize failed: {e}"))
-    })?;
 
-    Ok((upgraded_framed, connection_result))
+        // Extract server public key from certificate
+        let server_public_key = ironrdp_tls::extract_tls_server_public_key(&server_cert)
+            .map(|k| k.to_vec())
+            .unwrap_or_default();
+
+        let upgraded = ironrdp_tokio::mark_as_upgraded(should_upgrade, &mut connector);
+
+        let mut upgraded_framed = TokioFramed::new(upgraded_stream);
+
+        // Create network client for Kerberos/AAD authentication
+        let mut network_client = ReqwestNetworkClient::new();
+
+        // Log connection parameters for debugging
+        tracing::debug!(
+            "IronRDP connect_finalize: host={}, nla={}, has_username={}, has_password={}",
+            config.host,
+            config.nla_enabled,
+            config.username.is_some(),
+            config.password.is_some()
+        );
+
+        // Complete connection (NLA, licensing, capabilities)
+        let connection_result = ironrdp_tokio::connect_finalize(
+            upgraded,
+            connector,
+            &mut upgraded_framed,
+            &mut network_client,
+            ServerName::new(&config.host),
+            server_public_key,
+            None, // No Kerberos config
+        )
+        .await
+        .map_err(|e| {
+            tracing::error!(
+                "IronRDP connect_finalize failed: {:?}, error_kind={:?}",
+                e,
+                e.kind()
+            );
+            RdpClientError::ConnectionFailed(format!("Connection finalize failed: {e}"))
+        })?;
+
+        Ok::<_, RdpClientError>((upgraded_framed, connection_result))
+    })
+    .await;
+
+    if let Ok(result) = handshake_result {
+        result
+    } else {
+        tracing::error!(
+            protocol = "rdp",
+            host = %config.host,
+            port = %config.port,
+            timeout_secs = handshake_timeout.as_secs(),
+            "RDP handshake timed out (TLS/NLA phase). Server may be overloaded."
+        );
+        Err(RdpClientError::Timeout)
+    }
 }
 
 /// Builds `IronRDP` connector configuration from our config

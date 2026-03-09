@@ -253,6 +253,23 @@ impl EmbeddedRdpWidget {
         ctrl_alt_del_button.set_tooltip_text(Some(&i18n("Send Ctrl+Alt+Del to remote session")));
         toolbar.append(&ctrl_alt_del_button);
 
+        // Windows Admin quick actions dropdown menu
+        let quick_actions_button = gtk4::MenuButton::new();
+        quick_actions_button.set_icon_name("view-more-symbolic");
+        quick_actions_button.set_tooltip_text(Some(&i18n("Windows admin tools")));
+        quick_actions_button.add_css_class("flat");
+        {
+            let menu = gtk4::gio::Menu::new();
+            for action in rustconn_core::QUICK_ACTIONS {
+                menu.append(
+                    Some(&i18n(action.label)),
+                    Some(&format!("rdp.{}", action.id)),
+                );
+            }
+            quick_actions_button.set_menu_model(Some(&menu));
+        }
+        toolbar.append(&quick_actions_button);
+
         // Save Files button (shown when files available on remote clipboard)
         #[cfg(feature = "rdp-embedded")]
         let save_files_button = Button::with_label(&i18n("Save Files"));
@@ -356,6 +373,7 @@ impl EmbeddedRdpWidget {
         widget.setup_resize_handler();
         widget.setup_clipboard_buttons(&copy_button, &paste_button);
         widget.setup_ctrl_alt_del_button(&ctrl_alt_del_button);
+        widget.setup_quick_actions();
         widget.setup_reconnect_button();
         widget.setup_visibility_handler();
         #[cfg(feature = "rdp-embedded")]
@@ -384,6 +402,45 @@ impl EmbeddedRdpWidget {
                 callback();
             }
         });
+    }
+
+    /// Sets up the Windows admin quick actions menu.
+    ///
+    /// Registers a GIO action for each entry in [`rustconn_core::QUICK_ACTIONS`].
+    /// When triggered, the action builds the corresponding key sequence and
+    /// sends it to the IronRDP client via `SendKeySequence`.
+    fn setup_quick_actions(&self) {
+        use gtk4::gio;
+
+        let action_group = gio::SimpleActionGroup::new();
+
+        for action_def in rustconn_core::QUICK_ACTIONS {
+            let action = gio::SimpleAction::new(action_def.id, None);
+
+            #[cfg(feature = "rdp-embedded")]
+            {
+                let tx = self.ironrdp_command_tx.clone();
+                let action_id = action_def.id;
+                action.connect_activate(move |_, _| {
+                    if let Some(keys) = rustconn_core::build_rdp_quick_action(action_id)
+                        && let Some(ref sender) = *tx.borrow()
+                    {
+                        let _ =
+                            sender.send(rustconn_core::RdpClientCommand::SendKeySequence { keys });
+                        tracing::info!(
+                            protocol = "rdp",
+                            action = action_id,
+                            "Quick action triggered"
+                        );
+                    }
+                });
+            }
+
+            action_group.add_action(&action);
+        }
+
+        self.container
+            .insert_action_group("rdp", Some(&action_group));
     }
 
     /// Sets up the Save Files button click handler for clipboard file transfer
