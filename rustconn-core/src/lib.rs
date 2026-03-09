@@ -168,6 +168,9 @@ pub use protocol::{
 pub use rdp_client::keyboard_layout::{
     LAYOUT_US_ENGLISH, detect_keyboard_layout, xkb_name_to_klid,
 };
+pub use rdp_client::quick_actions::{
+    QUICK_ACTIONS, QuickAction, build_key_sequence as build_rdp_quick_action,
+};
 #[cfg(feature = "rdp-embedded")]
 pub use rdp_client::{AudioFormatInfo, RdpClient, RdpCommandSender, RdpEventReceiver};
 pub use rdp_client::{

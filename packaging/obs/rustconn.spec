@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.9.12
+Version:        0.9.13
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -199,6 +199,9 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Mon Mar 09 2026 Anton Isaiev <totoshko88@gmail.com> - 0.9.13-0
+- Version bump to 0.9.13
+
 * Sun Mar 08 2026 Anton Isaiev <totoshko88@gmail.com> - 0.9.12-0
 - Security: Removed sshpass dependency; uses native VTE injection and SSH_ASKPASS
 - Security: Bitwarden master password zeroized on drop (Zeroizing<String>)

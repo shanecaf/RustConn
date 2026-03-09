@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.13] - 2026-03-09
+
+### Fixed
+- **RDP handshake timeout on loaded servers** — Phase 3 (TLS upgrade + NLA + connect_finalize) now wrapped in `tokio::time::timeout` with `timeout_secs × 2` (minimum 60s); previously only TCP connect had a timeout, causing indefinite hangs when the remote server was under heavy load
+- **ARM64 binary download mismatch** — `download_url_for_arch()` on aarch64 no longer falls back to x86_64 URL when no ARM64 binary exists; `get_available_components()` now filters out components unavailable for the current architecture (affects TigerVNC Viewer and Bitwarden CLI)
+
+### Added
+- **RDP Quick Actions menu** — new dropdown button on the embedded RDP toolbar with 6 Windows admin shortcuts: Task Manager (Ctrl+Shift+Esc), Settings (Win+I), PowerShell, CMD, Event Viewer, Services; actions send scancode sequences via `SendKeySequence` command with 30ms inter-key delay
+
 ## [0.9.12] - 2026-03-08
 
 ### Security
