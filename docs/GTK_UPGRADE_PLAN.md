@@ -268,11 +268,11 @@ Could be evaluated for the connection tree sidebar in a future release.
 Standalone bottom sheet widget — could be useful for mobile-friendly layouts
 if RustConn ever targets mobile/convergent form factors. Low priority for now.
 
-### 6.7 VTE 0.78 features (`v0_78`)
+### 6.10 VTE 0.80 features (`v0_80`)
 
 **Impact: `rustconn/src/terminal/`**
 
-VTE 0.74-0.78 includes:
+VTE 0.74-0.80 includes:
 - GPU-accelerated rendering (GTK4 version delegates drawing to GPU)
 - 60 FPS frame clock updates (vs ~20-30 FPS before)
 - Faster bidirectional text processing
@@ -280,10 +280,10 @@ VTE 0.74-0.78 includes:
 - Performance improvements are automatic — no code changes needed
 
 New API to evaluate:
-- Check for new terminal configuration options in VTE 0.76/0.78
+- Check for new terminal configuration options in VTE 0.76/0.78/0.80
 - Potential new signal handlers or properties
 
-### 6.8 Destructive button style update (libadwaita 1.6)
+### 6.11 Destructive button style update (libadwaita 1.6)
 
 **Impact: automatic**
 
@@ -317,17 +317,23 @@ but not required for correctness.
 |------|----------|------------|
 | gtk-rs 0.11 breaking API changes | Medium | Compile-fix iteratively; most changes are mechanical |
 | MSRV 1.92 not available in CI | Low | Rust 1.92 is stable; update CI toolchain |
-| Flatpak build breaks | Low | Runtime 49 already used; regenerate cargo-sources.json |
-| OBS distro builds need newer GTK | Medium | Ubuntu 24.04 has GTK 4.14 (sufficient for v4_14 feat
-ure) |
-| New VTE API incompatibility | Low | VTE 0.78 is backward-compatible; new features are additive |
+| Flatpak build breaks | Low | Regenerate cargo-sources.json; test against runtime 50 |
+| OBS distro builds need newer GTK | Medium | Ubuntu 24.04 has GTK 4.14 (sufficient for v4_14 feature) |
+| New VTE API incompatibility | Low | VTE 0.80 is backward-compatible; new features are additive |
 | spice-client future gtk4 dep | Low | `backend-gtk4` not used; monitor upstream |
+| GNOME 50 runtime not yet on stable Flathub | Medium | Wait for `org.gnome.Platform//50` to land on stable branch after March 18 release; use `50beta` for testing only |
+| X11 session dropped in GNOME 50 | Low | RustConn is Wayland-first; `--socket=fallback-x11` in Flatpak finish-args is harmless but unused on GNOME 50 |
+| VTE 0.80 source module in Flatpak | Medium | If runtime 50 bundles VTE 0.80, remove the custom VTE module from manifests; otherwise update URL to `vte-0.80.x.tar.xz` |
+| Flathub x-checker-data VTE version cap | Low | Update `versions: <: '0.79.0'` → `<: '0.81.0'` in Flathub manifest |
 
 ## 9. Distro Compatibility
 
 | Distro | GTK4 | libadwaita | VTE | Status |
 |--------|------|------------|-----|--------|
-| Flatpak (GNOME 49) | 4.20 | 1.8 | 0.78 | ✅ Full support |
+| Flatpak (GNOME 50) | 4.22 | 1.9 | 0.80 | ✅ Full support (all features) |
+| Flatpak (GNOME 49) | 4.20 | 1.8 | 0.78 | ⚠️ Fallback; no v1_9 features |
+| Fedora 44 (GNOME 50) | 4.22 | 1.9 | 0.80 | ✅ Full support |
+| Ubuntu 26.04 LTS (GNOME 50) | 4.22 | 1.9 | 0.80 | ✅ Full support |
 | Fedora 42+ | 4.18+ | 1.7+ | 0.78 | ✅ Full support |
 | openSUSE Tumbleweed | 4.18+ | 1.7+ | 0.78 | ✅ Full support |
 | Ubuntu 24.04 LTS | 4.14 | 1.5 | 0.76 | ⚠️ Works with v4_14 feature minimum |
@@ -348,5 +354,9 @@ versions at runtime — use `#[cfg]` or runtime checks if needed for Ubuntu 24.0
 3. `refactor: replace GtkSpinner with AdwSpinner` (3 files)
 4. `refactor: migrate CSS to libadwaita 1.6 variables` (style.css)
 5. `feat: use AdwShortcutsDialog for keyboard shortcuts` (shortcuts.rs)
-6. `chore: regenerate Flatpak cargo-sources.json`
-7. `chore: update packaging metadata for 0.10.0`
+6. `chore: bump Flatpak runtime to GNOME 50`
+   - Update `runtime-version: '50'` in both manifests
+   - Update or remove VTE source module (depends on runtime 50 bundling)
+   - Update Flathub `x-checker-data` VTE version cap
+7. `chore: regenerate Flatpak cargo-sources.json`
+8. `chore: update packaging metadata for 0.10.0`

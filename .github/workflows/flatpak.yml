@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install flatpak-cargo-generator
         run: |
@@ -38,13 +38,13 @@ jobs:
           build-bundle: true
 
       - name: Upload Flatpak artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: flatpak
           path: RustConn.flatpak
 
       - name: Upload cargo-sources for Flathub
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: cargo-sources
           path: packaging/flathub/cargo-sources.json
@@ -58,7 +58,7 @@ jobs:
       contents: write
     steps:
       - name: Download Flatpak artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: flatpak
           path: dist/
