@@ -365,6 +365,9 @@ fn start_embedded_rdp_session(
     // Pass scale override for HiDPI support
     embedded_config.scale_override = rdp_config.scale_override;
 
+    // Pass local cursor visibility preference
+    embedded_config.show_local_cursor = rdp_config.show_local_cursor;
+
     // Wrap in Rc to keep widget alive in notebook
     let embedded_widget = Rc::new(embedded_widget);
 
@@ -793,6 +796,7 @@ fn start_vnc_session_internal(
     connection_id: Uuid,
     password: &str,
 ) {
+    use rustconn_core::models::{VncClientMode, WindowMode};
     use rustconn_core::variables::{VariableManager, VariableScope};
 
     let state_ref = state.borrow();
@@ -803,6 +807,7 @@ fn start_vnc_session_internal(
 
     let conn_name = conn.name.clone();
     let port = conn.port;
+    let window_mode = conn.window_mode;
 
     // Get global variables for substitution (secret values resolved from vault)
     let global_variables = crate::state::resolve_global_variables(state_ref.settings());
@@ -821,11 +826,21 @@ fn start_vnc_session_internal(
     };
 
     // Get VNC-specific configuration
-    let vnc_config = if let rustconn_core::ProtocolConfig::Vnc(config) = &conn.protocol_config {
+    let mut vnc_config = if let rustconn_core::ProtocolConfig::Vnc(config) = &conn.protocol_config {
         config.clone()
     } else {
         rustconn_core::models::VncConfig::default()
     };
+
+    // Apply window_mode: External forces external viewer
+    if window_mode == WindowMode::External {
+        vnc_config.client_mode = VncClientMode::External;
+        tracing::info!(
+            protocol = "vnc",
+            host = %host,
+            "Window mode is External, using external VNC viewer"
+        );
+    }
 
     // Clone connection for history recording
     let conn_for_history = conn.clone();
@@ -895,6 +910,16 @@ fn start_vnc_session_internal(
     split_view.widget().set_vexpand(false);
     notebook.widget().set_vexpand(true);
     notebook.show_tab_view_content();
+
+    // If Fullscreen mode, maximize the window (same pattern as RDP)
+    if matches!(window_mode, WindowMode::Fullscreen)
+        && let Some(window) = notebook
+            .widget()
+            .ancestor(gtk4::ApplicationWindow::static_type())
+        && let Some(app_window) = window.downcast_ref::<gtk4::ApplicationWindow>()
+    {
+        app_window.maximize();
+    }
 
     // Update last_connected timestamp
     if let Ok(mut state_mut) = state.try_borrow_mut()

@@ -138,6 +138,7 @@ pub fn sample_rdp_connection_with_domain() -> Connection {
         scale_override: Default::default(),
         disable_nla: false,
         clipboard_enabled: true,
+        show_local_cursor: true,
     };
 
     let mut conn = Connection::new(
@@ -168,6 +169,7 @@ pub fn sample_vnc_connection_custom_port() -> Connection {
         clipboard_enabled: true,
         custom_args: Vec::new(),
         scale_override: Default::default(),
+        show_local_cursor: true,
     };
 
     Connection::new(

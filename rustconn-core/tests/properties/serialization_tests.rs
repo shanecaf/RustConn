@@ -167,6 +167,7 @@ fn arb_rdp_config() -> impl Strategy<Value = RdpConfig> {
                 scale_override: Default::default(),
                 disable_nla: false,
                 clipboard_enabled: true,
+                show_local_cursor: true,
             },
         )
 }
@@ -208,6 +209,7 @@ fn arb_vnc_config() -> impl Strategy<Value = VncConfig> {
             clipboard_enabled: true,
             custom_args,
             scale_override: Default::default(),
+            show_local_cursor: true,
         })
 }
 
@@ -267,6 +269,7 @@ fn arb_spice_config() -> impl Strategy<Value = SpiceConfig> {
                 clipboard_enabled,
                 image_compression,
                 proxy: None,
+                show_local_cursor: true,
             },
         )
 }

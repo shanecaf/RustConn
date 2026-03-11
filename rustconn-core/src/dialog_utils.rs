@@ -7,7 +7,11 @@ use std::collections::HashMap;
 
 /// Parses a comma-separated list of key=value pairs into a `HashMap`.
 ///
+/// Accepts both plain `Key=Value` and `-o Key=Value` formats. The `-o` prefix
+/// is silently stripped so users can paste SSH CLI snippets directly.
+///
 /// Format: "Key1=Value1, Key2=Value2, ..."
+///   or:   "-o Key1=Value1, -o Key2=Value2, ..."
 ///
 /// # Examples
 /// ```
@@ -16,6 +20,10 @@ use std::collections::HashMap;
 /// let options = parse_custom_options("ForwardAgent=yes, StrictHostKeyChecking=no");
 /// assert_eq!(options.get("ForwardAgent"), Some(&"yes".to_string()));
 /// assert_eq!(options.get("StrictHostKeyChecking"), Some(&"no".to_string()));
+///
+/// // Also accepts -o prefix (common copy-paste from CLI)
+/// let options = parse_custom_options("-o ForwardAgent=yes, -o StrictHostKeyChecking=no");
+/// assert_eq!(options.get("ForwardAgent"), Some(&"yes".to_string()));
 /// ```
 #[must_use]
 pub fn parse_custom_options(text: &str) -> HashMap<String, String> {
@@ -26,6 +34,12 @@ pub fn parse_custom_options(text: &str) -> HashMap<String, String> {
 
     for part in text.split(',') {
         let part = part.trim();
+        // Strip leading "-o " or "-o" prefix (user may copy-paste from CLI)
+        let part = part
+            .strip_prefix("-o ")
+            .or_else(|| part.strip_prefix("-o\t"))
+            .unwrap_or(part)
+            .trim();
         if let Some((key, value)) = part.split_once('=') {
             let key = key.trim().to_string();
             let value = value.trim().to_string();
@@ -326,5 +340,35 @@ mod tests {
     #[test]
     fn test_validate_icon_rejects_leading_hyphen() {
         assert!(validate_icon("-symbolic").is_err());
+    }
+
+    #[test]
+    fn test_parse_custom_options_strips_dash_o_prefix() {
+        let options =
+            parse_custom_options("-o StrictHostKeyChecking=no, -o ServerAliveInterval=60");
+        assert_eq!(options.len(), 2);
+        assert_eq!(
+            options.get("StrictHostKeyChecking"),
+            Some(&"no".to_string())
+        );
+        assert_eq!(options.get("ServerAliveInterval"), Some(&"60".to_string()));
+    }
+
+    #[test]
+    fn test_parse_custom_options_mixed_formats() {
+        let options = parse_custom_options("StrictHostKeyChecking=no, -o ServerAliveInterval=60");
+        assert_eq!(options.len(), 2);
+        assert_eq!(
+            options.get("StrictHostKeyChecking"),
+            Some(&"no".to_string())
+        );
+        assert_eq!(options.get("ServerAliveInterval"), Some(&"60".to_string()));
+    }
+
+    #[test]
+    fn test_parse_custom_options_ignores_non_kv_entries() {
+        // -L flags and other non key=value entries are silently ignored
+        let options = parse_custom_options("-L5906:localhost:5906");
+        assert!(options.is_empty());
     }
 }

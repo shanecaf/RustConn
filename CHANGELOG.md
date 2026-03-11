@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.15] - 2026-03-11
+
+### Added
+- **Hide local cursor option for embedded viewers** — new "Show Local Cursor" checkbox in RDP, VNC, and SPICE connection dialogs (Features section) allows hiding the local OS cursor over embedded viewers to eliminate the "double cursor" effect; enabled by default for backward compatibility ([#51](https://github.com/totoshko88/RustConn/issues/51))
+
+### Fixed
+- **VNC session ignores Display Mode setting** — the "Display Mode" dropdown (Embedded/External/Fullscreen) in the Advanced tab was saved correctly but had no effect on VNC sessions; now Fullscreen maximizes the main window (same as RDP), and External forces the external VNC viewer (TigerVNC/vncviewer) instead of the embedded vnc-rs client ([#50](https://github.com/totoshko88/RustConn/issues/50))
+- **SSH port forwarding via UI broken** — `window/protocols.rs` built SSH args manually, skipping `port_forwards`, X11 forwarding (`-X`), compression (`-C`), and `ControlPersist=10m` from `SshConfig`; refactored to delegate to `SshConfig::build_command_args()` which has the complete logic ([#49](https://github.com/totoshko88/RustConn/issues/49))
+- **SSH custom options `-o` prefix not stripped** — `parse_custom_options()` expected `Key=Value` format but users pasted `-o Key=Value` from CLI; now silently strips the `-o` prefix ([#49](https://github.com/totoshko88/RustConn/issues/49))
+- **SSH custom options placeholder misleading** — dialog showed `-o StrictHostKeyChecking=no` format but parser expected comma-separated `Key=Value`; updated placeholder and subtitle to clarify correct format ([#49](https://github.com/totoshko88/RustConn/issues/49))
+
 ## [0.9.14] - 2026-03-10
 
 ### Fixed

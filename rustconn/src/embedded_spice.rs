@@ -832,6 +832,11 @@ impl EmbeddedSpiceWidget {
         // Show toolbar for embedded mode
         self.toolbar.set_visible(true);
 
+        // Hide local cursor if configured (avoids double cursor with remote)
+        if !config.show_local_cursor {
+            self.drawing_area.set_cursor_from_name(Some("none"));
+        }
+
         // Start event polling
         self.start_event_polling(event_rx);
 

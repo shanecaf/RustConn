@@ -131,6 +131,8 @@ pub struct VncConfig {
     pub scale_override: ScaleOverride,
     /// Additional VNC viewer arguments
     pub extra_args: Vec<String>,
+    /// Show local mouse cursor over embedded viewer (disable to avoid double cursor)
+    pub show_local_cursor: bool,
 }
 
 impl VncConfig {
@@ -150,6 +152,7 @@ impl VncConfig {
             view_only: false,
             scale_override: ScaleOverride::default(),
             extra_args: Vec::new(),
+            show_local_cursor: true,
         }
     }
 

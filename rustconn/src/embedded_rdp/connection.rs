@@ -289,6 +289,11 @@ impl super::EmbeddedRdpWidget {
         // Show toolbar with Ctrl+Alt+Del button
         self.toolbar.set_visible(true);
 
+        // Hide local cursor if configured (avoids double cursor with remote)
+        if !config.show_local_cursor {
+            self.drawing_area.set_cursor_from_name(Some("none"));
+        }
+
         // Initialize RDP dimensions from actual widget size (not config)
         *self.rdp_width.borrow_mut() = actual_width;
         *self.rdp_height.borrow_mut() = actual_height;
@@ -355,6 +360,13 @@ impl super::EmbeddedRdpWidget {
 
         // Capture effective scale for cursor size correction
         let cursor_scale = effective_scale;
+
+        // Capture local cursor visibility preference
+        let show_local_cursor = self
+            .config
+            .borrow()
+            .as_ref()
+            .is_none_or(|c| c.show_local_cursor);
 
         // Store client in a shared reference for the polling closure
         let client = std::rc::Rc::new(std::cell::RefCell::new(Some(client)));
@@ -691,7 +703,11 @@ impl super::EmbeddedRdpWidget {
                                 }
                             }
                             RdpClientEvent::CursorDefault => {
-                                drawing_area.set_cursor_from_name(Some("default"));
+                                if show_local_cursor {
+                                    drawing_area.set_cursor_from_name(Some("default"));
+                                }
+                                // When show_local_cursor is false, keep cursor hidden
+                                // (server bitmap cursor from CursorUpdate is still shown)
                             }
                             RdpClientEvent::CursorHidden => {
                                 drawing_area.set_cursor_from_name(Some("none"));

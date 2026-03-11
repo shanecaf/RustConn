@@ -1085,6 +1085,11 @@ impl EmbeddedVncWidget {
             .borrow_mut()
             .resize(config.width, config.height);
 
+        // Hide local cursor if configured (avoids double cursor with remote)
+        if !config.show_local_cursor {
+            self.drawing_area.set_cursor_from_name(Some("none"));
+        }
+
         // Clone references for the event polling timer
         let pixel_buffer = self.pixel_buffer.clone();
         let state = self.state.clone();

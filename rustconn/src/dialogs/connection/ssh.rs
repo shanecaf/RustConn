@@ -455,8 +455,8 @@ fn create_session_group() -> (
 
     // Custom options entry
     let (options_row, options_entry) = EntryRowBuilder::new("Custom Options")
-        .subtitle("Additional SSH command-line options")
-        .placeholder("-o StrictHostKeyChecking=no -o ServerAliveInterval=60")
+        .subtitle("SSH -o options (use Port Forwarding for -L/-R/-D)")
+        .placeholder("StrictHostKeyChecking=no, ServerAliveInterval=60")
         .build();
     session_group.add(&options_row);
 

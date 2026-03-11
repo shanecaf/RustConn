@@ -463,6 +463,7 @@ impl VncSessionWidget {
                 .with_view_only(config.view_only)
                 .with_clipboard(config.clipboard_enabled);
             embedded_config.scale_override = config.scale_override;
+            embedded_config.show_local_cursor = config.show_local_cursor;
 
             let embedded_config = if let Some(pwd) = password {
                 embedded_config.with_password(pwd)

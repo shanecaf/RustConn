@@ -1,6 +1,6 @@
 # RustConn User Guide
 
-**Version 0.9.14** | GTK4/libadwaita Connection Manager for Linux
+**Version 0.9.15** | GTK4/libadwaita Connection Manager for Linux
 
 RustConn is a modern connection manager designed for Linux with Wayland-first approach. It supports SSH, RDP, VNC, SPICE, SFTP, Telnet, Serial, Kubernetes protocols and Zero Trust integrations through a native GTK4/libadwaita interface.
 
@@ -363,6 +363,26 @@ The Quick Actions menu is accessible via the dropdown button (arrow icon) on the
 | Kubernetes | Embedded VTE terminal tab (external `kubectl exec`) |
 | ZeroTrust | Provider CLI in terminal |
 
+### Display Mode (Window Mode)
+
+The **Display Mode** setting in the connection dialog (Advanced tab → Window Mode) controls how RDP and VNC sessions are displayed. The setting applies per-connection.
+
+| Mode | RDP Behavior | VNC Behavior |
+|------|-------------|-------------|
+| **Embedded** (default) | IronRDP widget in a notebook tab | vnc-rs widget in a notebook tab |
+| **Fullscreen** | Maximizes the main window | Maximizes the main window |
+| **External Window** | Launches `xfreerdp` in a separate window | Launches external VNC viewer (TigerVNC/vncviewer) in a separate window |
+
+**Configure:**
+1. Edit connection → **Advanced** tab → **Window Mode** section
+2. Select **Embedded**, **External Window**, or **Fullscreen** from the dropdown
+3. For External Window mode, enable **Remember Position** to save window geometry between sessions (RDP only)
+
+**Notes:**
+- Fullscreen mode maximizes the RustConn window, not the remote desktop. Use F11 to toggle true fullscreen of the entire application.
+- External Window mode for VNC requires an external VNC viewer installed (TigerVNC, vncviewer, gvncviewer, or similar). If no viewer is found, a toast notification shows the install hint.
+- The VNC protocol tab also has its own **Client Mode** (Embedded/External) setting. When Display Mode is set to External Window, it takes precedence over the protocol-level Client Mode.
+
 ### Tab Management
 
 - **Switch** — Click tab or Ctrl+Tab / Ctrl+Shift+Tab
@@ -494,6 +514,66 @@ Port forwarding rules are automatically imported from:
 - Remmina SSH profiles
 - Asbru-CM configurations
 - MobaXterm sessions
+
+### SSH Session Options
+
+The SSH tab in the connection dialog contains session-level toggles that control how the SSH connection behaves. These are in the **Session** options group.
+
+| Option | SSH Flag | Description |
+|--------|----------|-------------|
+| Agent Forwarding | `-A` | Forward your local SSH agent to the remote host, allowing key-based authentication to further servers without copying keys |
+| X11 Forwarding | `-X` | Forward X11 display to your local machine — run graphical X11 apps on the remote host and see them locally |
+| Compression | `-C` | Compress the SSH data stream — useful on slow or high-latency connections |
+| Connection Multiplexing | `ControlMaster=auto` | Reuse a single TCP connection for multiple SSH sessions to the same host. Subsequent connections open instantly without re-authenticating. RustConn adds `ControlPersist=10m` so the master connection stays alive for 10 minutes after the last session closes |
+| Waypipe | `waypipe ssh ...` | Forward Wayland GUI applications (see [Waypipe](#waypipe-wayland-forwarding) below) |
+
+**Configure:**
+1. Edit an SSH connection → **SSH** tab
+2. Scroll to the **Session** group
+3. Toggle the desired options
+4. Click **Save**
+
+All toggles are off by default. They can be combined freely — for example, enabling both Agent Forwarding and Compression at the same time adds `-A -C` to the SSH command.
+
+### SSH Custom Options
+
+Pass arbitrary `-o` options to the SSH command. This is for advanced SSH configuration that doesn't have a dedicated UI toggle.
+
+**Configure:**
+1. Edit an SSH connection → **SSH** tab → **Session** group
+2. In the **Custom Options** field, enter comma-separated `Key=Value` pairs
+
+**Format:** `Key1=Value1, Key2=Value2`
+
+You can also paste options in the `-o Key=Value` format directly from the command line — the `-o` prefix is stripped automatically.
+
+**Examples:**
+
+| Custom Options field | Resulting SSH flags |
+|---------------------|---------------------|
+| `StrictHostKeyChecking=no, ServerAliveInterval=60` | `-o StrictHostKeyChecking=no -o ServerAliveInterval=60` |
+| `-o StrictHostKeyChecking=no, -o ServerAliveInterval=60` | Same result (prefix stripped) |
+| `ServerAliveCountMax=3` | `-o ServerAliveCountMax=3` |
+| `ProxyCommand=nc -X 5 -x proxy:1080 %h %p` | `-o ProxyCommand=nc -X 5 -x proxy:1080 %h %p` |
+
+**Note:** For port forwarding (`-L`, `-R`, `-D`), use the dedicated **Port Forwarding** section instead of Custom Options. The subtitle in the dialog reminds you of this.
+
+**Dangerous directives** (`ProxyCommand`, `LocalCommand`, `PermitLocalCommand`) are filtered for security — they are logged as warnings but still passed through if explicitly set.
+
+### Startup Command
+
+Run a command automatically after the SSH connection is established.
+
+**Configure:**
+1. Edit an SSH connection → **SSH** tab → **Session** group
+2. Enter the command in the **Startup Command** field
+
+The command is appended to the SSH invocation and executes in the remote shell immediately after login.
+
+**Examples:**
+- `htop` — open system monitor on connect
+- `cd /var/log && tail -f syslog` — jump to logs
+- `tmux attach || tmux new` — attach to or create a tmux session
 
 ### Waypipe (Wayland Forwarding)
 

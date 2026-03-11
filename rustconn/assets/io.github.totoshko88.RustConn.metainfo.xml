@@ -90,6 +90,18 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.9.15" date="2026-03-11">
+      <description>
+        <p>Hide local cursor option and SSH fixes:</p>
+        <ul>
+          <li>Added "Show Local Cursor" option for embedded RDP, VNC, and SPICE viewers to eliminate double cursor</li>
+          <li>Fixed VNC session ignores Display Mode setting — Fullscreen and External modes now work correctly</li>
+          <li>Fixed SSH port forwarding, X11 forwarding, compression, and ControlPersist not applied from UI settings</li>
+          <li>Fixed SSH custom options not accepting -o prefix format from CLI copy-paste</li>
+          <li>Fixed misleading custom options placeholder in connection dialog</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.9.14" date="2026-03-11">
       <description>
         <p>Flatpak KDE fix, monitoring bar overflow fix, and dependency updates:</p>

@@ -246,8 +246,13 @@ fn start_ssh_connection_internal(
                 .key_path
                 .as_ref()
                 .map(|p| p.to_string_lossy().to_string());
-            let mut args = Vec::new();
 
+            // Use build_command_args() for all SSH-specific flags:
+            // identity, IdentitiesOnly, proxy_jump, ControlMaster/Persist,
+            // agent forwarding, X11, compression, custom options, port forwards
+            let mut args = ssh_config.build_command_args();
+
+            // Resolve jump host chain from connection references (needs state access)
             let mut jump_hosts = Vec::new();
 
             // Handle string-based proxy jump (legacy/manual)
@@ -303,30 +308,27 @@ fn start_ssh_connection_internal(
                 }
             }
 
+            // Override proxy_jump with resolved jump host chain if we have
+            // reference-based jump hosts (build_command_args already added -J
+            // for the string-based proxy_jump, so only add if we have more)
             let jump_host_str = if jump_hosts.is_empty() {
                 None
             } else {
-                Some(jump_hosts.join(","))
-            };
-
-            if let Some(ref jh) = jump_host_str {
+                // Remove the -J added by build_command_args (if proxy_jump was set)
+                // and replace with the full resolved chain
+                if ssh_config.proxy_jump.is_some()
+                    && let Some(pos) = args.iter().position(|a| a == "-J")
+                {
+                    args.remove(pos); // remove "-J"
+                    if pos < args.len() {
+                        args.remove(pos); // remove the value
+                    }
+                }
+                let chain = jump_hosts.join(",");
                 args.push("-J".to_string());
-                args.push(jh.clone());
-            }
-
-            if ssh_config.use_control_master {
-                args.push("-o".to_string());
-                args.push("ControlMaster=auto".to_string());
-            }
-
-            if ssh_config.agent_forwarding {
-                args.push("-A".to_string());
-            }
-
-            for (k, v) in &ssh_config.custom_options {
-                args.push("-o".to_string());
-                args.push(format!("{k}={v}"));
-            }
+                args.push(chain.clone());
+                Some(chain)
+            };
 
             // In Flatpak, ~/.ssh is read-only — point known_hosts to a writable path
             let user_set_known_hosts = ssh_config
@@ -693,8 +695,11 @@ fn start_vnc_connection_internal(
     connection_id: Uuid,
     conn: &rustconn_core::Connection,
 ) -> Option<Uuid> {
+    use rustconn_core::models::{VncClientMode, WindowMode};
+
     let conn_name = conn.name.clone();
     let port = conn.port;
+    let window_mode = conn.window_mode;
 
     // Get global variables for substitution (secret values resolved from vault)
     let global_variables = state
@@ -707,11 +712,21 @@ fn start_vnc_connection_internal(
     let host = substitute_variables(&conn.host, &global_variables);
 
     // Get VNC-specific configuration
-    let vnc_config = if let rustconn_core::ProtocolConfig::Vnc(config) = &conn.protocol_config {
+    let mut vnc_config = if let rustconn_core::ProtocolConfig::Vnc(config) = &conn.protocol_config {
         config.clone()
     } else {
         rustconn_core::models::VncConfig::default()
     };
+
+    // Apply window_mode: External forces external viewer
+    if window_mode == WindowMode::External {
+        vnc_config.client_mode = VncClientMode::External;
+        tracing::info!(
+            protocol = "vnc",
+            host = %host,
+            "Window mode is External, using external VNC viewer"
+        );
+    }
 
     // Get password from cached credentials (set by credential resolution flow)
     let password: Option<String> = state.try_borrow().ok().and_then(|state_ref| {
@@ -782,6 +797,16 @@ fn start_vnc_connection_internal(
         } else {
             sidebar.update_connection_status(&connection_id.to_string(), "connecting");
         }
+    }
+
+    // If Fullscreen mode, maximize the window (same pattern as RDP)
+    if matches!(window_mode, WindowMode::Fullscreen)
+        && let Some(window) = notebook
+            .widget()
+            .ancestor(gtk4::ApplicationWindow::static_type())
+        && let Some(app_window) = window.downcast_ref::<gtk4::ApplicationWindow>()
+    {
+        app_window.maximize();
     }
 
     // Update last_connected timestamp
@@ -921,6 +946,9 @@ fn start_spice_connection_internal(
 
             // Configure clipboard
             config = config.with_clipboard(opts.clipboard_enabled);
+
+            // Configure local cursor visibility
+            config.show_local_cursor = opts.show_local_cursor;
         }
 
         // Connect state change callback to mark tab as disconnected

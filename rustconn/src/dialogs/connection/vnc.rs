@@ -32,6 +32,7 @@ pub type VncOptionsWidgets = (
     CheckButton, // view_only_check
     CheckButton, // scaling_check
     CheckButton, // clipboard_check
+    CheckButton, // show_local_cursor_check
     DropDown,    // scale_override_dropdown
     Entry,       // custom_args_entry
 );
@@ -69,7 +70,8 @@ pub fn create_vnc_options() -> VncOptionsWidgets {
     });
 
     // === Features Group ===
-    let (features_group, view_only_check, scaling_check, clipboard_check) = create_features_group();
+    let (features_group, view_only_check, scaling_check, clipboard_check, show_local_cursor_check) =
+        create_features_group();
     content.append(&features_group);
 
     // === Advanced Group ===
@@ -86,6 +88,7 @@ pub fn create_vnc_options() -> VncOptionsWidgets {
         view_only_check,
         scaling_check,
         clipboard_check,
+        show_local_cursor_check,
         scale_override_dropdown,
         custom_args_entry,
     )
@@ -185,7 +188,13 @@ fn create_quality_group() -> (adw::PreferencesGroup, SpinButton, SpinButton) {
 }
 
 /// Creates the Features preferences group
-fn create_features_group() -> (adw::PreferencesGroup, CheckButton, CheckButton, CheckButton) {
+fn create_features_group() -> (
+    adw::PreferencesGroup,
+    CheckButton,
+    CheckButton,
+    CheckButton,
+    CheckButton,
+) {
     let features_group = adw::PreferencesGroup::builder()
         .title(i18n("Features"))
         .build();
@@ -219,11 +228,19 @@ fn create_features_group() -> (adw::PreferencesGroup, CheckButton, CheckButton, 
     password_info_row.add_prefix(&gtk4::Image::from_icon_name("dialog-information-symbolic"));
     features_group.add(&password_info_row);
 
+    // Show local cursor
+    let (show_cursor_row, show_local_cursor_check) = CheckboxRowBuilder::new("Show Local Cursor")
+        .subtitle("Hide to avoid double cursor in embedded mode")
+        .active(true)
+        .build();
+    features_group.add(&show_cursor_row);
+
     (
         features_group,
         view_only_check,
         scaling_check,
         clipboard_check,
+        show_local_cursor_check,
     )
 }
 

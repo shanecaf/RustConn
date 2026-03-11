@@ -1192,6 +1192,8 @@ impl ScaleOverride {
 }
 
 /// RDP protocol configuration
+// Allow 4 bools - these are distinct RDP connection options
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RdpConfig {
     /// RDP client mode (embedded or external)
@@ -1230,6 +1232,9 @@ pub struct RdpConfig {
     /// Enable clipboard sharing between local and remote
     #[serde(default = "default_true")]
     pub clipboard_enabled: bool,
+    /// Show local mouse cursor over embedded viewer (disable to avoid double cursor)
+    #[serde(default = "default_true")]
+    pub show_local_cursor: bool,
 }
 
 impl RdpConfig {
@@ -1368,6 +1373,8 @@ impl VncClientMode {
 }
 
 /// VNC protocol configuration
+// Allow 4 bools - these are distinct VNC connection options
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VncConfig {
     /// VNC client mode (embedded or external)
@@ -1400,6 +1407,9 @@ pub struct VncConfig {
     /// Display scale override for embedded mode
     #[serde(default)]
     pub scale_override: ScaleOverride,
+    /// Show local mouse cursor over embedded viewer (disable to avoid double cursor)
+    #[serde(default = "default_true")]
+    pub show_local_cursor: bool,
 }
 
 impl VncConfig {
@@ -1472,6 +1482,9 @@ pub struct SpiceConfig {
     /// SPICE proxy URL (e.g. `http://proxy:3128`) for Proxmox VE tunnelled connections
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub proxy: Option<String>,
+    /// Show local mouse cursor over embedded viewer (disable to avoid double cursor)
+    #[serde(default = "default_true")]
+    pub show_local_cursor: bool,
 }
 
 impl Default for SpiceConfig {
@@ -1482,9 +1495,10 @@ impl Default for SpiceConfig {
             skip_cert_verify: false,
             usb_redirection: false,
             shared_folders: Vec::new(),
-            clipboard_enabled: true, // Clipboard enabled by default
+            clipboard_enabled: true,
             image_compression: None,
             proxy: None,
+            show_local_cursor: true,
         }
     }
 }

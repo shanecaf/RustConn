@@ -246,6 +246,37 @@ proptest! {
         }
     }
 
+    /// **Feature: rustconn-bugfixes (issue #49)**
+    ///
+    /// Parsing custom options with `-o` prefix should produce the same result
+    /// as parsing without the prefix.
+    #[test]
+    fn parse_custom_options_dash_o_prefix_equivalence(options in arb_custom_options()) {
+        let plain = format_custom_options(&options);
+        let with_prefix: String = options
+            .iter()
+            .map(|(k, v)| format!("-o {k}={v}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        let parsed_plain = parse_custom_options(&plain);
+        let parsed_prefix = parse_custom_options(&with_prefix);
+
+        prop_assert_eq!(
+            parsed_plain.len(),
+            parsed_prefix.len(),
+            "Parsing with and without -o prefix should yield same count"
+        );
+        for (key, value) in &parsed_plain {
+            prop_assert_eq!(
+                parsed_prefix.get(key),
+                Some(value),
+                "Option '{}' should match regardless of -o prefix",
+                key
+            );
+        }
+    }
+
     /// **Feature: rustconn-enhancements, Property 3: Dialog Validation Round-Trip**
     /// **Validates: Requirements 4.5**
     ///

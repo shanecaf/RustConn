@@ -123,6 +123,8 @@ pub struct RdpConfig {
     pub keyboard_layout: Option<u32>,
     /// Display scale override for embedded mode
     pub scale_override: rustconn_core::models::ScaleOverride,
+    /// Show local mouse cursor over embedded viewer (disable to avoid double cursor)
+    pub show_local_cursor: bool,
 }
 
 impl Default for RdpConfig {
@@ -144,6 +146,7 @@ impl Default for RdpConfig {
             polling_interval_ms: 16, // ~60 FPS
             keyboard_layout: None,
             scale_override: rustconn_core::models::ScaleOverride::default(),
+            show_local_cursor: true,
         }
     }
 }

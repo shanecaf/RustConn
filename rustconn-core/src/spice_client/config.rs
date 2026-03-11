@@ -61,6 +61,9 @@ pub struct SpiceClientConfig {
 
     /// SPICE proxy URL (e.g. `http://proxy:3128`) for tunnelled connections
     pub proxy: Option<String>,
+
+    /// Show local mouse cursor over embedded viewer (disable to avoid double cursor)
+    pub show_local_cursor: bool,
 }
 
 /// SPICE security protocol options
@@ -143,6 +146,7 @@ impl Default for SpiceClientConfig {
             timeout_secs: 30,
             security_protocol: SpiceSecurityProtocol::default(),
             proxy: None,
+            show_local_cursor: true,
         }
     }
 }

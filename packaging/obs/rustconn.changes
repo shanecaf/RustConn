@@ -1,4 +1,22 @@
 -------------------------------------------------------------------
+Wed Mar 11 2026 Anton Isaiev <totoshko88@gmail.com> - 0.9.15
+
+- Added "Show Local Cursor" option for embedded RDP, VNC, and SPICE
+  viewers — hides local OS cursor to eliminate double cursor (#51)
+- Fixed VNC session ignores Display Mode setting — Fullscreen and
+  External modes now work correctly (#50)
+- Fixed SSH port forwarding via UI broken — protocols.rs skipped
+  port_forwards, X11, compression, ControlPersist; now delegates to
+  SshConfig::build_command_args() (#49)
+- Fixed SSH custom options -o prefix not stripped (#49)
+- Fixed SSH custom options placeholder misleading (#49)
+
+-------------------------------------------------------------------
+Wed Mar 11 2026 Anton Isaiev <totoshko88@gmail.com> - 0.9.15
+
+- Version bump to 0.9.15
+
+-------------------------------------------------------------------
 Wed Mar 11 2026 Anton Isaiev <totoshko88@gmail.com> - 0.9.14
 
 - Fixed SSH connection fails in Flatpak on KDE — host SSH_ASKPASS

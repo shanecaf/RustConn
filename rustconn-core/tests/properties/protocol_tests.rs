@@ -7,8 +7,9 @@ use proptest::prelude::*;
 use std::collections::HashMap;
 
 use rustconn_core::models::{
-    Connection, ProtocolConfig, RdpConfig, RdpGateway, Resolution, SharedFolder, SpiceConfig,
-    SpiceImageCompression, SshAuthMethod, SshConfig, SshKeySource, VncConfig,
+    Connection, PortForward, PortForwardDirection, ProtocolConfig, RdpConfig, RdpGateway,
+    Resolution, SharedFolder, SpiceConfig, SpiceImageCompression, SshAuthMethod, SshConfig,
+    SshKeySource, VncConfig,
 };
 use rustconn_core::protocol::{Protocol, RdpProtocol, SshProtocol, VncProtocol};
 use std::path::PathBuf;
@@ -144,6 +145,7 @@ fn arb_rdp_config() -> impl Strategy<Value = RdpConfig> {
                     scale_override: Default::default(),
                     disable_nla: false,
                     clipboard_enabled: true,
+                    show_local_cursor: true,
                 }
             },
         )
@@ -188,6 +190,7 @@ fn arb_vnc_config() -> impl Strategy<Value = VncConfig> {
             clipboard_enabled: true,
             custom_args,
             scale_override: Default::default(),
+            show_local_cursor: true,
         })
 }
 
@@ -563,6 +566,7 @@ fn arb_spice_config() -> impl Strategy<Value = SpiceConfig> {
                 clipboard_enabled,
                 image_compression,
                 proxy: None,
+                show_local_cursor: true,
             },
         )
 }
@@ -1489,6 +1493,135 @@ proptest! {
                 icon_a, icon_b,
                 "Same protocol {:?} should always return same icon",
                 proto_a
+            );
+        }
+    }
+}
+
+// ============================================================================
+// Property Tests for SSH Port Forwarding Command Generation (issue #49)
+// ============================================================================
+
+/// Generator for port forwarding direction
+fn arb_port_forward_direction() -> impl Strategy<Value = PortForwardDirection> {
+    prop_oneof![
+        Just(PortForwardDirection::Local),
+        Just(PortForwardDirection::Remote),
+        Just(PortForwardDirection::Dynamic),
+    ]
+}
+
+/// Generator for a single port forward rule
+fn arb_port_forward() -> impl Strategy<Value = PortForward> {
+    (
+        arb_port_forward_direction(),
+        1u16..=65535u16,
+        "[a-z]{1,15}",
+        1u16..=65535u16,
+    )
+        .prop_map(
+            |(direction, local_port, remote_host, remote_port)| PortForward {
+                direction,
+                local_port,
+                remote_host,
+                remote_port,
+            },
+        )
+}
+
+/// Generator for SSH config with port forwards
+fn arb_ssh_config_with_port_forwards() -> impl Strategy<Value = SshConfig> {
+    (
+        arb_ssh_auth_method(),
+        prop::collection::vec(arb_port_forward(), 1..4),
+    )
+        .prop_map(|(auth_method, port_forwards)| SshConfig {
+            auth_method,
+            key_path: None,
+            key_source: SshKeySource::Default,
+            agent_key_fingerprint: None,
+            identities_only: false,
+            proxy_jump: None,
+            use_control_master: false,
+            agent_forwarding: false,
+            x11_forwarding: false,
+            compression: false,
+            custom_options: HashMap::new(),
+            startup_command: None,
+            jump_host_id: None,
+            sftp_enabled: false,
+            port_forwards,
+            waypipe: false,
+        })
+}
+
+proptest! {
+    #![proptest_config(ProptestConfig::with_cases(100))]
+
+    /// **Feature: rustconn-bugfixes (issue #49)**
+    ///
+    /// For any SSH config with port forwarding rules, `build_command_args()`
+    /// must include the corresponding `-L`, `-R`, or `-D` flags.
+    #[test]
+    fn prop_ssh_port_forwards_in_command(config in arb_ssh_config_with_port_forwards()) {
+        let args = config.build_command_args();
+
+        for pf in &config.port_forwards {
+            let flag = match pf.direction {
+                PortForwardDirection::Local => "-L",
+                PortForwardDirection::Remote => "-R",
+                PortForwardDirection::Dynamic => "-D",
+            };
+            prop_assert!(
+                args.contains(&flag.to_string()),
+                "Port forward flag '{}' missing from args: {:?}",
+                flag,
+                args
+            );
+        }
+    }
+
+    /// **Feature: rustconn-bugfixes (issue #49)**
+    ///
+    /// For any SSH config with X11 forwarding or compression enabled,
+    /// `build_command_args()` must include `-X` and/or `-C`.
+    #[test]
+    fn prop_ssh_session_flags_in_command(
+        x11 in any::<bool>(),
+        compression in any::<bool>(),
+    ) {
+        let config = SshConfig {
+            auth_method: SshAuthMethod::Password,
+            key_path: None,
+            key_source: SshKeySource::Default,
+            agent_key_fingerprint: None,
+            identities_only: false,
+            proxy_jump: None,
+            use_control_master: false,
+            agent_forwarding: false,
+            x11_forwarding: x11,
+            compression,
+            custom_options: HashMap::new(),
+            startup_command: None,
+            jump_host_id: None,
+            sftp_enabled: false,
+            port_forwards: Vec::new(),
+            waypipe: false,
+        };
+        let args = config.build_command_args();
+
+        if x11 {
+            prop_assert!(
+                args.contains(&"-X".to_string()),
+                "X11 forwarding enabled but -X missing from args: {:?}",
+                args
+            );
+        }
+        if compression {
+            prop_assert!(
+                args.contains(&"-C".to_string()),
+                "Compression enabled but -C missing from args: {:?}",
+                args
             );
         }
     }

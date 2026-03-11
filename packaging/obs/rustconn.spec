@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.9.14
+Version:        0.9.15
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -199,6 +199,20 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Wed Mar 11 2026 Anton Isaiev <totoshko88@gmail.com> - 0.9.15-0
+- Added "Show Local Cursor" option for embedded RDP, VNC, and SPICE
+  viewers — hides local OS cursor to eliminate double cursor (#51)
+- Fixed VNC session ignores Display Mode setting — Fullscreen and
+  External modes now work correctly (#50)
+- Fixed SSH port forwarding via UI broken — protocols.rs skipped
+  port_forwards, X11, compression, ControlPersist; now delegates to
+  SshConfig::build_command_args() (#49)
+- Fixed SSH custom options -o prefix not stripped (#49)
+- Fixed SSH custom options placeholder misleading (#49)
+
+* Wed Mar 11 2026 Anton Isaiev <totoshko88@gmail.com> - 0.9.15-0
+- Version bump to 0.9.15
+
 * Wed Mar 11 2026 Anton Isaiev <totoshko88@gmail.com> - 0.9.14-0
 - Fixed SSH connection fails in Flatpak on KDE — host SSH_ASKPASS
   (e.g. ksshaskpass) stripped from VTE child environment (#48)

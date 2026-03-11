@@ -1,3 +1,27 @@
+rustconn (0.9.15-1) unstable; urgency=medium
+
+  * Added "Show Local Cursor" option for embedded RDP, VNC, and SPICE
+    viewers — hides local OS cursor to eliminate double cursor effect;
+    enabled by default for backward compatibility (#51)
+  * Fixed VNC session ignores Display Mode setting — Fullscreen and
+    External modes now work correctly (#50)
+  * Fixed SSH port forwarding via UI broken — window/protocols.rs built
+    SSH args manually, skipping port_forwards, X11 forwarding, compression,
+    and ControlPersist from SshConfig; refactored to delegate to
+    SshConfig::build_command_args() (#49)
+  * Fixed SSH custom options -o prefix not stripped — parse_custom_options()
+    now silently strips the -o prefix from pasted CLI snippets (#49)
+  * Fixed SSH custom options placeholder misleading — updated dialog
+    placeholder and subtitle to clarify correct Key=Value format (#49)
+
+ -- Anton Isaiev <totoshko88@gmail.com>  Wed, 11 Mar 2026 18:00:00 +0200
+
+rustconn (0.9.15-1) unstable; urgency=medium
+
+  * Version bump to 0.9.15
+
+ -- Anton Isaiev <totoshko88@gmail.com>  Wed, 11 Mar 2026 12:00:00 +0200
+
 rustconn (0.9.14-1) unstable; urgency=medium
 
   * Fixed SSH connection fails in Flatpak on KDE — host SSH_ASKPASS

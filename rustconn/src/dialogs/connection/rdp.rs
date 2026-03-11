@@ -40,6 +40,7 @@ pub type RdpOptionsWidgets = (
     Entry,                          // gateway_username_entry
     CheckButton,                    // disable_nla_check
     CheckButton,                    // clipboard_check
+    CheckButton,                    // show_local_cursor_check
     Rc<RefCell<Vec<SharedFolder>>>, // shared_folders
     gtk4::ListBox,                  // folders_list
     Entry,                          // custom_args_entry
@@ -71,6 +72,7 @@ pub fn create_rdp_options() -> RdpOptionsWidgets {
         gateway_username_entry,
         disable_nla_check,
         clipboard_check,
+        show_local_cursor_check,
     ) = create_features_group();
     content.append(&features_group);
 
@@ -97,6 +99,7 @@ pub fn create_rdp_options() -> RdpOptionsWidgets {
         gateway_username_entry,
         disable_nla_check,
         clipboard_check,
+        show_local_cursor_check,
         shared_folders,
         folders_list,
         args_entry,
@@ -235,6 +238,7 @@ fn create_features_group() -> (
     Entry,
     CheckButton,
     CheckButton,
+    CheckButton,
 ) {
     let features_group = adw::PreferencesGroup::builder()
         .title(i18n("Features"))
@@ -258,6 +262,13 @@ fn create_features_group() -> (
         .subtitle("Skip Network Level Authentication (less secure)")
         .build();
     features_group.add(&nla_row);
+
+    // Show local cursor
+    let (show_cursor_row, show_local_cursor_check) = CheckboxRowBuilder::new("Show Local Cursor")
+        .subtitle("Hide to avoid double cursor in embedded mode")
+        .active(true)
+        .build();
+    features_group.add(&show_cursor_row);
 
     // Gateway
     let (gateway_row, gateway_entry) = EntryRowBuilder::new("RDP Gateway")
@@ -315,6 +326,7 @@ fn create_features_group() -> (
         gateway_username_entry,
         disable_nla_check,
         clipboard_check,
+        show_local_cursor_check,
     )
 }
 

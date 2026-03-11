@@ -159,6 +159,7 @@ pub struct ConnectionDialog {
     rdp_gateway_username_entry: Entry,
     rdp_disable_nla_check: CheckButton,
     rdp_clipboard_check: CheckButton,
+    rdp_show_local_cursor_check: CheckButton,
     rdp_shared_folders: Rc<RefCell<Vec<SharedFolder>>>,
     rdp_shared_folders_list: gtk4::ListBox,
     rdp_custom_args_entry: Entry,
@@ -172,6 +173,7 @@ pub struct ConnectionDialog {
     vnc_view_only_check: CheckButton,
     vnc_scaling_check: CheckButton,
     vnc_clipboard_check: CheckButton,
+    vnc_show_local_cursor_check: CheckButton,
     vnc_scale_override_dropdown: DropDown,
     vnc_custom_args_entry: Entry,
     // SPICE fields
@@ -181,6 +183,7 @@ pub struct ConnectionDialog {
     spice_skip_verify_check: CheckButton,
     spice_usb_check: CheckButton,
     spice_clipboard_check: CheckButton,
+    spice_show_local_cursor_check: CheckButton,
     spice_compression_dropdown: DropDown,
     spice_proxy_entry: Entry,
     spice_shared_folders: Rc<RefCell<Vec<SharedFolder>>>,
@@ -472,6 +475,7 @@ impl ConnectionDialog {
             rdp_gateway_username_entry,
             rdp_disable_nla_check,
             rdp_clipboard_check,
+            rdp_show_local_cursor_check,
             rdp_shared_folders,
             rdp_shared_folders_list,
             rdp_custom_args_entry,
@@ -490,6 +494,7 @@ impl ConnectionDialog {
             vnc_view_only_check,
             vnc_scaling_check,
             vnc_clipboard_check,
+            vnc_show_local_cursor_check,
             vnc_scale_override_dropdown,
             vnc_custom_args_entry,
         ) = Self::create_vnc_options();
@@ -506,6 +511,7 @@ impl ConnectionDialog {
             spice_clipboard_check,
             spice_compression_dropdown,
             spice_proxy_entry,
+            spice_show_local_cursor_check,
             spice_shared_folders,
             spice_shared_folders_list,
         ) = Self::create_spice_options();
@@ -746,6 +752,7 @@ impl ConnectionDialog {
             &rdp_gateway_username_entry,
             &rdp_disable_nla_check,
             &rdp_clipboard_check,
+            &rdp_show_local_cursor_check,
             &rdp_shared_folders,
             &rdp_custom_args_entry,
             &rdp_keyboard_layout_dropdown,
@@ -757,6 +764,7 @@ impl ConnectionDialog {
             &vnc_view_only_check,
             &vnc_scaling_check,
             &vnc_clipboard_check,
+            &vnc_show_local_cursor_check,
             &vnc_scale_override_dropdown,
             &vnc_custom_args_entry,
             &spice_tls_check,
@@ -764,6 +772,7 @@ impl ConnectionDialog {
             &spice_skip_verify_check,
             &spice_usb_check,
             &spice_clipboard_check,
+            &spice_show_local_cursor_check,
             &spice_compression_dropdown,
             &spice_proxy_entry,
             &spice_shared_folders,
@@ -889,6 +898,7 @@ impl ConnectionDialog {
             rdp_gateway_username_entry,
             rdp_disable_nla_check,
             rdp_clipboard_check,
+            rdp_show_local_cursor_check,
             rdp_shared_folders,
             rdp_shared_folders_list,
             rdp_custom_args_entry,
@@ -901,6 +911,7 @@ impl ConnectionDialog {
             vnc_view_only_check,
             vnc_scaling_check,
             vnc_clipboard_check,
+            vnc_show_local_cursor_check,
             vnc_scale_override_dropdown,
             vnc_custom_args_entry,
             spice_tls_check,
@@ -914,6 +925,7 @@ impl ConnectionDialog {
             spice_skip_verify_check,
             spice_usb_check,
             spice_clipboard_check,
+            spice_show_local_cursor_check,
             spice_compression_dropdown,
             spice_proxy_entry,
             spice_shared_folders,
@@ -1613,6 +1625,7 @@ impl ConnectionDialog {
         rdp_gateway_username_entry: &Entry,
         rdp_disable_nla_check: &CheckButton,
         rdp_clipboard_check: &CheckButton,
+        rdp_show_local_cursor_check: &CheckButton,
         rdp_shared_folders: &Rc<RefCell<Vec<SharedFolder>>>,
         rdp_custom_args_entry: &Entry,
         rdp_keyboard_layout_dropdown: &DropDown,
@@ -1624,6 +1637,7 @@ impl ConnectionDialog {
         vnc_view_only_check: &CheckButton,
         vnc_scaling_check: &CheckButton,
         vnc_clipboard_check: &CheckButton,
+        vnc_show_local_cursor_check: &CheckButton,
         vnc_scale_override_dropdown: &DropDown,
         vnc_custom_args_entry: &Entry,
         spice_tls_check: &CheckButton,
@@ -1631,6 +1645,7 @@ impl ConnectionDialog {
         spice_skip_verify_check: &CheckButton,
         spice_usb_check: &CheckButton,
         spice_clipboard_check: &CheckButton,
+        spice_show_local_cursor_check: &CheckButton,
         spice_compression_dropdown: &DropDown,
         spice_proxy_entry: &Entry,
         spice_shared_folders: &Rc<RefCell<Vec<SharedFolder>>>,
@@ -1744,6 +1759,7 @@ impl ConnectionDialog {
         let rdp_gateway_username_entry = rdp_gateway_username_entry.clone();
         let rdp_disable_nla_check = rdp_disable_nla_check.clone();
         let rdp_clipboard_check = rdp_clipboard_check.clone();
+        let rdp_show_local_cursor_check = rdp_show_local_cursor_check.clone();
         let rdp_shared_folders = rdp_shared_folders.clone();
         let rdp_custom_args_entry = rdp_custom_args_entry.clone();
         let rdp_keyboard_layout_dropdown = rdp_keyboard_layout_dropdown.clone();
@@ -1755,6 +1771,7 @@ impl ConnectionDialog {
         let vnc_view_only_check = vnc_view_only_check.clone();
         let vnc_scaling_check = vnc_scaling_check.clone();
         let vnc_clipboard_check = vnc_clipboard_check.clone();
+        let vnc_show_local_cursor_check = vnc_show_local_cursor_check.clone();
         let vnc_scale_override_dropdown = vnc_scale_override_dropdown.clone();
         let vnc_custom_args_entry = vnc_custom_args_entry.clone();
         let vnc_performance_mode_dropdown = vnc_performance_mode_dropdown.clone();
@@ -1763,6 +1780,7 @@ impl ConnectionDialog {
         let spice_skip_verify_check = spice_skip_verify_check.clone();
         let spice_usb_check = spice_usb_check.clone();
         let spice_clipboard_check = spice_clipboard_check.clone();
+        let spice_show_local_cursor_check = spice_show_local_cursor_check.clone();
         let spice_compression_dropdown = spice_compression_dropdown.clone();
         let spice_proxy_entry = spice_proxy_entry.clone();
         let spice_shared_folders = spice_shared_folders.clone();
@@ -1888,6 +1906,7 @@ impl ConnectionDialog {
                 rdp_gateway_username_entry: &rdp_gateway_username_entry,
                 rdp_disable_nla_check: &rdp_disable_nla_check,
                 rdp_clipboard_check: &rdp_clipboard_check,
+                rdp_show_local_cursor_check: &rdp_show_local_cursor_check,
                 rdp_shared_folders: &rdp_shared_folders,
                 rdp_custom_args_entry: &rdp_custom_args_entry,
                 rdp_keyboard_layout_dropdown: &rdp_keyboard_layout_dropdown,
@@ -1898,6 +1917,7 @@ impl ConnectionDialog {
                 vnc_view_only_check: &vnc_view_only_check,
                 vnc_scaling_check: &vnc_scaling_check,
                 vnc_clipboard_check: &vnc_clipboard_check,
+                vnc_show_local_cursor_check: &vnc_show_local_cursor_check,
                 vnc_scale_override_dropdown: &vnc_scale_override_dropdown,
                 vnc_custom_args_entry: &vnc_custom_args_entry,
                 spice_tls_check: &spice_tls_check,
@@ -1905,6 +1925,7 @@ impl ConnectionDialog {
                 spice_skip_verify_check: &spice_skip_verify_check,
                 spice_usb_check: &spice_usb_check,
                 spice_clipboard_check: &spice_clipboard_check,
+                spice_show_local_cursor_check: &spice_show_local_cursor_check,
                 spice_compression_dropdown: &spice_compression_dropdown,
                 spice_proxy_entry: &spice_proxy_entry,
                 spice_shared_folders: &spice_shared_folders,
@@ -2017,6 +2038,7 @@ impl ConnectionDialog {
         Entry,
         SpinButton,
         Entry,
+        CheckButton,
         CheckButton,
         CheckButton,
         Rc<RefCell<Vec<SharedFolder>>>,
@@ -2209,6 +2231,16 @@ impl ConnectionDialog {
             .build();
         clipboard_row.add_suffix(&clipboard_check);
         features_group.add(&clipboard_row);
+
+        // Show local cursor
+        let rdp_show_local_cursor_check = CheckButton::builder().active(true).build();
+        let show_cursor_row = adw::ActionRow::builder()
+            .title(i18n("Show Local Cursor"))
+            .subtitle(i18n("Hide to avoid double cursor in embedded mode"))
+            .activatable_widget(&rdp_show_local_cursor_check)
+            .build();
+        show_cursor_row.add_suffix(&rdp_show_local_cursor_check);
+        features_group.add(&show_cursor_row);
 
         // Disable NLA
         let disable_nla_check = CheckButton::new();
@@ -2415,6 +2447,7 @@ impl ConnectionDialog {
             gateway_username_entry,
             disable_nla_check,
             clipboard_check,
+            rdp_show_local_cursor_check,
             shared_folders,
             folders_list,
             args_entry,
@@ -2521,6 +2554,7 @@ impl ConnectionDialog {
         DropDown,
         SpinButton,
         SpinButton,
+        CheckButton,
         CheckButton,
         CheckButton,
         CheckButton,
@@ -2732,6 +2766,16 @@ impl ConnectionDialog {
         clipboard_row.add_suffix(&clipboard_check);
         features_group.add(&clipboard_row);
 
+        // Show local cursor
+        let vnc_show_local_cursor_check = CheckButton::builder().active(true).build();
+        let show_cursor_row = adw::ActionRow::builder()
+            .title(i18n("Show Local Cursor"))
+            .subtitle(i18n("Hide to avoid double cursor in embedded mode"))
+            .activatable_widget(&vnc_show_local_cursor_check)
+            .build();
+        show_cursor_row.add_suffix(&vnc_show_local_cursor_check);
+        features_group.add(&show_cursor_row);
+
         // VNC-3: Password info row
         let password_info_row = adw::ActionRow::builder()
             .title(i18n("Authentication"))
@@ -2779,6 +2823,7 @@ impl ConnectionDialog {
             view_only_check,
             scaling_check,
             clipboard_check,
+            vnc_show_local_cursor_check,
             scale_override_dropdown,
             custom_args_entry,
         )
@@ -2796,6 +2841,7 @@ impl ConnectionDialog {
         CheckButton,
         DropDown,
         Entry,
+        CheckButton,
         Rc<RefCell<Vec<SharedFolder>>>,
         gtk4::ListBox,
     ) {
@@ -2945,6 +2991,17 @@ impl ConnectionDialog {
         proxy_row.add_suffix(&proxy_entry);
         features_group.add(&proxy_row);
 
+        // Show local cursor
+        let show_local_cursor_check = CheckButton::new();
+        show_local_cursor_check.set_active(true);
+        let show_cursor_row = adw::ActionRow::builder()
+            .title(i18n("Show Local Cursor"))
+            .subtitle(i18n("Hide to avoid double cursor in embedded mode"))
+            .activatable_widget(&show_local_cursor_check)
+            .build();
+        show_cursor_row.add_suffix(&show_local_cursor_check);
+        features_group.add(&show_cursor_row);
+
         content.append(&features_group);
 
         // Wire TLS toggle to CA cert and skip verify sensitivity
@@ -3029,6 +3086,7 @@ impl ConnectionDialog {
             clipboard_check,
             compression_dropdown,
             proxy_entry,
+            show_local_cursor_check,
             shared_folders,
             folders_list,
         )
@@ -5181,6 +5239,8 @@ impl ConnectionDialog {
             .set_selected(rdp.scale_override.index());
         self.rdp_audio_check.set_active(rdp.audio_redirect);
         self.rdp_clipboard_check.set_active(rdp.clipboard_enabled);
+        self.rdp_show_local_cursor_check
+            .set_active(rdp.show_local_cursor);
         self.rdp_disable_nla_check.set_active(rdp.disable_nla);
         if let Some(ref gw) = rdp.gateway {
             self.rdp_gateway_entry.set_text(&gw.hostname);
@@ -5267,6 +5327,8 @@ impl ConnectionDialog {
         self.vnc_view_only_check.set_active(vnc.view_only);
         self.vnc_scaling_check.set_active(vnc.scaling);
         self.vnc_clipboard_check.set_active(vnc.clipboard_enabled);
+        self.vnc_show_local_cursor_check
+            .set_active(vnc.show_local_cursor);
         self.vnc_scale_override_dropdown
             .set_selected(vnc.scale_override.index());
 
@@ -5286,6 +5348,8 @@ impl ConnectionDialog {
         self.spice_usb_check.set_active(spice.usb_redirection);
         self.spice_clipboard_check
             .set_active(spice.clipboard_enabled);
+        self.spice_show_local_cursor_check
+            .set_active(spice.show_local_cursor);
 
         // Map compression mode to dropdown index
         let compression_idx = match spice.image_compression {
@@ -6050,6 +6114,7 @@ struct ConnectionDialogData<'a> {
     rdp_gateway_username_entry: &'a Entry,
     rdp_disable_nla_check: &'a CheckButton,
     rdp_clipboard_check: &'a CheckButton,
+    rdp_show_local_cursor_check: &'a CheckButton,
     rdp_shared_folders: &'a Rc<RefCell<Vec<SharedFolder>>>,
     rdp_custom_args_entry: &'a Entry,
     rdp_keyboard_layout_dropdown: &'a DropDown,
@@ -6061,6 +6126,7 @@ struct ConnectionDialogData<'a> {
     vnc_view_only_check: &'a CheckButton,
     vnc_scaling_check: &'a CheckButton,
     vnc_clipboard_check: &'a CheckButton,
+    vnc_show_local_cursor_check: &'a CheckButton,
     vnc_scale_override_dropdown: &'a DropDown,
     vnc_custom_args_entry: &'a Entry,
     spice_tls_check: &'a CheckButton,
@@ -6068,6 +6134,7 @@ struct ConnectionDialogData<'a> {
     spice_skip_verify_check: &'a CheckButton,
     spice_usb_check: &'a CheckButton,
     spice_clipboard_check: &'a CheckButton,
+    spice_show_local_cursor_check: &'a CheckButton,
     spice_compression_dropdown: &'a DropDown,
     spice_proxy_entry: &'a Entry,
     spice_shared_folders: &'a Rc<RefCell<Vec<SharedFolder>>>,
@@ -6902,6 +6969,7 @@ impl ConnectionDialogData<'_> {
             scale_override: ScaleOverride::from_index(self.rdp_scale_override_dropdown.selected()),
             disable_nla: self.rdp_disable_nla_check.is_active(),
             clipboard_enabled: self.rdp_clipboard_check.is_active(),
+            show_local_cursor: self.rdp_show_local_cursor_check.is_active(),
         }
     }
 
@@ -6939,6 +7007,7 @@ impl ConnectionDialogData<'_> {
             clipboard_enabled: self.vnc_clipboard_check.is_active(),
             custom_args,
             scale_override: ScaleOverride::from_index(self.vnc_scale_override_dropdown.selected()),
+            show_local_cursor: self.vnc_show_local_cursor_check.is_active(),
         }
     }
 
@@ -6977,25 +7046,12 @@ impl ConnectionDialogData<'_> {
                     Some(text.trim().to_string())
                 }
             },
+            show_local_cursor: self.spice_show_local_cursor_check.is_active(),
         }
     }
 
     fn parse_custom_options(text: &str) -> HashMap<String, String> {
-        let mut options = HashMap::new();
-        if text.trim().is_empty() {
-            return options;
-        }
-        for part in text.split(',') {
-            let part = part.trim();
-            if let Some((key, value)) = part.split_once('=') {
-                let key = key.trim().to_string();
-                let value = value.trim().to_string();
-                if !key.is_empty() {
-                    options.insert(key, value);
-                }
-            }
-        }
-        options
+        rustconn_core::dialog_utils::parse_custom_options(text)
     }
 
     fn parse_args(text: &str) -> Vec<String> {

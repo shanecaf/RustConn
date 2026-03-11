@@ -2378,6 +2378,7 @@ impl TemplateDialog {
             scale_override: ScaleOverride::default(),
             disable_nla: false,
             clipboard_enabled: true,
+            show_local_cursor: true,
         })
     }
 
@@ -2426,6 +2427,7 @@ impl TemplateDialog {
             clipboard_enabled: clipboard_check.is_active(),
             custom_args,
             scale_override: ScaleOverride::default(),
+            show_local_cursor: true,
         })
     }
 
@@ -2459,6 +2461,7 @@ impl TemplateDialog {
             clipboard_enabled: clipboard_check.is_active(),
             image_compression: compression,
             proxy: None,
+            show_local_cursor: true,
         })
     }
 
