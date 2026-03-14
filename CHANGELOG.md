@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.10.0] - 2026-03-13
+## [0.10.0] - 2026-03-14
+
+### Fixed
+- **Flatpak: mc wrapper not found** — host distros (e.g. openSUSE) export a bash function `mc()` via `BASH_FUNC_mc%%` that sources `/usr/share/mc/mc-wrapper.sh`, absent in the sandbox; fixed with `--unset-env=BASH_FUNC_mc%%` in finish-args to strip the inherited function, plus a post-install wrapper that redirects to `/app/libexec/mc/mc-wrapper.sh` for correct directory-change-on-exit behavior
+- **Split view: text selection broken** — `GestureClick` handler on panel container claimed all left-click events in Capture phase, preventing VTE terminals from receiving clicks for text selection; now detects clicks on `VteTerminal` widgets and lets them propagate while still switching panel focus
 
 ### Changed
 - **GTK4/libadwaita/VTE crate upgrade** — gtk4 0.10→0.11, libadwaita 0.8→0.9, vte4 0.9→0.10, gdk4-wayland 0.10→0.11; unlocks GNOME 48–50 widget APIs
