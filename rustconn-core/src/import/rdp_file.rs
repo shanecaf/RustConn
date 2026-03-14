@@ -17,15 +17,10 @@
 //! - `redirectclipboard` — 0/1
 
 use std::collections::HashMap;
-use std::fs;
 use std::path::Path;
 
-use uuid::Uuid;
-
 use crate::error::ImportError;
-use crate::models::{
-    Connection, Credentials, PasswordSource, ProtocolConfig, RdpConfig, RdpGateway, Resolution,
-};
+use crate::models::{Connection, ProtocolConfig, RdpConfig, RdpGateway, Resolution};
 
 use super::traits::{ImportResult, ImportSource, read_import_file};
 
@@ -94,14 +89,9 @@ impl RdpFileImporter {
         let full_address = fields
             .get("full address")
             .filter(|s| !s.is_empty())
-            .ok_or_else(|| {
-                ImportError::ParseError {
-                    source_name: "RDP file".to_string(),
-                    reason: format!(
-                        "Missing 'full address' in {}",
-                        path.display()
-                    ),
-                }
+            .ok_or_else(|| ImportError::ParseError {
+                source_name: "RDP file".to_string(),
+                reason: format!("Missing 'full address' in {}", path.display()),
             })?;
 
         let (host, port) = parse_rdp_address(full_address);
@@ -116,7 +106,10 @@ impl RdpFileImporter {
             .map(String::from);
 
         // Resolution
-        let resolution = match (fields.get_u32("desktopwidth"), fields.get_u32("desktopheight")) {
+        let resolution = match (
+            fields.get_u32("desktopwidth"),
+            fields.get_u32("desktopheight"),
+        ) {
             (Some(w), Some(h)) if w > 0 && h > 0 => Some(Resolution {
                 width: w,
                 height: h,
@@ -151,9 +144,7 @@ impl RdpFileImporter {
             .unwrap_or("RDP Connection")
             .to_string();
 
-        let mut connection = Connection::new(name, "rdp", &host, port);
-        connection.domain = domain;
-        connection.protocol_config = ProtocolConfig::Rdp(RdpConfig {
+        let rdp_config = ProtocolConfig::Rdp(RdpConfig {
             resolution,
             audio_redirect,
             gateway,
@@ -161,12 +152,11 @@ impl RdpFileImporter {
             ..Default::default()
         });
 
+        let mut connection = Connection::new(name, host, port, rdp_config);
+        connection.domain = domain;
+
         if let Some(user) = username {
-            connection.credentials = Some(Credentials {
-                username: Some(user),
-                password_source: PasswordSource::None,
-                ..Default::default()
-            });
+            connection.username = Some(user);
         }
 
         // Tag with import source
@@ -216,16 +206,18 @@ impl ImportSource for RdpFileImporter {
 
 /// Parses `host:port` or `host` from the `full address` field.
 fn parse_rdp_address(address: &str) -> (String, u16) {
-    if let Some((host, port_str)) = address.rsplit_once(':') {
-        if let Ok(port) = port_str.parse::<u16>() {
-            return (host.to_string(), port);
-        }
+    if let Some((host, port_str)) = address.rsplit_once(':')
+        && let Ok(port) = port_str.parse::<u16>()
+    {
+        return (host.to_string(), port);
     }
     (address.to_string(), 3389)
 }
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+
     use super::*;
 
     #[test]
@@ -255,7 +247,10 @@ redirectclipboard:i:1
 gatewayhostname:s:gw.example.com
 ";
         let fields = RdpFileFields::parse(content);
-        assert_eq!(fields.get("full address"), Some("myserver.example.com:3390"));
+        assert_eq!(
+            fields.get("full address"),
+            Some("myserver.example.com:3390")
+        );
         assert_eq!(fields.get("username"), Some("admin"));
         assert_eq!(fields.get("domain"), Some("CORP"));
         assert_eq!(fields.get_u32("desktopwidth"), Some(1920));

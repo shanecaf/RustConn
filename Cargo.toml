@@ -48,7 +48,9 @@ argon2 = "0.5"
 hex = "0.4"
 
 # HTTP client and archive handling (for CLI download in Flatpak)
-reqwest = { version = "0.12", features = ["rustls-tls", "stream"], default-features = false }
+# native-tls instead of rustls-tls: avoids aws-lc-sys which fails to compile
+# with GCC 15 in GNOME 50 Flatpak SDK (-pedantic + new warnings = build error)
+reqwest = { version = "0.12", features = ["native-tls", "stream"], default-features = false }
 zip = "8.2"
 flate2 = "1.1"
 tar = "0.4"

@@ -8,7 +8,7 @@ fileMatchPattern: "rustconn-core/tests/**/*.rs"
 You are editing a test file in `rustconn-core/tests/`.
 
 ## Property tests (`tests/properties/`)
-- Use `proptest` 1.9 with `proptest!` macro
+- Use `proptest` 1.10 with `proptest!` macro
 - New modules MUST be registered in `tests/properties/mod.rs`
 - Entry point: `tests/property_tests.rs` (carries `#![allow(...)]` blocks)
 - Temp files: always use `tempfile` crate

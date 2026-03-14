@@ -155,7 +155,7 @@ export PATH="$HOME/.cargo/bin:$PATH"
 
 # Determine libadwaita feature flags based on distro version:
 #   adw-1-8: libadwaita >= 1.8 (Tumbleweed/Slowroll, Fedora 43+)
-#   adw-1-6: libadwaita >= 1.6 (Leap 16.0, Fedora 42)
+#   adw-1-7: libadwaita >= 1.7 (Leap 16.0, Fedora 42)
 #   (none):  libadwaita 1.5 baseline (older distros)
 %if 0%{?suse_version} > 1600
 # Tumbleweed / Slowroll — libadwaita 1.8+ (1.9 with GNOME 50)
@@ -163,7 +163,7 @@ export PATH="$HOME/.cargo/bin:$PATH"
 %else
 %if 0%{?suse_version} == 1600
 # Leap 16.0 — GNOME 48, libadwaita 1.7
-%define adw_features --features adw-1-6
+%define adw_features --features adw-1-7
 %endif
 %endif
 
@@ -173,7 +173,7 @@ export PATH="$HOME/.cargo/bin:$PATH"
 %else
 %if 0%{?fedora} == 42
 # Fedora 42 — GNOME 48, libadwaita 1.7
-%define adw_features --features adw-1-6
+%define adw_features --features adw-1-7
 %endif
 %endif
 
@@ -233,7 +233,7 @@ done
 - AdwShortcutsDialog migration — replaces deprecated gtk::ShortcutsWindow;
   cfg-gated behind adw-1-8 feature for backward compatibility
 - Tiered distro feature flags in OBS packaging: adw-1-8 for
-  Tumbleweed/Slowroll/Fedora 43+, adw-1-6 for Leap 16.0/Fedora 42
+  Tumbleweed/Slowroll/Fedora 43+, adw-1-7 for Leap 16.0/Fedora 42
 
 * Wed Mar 11 2026 Anton Isaiev <totoshko88@gmail.com> - 0.9.15-0
 - Added "Show Local Cursor" option for embedded RDP, VNC, and SPICE

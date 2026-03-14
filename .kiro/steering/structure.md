@@ -172,5 +172,10 @@ Test entry points (`property_tests.rs`, `integration_tests.rs`) carry `#![allow(
 | `tray` | `rustconn` | Yes | System tray (ksni + resvg) |
 | `rdp-audio` | `rustconn` | Yes | RDP audio playback (cpal); implies `rdp-embedded` |
 | `wayland-native` | `rustconn` | Yes | Wayland surface support (gdk4-wayland) |
+| `adw-1-6` | `rustconn` | No | libadwaita 1.6 API (`AdwSwitchRow` improvements) |
+| `adw-1-7` | `rustconn` | No | libadwaita 1.7 API (`AdwWrapBox`); implies `adw-1-6` |
+| `adw-1-8` | `rustconn` | No | libadwaita 1.8 API; implies `adw-1-7` |
 
 Guard feature-gated code with `#[cfg(feature = "...")]`. Conditional re-exports in `lib.rs` use the same guards — check before referencing embedded client types.
+
+The `adw-1-*` flags form a chain: `adw-1-8` → `adw-1-7` → `adw-1-6`. Enable the highest version your target distro supports.

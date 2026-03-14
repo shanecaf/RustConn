@@ -268,7 +268,7 @@ pub struct SecretsPageWidgets {
     pub enable_fallback: CheckButton,
     pub kdbx_path_entry: Entry,
     pub kdbx_password_entry: PasswordEntry,
-    pub kdbx_enabled_switch: Switch,
+    pub kdbx_enabled_row: adw::SwitchRow,
     pub kdbx_save_password_check: CheckButton,
     pub kdbx_status_label: Label,
     pub kdbx_browse_button: Button,
@@ -1058,13 +1058,10 @@ pub fn create_secrets_page() -> SecretsPageWidgets {
         ))
         .build();
 
-    let kdbx_enabled_switch = Switch::builder().valign(gtk4::Align::Center).build();
-    let kdbx_enabled_row = adw::ActionRow::builder()
+    let kdbx_enabled_row = adw::SwitchRow::builder()
         .title(i18n("KDBX Integration"))
         .subtitle(i18n("Enable direct database access"))
         .build();
-    kdbx_enabled_row.add_suffix(&kdbx_enabled_switch);
-    kdbx_enabled_row.set_activatable_widget(Some(&kdbx_enabled_switch));
     kdbx_group.add(&kdbx_enabled_row);
 
     // Database path with browse button
@@ -1260,10 +1257,10 @@ pub fn create_secrets_page() -> SecretsPageWidgets {
     // Setup visibility for KeePass sections when integration is enabled/disabled
     let auth_group_clone = auth_group.clone();
     let status_group_clone = status_group.clone();
-    kdbx_enabled_switch.connect_state_set(move |_, state| {
+    kdbx_enabled_row.connect_active_notify(move |row| {
+        let state = row.is_active();
         auth_group_clone.set_visible(state);
         status_group_clone.set_visible(state);
-        glib::Propagation::Proceed
     });
 
     // Setup visibility for Bitwarden, 1Password, Passbolt, and Pass groups based on backend
@@ -1275,7 +1272,7 @@ pub fn create_secrets_page() -> SecretsPageWidgets {
     let kdbx_group_clone = kdbx_group.clone();
     let auth_group_clone2 = auth_group.clone();
     let status_group_clone2 = status_group.clone();
-    let kdbx_enabled_switch_clone = kdbx_enabled_switch.clone();
+    let kdbx_enabled_row_clone = kdbx_enabled_row.clone();
     let version_label_clone = version_label.clone();
     let version_row_clone = version_row.clone();
     let keepassxc_version_clone = keepassxc_version.clone();
@@ -1298,7 +1295,7 @@ pub fn create_secrets_page() -> SecretsPageWidgets {
         let show_kdbx = selected == 0;
         kdbx_group_clone.set_visible(show_kdbx);
         // Auth and status groups depend on both backend selection and kdbx_enabled
-        let kdbx_enabled = kdbx_enabled_switch_clone.is_active();
+        let kdbx_enabled = kdbx_enabled_row_clone.is_active();
         auth_group_clone2.set_visible(show_kdbx && kdbx_enabled);
         status_group_clone2.set_visible(show_kdbx && kdbx_enabled);
 
@@ -1605,7 +1602,7 @@ pub fn create_secrets_page() -> SecretsPageWidgets {
         enable_fallback,
         kdbx_path_entry,
         kdbx_password_entry,
-        kdbx_enabled_switch,
+        kdbx_enabled_row,
         kdbx_save_password_check,
         kdbx_status_label,
         kdbx_browse_button,
@@ -1965,9 +1962,7 @@ pub fn load_secret_settings(widgets: &SecretsPageWidgets, settings: &SecretSetti
     };
     widgets.secret_backend_dropdown.set_selected(backend_index);
     widgets.enable_fallback.set_active(settings.enable_fallback);
-    widgets
-        .kdbx_enabled_switch
-        .set_active(settings.kdbx_enabled);
+    widgets.kdbx_enabled_row.set_active(settings.kdbx_enabled);
 
     if let Some(path) = &settings.kdbx_path {
         widgets
@@ -2491,7 +2486,7 @@ pub fn collect_secret_settings(
         preferred_backend,
         enable_fallback: widgets.enable_fallback.is_active(),
         kdbx_path,
-        kdbx_enabled: widgets.kdbx_enabled_switch.is_active(),
+        kdbx_enabled: widgets.kdbx_enabled_row.is_active(),
         kdbx_password,
         kdbx_password_encrypted,
         kdbx_key_file,

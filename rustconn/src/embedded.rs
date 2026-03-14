@@ -322,7 +322,13 @@ pub struct RdpLauncher;
 
 impl RdpLauncher {
     fn find_freerdp_binary() -> Option<String> {
-        let candidates = ["xfreerdp3", "xfreerdp", "freerdp"];
+        let candidates = [
+            "sdl-freerdp3", // FreeRDP 3.x SDL3 — versioned (distro packages)
+            "sdl-freerdp",  // FreeRDP 3.x SDL3 — unversioned (Flatpak / upstream)
+            "xfreerdp3",    // FreeRDP 3.x X11
+            "xfreerdp",     // FreeRDP 2.x X11
+            "freerdp",      // Generic
+        ];
         for candidate in candidates {
             if std::process::Command::new("which")
                 .arg(candidate)
@@ -401,7 +407,8 @@ impl RdpLauncher {
 
         let binary = Self::find_freerdp_binary().ok_or_else(|| {
             EmbeddingError::ProcessStartFailed(
-                "FreeRDP client not found. Install xfreerdp or xfreerdp3.".to_string(),
+                "FreeRDP client not found. Install xfreerdp, sdl-freerdp3, sdl-freerdp, or xfreerdp3."
+                    .to_string(),
             )
         })?;
 

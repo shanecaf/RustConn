@@ -20,18 +20,18 @@ Rust 2024 edition, MSRV 1.92, three-crate Cargo workspace (`resolver = "2"`).
 
 | Domain | Crate(s) | Notes |
 |--------|----------|-------|
-| GUI | `gtk4` 0.10 (`v4_14`), `libadwaita` 0.8 (`v1_5`), `vte4` 0.9 (`v0_72`) | `rustconn` only |
-| Async | `tokio` 1.49 (full) | All crates — sole async runtime, never mix runtimes |
+| GUI | `gtk4` 0.11 (`v4_16`), `libadwaita` 0.9 (`v1_5`), `vte4` 0.10 (`v0_76`) | `rustconn` only |
+| Async | `tokio` 1.50 (full) | All crates — sole async runtime, never mix runtimes |
 | Serialization | `serde` (derive), `serde_json`, `serde_yaml` (actually `serde_yaml_ng`), `toml` | `serde_yaml` re-exported as `serde_yaml_ng` in workspace deps |
 | Errors | `thiserror` 2.0 | Every error enum must derive `thiserror::Error` |
 | Secrets | `secrecy` 0.10 (serde) | Every credential field — never plain `String` |
 | Crypto | `ring` 0.17, `argon2` 0.5 | `rustconn-core` only |
-| IDs | `uuid` 1.21 (v4 + serde) | All crates |
+| IDs | `uuid` 1.22 (v4 + serde) | All crates |
 | Time | `chrono` 0.4 (serde) | All crates |
 | CLI | `clap` 4.5.60 (derive) | `rustconn-cli` only |
 | RDP | `ironrdp` 0.14 | Feature-gated: `rdp-embedded` |
 | VNC | `vnc-rs` 0.5 | Feature-gated: `vnc-embedded` |
-| Testing | `proptest` 1.9, `tempfile` 3.23 | dev-dependencies in `rustconn-core` |
+| Testing | `proptest` 1.10, `tempfile` 3.26 | dev-dependencies in `rustconn-core` |
 
 ## Lints & Formatting
 
@@ -122,8 +122,13 @@ tracing::error!(?error, protocol = "rdp", host = %host, "Connection failed");
 | `tray` | `rustconn` | Yes | System tray (ksni + resvg) |
 | `rdp-audio` | `rustconn` | Yes | RDP audio playback (cpal) |
 | `wayland-native` | `rustconn` | Yes | Wayland surface support |
+| `adw-1-6` | `rustconn` | No | libadwaita 1.6 API (`AdwSwitchRow` improvements) |
+| `adw-1-7` | `rustconn` | No | libadwaita 1.7 API (`AdwWrapBox`); implies `adw-1-6` |
+| `adw-1-8` | `rustconn` | No | libadwaita 1.8 API; implies `adw-1-7` |
 
 Guard feature-gated code with `#[cfg(feature = "...")]`. Check feature availability before referencing embedded client types.
+
+The `adw-1-*` flags form a chain: `adw-1-8` → `adw-1-7` → `adw-1-6`. Enable the highest version your target distro supports.
 
 ## Testing
 
@@ -134,7 +139,7 @@ Guard feature-gated code with `#[cfg(feature = "...")]`. Check feature availabil
 | Fixtures | `rustconn-core/tests/fixtures/` | — | — |
 | Benchmarks | `rustconn-core/benches/` | — | — |
 
-- Property tests use `proptest` 1.9. Temp files use `tempfile`.
+- Property tests use `proptest` 1.10. Temp files use `tempfile`.
 - New test modules must be registered in the corresponding `mod.rs`.
 - Full test suite runs ~2 minutes (argon2 property tests are slow in debug mode). Wait for completion before running the next command.
 

@@ -233,25 +233,24 @@ actions in preference-style lists. Could improve:
 Also: `AdwPreferencesGroup` gains `:separate-rows` property and
 `.boxed-list-separate` CSS class for visually separated rows.
 
-### 6.6 AdwToggleGroup (libadwaita 1.7, `v1_7`)
+### 6.6 AdwToggleGroup (libadwaita 1.7, `v1_7`) — SKIPPED
 
-**Impact: potential improvement for protocol filter buttons**
+**Status: NOT APPLICABLE** — `AdwToggleGroup` uses `GTK_ACCESSIBLE_ROLE_RADIO_GROUP`
+(single-select / exclusive toggles). The protocol filter bar requires multi-select
+(multiple protocols active simultaneously). Using `AdwToggleGroup` would break the
+existing multi-filter UX. No suitable workaround exists without fighting the widget's
+semantics.
 
-`AdwToggleGroup` is a horizontal group of toggle buttons — a standard widget
-for mutually exclusive or multi-select choices. Could replace the custom
-`.filter-button` CSS classes used for protocol quick filters in the sidebar.
+### 6.7 AdwWrapBox (libadwaita 1.7, `v1_7`) — ✅ DONE
 
-Also: `AdwInlineViewSwitcher` — a view switcher using toggle groups internally.
+**Impact: `rustconn/src/sidebar/mod.rs`**
 
-### 6.7 AdwWrapBox (libadwaita 1.7, `v1_7`)
+`AdwWrapBox` replaces the `GtkBox` + `.linked` container for protocol filter buttons.
+Buttons now wrap to the next line on narrow sidebars instead of being hidden.
+Cfg-gated behind `adw-1-7` feature with `GtkBox` fallback for libadwaita < 1.7.
 
-**Impact: potential improvement for tag/label layouts**
-
-`AdwWrapBox` (with `AdwWrapLayout`) automatically wraps children to the next
-line when they don't fit — like CSS `flex-wrap`. Could improve:
-- Protocol filter button row (wraps on narrow windows)
-- Custom property tags in connection details
-- Keyboard shortcut keycap display
+The manual responsive hide/show logic (`width < 280` → hide Telnet/Serial/ZeroTrust/K8s)
+is removed when `adw-1-7` is enabled — `AdwWrapBox` handles wrapping automatically.
 
 ### 6.8 AdwSidebar (libadwaita 1.9, `v1_9`)
 
@@ -342,13 +341,13 @@ All new libadwaita widgets enabled (AdwSpinner, AdwShortcutsDialog).
 | Fedora 44 (GNOME 50) | 1.9 | 0.80 | `adw-1-8` | OBS |
 | Fedora 43 (GNOME 49) | 1.8 | 0.78 | `adw-1-8` | OBS |
 
-**Tier 1b — Partial features (GNOME 48, `adw-1-6`):**
-AdwSpinner enabled, legacy shortcuts dialog.
+**Tier 1b — Partial features (GNOME 48, `adw-1-7`):**
+AdwSpinner + AdwWrapBox enabled, legacy shortcuts dialog.
 
 | Distro | libadwaita | VTE | Feature flags | Delivery |
 |--------|-----------|-----|---------------|----------|
-| openSUSE Leap 16.0 (GNOME 48) | 1.7 | 0.78 | `adw-1-6` | OBS |
-| Fedora 42 (GNOME 48) | 1.7 | 0.78 | `adw-1-6` | OBS |
+| openSUSE Leap 16.0 (GNOME 48) | 1.7 | 0.78 | `adw-1-7` | OBS |
+| Fedora 42 (GNOME 48) | 1.7 | 0.78 | `adw-1-7` | OBS |
 
 **Tier 2 — Baseline (libadwaita 1.5, no extra features):**
 GtkSpinner fallback, legacy shortcuts dialog. Delivered via Flatpak.
@@ -363,9 +362,9 @@ GtkSpinner fallback, legacy shortcuts dialog. Delivered via Flatpak.
 |--------|-------------|-------|
 | Flatpak (all manifests) | `cargo build --release -p rustconn --features adw-1-8` | GNOME 50 runtime has libadwaita 1.9 |
 | OBS Tumbleweed/Slowroll | `cargo build --release -p rustconn --features adw-1-8` | libadwaita 1.8+ |
-| OBS Leap 16.0 | `cargo build --release -p rustconn --features adw-1-6` | libadwaita 1.7 |
+| OBS Leap 16.0 | `cargo build --release -p rustconn --features adw-1-7` | libadwaita 1.7 |
 | OBS Fedora 43+ | `cargo build --release -p rustconn --features adw-1-8` | libadwaita 1.8+ |
-| OBS Fedora 42 | `cargo build --release -p rustconn --features adw-1-6` | libadwaita 1.7 |
+| OBS Fedora 42 | `cargo build --release -p rustconn --features adw-1-7` | libadwaita 1.7 |
 | GitHub .deb (Ubuntu 26.04) | `cargo build --release -p rustconn --features adw-1-8` | libadwaita 1.9 |
 
 ### Compatibility notes

@@ -42,6 +42,7 @@ build-options:
   env:
     CARGO_HOME: /run/build/rustconn/cargo
     RUST_BACKTRACE: '1'
+    AWS_LC_SYS_CMAKE_BUILDER: '0'
 
 modules:
   - name: fast-float
@@ -134,6 +135,35 @@ modules:
         url: http://ftp.midnight-commander.org/mc-4.8.33.tar.xz
         sha256: cae149d42f844e5185d8c81d7db3913a8fa214c65f852200a9d896b468af164c
 
+  - name: freerdp
+    buildsystem: cmake-ninja
+    config-opts:
+      - -DALLOW_IN_SOURCE_BUILD=ON
+      - -DWITH_SERVER=OFF
+      - -DWITH_SHADOW=OFF
+      - -DWITH_PROXY=OFF
+      - -DWITH_PLATFORM_SERVER=OFF
+      - -DWITH_X11=OFF
+      - -DWITH_CLIENT_SDL2=OFF
+      - -DWITH_CLIENT_SDL3=ON
+      - -DCHANNEL_URBDRC=OFF
+      - -DWITH_CUPS=OFF
+      - -DWITH_PCSC=OFF
+      - -DWITH_SWSCALE=OFF
+      - -DWITH_FFMPEG=OFF
+      - -DWITH_AAD=OFF
+      - -DWITH_WEBVIEW=OFF
+      - -DWITH_FUSE=OFF
+      - -DWITH_KRB5=OFF
+      - -DBUILD_TESTING=OFF
+      - -DWITH_SAMPLE=OFF
+      - -DWITH_MANPAGES=OFF
+      - -DWITH_RDTK=OFF
+    sources:
+      - type: archive
+        url: https://github.com/FreeRDP/FreeRDP/releases/download/3.24.0/freerdp-3.24.0.tar.gz
+        sha256: 168011bd58eae8d898842ef39c6c9bf5761ab617a68ccad80d623a3e535d0367
+
   - name: rustconn
     buildsystem: simple
     build-options:
@@ -141,7 +171,13 @@ modules:
         CARGO_NET_OFFLINE: 'true'
         PKG_CONFIG_PATH: /app/lib64/pkgconfig:/app/lib/pkgconfig:/app/share/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig
     build-commands:
-      - cargo build --release -p rustconn --features adw-1-8 -p rustconn-cli
+      # GNOME 50beta SDK appends -O2 via CFLAGS after aws-lc-sys sets -O0 for
+      # jitterentropy-base.c, which triggers a #error requiring -O0. The wrapper
+      # detects jitterentropy source files and forces -O0 at the very end.
+      - |
+        printf '%s\n' '#!/bin/sh' 'case "$*" in' '  *jitterentropy*)' '    exec /usr/bin/cc "$@" -O0' '    ;;' '  *)' '    exec /usr/bin/cc "$@"' '    ;;' 'esac' > /app/bin/cc-wrap
+        chmod +x /app/bin/cc-wrap
+      - CC=/app/bin/cc-wrap cargo build --release -p rustconn --features adw-1-8 -p rustconn-cli
       - install -Dm755 target/release/rustconn /app/bin/rustconn
       - install -Dm755 target/release/rustconn-cli /app/bin/rustconn-cli
       - install -Dm644 rustconn/assets/io.github.totoshko88.RustConn.desktop /app/share/applications/io.github.totoshko88.RustConn.desktop

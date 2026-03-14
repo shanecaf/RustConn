@@ -606,3 +606,15 @@ label.error {
 .monitoring-stale {
     opacity: 0.5;
 }
+
+/* ============================================================
+ * Accessibility: Reduced Motion
+ * Respects user preference for reduced motion (GNOME/GTK setting)
+ * ============================================================ */
+@media (prefers-reduced-motion) {
+    .floating-control-button,
+    .status-icon,
+    .drop-target-highlight {
+        transition: none;
+    }
+}

@@ -308,14 +308,42 @@ fn start_ssh_connection_internal(
                 }
             }
 
+            // In Flatpak, ~/.ssh is read-only — point known_hosts to a writable path.
+            // Must be set BEFORE jump host resolution because ProxyCommand needs it too.
+            let flatpak_known_hosts = {
+                let user_set = ssh_config
+                    .custom_options
+                    .keys()
+                    .any(|k| k.eq_ignore_ascii_case("UserKnownHostsFile"));
+                if !user_set {
+                    rustconn_core::get_flatpak_known_hosts_path()
+                } else {
+                    None
+                }
+            };
+            if let Some(ref kh_path) = flatpak_known_hosts {
+                tracing::debug!(
+                    protocol = "ssh",
+                    path = %kh_path.display(),
+                    "Using Flatpak-writable known_hosts"
+                );
+                args.push("-o".to_string());
+                args.push(format!("UserKnownHostsFile={}", kh_path.display()));
+            }
+
             // Override proxy_jump with resolved jump host chain if we have
             // reference-based jump hosts (build_command_args already added -J
             // for the string-based proxy_jump, so only add if we have more)
+            //
+            // In Flatpak, -J (ProxyJump) spawns a nested SSH process that does NOT
+            // inherit -o or -i flags from the outer command. This means the jump host
+            // SSH tries to write to ~/.ssh/known_hosts (read-only) and cannot find
+            // identity files. Fix: replace -J with -o ProxyCommand that passes
+            // UserKnownHostsFile and identity to the jump host SSH process.
             let jump_host_str = if jump_hosts.is_empty() {
                 None
             } else {
                 // Remove the -J added by build_command_args (if proxy_jump was set)
-                // and replace with the full resolved chain
                 if ssh_config.proxy_jump.is_some()
                     && let Some(pos) = args.iter().position(|a| a == "-J")
                 {
@@ -325,27 +353,56 @@ fn start_ssh_connection_internal(
                     }
                 }
                 let chain = jump_hosts.join(",");
-                args.push("-J".to_string());
-                args.push(chain.clone());
+
+                if flatpak_known_hosts.is_some() {
+                    // Flatpak: use ProxyCommand so jump host SSH inherits known_hosts
+                    // and identity file. Build a ProxyCommand for the first hop;
+                    // if there are multiple hops, nest them via -J within ProxyCommand.
+                    let mut proxy_parts =
+                        vec!["ssh".to_string(), "-W".to_string(), "%h:%p".to_string()];
+
+                    // Pass identity file to jump host if we have one
+                    if let Some(pos) = args.iter().position(|a| a == "-i") {
+                        if let Some(key_path) = args.get(pos + 1) {
+                            proxy_parts.push("-i".to_string());
+                            proxy_parts.push(key_path.clone());
+                            proxy_parts.push("-o".to_string());
+                            proxy_parts.push("IdentitiesOnly=yes".to_string());
+                        }
+                    }
+
+                    // Pass UserKnownHostsFile to jump host
+                    if let Some(ref kh_path) = flatpak_known_hosts {
+                        proxy_parts.push("-o".to_string());
+                        proxy_parts.push(format!("UserKnownHostsFile={}", kh_path.display()));
+                    }
+
+                    // For multi-hop chains, pass remaining hops via -J inside ProxyCommand
+                    if jump_hosts.len() > 1 {
+                        let inner_chain = jump_hosts[1..].join(",");
+                        proxy_parts.push("-J".to_string());
+                        proxy_parts.push(inner_chain);
+                    }
+
+                    // Add the first hop destination
+                    proxy_parts.push(jump_hosts[0].clone());
+
+                    let proxy_cmd = proxy_parts.join(" ");
+                    tracing::debug!(
+                        protocol = "ssh",
+                        proxy_command = %proxy_cmd,
+                        "Using ProxyCommand instead of -J for Flatpak known_hosts compatibility"
+                    );
+                    args.push("-o".to_string());
+                    args.push(format!("ProxyCommand={proxy_cmd}"));
+                } else {
+                    // Non-Flatpak: use standard -J
+                    args.push("-J".to_string());
+                    args.push(chain.clone());
+                }
+
                 Some(chain)
             };
-
-            // In Flatpak, ~/.ssh is read-only — point known_hosts to a writable path
-            let user_set_known_hosts = ssh_config
-                .custom_options
-                .keys()
-                .any(|k| k.eq_ignore_ascii_case("UserKnownHostsFile"));
-            if !user_set_known_hosts
-                && let Some(kh_path) = rustconn_core::get_flatpak_known_hosts_path()
-            {
-                tracing::debug!(
-                    protocol = "ssh",
-                    path = %kh_path.display(),
-                    "Using Flatpak-writable known_hosts"
-                );
-                args.push("-o".to_string());
-                args.push(format!("UserKnownHostsFile={}", kh_path.display()));
-            }
 
             // Check waypipe: enabled in config + binary available on PATH
             let waypipe = ssh_config.waypipe && rustconn_core::protocol::detect_waypipe().installed;

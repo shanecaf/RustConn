@@ -3493,7 +3493,9 @@ impl MainWindow {
                         // Add the imported connection to state and connect
                         let conn_id = connection.id;
                         if let Ok(mut state_mut) = self.state.try_borrow_mut() {
-                            state_mut.add_connection(connection);
+                            if let Err(e) = state_mut.create_connection(connection) {
+                                tracing::error!(%e, "Failed to add imported .rdp connection");
+                            }
                         }
                         Self::start_connection_with_split(
                             &self.state,
@@ -3503,7 +3505,11 @@ impl MainWindow {
                             &self.monitoring,
                             conn_id,
                         );
-                        self.sidebar.refresh_tree(&self.state);
+                        let state_clone = self.state.clone();
+                        let sidebar_clone = Rc::clone(&self.sidebar);
+                        glib::idle_add_local_once(move || {
+                            Self::reload_sidebar_preserving_state(&state_clone, &sidebar_clone);
+                        });
                     }
                     Err(e) => {
                         tracing::error!(
@@ -3511,9 +3517,8 @@ impl MainWindow {
                             path = %path.display(),
                             "Failed to parse .rdp file"
                         );
-                        self.toast_overlay.show_warning(
-                            &crate::i18n::i18n("Failed to open .rdp file"),
-                        );
+                        self.toast_overlay
+                            .show_warning(&crate::i18n::i18n("Failed to open .rdp file"));
                     }
                 }
             }

@@ -159,11 +159,24 @@ impl ConnectionSidebar {
         filter_box.set_margin_end(4);
         filter_box.set_margin_bottom(2);
 
-        // Protocol filter group — linked buttons that expand evenly
-        let protocol_group = GtkBox::new(Orientation::Horizontal, 0);
-        protocol_group.add_css_class("linked");
-        protocol_group.set_hexpand(true);
-        protocol_group.set_halign(gtk4::Align::Fill);
+        // Protocol filter group — wrapping layout on adw-1-7+, linked buttons fallback
+        #[cfg(feature = "adw-1-7")]
+        let protocol_group = {
+            let wrap_box = adw::WrapBox::new();
+            wrap_box.set_child_spacing(2);
+            wrap_box.set_line_spacing(2);
+            wrap_box.set_hexpand(true);
+            wrap_box.set_halign(gtk4::Align::Fill);
+            wrap_box
+        };
+        #[cfg(not(feature = "adw-1-7"))]
+        let protocol_group = {
+            let group = GtkBox::new(Orientation::Horizontal, 0);
+            group.add_css_class("linked");
+            group.set_hexpand(true);
+            group.set_halign(gtk4::Align::Fill);
+            group
+        };
 
         // Protocol filter buttons with icons — aligned with icons.rs
         use rustconn_core::models::ProtocolType;
@@ -172,36 +185,42 @@ impl ConnectionSidebar {
             rustconn_core::get_protocol_icon(ProtocolType::Ssh),
             "Filter SSH connections",
         );
+        #[cfg(not(feature = "adw-1-7"))]
         ssh_filter.set_hexpand(true);
         let rdp_filter = filter::create_filter_button(
             "RDP",
             rustconn_core::get_protocol_icon(ProtocolType::Rdp),
             "Filter RDP connections",
         );
+        #[cfg(not(feature = "adw-1-7"))]
         rdp_filter.set_hexpand(true);
         let vnc_filter = filter::create_filter_button(
             "VNC",
             rustconn_core::get_protocol_icon(ProtocolType::Vnc),
             "Filter VNC connections",
         );
+        #[cfg(not(feature = "adw-1-7"))]
         vnc_filter.set_hexpand(true);
         let spice_filter = filter::create_filter_button(
             "SPICE",
             rustconn_core::get_protocol_icon(ProtocolType::Spice),
             "Filter SPICE connections",
         );
+        #[cfg(not(feature = "adw-1-7"))]
         spice_filter.set_hexpand(true);
         let telnet_filter = filter::create_filter_button(
             "Telnet",
             rustconn_core::get_protocol_icon(ProtocolType::Telnet),
             "Filter Telnet connections",
         );
+        #[cfg(not(feature = "adw-1-7"))]
         telnet_filter.set_hexpand(true);
         let serial_filter = filter::create_filter_button(
             "Serial",
             rustconn_core::get_protocol_icon(ProtocolType::Serial),
             "Filter Serial connections",
         );
+        #[cfg(not(feature = "adw-1-7"))]
         serial_filter.set_hexpand(true);
         let zerotrust_filter = filter::create_filter_button(
             "ZeroTrust",
@@ -209,12 +228,14 @@ impl ConnectionSidebar {
             "Filter ZeroTrust connections",
         );
         zerotrust_filter.add_css_class("filter-button");
+        #[cfg(not(feature = "adw-1-7"))]
         zerotrust_filter.set_hexpand(true);
         let kubernetes_filter = filter::create_filter_button(
             "K8s",
             rustconn_core::get_protocol_icon(ProtocolType::Kubernetes),
             "Filter Kubernetes connections",
         );
+        #[cfg(not(feature = "adw-1-7"))]
         kubernetes_filter.set_hexpand(true);
 
         protocol_group.append(&ssh_filter);
@@ -381,6 +402,8 @@ impl ConnectionSidebar {
         container.append(&search_box);
 
         // Responsive: hide less common protocol filters on narrow sidebar
+        // Only needed without AdwWrapBox — WrapBox wraps automatically
+        #[cfg(not(feature = "adw-1-7"))]
         {
             let telnet_c = telnet_filter.clone();
             let serial_c = serial_filter.clone();

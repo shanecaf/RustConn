@@ -100,7 +100,8 @@ impl SafeFreeRdpLauncher {
     pub fn launch(&self, config: &RdpConfig) -> Result<Child, EmbeddedRdpError> {
         let binary = Self::detect_freerdp().ok_or_else(|| {
             EmbeddedRdpError::FreeRdpInit(
-                "No FreeRDP client found. Install xfreerdp or wlfreerdp.".to_string(),
+                "No FreeRDP client found. Install sdl-freerdp3, xfreerdp, or wlfreerdp."
+                    .to_string(),
             )
         })?;
 

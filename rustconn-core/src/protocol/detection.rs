@@ -207,14 +207,23 @@ pub fn detect_ssh_client() -> ClientInfo {
 /// Detects the RDP client on the system
 ///
 /// Checks for FreeRDP 3.x, FreeRDP 2.x, or rdesktop binaries and extracts version information.
-/// Priority: xfreerdp3/wlfreerdp3 (FreeRDP 3.x) > xfreerdp/wlfreerdp (FreeRDP 2.x) > rdesktop
+/// Priority: wlfreerdp3 > sdl-freerdp3 > xfreerdp3 > wlfreerdp > xfreerdp > rdesktop
 #[must_use]
 pub fn detect_rdp_client() -> ClientInfo {
     // Try FreeRDP 3.x first (preferred)
-    // wlfreerdp3 for Wayland, xfreerdp3 for X11
+    // wlfreerdp3 for Wayland-native
     if let Some(info) = try_detect_client("FreeRDP 3", "wlfreerdp3", &["--version"]) {
         return info.with_min_version("3.0.0");
     }
+    // sdl-freerdp3 — SDL3 client, versioned (distro packages)
+    if let Some(info) = try_detect_client("FreeRDP 3", "sdl-freerdp3", &["--version"]) {
+        return info.with_min_version("3.0.0");
+    }
+    // sdl-freerdp — SDL3 client, unversioned (Flatpak / upstream build)
+    if let Some(info) = try_detect_client("FreeRDP 3", "sdl-freerdp", &["--version"]) {
+        return info.with_min_version("3.0.0");
+    }
+    // xfreerdp3 for X11
     if let Some(info) = try_detect_client("FreeRDP 3", "xfreerdp3", &["--version"]) {
         return info.with_min_version("3.0.0");
     }

@@ -136,7 +136,11 @@ impl super::EmbeddedRdpWidget {
         // IronRDP 0.14 does not support RD Gateway (MS-TSGU). If gateway is
         // configured, bail out early so the caller falls back to external
         // xfreerdp which does support gateway connections.
-        if config.gateway_hostname.as_ref().is_some_and(|h| !h.is_empty()) {
+        if config
+            .gateway_hostname
+            .as_ref()
+            .is_some_and(|h| !h.is_empty())
+        {
             tracing::warn!(
                 protocol = "rdp",
                 host = %config.host,
