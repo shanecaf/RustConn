@@ -223,17 +223,30 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
-* Fri Mar 13 2026 Anton Isaiev <totoshko88@gmail.com> - 0.10.0-0
+* Sat Mar 14 2026 Anton Isaiev <totoshko88@gmail.com> - 0.10.0-0
+- RDP file association — double-click .rdp files to open and connect
+- FreeRDP 3.24.0 bundled in Flatpak — external RDP works out of the box
+- sdl-freerdp3 and unversioned FreeRDP binary detection
 - GTK4/libadwaita/VTE crate upgrade: gtk4 0.11, libadwaita 0.9,
   vte4 0.10, gdk4-wayland 0.11 — unlocks GNOME 48–50 widget APIs
 - MSRV bumped to 1.92 across all crates, CI, and packaging
 - Flatpak runtime bumped to GNOME 50 with VTE 0.80
-- AdwSpinner migration — replaces gtk::Spinner in export dialog;
-  cfg-gated behind adw-1-6 feature for backward compatibility
-- AdwShortcutsDialog migration — replaces deprecated gtk::ShortcutsWindow;
-  cfg-gated behind adw-1-8 feature for backward compatibility
+- AdwSpinner, AdwShortcutsDialog, AdwSwitchRow, AdwWrapBox migrations (cfg-gated)
+- CSS prefers-reduced-motion support for accessibility
 - Tiered distro feature flags in OBS packaging: adw-1-8 for
-  Tumbleweed/Slowroll/Fedora 43+, adw-1-7 for Leap 16.0/Fedora 42
+  Tumbleweed/Slowroll/Fedora 43+, adw-1-6 for Leap 16.0/Fedora 42
+- Fixed default window size too small on first start
+- Fixed RDP gateway ignored in embedded mode — auto-fallback to FreeRDP
+- Fixed external RDP sidebar icon stays green after tab close
+- Fixed SSH jump host broken in Flatpak
+- Fixed mc wrapper not found in Flatpak on openSUSE
+- Fixed ZeroTrust and Kubernetes connections broken in Flatpak —
+  CLI tools detected and executed via flatpak-spawn --host;
+  cloud CLI config dirs mounted into sandbox
+- Fixed split view text selection broken by GestureClick handler
+- Fixed untranslated protocol display names across all 15 languages
+- Codebase cleanup: removed unused CSS classes, consolidated futures-util,
+  fixed metainfo.xml, removed dead code
 
 * Wed Mar 11 2026 Anton Isaiev <totoshko88@gmail.com> - 0.9.15-0
 - Added "Show Local Cursor" option for embedded RDP, VNC, and SPICE
