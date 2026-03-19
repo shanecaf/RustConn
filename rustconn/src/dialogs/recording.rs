@@ -75,7 +75,9 @@ impl RecordingsDialog {
         header.set_show_start_title_buttons(false);
 
         let close_btn = Button::builder().label(i18n("Close")).build();
-        close_btn.update_property(&[gtk4::accessible::Property::Label(&i18n("Close recordings dialog"))]);
+        close_btn.update_property(&[gtk4::accessible::Property::Label(&i18n(
+            "Close recordings dialog",
+        ))]);
         header.pack_start(&close_btn);
 
         let import_btn = Button::builder()
@@ -325,7 +327,10 @@ impl RecordingsDialog {
 
         let row_label = format!(
             "{}, {}, {}, {}",
-            display, date_str, format_duration(entry.metadata.duration_secs), format_size(entry.metadata.total_size_bytes)
+            display,
+            date_str,
+            format_duration(entry.metadata.duration_secs),
+            format_size(entry.metadata.total_size_bytes)
         );
         let row = ListBoxRow::builder()
             .child(&hbox)

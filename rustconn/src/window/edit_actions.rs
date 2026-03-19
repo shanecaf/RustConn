@@ -356,9 +356,8 @@ impl MainWindow {
                         }
                         Err(e) => {
                             tracing::error!(?e, "Failed to run ssh-add");
-                            toast_clone.show_error(&crate::i18n::i18n(
-                                "Failed to add SSH key to agent.",
-                            ));
+                            toast_clone
+                                .show_error(&crate::i18n::i18n("Failed to add SSH key to agent."));
                             return;
                         }
                     }
@@ -642,20 +641,14 @@ impl MainWindow {
                         let stderr = String::from_utf8_lossy(&output.stderr);
                         tracing::warn!(?kp, %stderr, "ssh-add failed");
                         if let Some(sb) = sidebar {
-                            sb.update_connection_status(
-                                &connection_id.to_string(),
-                                "failed",
-                            );
+                            sb.update_connection_status(&connection_id.to_string(), "failed");
                         }
                         return;
                     }
                     Err(e) => {
                         tracing::error!(?e, "Failed to run ssh-add");
                         if let Some(sb) = sidebar {
-                            sb.update_connection_status(
-                                &connection_id.to_string(),
-                                "failed",
-                            );
+                            sb.update_connection_status(&connection_id.to_string(), "failed");
                         }
                         return;
                     }

@@ -3,9 +3,7 @@
 use std::io::{self, BufRead, Write};
 use std::path::Path;
 
-use rustconn_core::session::recording::{
-    default_recordings_dir, RecordingEntry, RecordingManager,
-};
+use rustconn_core::session::recording::{RecordingEntry, RecordingManager, default_recordings_dir};
 
 use crate::cli::{OutputFormat, RecordingCommands};
 use crate::error::CliError;
@@ -94,10 +92,7 @@ fn print_table(entries: &[RecordingEntry]) {
         "{:<name_width$}  {:<19}  {:>12}  {:>8}",
         "NAME", "DATE", "DURATION", "SIZE"
     );
-    println!(
-        "{:-<name_width$}  {:-<19}  {:->12}  {:->8}",
-        "", "", "", ""
-    );
+    println!("{:-<name_width$}  {:-<19}  {:->12}  {:->8}", "", "", "", "");
 
     for entry in entries {
         let name = display_name(entry);
@@ -154,10 +149,7 @@ fn cmd_recording_delete(name: &str, force: bool) -> Result<(), CliError> {
     let entry = find_recording(&entries, name)?;
 
     if !force {
-        eprint!(
-            "Delete recording '{}'? [y/N] ",
-            display_name(entry)
-        );
+        eprint!("Delete recording '{}'? [y/N] ", display_name(entry));
         io::stderr().flush().ok();
 
         let mut answer = String::new();
@@ -203,9 +195,7 @@ fn find_recording<'a>(
         return Ok(entry);
     }
 
-    Err(CliError::Recording(format!(
-        "Recording not found: {name}"
-    )))
+    Err(CliError::Recording(format!("Recording not found: {name}")))
 }
 
 // ── Import ────────────────────────────────────────────────────────────

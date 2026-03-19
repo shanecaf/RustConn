@@ -313,9 +313,7 @@ impl MainWindow {
                         let (conn_name, ssh_params) = {
                             let state_ref = state_clone.borrow();
                             let conn = state_ref.get_connection(conn_id);
-                            let name = conn
-                                .map(|c| c.name.clone())
-                                .unwrap_or_else(|| item.name());
+                            let name = conn.map(|c| c.name.clone()).unwrap_or_else(|| item.name());
                             let params = conn.and_then(|c| {
                                 let key_path = if let rustconn_core::ProtocolConfig::Ssh(ref ssh) =
                                     c.protocol_config

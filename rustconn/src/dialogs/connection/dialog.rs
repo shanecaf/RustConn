@@ -4656,14 +4656,14 @@ impl ConnectionDialog {
                         // In Flatpak, the file chooser returns document portal paths
                         // like /run/user/1000/doc/XXXXXXXX/key.pem which become stale
                         // after rebuilds. Copy the key to a stable location.
-                        let stable_path =
-                            if rustconn_core::is_flatpak() && rustconn_core::is_portal_path(&path)
-                            {
-                                rustconn_core::copy_key_to_flatpak_ssh(&path)
-                                    .unwrap_or_else(|| path.clone())
-                            } else {
-                                path
-                            };
+                        let stable_path = if rustconn_core::is_flatpak()
+                            && rustconn_core::is_portal_path(&path)
+                        {
+                            rustconn_core::copy_key_to_flatpak_ssh(&path)
+                                .unwrap_or_else(|| path.clone())
+                        } else {
+                            path
+                        };
                         entry.set_text(&stable_path.to_string_lossy());
                     }
                 },

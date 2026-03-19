@@ -1,7 +1,7 @@
 #
 # spec file for package rustconn
 #
-# Copyright (c) 2025 Anton Isaiev
+# Copyright (c) 2026 Anton Isaiev
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 

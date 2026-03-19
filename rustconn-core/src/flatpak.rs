@@ -229,7 +229,10 @@ pub fn copy_key_to_flatpak_ssh(portal_path: &std::path::Path) -> Option<std::pat
         return copy_and_set_permissions(&source_content, &suffixed);
     }
 
-    tracing::warn!(file_name, "Too many key file name collisions in Flatpak SSH dir");
+    tracing::warn!(
+        file_name,
+        "Too many key file name collisions in Flatpak SSH dir"
+    );
     None
 }
 
@@ -263,10 +266,7 @@ pub fn resolve_key_path(path: &std::path::Path) -> Option<std::path::PathBuf> {
 }
 
 /// Writes content to a file and sets 0600 permissions (owner read/write only).
-fn copy_and_set_permissions(
-    content: &[u8],
-    dest: &std::path::Path,
-) -> Option<std::path::PathBuf> {
+fn copy_and_set_permissions(content: &[u8], dest: &std::path::Path) -> Option<std::path::PathBuf> {
     use std::os::unix::fs::PermissionsExt;
 
     if let Err(e) = std::fs::write(dest, content) {

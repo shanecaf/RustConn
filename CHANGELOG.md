@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.10.1] - 2026-03-18
+## [0.10.1] - 2026-03-19
 
 ### Note
 Thank you to **Todor Todorov** for the support and for pointing out that the donation link was broken. The donation service has been changed and is now working. Today marks 8 months of active development on RustConn. If you'd like to support the project financially, I'd be very grateful: [https://donatello.to/totoshko88](https://donatello.to/totoshko88)
@@ -25,6 +25,7 @@ Thank you to **Todor Todorov** for the support and for pointing out that the don
 
 ### Dependencies
 - New: `csv` 1.x (RFC 4180 parsing), `glob` 0.3 (Smart Folder host matching), `shell-words` 1.x (script credential argument splitting)
+- CLI downloads: 1Password CLI 2.32.1→2.33.0, kubectl 1.35.2→1.35.3
 
 ### Fixed
 - Flatpak SSH key paths become stale after rebuild — keys copied to stable `~/.var/app/<app-id>/.ssh/` with fallback resolution ([#62](https://github.com/totoshko88/RustConn/issues/62))

@@ -40,9 +40,7 @@ use rustconn_core::automation::{KeyElement, KeySequence};
 use rustconn_core::highlight::CompiledHighlightRules;
 use rustconn_core::models::HighlightRule;
 use rustconn_core::session::SanitizeConfig;
-use rustconn_core::session::recording::{
-    RecordingMetadata, metadata_path, write_metadata,
-};
+use rustconn_core::session::recording::{RecordingMetadata, metadata_path, write_metadata};
 use rustconn_core::split::TabId;
 use rustconn_core::split::tab_groups::TabGroupManager;
 
@@ -1092,8 +1090,18 @@ impl TerminalNotebook {
                     .unwrap_or(cmd);
                 matches!(
                     base,
-                    "ssh" | "mosh" | "telnet" | "kubectl" | "aws" | "gcloud" | "az" | "oci"
-                        | "cloudflared" | "tsh" | "tailscale" | "boundary"
+                    "ssh"
+                        | "mosh"
+                        | "telnet"
+                        | "kubectl"
+                        | "aws"
+                        | "gcloud"
+                        | "az"
+                        | "oci"
+                        | "cloudflared"
+                        | "tsh"
+                        | "tailscale"
+                        | "boundary"
                 )
             })
             .unwrap_or(false);
@@ -2285,9 +2293,8 @@ impl TerminalNotebook {
                 // Local session: write directly to local recording paths.
                 let data_str = data_path.display().to_string();
                 let timing_str = timing_path.display().to_string();
-                let cmd = format!(
-                    "script -q -f --log-out '{data_str}' --log-timing '{timing_str}'\n"
-                );
+                let cmd =
+                    format!("script -q -f --log-out '{data_str}' --log-timing '{timing_str}'\n");
                 terminal.feed_child(cmd.as_bytes());
                 // Erase the echoed command from the terminal display
                 terminal.feed(b"\x1b[1A\x1b[2K");
@@ -2338,7 +2345,7 @@ impl TerminalNotebook {
                 port_args.push(format!("UserKnownHostsFile={}", kh.display()));
             }
             port_args.push("-o".to_string());
-            port_args.push("StrictHostKeyChecking=no".to_string());
+            port_args.push("StrictHostKeyChecking=accept-new".to_string());
             let user_host = if let Some(ref user) = params.username {
                 format!("{user}@{}", params.host)
             } else {
@@ -2374,8 +2381,7 @@ impl TerminalNotebook {
             }
 
             // Clean up remote temp files (best-effort)
-            let mut ssh_args: Vec<String> =
-                vec!["-p".to_string(), params.port.to_string()];
+            let mut ssh_args: Vec<String> = vec!["-p".to_string(), params.port.to_string()];
             if let Some(ref key) = params.identity_file {
                 ssh_args.push("-i".to_string());
                 ssh_args.push(key.clone());
@@ -2385,7 +2391,7 @@ impl TerminalNotebook {
                 ssh_args.push(format!("UserKnownHostsFile={}", kh.display()));
             }
             ssh_args.push("-o".to_string());
-            ssh_args.push("StrictHostKeyChecking=no".to_string());
+            ssh_args.push("StrictHostKeyChecking=accept-new".to_string());
             let _ = std::process::Command::new("ssh")
                 .args(&ssh_args)
                 .arg(&user_host)
