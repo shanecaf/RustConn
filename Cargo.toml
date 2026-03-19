@@ -47,8 +47,9 @@ argon2 = "0.5"
 hex = "0.4"
 
 # HTTP client and archive handling (for CLI download in Flatpak)
-# native-tls instead of rustls-tls: avoids aws-lc-sys which fails to compile
-# with GCC 15 in GNOME 50 Flatpak SDK (-pedantic + new warnings = build error)
+# native-tls instead of rustls-tls: minimises aws-lc-sys surface.
+# Note: sspi (via ironrdp-connector) still pulls aws-lc-sys transitively;
+# Flatpak manifests work around the GCC 15 -O2/-O0 conflict with a cc-wrap shim.
 reqwest = { version = "0.12", features = ["native-tls", "stream"], default-features = false }
 zip = "8.2"
 flate2 = "1.1"
