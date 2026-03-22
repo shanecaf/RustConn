@@ -29,6 +29,12 @@ use uuid::Uuid;
 use vte4::prelude::*;
 use vte4::{PtyFlags, Terminal};
 
+/// PCRE2 multiline compile flag — required by VTE's `match_add_regex()`.
+///
+/// Without this flag VTE emits a runtime warning:
+/// `_vte_regex_has_multiline_compile_flag(regex)` check failed.
+const PCRE2_MULTILINE: u32 = 0x0000_0400;
+
 use crate::automation::{AutomationSession, Trigger};
 use crate::broadcast::BroadcastController;
 use crate::embedded_rdp::EmbeddedRdpWidget;
@@ -1062,6 +1068,57 @@ impl TerminalNotebook {
         // ksshaskpass on KDE) is never needed and may not exist inside
         // sandboxed environments like Flatpak (#48).
         env_vec.retain(|e| !e.starts_with("SSH_ASKPASS="));
+
+        // In Flatpak, redirect CLI config directories to writable sandbox
+        // locations. Host directories are either mounted read-only (gcloud,
+        // Azure, kubectl) or not mounted at all (Teleport, Boundary, etc.).
+        if rustconn_core::flatpak::is_flatpak() {
+            // gcloud: ~/.config/gcloud/ mounted :ro
+            if !env_vec.iter().any(|e| e.starts_with("CLOUDSDK_CONFIG="))
+                && let Some(dir) = rustconn_core::flatpak::get_flatpak_gcloud_config_dir()
+            {
+                env_vec.push(glib::GString::from(format!(
+                    "CLOUDSDK_CONFIG={}",
+                    dir.display()
+                )));
+            }
+            // Azure CLI: ~/.azure/ mounted :ro
+            if !env_vec.iter().any(|e| e.starts_with("AZURE_CONFIG_DIR="))
+                && let Some(dir) = rustconn_core::flatpak::get_flatpak_azure_config_dir()
+            {
+                env_vec.push(glib::GString::from(format!(
+                    "AZURE_CONFIG_DIR={}",
+                    dir.display()
+                )));
+            }
+            // Teleport: ~/.tsh/ not mounted — TELEPORT_HOME redirects
+            // tsh config/data directory (default ~/.tsh)
+            if !env_vec.iter().any(|e| e.starts_with("TELEPORT_HOME="))
+                && let Some(dir) = rustconn_core::flatpak::get_flatpak_teleport_config_dir()
+            {
+                env_vec.push(glib::GString::from(format!(
+                    "TELEPORT_HOME={}",
+                    dir.display()
+                )));
+            }
+            // Boundary: uses system keyring via D-Bus (org.freedesktop.secrets)
+            // which works in Flatpak — no env var redirection needed.
+            //
+            // Cloudflare Tunnel: `cloudflared access ssh` uses browser-based
+            // auth with short-lived tokens — no persistent config dir needed
+            // for the SSH proxy use case.
+            // OCI CLI: ~/.oci/ not mounted
+            if !env_vec
+                .iter()
+                .any(|e| e.starts_with("OCI_CLI_CONFIG_FILE="))
+                && let Some(dir) = rustconn_core::flatpak::get_flatpak_oci_config_dir()
+            {
+                env_vec.push(glib::GString::from(format!(
+                    "OCI_CLI_CONFIG_FILE={}",
+                    dir.join("config").display()
+                )));
+            }
+        }
 
         // Ensure TERM is set. GUI applications (like RustConn) typically
         // don't have TERM in their environment. Without it, ncurses-based
@@ -2563,7 +2620,7 @@ impl TerminalNotebook {
         if let Some(terminal) = self.terminals.borrow().get(&session_id) {
             for rule in compiled.source_patterns() {
                 let pattern = &rule.pattern;
-                match vte4::Regex::for_match(pattern, 0) {
+                match vte4::Regex::for_match(pattern, PCRE2_MULTILINE) {
                     Ok(vte_regex) => {
                         terminal.match_add_regex(&vte_regex, 0);
                         tracing::trace!(

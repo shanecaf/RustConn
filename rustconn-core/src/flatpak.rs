@@ -92,17 +92,157 @@ pub fn is_flatpak() -> bool {
 /// Checks whether a CLI tool is available in PATH.
 ///
 /// Runs `which <cli>` to check if the binary exists.
-/// In Flatpak, CLI tools are installed to the sandbox via Flatpak Components.
+/// In Flatpak, CLI tools are installed to the sandbox via Flatpak Components,
+/// so the extended PATH (including CLI directories) is used for the lookup.
 #[must_use]
 pub fn is_host_command_available(cli: &str) -> bool {
     use std::process::Command;
 
-    Command::new("which")
-        .arg(cli)
+    let mut cmd = Command::new("which");
+    cmd.arg(cli)
         .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status()
-        .is_ok_and(|s| s.success())
+        .stderr(std::process::Stdio::null());
+
+    // In Flatpak, CLI tools are installed outside the default PATH.
+    // Use the extended PATH that includes Flatpak CLI directories.
+    if is_flatpak() {
+        let extended_path = crate::cli_download::get_extended_path();
+        cmd.env("PATH", &extended_path);
+        tracing::trace!(cli, path = %extended_path, "Checking CLI availability with extended PATH");
+    }
+
+    cmd.status().is_ok_and(|s| s.success())
+}
+
+/// Returns a writable CLI configuration directory inside the Flatpak sandbox.
+///
+/// Several CLI tools need writable config directories but the Flatpak
+/// manifest mounts host directories as read-only (or doesn't mount them
+/// at all). This function returns `$XDG_CONFIG_HOME/<subdir>` and creates
+/// it if needed.
+///
+/// When `host_source` is provided and the directory is freshly created,
+/// credential files listed in `bootstrap_files` are copied from the
+/// host's read-only mount so the user doesn't have to re-authenticate.
+///
+/// Returns `None` if not running in Flatpak.
+#[must_use]
+pub fn get_flatpak_cli_config_dir(
+    subdir: &str,
+    host_source: Option<&std::path::Path>,
+    bootstrap_files: &[&str],
+) -> Option<std::path::PathBuf> {
+    if !is_flatpak() {
+        return None;
+    }
+
+    let config_home = std::env::var("XDG_CONFIG_HOME").ok()?;
+    let cli_dir = std::path::PathBuf::from(config_home).join(subdir);
+
+    if !cli_dir.exists() {
+        if let Err(e) = std::fs::create_dir_all(&cli_dir) {
+            tracing::warn!(?e, path = %cli_dir.display(), "Failed to create Flatpak CLI config dir");
+            return None;
+        }
+        tracing::debug!(path = %cli_dir.display(), "Created Flatpak CLI config directory");
+
+        // Bootstrap credential files from host read-only mount
+        if let Some(host_dir) = host_source
+            && host_dir.exists()
+        {
+            for name in bootstrap_files {
+                let src = host_dir.join(name);
+                let dst = cli_dir.join(name);
+                if src.exists() && !dst.exists() {
+                    if let Err(e) = std::fs::copy(&src, &dst) {
+                        tracing::warn!(?e, file = %name, "Failed to bootstrap CLI credential file");
+                    } else {
+                        tracing::info!(file = %name, "Bootstrapped CLI credential file from host");
+                    }
+                }
+            }
+        }
+    }
+
+    Some(cli_dir)
+}
+
+/// Returns a writable gcloud configuration directory inside the Flatpak sandbox.
+///
+/// Convenience wrapper around [`get_flatpak_cli_config_dir`] for gcloud.
+/// Bootstraps credentials from the host's read-only `~/.config/gcloud/` mount.
+#[must_use]
+pub fn get_flatpak_gcloud_config_dir() -> Option<std::path::PathBuf> {
+    let home = std::env::var("HOME").ok()?;
+    let host_gcloud = std::path::PathBuf::from(&home).join(".config/gcloud");
+    get_flatpak_cli_config_dir(
+        "gcloud",
+        Some(&host_gcloud),
+        &[
+            "credentials.db",
+            "application_default_credentials.json",
+            "properties",
+            "access_tokens.db",
+        ],
+    )
+}
+
+/// Returns a writable Azure CLI configuration directory inside the Flatpak sandbox.
+///
+/// Bootstraps credentials from the host's read-only `~/.azure/` mount.
+#[must_use]
+pub fn get_flatpak_azure_config_dir() -> Option<std::path::PathBuf> {
+    let home = std::env::var("HOME").ok()?;
+    let host_azure = std::path::PathBuf::from(&home).join(".azure");
+    get_flatpak_cli_config_dir(
+        "azure",
+        Some(&host_azure),
+        &[
+            "azureProfile.json",
+            "clouds.config",
+            "msal_token_cache.json",
+            "msal_token_cache.bin",
+        ],
+    )
+}
+
+/// Returns writable CLI config directories for tools that have no host mount.
+///
+/// These tools are installed inside the sandbox via Flatpak Components
+/// and the user configures them from scratch. No bootstrap is needed.
+#[must_use]
+pub fn get_flatpak_teleport_config_dir() -> Option<std::path::PathBuf> {
+    get_flatpak_cli_config_dir("tsh", None, &[])
+}
+
+/// Returns a writable Boundary config directory.
+///
+/// Note: Boundary CLI stores tokens in the system keyring via D-Bus
+/// (`org.freedesktop.secrets`), which works natively in Flatpak.
+/// This function is kept for potential future use if Boundary adds
+/// file-based config that needs a writable directory.
+#[must_use]
+#[allow(dead_code)]
+pub fn get_flatpak_boundary_config_dir() -> Option<std::path::PathBuf> {
+    get_flatpak_cli_config_dir("boundary", None, &[])
+}
+
+/// Returns a writable Cloudflare Tunnel config directory.
+///
+/// Note: For the SSH proxy use case (`cloudflared access ssh`),
+/// cloudflared uses browser-based auth with short-lived tokens and
+/// doesn't need persistent config. This function is kept for potential
+/// future use if tunnel management features are added.
+#[must_use]
+#[allow(dead_code)]
+pub fn get_flatpak_cloudflared_config_dir() -> Option<std::path::PathBuf> {
+    get_flatpak_cli_config_dir("cloudflared", None, &[])
+}
+
+/// Returns a writable OCI CLI config directory.
+#[must_use]
+pub fn get_flatpak_oci_config_dir() -> Option<std::path::PathBuf> {
+    get_flatpak_cli_config_dir("oci", None, &[])
 }
 
 /// Returns the command unchanged.
