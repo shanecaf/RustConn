@@ -454,7 +454,11 @@ pub fn migrate_vault_entries_on_group_change(
             for (old_key, new_key) in &rename_pairs {
                 tracing::info!(%old_key, %new_key, "Migrating KeePass entry after group change");
                 if let Err(e) = rustconn_core::secret::KeePassStatus::rename_entry_in_kdbx(
-                    kdbx, db_password.as_ref(), key, old_key, new_key,
+                    kdbx,
+                    db_password.as_ref(),
+                    key,
+                    old_key,
+                    new_key,
                 ) {
                     errors.push(format!("{old_key} → {new_key}: {e}"));
                 }
