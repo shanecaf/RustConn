@@ -8,6 +8,7 @@
 
 mod manager;
 
+pub use manager::VARIABLE_REGEX;
 pub use manager::VariableManager;
 
 use serde::{Deserialize, Serialize};

@@ -181,6 +181,8 @@ pub struct EmbeddedSpiceWidget {
     drawing_area: DrawingArea,
     /// Pixel buffer for frame data
     pixel_buffer: Rc<RefCell<SpicePixelBuffer>>,
+    /// Persistent Cairo-backed pixel buffer for zero-copy rendering
+    cairo_buffer: Rc<RefCell<crate::cairo_buffer::CairoBackedBuffer>>,
     /// Current connection state
     state: Rc<RefCell<SpiceConnectionState>>,
     /// Current configuration
@@ -279,6 +281,9 @@ impl EmbeddedSpiceWidget {
         container.append(&drawing_area);
 
         let pixel_buffer = Rc::new(RefCell::new(SpicePixelBuffer::new(1280, 720)));
+        let cairo_buffer = Rc::new(RefCell::new(crate::cairo_buffer::CairoBackedBuffer::new(
+            1280, 720,
+        )));
         let state = Rc::new(RefCell::new(SpiceConnectionState::Disconnected));
         let width = Rc::new(RefCell::new(1280u32));
         let height = Rc::new(RefCell::new(720u32));
@@ -295,6 +300,7 @@ impl EmbeddedSpiceWidget {
             separator,
             drawing_area,
             pixel_buffer,
+            cairo_buffer,
             state,
             config: Rc::new(RefCell::new(None)),
             process: Rc::new(RefCell::new(None)),
@@ -357,6 +363,7 @@ impl EmbeddedSpiceWidget {
     /// Sets up the drawing function for the DrawingArea
     fn setup_drawing(&self) {
         let pixel_buffer = self.pixel_buffer.clone();
+        let cairo_buffer = self.cairo_buffer.clone();
         let state = self.state.clone();
         let is_embedded = self.is_embedded.clone();
 
@@ -371,13 +378,14 @@ impl EmbeddedSpiceWidget {
             let _ = cr.paint();
 
             if embedded && current_state == SpiceConnectionState::Connected {
-                // Render the pixel buffer
-                let buffer = pixel_buffer.borrow();
+                // Fast path: use the persistent Cairo surface (zero-copy)
+                let buffer = cairo_buffer.borrow();
                 let buf_w = crate::utils::dimension_to_i32(buffer.width());
                 let buf_h = crate::utils::dimension_to_i32(buffer.height());
 
-                if buf_w > 0 && buf_h > 0 && !buffer.data().is_empty() {
-                    // Calculate scaling to fit widget while maintaining aspect ratio
+                let should_render = buf_w > 0 && buf_h > 0 && buffer.has_data();
+
+                if should_render && let Some(surface) = buffer.surface() {
                     let scale_x = f64::from(w) / f64::from(buf_w);
                     let scale_y = f64::from(h) / f64::from(buf_h);
                     let scale = scale_x.min(scale_y);
@@ -387,16 +395,37 @@ impl EmbeddedSpiceWidget {
                     let offset_x = (w - scaled_w) / 2;
                     let offset_y = (h - scaled_h) / 2;
 
-                    // Create image surface from pixel buffer
+                    cr.translate(f64::from(offset_x), f64::from(offset_y));
+                    cr.scale(scale, scale);
+                    let _ = cr.set_source_surface(surface, 0.0, 0.0);
+                    let _ = cr.paint();
+                    return;
+                }
+
+                // Fallback: old SpicePixelBuffer path (to_vec copy)
+                let fb = pixel_buffer.borrow();
+                let fb_w = crate::utils::dimension_to_i32(fb.width());
+                let fb_h = crate::utils::dimension_to_i32(fb.height());
+
+                if fb_w > 0 && fb_h > 0 && !fb.data().is_empty() {
+                    let scale_x = f64::from(w) / f64::from(fb_w);
+                    let scale_y = f64::from(h) / f64::from(fb_h);
+                    let scale = scale_x.min(scale_y);
+
+                    let scaled_w = (f64::from(fb_w) * scale) as i32;
+                    let scaled_h = (f64::from(fb_h) * scale) as i32;
+                    let offset_x = (w - scaled_w) / 2;
+                    let offset_y = (h - scaled_h) / 2;
+
                     let stride = cairo::Format::ARgb32
-                        .stride_for_width(buffer.width())
-                        .unwrap_or(buf_w * 4);
+                        .stride_for_width(fb.width())
+                        .unwrap_or(fb_w * 4);
 
                     if let Ok(surface) = cairo::ImageSurface::create_for_data(
-                        buffer.data().to_vec(),
+                        fb.data().to_vec(),
                         cairo::Format::ARgb32,
-                        buf_w,
-                        buf_h,
+                        fb_w,
+                        fb_h,
                         stride,
                     ) {
                         cr.translate(f64::from(offset_x), f64::from(offset_y));
@@ -902,6 +931,7 @@ impl EmbeddedSpiceWidget {
     #[cfg(feature = "spice-embedded")]
     fn start_event_polling(&self, event_rx: rustconn_core::SpiceEventReceiver) {
         let pixel_buffer = self.pixel_buffer.clone();
+        let cairo_buffer = self.cairo_buffer.clone();
         let state = self.state.clone();
         let drawing_area = self.drawing_area.clone();
         let toolbar = self.toolbar.clone();
@@ -920,6 +950,9 @@ impl EmbeddedSpiceWidget {
                         *spice_width.borrow_mut() = u32::from(width);
                         *spice_height.borrow_mut() = u32::from(height);
                         pixel_buffer
+                            .borrow_mut()
+                            .resize(u32::from(width), u32::from(height));
+                        cairo_buffer
                             .borrow_mut()
                             .resize(u32::from(width), u32::from(height));
                         toolbar.set_visible(true);
@@ -945,11 +978,22 @@ impl EmbeddedSpiceWidget {
                         pixel_buffer
                             .borrow_mut()
                             .resize(u32::from(width), u32::from(height));
+                        cairo_buffer
+                            .borrow_mut()
+                            .resize(u32::from(width), u32::from(height));
                         drawing_area.queue_draw();
                     }
                     SpiceClientEvent::FrameUpdate { rect, data } => {
                         let stride = u32::from(rect.width) * 4;
                         pixel_buffer.borrow_mut().update_region(
+                            u32::from(rect.x),
+                            u32::from(rect.y),
+                            u32::from(rect.width),
+                            u32::from(rect.height),
+                            &data,
+                            stride,
+                        );
+                        cairo_buffer.borrow_mut().update_region(
                             u32::from(rect.x),
                             u32::from(rect.y),
                             u32::from(rect.width),
@@ -978,6 +1022,10 @@ impl EmbeddedSpiceWidget {
                             stride,
                         );
                         drop(buffer);
+                        let mut cb = cairo_buffer.borrow_mut();
+                        cb.resize(u32::from(width), u32::from(height));
+                        cb.update_region(0, 0, u32::from(width), u32::from(height), &data, stride);
+                        drop(cb);
                         drawing_area.queue_draw();
                     }
                     SpiceClientEvent::Error(msg) => {

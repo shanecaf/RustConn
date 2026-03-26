@@ -4,19 +4,13 @@
 //! updating, and deleting command snippets with persistence through `ConfigManager`.
 
 use std::collections::{HashMap, HashSet};
-use std::sync::LazyLock;
 
-use regex::Regex;
 use uuid::Uuid;
 
 use crate::config::ConfigManager;
 use crate::error::{ConfigError, ConfigResult};
 use crate::models::{Snippet, SnippetVariable};
-
-/// Cached regex for variable extraction: matches `${var_name}` patterns
-static VARIABLE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"\$\{([a-zA-Z_][a-zA-Z0-9_]*)\}").expect("VARIABLE_REGEX is a valid regex pattern")
-});
+use crate::variables::VARIABLE_REGEX;
 
 /// Manager for snippet CRUD operations
 ///

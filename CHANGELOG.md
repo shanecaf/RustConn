@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.8] - 2026-03-27
+
+### Fixed
+- **Flatpak: gcloud install fails with read-only filesystem** — `install.sh` now runs with `CLOUDSDK_CONFIG` pointing to the writable sandbox directory, preventing `OSError: [Errno 30]` on `~/.config/gcloud/`
+
+### Improved
+- **SPICE/VNC embedded rendering performance** — replaced per-frame `to_vec()` pixel buffer copy with persistent `CairoBackedBuffer` (in-place surface updates + `mark_dirty_rectangle`); eliminates 8–33 MB allocation per frame depending on resolution; same zero-copy pattern already used by embedded RDP since 0.10.7
+- **`CairoBackedBuffer` extracted to shared module** — `cairo_buffer.rs` is now used by RDP, VNC, and SPICE embedded widgets instead of three separate implementations
+- **`parse_version` regex cached** — `secrets_tab.rs` now reuses `VERSION_REGEX` from `rustconn-core` instead of compiling a new regex on every call
+- **`VARIABLE_REGEX` deduplicated** — identical regex was compiled in three modules (`variables/manager.rs`, `snippet/manager.rs`, `utils.rs`); now defined once and re-exported
+
 ## [0.10.7] - 2026-03-26
 
 ### Changed

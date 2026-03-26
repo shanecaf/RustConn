@@ -42,9 +42,9 @@ pub use bitwarden::{
     store_master_password_in_keyring, unlock_vault,
 };
 pub use detection::{
-    PasswordManagerInfo, detect_bitwarden, detect_gnome_secrets, detect_keepass, detect_keepassxc,
-    detect_libsecret, detect_onepassword, detect_pass, detect_passbolt, detect_password_managers,
-    get_password_manager_launch_command, open_password_manager,
+    PasswordManagerInfo, VERSION_REGEX, detect_bitwarden, detect_gnome_secrets, detect_keepass,
+    detect_keepassxc, detect_libsecret, detect_onepassword, detect_pass, detect_passbolt,
+    detect_password_managers, get_password_manager_launch_command, open_password_manager,
 };
 pub use hierarchy::{
     GROUPS_SUBFOLDER, GroupCreationResult, KEEPASS_ROOT_GROUP, KeePassHierarchy, PATH_SEPARATOR,

@@ -4,7 +4,6 @@
 //! including safe display access, CSS provider management, and accessibility helpers.
 
 use gtk4::gdk;
-use std::sync::LazyLock;
 
 /// Gets the default GDK display, returning None if unavailable
 ///
@@ -99,15 +98,8 @@ pub fn set_accessible_label(widget: &impl gtk4::prelude::AccessibleExtManual, la
 ///
 /// Matches patterns like `${variable_name}` and captures the variable name.
 ///
-/// # Panics
-///
-/// The `expect()` is safe because the regex pattern is a compile-time constant
-/// that has been validated. This is a provably correct pattern.
-pub static VARIABLE_PATTERN: LazyLock<regex::Regex> = LazyLock::new(|| {
-    // Pattern is a compile-time constant, validated to be correct
-    regex::Regex::new(r"\$\{([a-zA-Z_][a-zA-Z0-9_]*)\}")
-        .expect("compile-time constant regex pattern")
-});
+/// Re-exported from [`rustconn_core::variables::manager::VARIABLE_REGEX`].
+pub use rustconn_core::variables::VARIABLE_REGEX as VARIABLE_PATTERN;
 
 /// Extracts variable names from a template string
 ///

@@ -1663,9 +1663,8 @@ fn get_cli_version(command: &str, args: &[&str]) -> Option<String> {
 
 /// Parses version from output string
 fn parse_version(output: &str) -> Option<String> {
-    // Try to find version pattern like "1.2.3" or "v1.2.3"
-    let re = regex::Regex::new(r"v?(\d+\.\d+(?:\.\d+)?)").ok()?;
-    re.captures(output)
+    rustconn_core::secret::VERSION_REGEX
+        .captures(output)
         .and_then(|c| c.get(1))
         .map(|m| m.as_str().to_string())
 }

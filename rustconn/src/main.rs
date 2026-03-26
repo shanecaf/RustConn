@@ -44,6 +44,7 @@ pub mod async_utils;
 pub mod audio;
 pub mod automation;
 pub mod broadcast;
+pub mod cairo_buffer;
 pub mod dialogs;
 pub mod display;
 pub mod embedded;

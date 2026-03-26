@@ -199,7 +199,7 @@ Pinned CLI versions for Flatpak sandbox. Run `./scripts/check-cli-versions.sh` t
 | Tailscale | `tailscale` | 1.96.2 |
 | Boundary | `boundary` | 0.21.1 |
 | Bitwarden CLI | `bw` | 2026.2.0 |
-| 1Password CLI | `op` | 2.33.0 |
+| 1Password CLI | `op` | 2.33.1 |
 | kubectl | `kubectl` | 1.35.3 |
 
 "Latest" URL (no pinned version): AWS CLI, SSM Plugin, gcloud, Azure CLI, OCI CLI, cloudflared.

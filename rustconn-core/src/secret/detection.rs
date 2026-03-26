@@ -10,7 +10,7 @@ use regex::Regex;
 use tokio::process::Command;
 
 /// Cached regex for version parsing: matches patterns like "1.2.3" or "v1.2.3"
-static VERSION_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+pub static VERSION_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"v?(\d+\.\d+(?:\.\d+)?)").expect("VERSION_REGEX is a valid regex pattern")
 });
 

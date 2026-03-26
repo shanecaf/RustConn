@@ -12,7 +12,7 @@ use uuid::Uuid;
 use super::{MAX_NESTING_DEPTH, Variable, VariableError, VariableResult, VariableScope};
 
 /// Cached regex for variable extraction: matches `${var_name}` patterns
-static VARIABLE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
+pub static VARIABLE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"\$\{([a-zA-Z_][a-zA-Z0-9_]*)\}").expect("VARIABLE_REGEX is a valid regex pattern")
 });
 

@@ -96,6 +96,8 @@ pub struct EmbeddedVncWidget {
     wl_surface: Rc<RefCell<VncWaylandSurface>>,
     /// Pixel buffer for frame data
     pixel_buffer: Rc<RefCell<VncPixelBuffer>>,
+    /// Persistent Cairo-backed pixel buffer for zero-copy rendering
+    cairo_buffer: Rc<RefCell<crate::cairo_buffer::CairoBackedBuffer>>,
     /// Current connection state
     state: Rc<RefCell<VncConnectionState>>,
     /// Current configuration
@@ -198,6 +200,9 @@ impl EmbeddedVncWidget {
         container.append(&drawing_area);
 
         let pixel_buffer = Rc::new(RefCell::new(VncPixelBuffer::new(1280, 720)));
+        let cairo_buffer = Rc::new(RefCell::new(crate::cairo_buffer::CairoBackedBuffer::new(
+            1280, 720,
+        )));
         let state = Rc::new(RefCell::new(VncConnectionState::Disconnected));
         let width = Rc::new(RefCell::new(1280u32));
         let height = Rc::new(RefCell::new(720u32));
@@ -215,6 +220,7 @@ impl EmbeddedVncWidget {
             drawing_area,
             wl_surface: Rc::new(RefCell::new(VncWaylandSurface::new())),
             pixel_buffer,
+            cairo_buffer,
             state,
             config: Rc::new(RefCell::new(None)),
             process: Rc::new(RefCell::new(None)),
@@ -281,6 +287,7 @@ impl EmbeddedVncWidget {
     /// Sets up the drawing function for the DrawingArea
     fn setup_drawing(&self) {
         let pixel_buffer = self.pixel_buffer.clone();
+        let cairo_buffer = self.cairo_buffer.clone();
         let state = self.state.clone();
         let is_embedded = self.is_embedded.clone();
         let config = self.config.clone();
@@ -295,31 +302,50 @@ impl EmbeddedVncWidget {
                 let _ = cr.paint();
 
                 if embedded && current_state == VncConnectionState::Connected {
-                    // In embedded mode, render the pixel buffer
-                    let buffer = pixel_buffer.borrow();
+                    // Fast path: use the persistent Cairo surface (zero-copy)
+                    let buffer = cairo_buffer.borrow();
                     let buf_width = buffer.width();
                     let buf_height = buffer.height();
-                    if buf_width > 0 && buf_height > 0 {
-                        // Create a Cairo ImageSurface from the pixel buffer data
-                        // The buffer is in BGRA format which matches Cairo's ARGB32
-                        let data = buffer.data();
+
+                    if buf_width > 0
+                        && buf_height > 0
+                        && buffer.has_data()
+                        && let Some(surface) = buffer.surface()
+                    {
+                        let scale_x = f64::from(width) / f64::from(buf_width);
+                        let scale_y = f64::from(height) / f64::from(buf_height);
+                        let scale = scale_x.min(scale_y);
+
+                        let offset_x = f64::from(buf_width).mul_add(-scale, f64::from(width)) / 2.0;
+                        let offset_y =
+                            f64::from(buf_height).mul_add(-scale, f64::from(height)) / 2.0;
+
+                        cr.translate(offset_x, offset_y);
+                        cr.scale(scale, scale);
+                        let _ = cr.set_source_surface(surface, 0.0, 0.0);
+                        let _ = cr.paint();
+                        return;
+                    }
+
+                    // Fallback: old VncPixelBuffer path (to_vec copy)
+                    let fb = pixel_buffer.borrow();
+                    let fb_w = fb.width();
+                    let fb_h = fb.height();
+                    if fb_w > 0 && fb_h > 0 {
+                        let data = fb.data();
                         if let Ok(surface) = gtk4::cairo::ImageSurface::create_for_data(
                             data.to_vec(),
                             gtk4::cairo::Format::ARgb32,
-                            crate::utils::dimension_to_i32(buf_width),
-                            crate::utils::dimension_to_i32(buf_height),
-                            crate::utils::stride_to_i32(buffer.stride()),
+                            crate::utils::dimension_to_i32(fb_w),
+                            crate::utils::dimension_to_i32(fb_h),
+                            crate::utils::stride_to_i32(fb.stride()),
                         ) {
-                            // Scale to fit the drawing area while maintaining aspect ratio
-                            let scale_x = f64::from(width) / f64::from(buf_width);
-                            let scale_y = f64::from(height) / f64::from(buf_height);
+                            let scale_x = f64::from(width) / f64::from(fb_w);
+                            let scale_y = f64::from(height) / f64::from(fb_h);
                             let scale = scale_x.min(scale_y);
 
-                            // Center the image
-                            let offset_x =
-                                f64::from(buf_width).mul_add(-scale, f64::from(width)) / 2.0;
-                            let offset_y =
-                                f64::from(buf_height).mul_add(-scale, f64::from(height)) / 2.0;
+                            let offset_x = f64::from(fb_w).mul_add(-scale, f64::from(width)) / 2.0;
+                            let offset_y = f64::from(fb_h).mul_add(-scale, f64::from(height)) / 2.0;
 
                             cr.translate(offset_x, offset_y);
                             cr.scale(scale, scale);
@@ -691,6 +717,7 @@ impl EmbeddedVncWidget {
         let width = self.width.clone();
         let height = self.height.clone();
         let pixel_buffer = self.pixel_buffer.clone();
+        let cairo_buffer = self.cairo_buffer.clone();
 
         self.drawing_area
             .connect_resize(move |_area, new_width, new_height| {
@@ -702,6 +729,7 @@ impl EmbeddedVncWidget {
 
                 // Resize the pixel buffer
                 pixel_buffer.borrow_mut().resize(new_width, new_height);
+                cairo_buffer.borrow_mut().resize(new_width, new_height);
             });
     }
 
@@ -1095,6 +1123,7 @@ impl EmbeddedVncWidget {
 
         // Clone references for the event polling timer
         let pixel_buffer = self.pixel_buffer.clone();
+        let cairo_buffer = self.cairo_buffer.clone();
         let state = self.state.clone();
         let drawing_area = self.drawing_area.clone();
         let toolbar = self.toolbar.clone();
@@ -1171,17 +1200,23 @@ impl EmbeddedVncWidget {
                     }
                     VncClientEvent::ResolutionChanged { width, height } => {
                         tracing::debug!("[EmbeddedVNC] Resolution changed: {}x{}", width, height);
-                        // Store VNC server resolution for coordinate transformation
                         *vnc_width_ref.borrow_mut() = width;
                         *vnc_height_ref.borrow_mut() = height;
                         pixel_buffer.borrow_mut().resize(width, height);
-                        // Don't change widget size - let it scale the VNC image
+                        cairo_buffer.borrow_mut().resize(width, height);
                         drawing_area.queue_draw();
                     }
                     VncClientEvent::FrameUpdate { rect, data } => {
-                        // Update the pixel buffer with the new frame data
                         let stride = u32::from(rect.width) * 4;
                         pixel_buffer.borrow_mut().update_region(
+                            u32::from(rect.x),
+                            u32::from(rect.y),
+                            u32::from(rect.width),
+                            u32::from(rect.height),
+                            &data,
+                            stride,
+                        );
+                        cairo_buffer.borrow_mut().update_region(
                             u32::from(rect.x),
                             u32::from(rect.y),
                             u32::from(rect.width),

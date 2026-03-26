@@ -1434,6 +1434,7 @@ async fn install_custom_component(
     )))
 }
 
+#[allow(clippy::too_many_lines)]
 async fn install_gcloud(
     component: &DownloadableComponent,
     cli_dir: &Path,
@@ -1501,16 +1502,25 @@ async fn install_gcloud(
     // Run install.sh
     let install_script = cli_dir.join("google-cloud-sdk/install.sh");
     if install_script.exists() {
-        let output = tokio::process::Command::new("bash")
-            .args([
-                install_script.to_str().unwrap_or("install.sh"),
-                "--quiet",
-                "--path-update=false",
-                "--command-completion=false",
-                "--usage-reporting=false",
-            ])
-            .output()
-            .await?;
+        let mut cmd = tokio::process::Command::new("bash");
+        cmd.args([
+            install_script.to_str().unwrap_or("install.sh"),
+            "--quiet",
+            "--path-update=false",
+            "--command-completion=false",
+            "--usage-reporting=false",
+        ]);
+
+        // In Flatpak, redirect gcloud config to a writable sandbox directory.
+        // Without this, install.sh fails writing to the read-only
+        // ~/.config/gcloud/ mount.
+        if crate::flatpak::is_flatpak()
+            && let Some(config_dir) = crate::flatpak::get_flatpak_gcloud_config_dir()
+        {
+            cmd.env("CLOUDSDK_CONFIG", &config_dir);
+        }
+
+        let output = cmd.output().await?;
 
         if !output.status.success() {
             tracing::warn!(

@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.10.7
+Version:        0.10.8
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -226,6 +226,9 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Thu Mar 27 2026 Anton Isaiev <totoshko88@gmail.com> - 0.10.8-0
+- See CHANGELOG.md for full release notes
+
 * Wed Mar 26 2026 Anton Isaiev <totoshko88@gmail.com> - 0.10.7-0
 - See CHANGELOG.md for full release notes
 
