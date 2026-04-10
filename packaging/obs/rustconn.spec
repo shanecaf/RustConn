@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.10.15
+Version:        0.10.16
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -226,6 +226,10 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Fri Apr 10 2026 Anton Isaiev <totoshko88@gmail.com> - 0.10.16-1
+- [Fixed] Sidebar context menu actions still not working — replaced
+  PopoverMenu with plain Popover + Button widgets (#75)
+
 * Fri Apr 10 2026 Anton Isaiev <totoshko88@gmail.com> - 0.10.15-1
 - [Fixed] clear command not working in Flatpak — added ANSI escape
   sequence wrapper to all three Flatpak manifests (#25)

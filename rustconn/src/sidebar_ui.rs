@@ -5,14 +5,27 @@
 
 use crate::i18n::i18n;
 use gtk4::gdk;
-use gtk4::glib;
 use gtk4::prelude::*;
-use gtk4::{Box as GtkBox, Button, Orientation, gio};
+use gtk4::{Box as GtkBox, Button, Label, Orientation, Separator};
+
+/// A single item in the context menu.
+enum ContextMenuItem {
+    /// A clickable action with a label and a window action name (without "win." prefix).
+    Action { label: String, action: String },
+    /// A visual separator between groups of actions.
+    Separator,
+}
+
+impl ContextMenuItem {
+    fn action(label: &str, action: &str) -> Self {
+        Self::Action {
+            label: label.to_string(),
+            action: action.to_string(),
+        }
+    }
+}
 
 /// Shows the context menu for a connection item with group awareness
-///
-/// Uses `PopoverMenu` with `gio::Menu` for native GNOME HIG compliance,
-/// keyboard navigation, and screen reader accessibility.
 #[allow(clippy::fn_params_excessive_bools)]
 pub fn show_context_menu_for_item(
     widget: &impl IsA<gtk4::Widget>,
@@ -28,82 +41,84 @@ pub fn show_context_menu_for_item(
         return;
     };
 
-    let menu = gio::Menu::new();
+    let mut items: Vec<ContextMenuItem> = Vec::new();
 
     if is_group {
-        // Group actions
-        let group_section = gio::Menu::new();
-        group_section.append(
-            Some(&i18n("New Connection in Group")),
-            Some("win.new-connection-in-group"),
-        );
-        group_section.append(Some(&i18n("Connect All")), Some("win.connect-all-in-group"));
-        menu.append_section(None, &group_section);
-
-        let edit_section = gio::Menu::new();
-        edit_section.append(Some(&i18n("Edit")), Some("win.edit-connection"));
-        edit_section.append(Some(&i18n("Rename")), Some("win.rename-item"));
-        menu.append_section(None, &edit_section);
+        items.push(ContextMenuItem::action(
+            &i18n("New Connection in Group"),
+            "new-connection-in-group",
+        ));
+        items.push(ContextMenuItem::action(
+            &i18n("Connect All"),
+            "connect-all-in-group",
+        ));
+        items.push(ContextMenuItem::Separator);
+        items.push(ContextMenuItem::action(&i18n("Edit"), "edit-connection"));
+        items.push(ContextMenuItem::action(&i18n("Rename"), "rename-item"));
     } else {
-        // Connection actions section
-        let connect_section = gio::Menu::new();
-        connect_section.append(Some(&i18n("Connect")), Some("win.connect"));
-        connect_section.append(Some(&i18n("Pin / Unpin")), Some("win.toggle-pin"));
-        menu.append_section(None, &connect_section);
-
-        // Edit section
-        let edit_section = gio::Menu::new();
-        edit_section.append(
-            Some(&i18n("New Connection")),
-            Some("win.new-connection-from-context"),
-        );
-        edit_section.append(Some(&i18n("Edit")), Some("win.edit-connection"));
-        edit_section.append(Some(&i18n("Rename")), Some("win.rename-item"));
-        edit_section.append(Some(&i18n("Duplicate")), Some("win.duplicate-connection"));
-        edit_section.append(Some(&i18n("Move to Group...")), Some("win.move-to-group"));
-        menu.append_section(None, &edit_section);
-
-        // Clipboard section
-        let clipboard_section = gio::Menu::new();
-        clipboard_section.append(Some(&i18n("Copy Username")), Some("win.copy-username"));
-        clipboard_section.append(Some(&i18n("Copy Password")), Some("win.copy-password"));
-        menu.append_section(None, &clipboard_section);
-
-        // Tools section
-        let tools_section = gio::Menu::new();
-        tools_section.append(
-            Some(&i18n("Run Snippet...")),
-            Some("win.run-snippet-for-connection"),
-        );
-        tools_section.append(Some(&i18n("Wake On LAN")), Some("win.wake-on-lan"));
-        tools_section.append(
-            Some(&i18n("Check if Online")),
-            Some("win.check-host-online"),
-        );
+        items.push(ContextMenuItem::action(&i18n("Connect"), "connect"));
+        items.push(ContextMenuItem::action(&i18n("Pin / Unpin"), "toggle-pin"));
+        items.push(ContextMenuItem::Separator);
+        items.push(ContextMenuItem::action(
+            &i18n("New Connection"),
+            "new-connection-from-context",
+        ));
+        items.push(ContextMenuItem::action(&i18n("Edit"), "edit-connection"));
+        items.push(ContextMenuItem::action(&i18n("Rename"), "rename-item"));
+        items.push(ContextMenuItem::action(
+            &i18n("Duplicate"),
+            "duplicate-connection",
+        ));
+        items.push(ContextMenuItem::action(
+            &i18n("Move to Group..."),
+            "move-to-group",
+        ));
+        items.push(ContextMenuItem::Separator);
+        items.push(ContextMenuItem::action(
+            &i18n("Copy Username"),
+            "copy-username",
+        ));
+        items.push(ContextMenuItem::action(
+            &i18n("Copy Password"),
+            "copy-password",
+        ));
+        items.push(ContextMenuItem::Separator);
+        items.push(ContextMenuItem::action(
+            &i18n("Run Snippet..."),
+            "run-snippet-for-connection",
+        ));
+        items.push(ContextMenuItem::action(&i18n("Wake On LAN"), "wake-on-lan"));
+        items.push(ContextMenuItem::action(
+            &i18n("Check if Online"),
+            "check-host-online",
+        ));
         if is_ssh {
-            tools_section.append(Some(&i18n("Open SFTP")), Some("win.open-sftp"));
+            items.push(ContextMenuItem::action(&i18n("Open SFTP"), "open-sftp"));
         }
-        menu.append_section(None, &tools_section);
-
-        // Recording section (only for connected sessions)
         if is_connected {
-            let recording_section = gio::Menu::new();
+            items.push(ContextMenuItem::Separator);
             if is_recording {
-                recording_section.append(Some(&i18n("Stop Recording")), Some("win.stop-recording"));
+                items.push(ContextMenuItem::action(
+                    &i18n("Stop Recording"),
+                    "stop-recording",
+                ));
             } else {
-                recording_section
-                    .append(Some(&i18n("Start Recording")), Some("win.start-recording"));
+                items.push(ContextMenuItem::action(
+                    &i18n("Start Recording"),
+                    "start-recording",
+                ));
             }
-            menu.append_section(None, &recording_section);
         }
     }
 
     // Delete section (always last, visually separated)
-    let delete_section = gio::Menu::new();
-    delete_section.append(Some(&i18n("Delete")), Some("win.delete-connection"));
-    menu.append_section(None, &delete_section);
+    items.push(ContextMenuItem::Separator);
+    items.push(ContextMenuItem::action(
+        &i18n("Delete"),
+        "delete-connection",
+    ));
 
-    show_popover_menu(widget, window, &menu, x, y);
+    show_popover(widget, window, &items, x, y);
 }
 
 /// Shows the context menu for empty space in the sidebar
@@ -113,61 +128,67 @@ pub fn show_empty_space_context_menu(widget: &impl IsA<gtk4::Widget>, x: f64, y:
         return;
     };
 
-    let menu = gio::Menu::new();
+    let items = vec![
+        ContextMenuItem::action(&i18n("Quick Connect"), "quick-connect"),
+        ContextMenuItem::action(&i18n("New Connection"), "new-connection"),
+        ContextMenuItem::action(&i18n("New Group"), "new-group"),
+        ContextMenuItem::Separator,
+        ContextMenuItem::action(&i18n("Import..."), "import"),
+        ContextMenuItem::action(&i18n("Export..."), "export"),
+    ];
 
-    let create_section = gio::Menu::new();
-    create_section.append(Some(&i18n("Quick Connect")), Some("win.quick-connect"));
-    create_section.append(Some(&i18n("New Connection")), Some("win.new-connection"));
-    create_section.append(Some(&i18n("New Group")), Some("win.new-group"));
-    menu.append_section(None, &create_section);
-
-    let io_section = gio::Menu::new();
-    io_section.append(Some(&i18n("Import...")), Some("win.import"));
-    io_section.append(Some(&i18n("Export...")), Some("win.export"));
-    menu.append_section(None, &io_section);
-
-    show_popover_menu(widget, window, &menu, x, y);
+    show_popover(widget, window, &items, x, y);
 }
 
-/// Creates and shows a `PopoverMenu` from a `gio::Menu` at the given coordinates
-fn show_popover_menu(
+/// Creates and shows a `Popover` with button items that directly activate
+/// window actions. This bypasses `PopoverMenu` action-resolution issues
+/// inside `ListView` / `TreeExpander` widget hierarchies.
+fn show_popover(
     widget: &impl IsA<gtk4::Widget>,
     window: &gtk4::ApplicationWindow,
-    menu: &gio::Menu,
+    items: &[ContextMenuItem],
     x: f64,
     y: f64,
 ) {
-    let popover = gtk4::PopoverMenu::from_model(Some(menu));
+    let popover = gtk4::Popover::new();
     popover.set_parent(widget);
 
-    // Explicitly proxy window actions into the popover's action group.
-    // PopoverMenu resolves "win.action-name" by walking up the widget tree,
-    // but widgets inside a ListView/TreeExpander may not propagate actions
-    // to the ApplicationWindow correctly. Creating a local action group
-    // that delegates to the window's actions fixes this.
-    let action_group = gio::SimpleActionGroup::new();
-    let window_weak = window.downgrade();
+    let vbox = GtkBox::new(Orientation::Vertical, 0);
+    vbox.add_css_class("context-menu");
 
-    // Collect all action names from the menu model so we proxy exactly
-    // what the menu needs — no hardcoded list required.
-    let mut action_names = Vec::new();
-    collect_action_names(menu, &mut action_names);
+    for item in items {
+        match item {
+            ContextMenuItem::Action { label, action } => {
+                let button = Button::new();
+                button.add_css_class("flat");
+                button.add_css_class("context-menu-item");
 
-    for name in &action_names {
-        let win = window_weak.clone();
-        let action_name = name.clone();
-        let action = gio::SimpleAction::new(name, None);
-        action.connect_activate(move |_, _| {
-            if let Some(w) = win.upgrade()
-                && let Some(a) = w.lookup_action(&action_name)
-            {
-                a.activate(None);
+                let lbl = Label::new(Some(label));
+                lbl.set_xalign(0.0);
+                button.set_child(Some(&lbl));
+
+                let window_weak = window.downgrade();
+                let action_name = action.clone();
+                let popover_weak = popover.downgrade();
+                button.connect_clicked(move |_| {
+                    // Close the popover first, then activate the action
+                    if let Some(p) = popover_weak.upgrade() {
+                        p.popdown();
+                    }
+                    if let Some(w) = window_weak.upgrade() {
+                        gtk4::prelude::ActionGroupExt::activate_action(&w, &action_name, None);
+                    }
+                });
+
+                vbox.append(&button);
             }
-        });
-        action_group.add_action(&action);
+            ContextMenuItem::Separator => {
+                vbox.append(&Separator::new(Orientation::Horizontal));
+            }
+        }
     }
 
-    popover.insert_action_group("win", Some(&action_group));
+    popover.set_child(Some(&vbox));
 
     #[allow(clippy::cast_possible_truncation)]
     let rect = gdk::Rectangle::new(x as i32, y as i32, 1, 1);
@@ -180,32 +201,6 @@ fn show_popover_menu(
     });
 
     popover.popup();
-}
-
-/// Recursively collects action names (without the "win." prefix) from a `gio::Menu`.
-fn collect_action_names(menu: &gio::Menu, out: &mut Vec<String>) {
-    let n = menu.n_items();
-    for i in 0..n {
-        // Check for a direct action on this item
-        if let Some(action) = menu.item_attribute_value(i, "action", Some(glib::VariantTy::STRING))
-            && let Some(s) = action.str()
-        {
-            if let Some(name) = s.strip_prefix("win.") {
-                out.push(name.to_string());
-            }
-        }
-        // Recurse into sub-menus / sections
-        if let Some(link) = menu.item_link(i, "section") {
-            if let Some(sub) = link.downcast_ref::<gio::Menu>() {
-                collect_action_names(sub, out);
-            }
-        }
-        if let Some(link) = menu.item_link(i, "submenu") {
-            if let Some(sub) = link.downcast_ref::<gio::Menu>() {
-                collect_action_names(sub, out);
-            }
-        }
-    }
 }
 
 /// Returns the appropriate icon name for a protocol string

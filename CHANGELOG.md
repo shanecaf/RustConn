@@ -5,6 +5,24 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.16] - 2026-04-10
+
+### Fixed
+- **Sidebar context menu actions still not working** — the v0.10.15 fix using `insert_action_group()` proxy was insufficient: `PopoverMenu` inside a `ListView`/`TreeExpander` hierarchy cannot reliably resolve `win.*` actions regardless of where the action group is injected; replaced `PopoverMenu` + `gio::Menu` with a plain `Popover` containing `Button` widgets that directly call `window.activate_action()`, completely bypassing GTK4 action-group resolution ([#75](https://github.com/totoshko88/RustConn/issues/75))
+
+### Dependencies
+- cc 1.2.59 → 1.2.60
+- gif 0.14.1 → 0.14.2
+- hashbrown 0.16.1 → 0.17.0
+- indexmap 2.13.1 → 2.14.0
+- js-sys 0.3.94 → 0.3.95
+- ksni 0.3.3 → 0.3.4
+- libredox 0.1.15 → 0.1.16
+- redox_syscall 0.7.3 → 0.7.4
+- rustls-webpki 0.103.10 → 0.103.11
+- wasm-bindgen 0.2.117 → 0.2.118
+- web-sys 0.3.94 → 0.3.95
+
 ## [0.10.15] - 2026-04-10
 
 ### Fixed

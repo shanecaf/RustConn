@@ -1,3 +1,11 @@
+rustconn (0.10.16-1) unstable; urgency=medium
+
+  * [Fixed] Sidebar context menu actions still not working — PopoverMenu
+    cannot resolve win.* actions inside ListView/TreeExpander; replaced with
+    plain Popover + Button widgets that directly call activate_action (#75)
+
+ -- Anton Isaiev <totoshko88@gmail.com>  Fri, 10 Apr 2026 20:00:00 +0000
+
 rustconn (0.10.15-1) unstable; urgency=medium
 
   * [Fixed] clear command not working in Flatpak — added ANSI escape
