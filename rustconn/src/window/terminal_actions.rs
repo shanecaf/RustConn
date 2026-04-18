@@ -72,7 +72,9 @@ impl MainWindow {
             if let Some(session_id) = split_view_clone.get_focused_session()
                 && let Some(terminal) = notebook_clone.get_terminal(session_id)
             {
-                terminal.copy_clipboard_format(vte4::Format::Text);
+                if let Some(text) = terminal.text_selected(vte4::Format::Text) {
+                    terminal.display().clipboard().set_text(&text);
+                }
                 return;
             }
             // Fall back to TabView's active terminal (for RDP/VNC/SPICE)

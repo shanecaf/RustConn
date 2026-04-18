@@ -109,6 +109,9 @@ pub struct TerminalNotebook {
     session_tab_ids: Rc<RefCell<HashMap<Uuid, TabId>>>,
     /// Whether to color tab indicators by protocol type
     color_tabs_by_protocol: Rc<RefCell<bool>>,
+    /// Direct tracking of split view colors per session (session_id → color_index).
+    /// Used to prevent protocol/clear operations from overwriting split indicators.
+    split_session_colors: Rc<RefCell<HashMap<Uuid, usize>>>,
     /// Tab group manager for assigning colors to named groups
     tab_group_manager: Rc<RefCell<TabGroupManager>>,
     /// Callback for reconnect button clicks (session_id, connection_id)
@@ -187,6 +190,7 @@ impl TerminalNotebook {
             split_manager: Rc::new(RefCell::new(TabSplitManager::new())),
             session_tab_ids: Rc::new(RefCell::new(HashMap::new())),
             color_tabs_by_protocol: Rc::new(RefCell::new(false)),
+            split_session_colors: Rc::new(RefCell::new(HashMap::new())),
             tab_group_manager: Rc::new(RefCell::new(TabGroupManager::new())),
             on_reconnect: Rc::new(RefCell::new(None)),
             reconnect_shown: Rc::new(RefCell::new(HashSet::new())),
@@ -216,6 +220,7 @@ impl TerminalNotebook {
         let tab_view = self.tab_view.clone();
         let split_manager = self.split_manager.clone();
         let session_tab_ids = self.session_tab_ids.clone();
+        let split_session_colors_close = self.split_session_colors.clone();
         let on_page_closed = self.on_page_closed.clone();
         let on_split_cleanup = self.on_split_cleanup.clone();
         let active_recordings = self.active_recordings.clone();
@@ -269,6 +274,7 @@ impl TerminalNotebook {
                 if let Some(tab_id) = session_tab_ids.borrow_mut().remove(&session_id) {
                     split_manager.borrow_mut().remove(tab_id);
                 }
+                split_session_colors_close.borrow_mut().remove(&session_id);
 
                 // Clean up session data
                 sessions.borrow_mut().remove(&session_id);
@@ -544,8 +550,7 @@ impl TerminalNotebook {
         let session_info = self.session_info.clone();
         let sessions = self.sessions.clone();
         let color_tabs_by_protocol = self.color_tabs_by_protocol.clone();
-        let split_manager = self.split_manager.clone();
-        let session_tab_ids = self.session_tab_ids.clone();
+        let split_session_colors = self.split_session_colors.clone();
 
         remove_group_action.connect_activate(move |_, _| {
             let target_page = context_page_remove.borrow().clone();
@@ -577,11 +582,7 @@ impl TerminalNotebook {
 
             // Restore appropriate indicator — group no longer uses indicator_icon,
             // so just restore protocol color if enabled
-            let has_split_color = session_tab_ids
-                .borrow()
-                .get(&session_id)
-                .and_then(|tab_id| split_manager.borrow().get_tab_color(*tab_id))
-                .is_some();
+            let has_split_color = split_session_colors.borrow().contains_key(&session_id);
 
             if !has_split_color
                 && *color_tabs_by_protocol.borrow()
@@ -922,9 +923,9 @@ impl TerminalNotebook {
         container.set_vexpand(true);
         container.append(&terminal);
 
-        // Right-click context menu on the container (not the terminal)
-        // to avoid GestureClick interfering with VTE mouse event processing.
-        config::setup_context_menu_on_container(&container, &terminal);
+        // Right-click context menu actions installed on the terminal widget
+        // so they follow it when reparented between TabView and split view.
+        config::setup_context_menu(&terminal);
 
         // Add page to TabView
         let page = self.tab_view.append(&container);
@@ -1809,6 +1810,11 @@ impl TerminalNotebook {
     /// Sets a color indicator on a tab to show it's in a split pane
     /// Applies a colored left border to the tab's title in the TabBar
     pub fn set_tab_split_color(&self, session_id: Uuid, color_index: usize) {
+        // Track split color so protocol/clear operations don't overwrite it
+        self.split_session_colors
+            .borrow_mut()
+            .insert(session_id, color_index);
+
         if let Some(page) = self.sessions.borrow().get(&session_id) {
             // Remove any existing tab color classes from the page's child
             for (_, tab_class) in crate::split_view::SPLIT_PANE_COLORS {
@@ -1885,6 +1891,9 @@ impl TerminalNotebook {
 
     /// Removes the split color indicator from a tab
     pub fn clear_tab_split_color(&self, session_id: Uuid) {
+        // Remove from split color tracking
+        self.split_session_colors.borrow_mut().remove(&session_id);
+
         if let Some(page) = self.sessions.borrow().get(&session_id) {
             page.set_indicator_icon(gio::Icon::NONE);
 
@@ -1923,7 +1932,7 @@ impl TerminalNotebook {
     fn apply_protocol_color(&self, session_id: Uuid, protocol: &str) {
         if let Some(page) = self.sessions.borrow().get(&session_id) {
             // Don't override split colors — split takes priority
-            if self.get_session_split_color(session_id).is_some() {
+            if self.split_session_colors.borrow().contains_key(&session_id) {
                 return;
             }
             let (r, g, b) = rustconn_core::get_protocol_color_rgb(protocol);
@@ -1938,7 +1947,7 @@ impl TerminalNotebook {
     fn clear_protocol_color(&self, session_id: Uuid) {
         if let Some(page) = self.sessions.borrow().get(&session_id) {
             // Don't clear if split color is active
-            if self.get_session_split_color(session_id).is_some() {
+            if self.split_session_colors.borrow().contains_key(&session_id) {
                 return;
             }
             page.set_indicator_icon(gio::Icon::NONE);
@@ -2106,8 +2115,10 @@ impl TerminalNotebook {
 
     /// Copies selected text from the active terminal to clipboard
     pub fn copy_to_clipboard(&self) {
-        if let Some(terminal) = self.get_active_terminal() {
-            terminal.copy_clipboard_format(vte4::Format::Text);
+        if let Some(terminal) = self.get_active_terminal()
+            && let Some(text) = terminal.text_selected(vte4::Format::Text)
+        {
+            terminal.display().clipboard().set_text(&text);
         }
     }
 

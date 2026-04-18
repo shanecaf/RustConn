@@ -55,8 +55,8 @@ pub struct ConnectionSidebar {
     tree_model: TreeListModel,
     /// Selection model - switches between Single and Multi
     selection_model: Rc<RefCell<SelectionModelWrapper>>,
-    /// Bulk actions toolbar (visible in group ops mode)
-    bulk_actions_bar: GtkBox,
+    /// Bulk actions revealer (animated show/hide in group ops mode)
+    bulk_actions_revealer: gtk4::Revealer,
     /// Current mode
     group_ops_mode: Rc<RefCell<bool>>,
 
@@ -510,10 +510,15 @@ impl ConnectionSidebar {
             &search_history_clone,
         );
 
-        // Create bulk actions toolbar (hidden by default)
+        // Create bulk actions toolbar wrapped in Revealer (hidden by default)
         let bulk_actions_bar = sidebar_ui::create_bulk_actions_bar();
-        bulk_actions_bar.set_visible(false);
-        container.append(&bulk_actions_bar);
+        let bulk_actions_revealer = gtk4::Revealer::builder()
+            .transition_type(gtk4::RevealerTransitionType::SlideDown)
+            .transition_duration(200)
+            .reveal_child(false)
+            .child(&bulk_actions_bar)
+            .build();
+        container.append(&bulk_actions_revealer);
 
         // Create the list store for connection items
         let store = gio::ListStore::new::<ConnectionItem>();
@@ -816,7 +821,7 @@ impl ConnectionSidebar {
             store,
             tree_model,
             selection_model,
-            bulk_actions_bar,
+            bulk_actions_revealer,
             group_ops_mode,
 
             search_history,
@@ -1090,8 +1095,8 @@ impl ConnectionSidebar {
         // Update mode flag
         *self.group_ops_mode.borrow_mut() = enabled;
 
-        // Show/hide bulk actions toolbar
-        self.bulk_actions_bar.set_visible(enabled);
+        // Show/hide bulk actions toolbar with animation
+        self.bulk_actions_revealer.set_reveal_child(enabled);
 
         // Create new selection model
         let new_wrapper = if enabled {

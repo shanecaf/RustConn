@@ -226,12 +226,18 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
-* Fri Apr 17 2026 Anton Isaiev <totoshko88@gmail.com> - 0.11.0-0
+* Sat Apr 18 2026 Anton Isaiev <totoshko88@gmail.com> - 0.11.0-0
 - [Added] General tab migrated to adw:: widgets (TASK-004)
 - [Added] Legacy XOR encryption migration warning (TASK-006)
 - [Added] State access helpers — with_state/try_with_state (TASK-008)
 - [Improved] RDP connection state structured — RdpConnectionContext (TASK-007)
 - [Security] Automation task validation hardened (TASK-005)
+- [Fixed] Split view tab colors preserved across Settings (TASK-022)
+- [Fixed] Group Operations mode — compact pill icon buttons with Revealer
+- [Fixed] Split view context menu Copy/Paste/Select All now works
+- [Fixed] Eliminated gdk_clipboard_write_async assertion
+- [Security] Lazy Bitwarden credential decryption
+- [Dependencies] libbz2-rs-sys 0.2.3, rand 0.8.6, rtoolbox 0.0.5
 
 * Thu Apr 17 2026 Anton Isaiev <totoshko88@gmail.com> - 0.10.22-0
 - [Fixed] Terminal context menu Copy/Paste now works (#84)

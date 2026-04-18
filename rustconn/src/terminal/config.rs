@@ -54,8 +54,8 @@ pub fn configure_terminal_with_settings(terminal: &Terminal, settings: &Terminal
 
     // Context menu (Right click) — attached to the container, NOT the
     // terminal, to avoid interfering with VTE's internal mouse handling.
-    // The container is set up separately after the terminal is placed
-    // in the widget tree (see `setup_context_menu_on_container`).
+    // The context menu is set up separately after the terminal is created
+    // (see `setup_context_menu`).
 
     // Colors and font
     setup_colors_with_theme(terminal, &settings.color_theme);
@@ -68,7 +68,13 @@ fn setup_copy_on_select(terminal: &Terminal) {
     let term = terminal.clone();
     terminal.connect_selection_changed(move |_| {
         if term.has_selection() {
-            term.copy_clipboard_format(vte4::Format::Text);
+            // Use text_selected + clipboard().set_text instead of
+            // copy_clipboard_format to avoid the race where VTE clears
+            // the selection during reparenting, triggering
+            // `gdk_clipboard_write_async: mime_type != NULL`.
+            if let Some(text) = term.text_selected(vte4::Format::Text) {
+                term.display().clipboard().set_text(&text);
+            }
         }
     });
 }
@@ -82,7 +88,9 @@ fn setup_keyboard_shortcuts(terminal: &Terminal) {
         if state.contains(mask) {
             match key.name().as_deref() {
                 Some("C" | "c") => {
-                    term.copy_clipboard_format(vte4::Format::Text);
+                    if let Some(text) = term.text_selected(vte4::Format::Text) {
+                        term.display().clipboard().set_text(&text);
+                    }
                     return glib::Propagation::Stop;
                 }
                 Some("V" | "v") => {
@@ -108,7 +116,7 @@ fn setup_keyboard_shortcuts(terminal: &Terminal) {
 /// Copy uses `text_selected()` to snapshot the selection text before VTE
 /// clears it, avoiding the `gdk_clipboard_write_async: mime_type != NULL`
 /// assertion that `copy_clipboard_format` triggers on an empty selection.
-pub fn setup_context_menu_on_container(container: &impl IsA<gtk4::Widget>, terminal: &Terminal) {
+pub fn setup_context_menu(terminal: &Terminal) {
     use gtk4::gio;
     use std::cell::RefCell;
     use std::rc::Rc;
@@ -150,12 +158,21 @@ pub fn setup_context_menu_on_container(container: &impl IsA<gtk4::Widget>, termi
     let sel_copy = last_selection;
     let action_copy = gio::SimpleAction::new("copy", None);
     action_copy.connect_activate(move |_, _| {
-        // Prefer live selection; fall back to cached snapshot.
-        if term_copy.has_selection() {
-            term_copy.copy_clipboard_format(vte4::Format::Text);
-        } else if let Some(ref text) = *sel_copy.borrow() {
+        // Always use cached selection to avoid the race where VTE clears
+        // the selection between has_selection() and copy_clipboard_format(),
+        // triggering `gdk_clipboard_write_async: mime_type != NULL`.
+        // Prefer a fresh snapshot if selection is still live.
+        let text = if term_copy.has_selection() {
+            term_copy
+                .text_selected(vte4::Format::Text)
+                .map(|s| s.to_string())
+                .or_else(|| sel_copy.borrow().clone())
+        } else {
+            sel_copy.borrow().clone()
+        };
+        if let Some(text) = text {
             let display = term_copy.display();
-            display.clipboard().set_text(text);
+            display.clipboard().set_text(&text);
         }
     });
     action_group.add_action(&action_copy);
@@ -174,9 +191,9 @@ pub fn setup_context_menu_on_container(container: &impl IsA<gtk4::Widget>, termi
     });
     action_group.add_action(&action_select);
 
-    // Install on the container (parent of VTE) so the action group is
-    // reachable from VTE's internally-created popover.
-    container.insert_action_group("terminal", Some(&action_group));
+    // Install on the terminal itself so the action group follows the
+    // widget when it is reparented between TabView and split view panels.
+    terminal.insert_action_group("terminal", Some(&action_group));
 
     // Let VTE handle the right-click popover natively.
     terminal.set_context_menu_model(Some(&menu));

@@ -44,7 +44,7 @@ use crate::external_window::ExternalWindowManager;
 use crate::monitoring::MonitoringCoordinator;
 use crate::sidebar::{ConnectionItem, ConnectionSidebar};
 use crate::split_view::{SplitDirection, SplitViewBridge};
-use crate::state::SharedAppState;
+use crate::state::{SharedAppState, try_with_state_mut, with_state};
 use crate::terminal::TerminalNotebook;
 use rustconn_core::split::ColorPool;
 
@@ -98,8 +98,7 @@ impl MainWindow {
             .build();
 
         // Apply saved window geometry if available
-        {
-            let state_ref = state.borrow();
+        with_state(&state, |state_ref| {
             let settings = state_ref.settings();
             if settings.ui.remember_window_geometry
                 && let (Some(width), Some(height)) =
@@ -109,7 +108,7 @@ impl MainWindow {
             {
                 window.set_default_size(width, height);
             }
-        }
+        });
 
         // Create header bar
         let header_bar = ui::create_header_bar();
@@ -118,13 +117,8 @@ impl MainWindow {
         let overlay_split_view = adw::OverlaySplitView::new();
 
         // Apply saved sidebar width as max-sidebar-width
-        {
-            let state_ref = state.borrow();
-            let settings = state_ref.settings();
-            let sidebar_width = settings.ui.sidebar_width.unwrap_or(300);
-            overlay_split_view
-                .set_max_sidebar_width(f64::from(sidebar_width.max(360).clamp(360, 600)));
-        }
+        let sidebar_width = with_state(&state, |s| s.settings().ui.sidebar_width.unwrap_or(300));
+        overlay_split_view.set_max_sidebar_width(f64::from(sidebar_width.max(360).clamp(360, 600)));
         overlay_split_view.set_min_sidebar_width(360.0);
         overlay_split_view.set_sidebar_width_fraction(0.3);
         overlay_split_view.set_enable_show_gesture(true);
@@ -136,11 +130,9 @@ impl MainWindow {
         overlay_split_view.set_sidebar(Some(sidebar.widget()));
 
         // Load persisted search history
-        {
-            let state_ref = state.borrow();
-            let search_history = &state_ref.settings().ui.search_history;
-            sidebar.load_search_history(search_history);
-        }
+        with_state(&state, |s| {
+            sidebar.load_search_history(&s.settings().ui.search_history);
+        });
 
         // Create global color pool shared across all split containers
         // This ensures different split containers get different colors
@@ -4027,8 +4019,8 @@ impl MainWindow {
     #[allow(dead_code)]
     pub fn save_expanded_groups(&self) {
         let expanded = self.sidebar.get_expanded_groups();
-        if let Ok(mut state) = self.state.try_borrow_mut()
-            && let Err(e) = state.update_expanded_groups(expanded)
+        if let Some(Err(e)) =
+            try_with_state_mut(&self.state, |state| state.update_expanded_groups(expanded))
         {
             tracing::warn!(?e, "Failed to update expanded groups");
         }

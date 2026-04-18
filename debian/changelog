@@ -12,8 +12,18 @@ rustconn (0.11.0-1) unstable; urgency=medium
   * [Security] Automation task validation hardened — property tests for
     shell metacharacters; sensitive env vars cleared before task
     execution (TASK-005)
+  * [Fixed] Split view tab colors preserved across Settings (TASK-022)
+  * [Fixed] Group Operations mode — compact pill icon buttons with
+    animated Revealer instead of text buttons that broke sidebar layout
+  * [Fixed] Split view context menu Copy/Paste/Select All now works —
+    action group moved from TabView container to VTE terminal widget
+  * [Fixed] Eliminated gdk_clipboard_write_async assertion — replaced all
+    copy_clipboard_format calls with text_selected + clipboard().set_text
+  * [Security] Lazy Bitwarden credential decryption — only when
+    Bitwarden is the preferred backend
+  * [Dependencies] libbz2-rs-sys 0.2.3, rand 0.8.6, rtoolbox 0.0.5
 
- -- Anton Isaiev <totoshko88@gmail.com>  Fri, 17 Apr 2026 23:00:00 +0200
+ -- Anton Isaiev <totoshko88@gmail.com>  Sat, 18 Apr 2026 23:00:00 +0200
 
 rustconn (0.10.22-1) unstable; urgency=medium
 

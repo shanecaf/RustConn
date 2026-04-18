@@ -216,6 +216,8 @@ pub fn get_protocol_icon(protocol: &str) -> &'static str {
 }
 
 /// Creates the bulk actions toolbar for group operations mode
+///
+/// Compact icon-only pill buttons matching the protocol filter bar style.
 #[must_use]
 pub fn create_bulk_actions_bar() -> GtkBox {
     let bar = GtkBox::new(Orientation::Horizontal, 4);
@@ -223,50 +225,62 @@ pub fn create_bulk_actions_bar() -> GtkBox {
     bar.set_margin_end(8);
     bar.set_margin_top(4);
     bar.set_margin_bottom(4);
+    bar.set_halign(gtk4::Align::Center);
     bar.add_css_class("bulk-actions-bar");
 
-    let new_group_button = Button::with_label(&i18n("New Group"));
-    new_group_button.set_tooltip_text(Some(&i18n("Create a new group")));
+    let new_group_button = Button::from_icon_name("folder-new-symbolic");
+    new_group_button.add_css_class("pill");
+    new_group_button.add_css_class("bulk-action");
+    new_group_button.set_tooltip_text(Some(&i18n("New Group")));
     new_group_button.set_action_name(Some("win.new-group"));
-    new_group_button.add_css_class("suggested-action");
     new_group_button
         .update_property(&[gtk4::accessible::Property::Label(&i18n("Create new group"))]);
     bar.append(&new_group_button);
 
-    let move_button = Button::with_label(&i18n("Move to Group..."));
-    move_button.set_tooltip_text(Some(&i18n("Move selected items to a group")));
+    let move_button = Button::from_icon_name("folder-move-symbolic");
+    move_button.add_css_class("pill");
+    move_button.add_css_class("bulk-action");
+    move_button.set_tooltip_text(Some(&i18n("Move to Group")));
     move_button.set_action_name(Some("win.move-selected-to-group"));
     move_button.update_property(&[gtk4::accessible::Property::Label(&i18n(
         "Move selected connections to group",
     ))]);
     bar.append(&move_button);
 
-    let cluster_button = Button::with_label(&i18n("Create Cluster"));
-    cluster_button.set_tooltip_text(Some(&i18n("Create a cluster from selected connections")));
+    let cluster_button = Button::from_icon_name("network-workgroup-symbolic");
+    cluster_button.add_css_class("pill");
+    cluster_button.add_css_class("bulk-action");
+    cluster_button.set_tooltip_text(Some(&i18n("Create Cluster")));
     cluster_button.set_action_name(Some("win.cluster-from-selection"));
     cluster_button.update_property(&[gtk4::accessible::Property::Label(&i18n(
         "Create cluster from selected connections",
     ))]);
     bar.append(&cluster_button);
 
-    let select_all_button = Button::with_label(&i18n("Select All"));
-    select_all_button.set_tooltip_text(Some(&i18n("Select all items (Ctrl+A)")));
+    let select_all_button = Button::from_icon_name("edit-select-all-symbolic");
+    select_all_button.add_css_class("pill");
+    select_all_button.add_css_class("bulk-action");
+    select_all_button.set_tooltip_text(Some(&i18n("Select All")));
     select_all_button.set_action_name(Some("win.select-all"));
     select_all_button.update_property(&[gtk4::accessible::Property::Label(&i18n(
         "Select all connections",
     ))]);
     bar.append(&select_all_button);
 
-    let clear_button = Button::with_label(&i18n("Clear"));
-    clear_button.set_tooltip_text(Some(&i18n("Clear selection (Escape)")));
+    let clear_button = Button::from_icon_name("edit-clear-symbolic");
+    clear_button.add_css_class("pill");
+    clear_button.add_css_class("bulk-action");
+    clear_button.set_tooltip_text(Some(&i18n("Clear Selection")));
     clear_button.set_action_name(Some("win.clear-selection"));
     clear_button.update_property(&[gtk4::accessible::Property::Label(&i18n("Clear selection"))]);
     bar.append(&clear_button);
 
-    let delete_button = Button::with_label(&i18n("Delete"));
-    delete_button.set_tooltip_text(Some(&i18n("Delete all selected items")));
+    let delete_button = Button::from_icon_name("user-trash-symbolic");
+    delete_button.add_css_class("pill");
+    delete_button.add_css_class("bulk-action");
+    delete_button.add_css_class("bulk-action-destructive");
+    delete_button.set_tooltip_text(Some(&i18n("Delete Selected")));
     delete_button.set_action_name(Some("win.delete-selected"));
-    delete_button.add_css_class("destructive-action");
     delete_button.update_property(&[gtk4::accessible::Property::Label(&i18n(
         "Delete selected connections",
     ))]);

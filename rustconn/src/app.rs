@@ -11,7 +11,9 @@ use libadwaita as adw;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::state::{SharedAppState, create_shared_state};
+use crate::state::{
+    SharedAppState, create_shared_state, try_with_state, with_state, with_state_mut,
+};
 use crate::tray::{TrayManager, TrayMessage};
 use crate::window::MainWindow;
 use gettextrs::gettext;
@@ -149,7 +151,7 @@ fn build_ui(app: &adw::Application, tray_manager: SharedTrayManager) {
     // Connect shutdown signal to flush persistence
     let state_shutdown = state.clone();
     app.connect_shutdown(move |_| {
-        if let Err(e) = state_shutdown.borrow().flush_persistence() {
+        if let Some(Err(e)) = try_with_state(&state_shutdown, |s| s.flush_persistence()) {
             tracing::error!(%e, "Failed to flush persistence on shutdown");
         }
     });
@@ -191,24 +193,34 @@ fn build_ui(app: &adw::Application, tray_manager: SharedTrayManager) {
     let sidebar_for_secrets = window.sidebar_rc();
     let window_for_secrets = window.gtk_window().downgrade();
     glib::idle_add_local_once(move || {
-        // Phase 1: Decrypt stored credentials (fast, needs &mut self)
-        {
-            let mut state_ref = state_for_secrets.borrow_mut();
-            let settings = &mut state_ref.settings_mut().secrets;
+        // Phase 1: Decrypt stored credentials only for the active backend (lazy)
+        // Bitwarden credentials are decrypted only when Bitwarden is the preferred
+        // backend — avoids holding unused secrets in memory.
+        let needs_bitwarden = with_state(&state_for_secrets, |s| {
+            matches!(
+                s.settings().secrets.preferred_backend,
+                rustconn_core::config::SecretBackendType::Bitwarden
+            )
+        });
 
-            if settings.bitwarden_password_encrypted.is_some()
-                && settings.decrypt_bitwarden_password()
-            {
-                tracing::info!("Bitwarden password restored from encrypted storage");
-            }
+        if needs_bitwarden {
+            with_state_mut(&state_for_secrets, |s| {
+                let settings = &mut s.settings_mut().secrets;
 
-            if settings.bitwarden_use_api_key
-                && (settings.bitwarden_client_id_encrypted.is_some()
-                    || settings.bitwarden_client_secret_encrypted.is_some())
-                && settings.decrypt_bitwarden_api_credentials()
-            {
-                tracing::info!("Bitwarden API credentials restored from encrypted storage");
-            }
+                if settings.bitwarden_password_encrypted.is_some()
+                    && settings.decrypt_bitwarden_password()
+                {
+                    tracing::info!("Bitwarden password restored from encrypted storage");
+                }
+
+                if settings.bitwarden_use_api_key
+                    && (settings.bitwarden_client_id_encrypted.is_some()
+                        || settings.bitwarden_client_secret_encrypted.is_some())
+                    && settings.decrypt_bitwarden_api_credentials()
+                {
+                    tracing::info!("Bitwarden API credentials restored from encrypted storage");
+                }
+            });
         }
 
         // Show toast if any credentials were migrated from legacy XOR encryption
@@ -224,15 +236,7 @@ fn build_ui(app: &adw::Application, tray_manager: SharedTrayManager) {
             }
         }
 
-        // Phase 2: Check if Bitwarden auto-unlock is needed
-        let needs_bitwarden = {
-            let state_ref = state_for_secrets.borrow();
-            matches!(
-                state_ref.settings().secrets.preferred_backend,
-                rustconn_core::config::SecretBackendType::Bitwarden
-            )
-        };
-
+        // Phase 2: Bitwarden auto-unlock (only when Bitwarden is the preferred backend)
         if needs_bitwarden {
             // Clone settings for the background thread (Send + 'static)
             let secret_settings = state_for_secrets.borrow().settings().secrets.clone();
@@ -601,7 +605,7 @@ fn setup_app_actions(
 /// These are handled by the sidebar's `EventControllerKey` instead.
 /// See: <https://github.com/totoshko88/RustConn/issues/4>
 pub fn apply_keybindings(app: &adw::Application, state: &SharedAppState) {
-    let keybinding_settings = state.borrow().settings().keybindings.clone();
+    let keybinding_settings = with_state(state, |s| s.settings().keybindings.clone());
     let defaults = rustconn_core::default_keybindings();
 
     for def in &defaults {
@@ -782,20 +786,14 @@ pub fn run() -> glib::ExitCode {
 
 /// Applies the saved color scheme from settings to GTK
 fn apply_saved_color_scheme(state: &SharedAppState) {
-    let color_scheme = {
-        let state_ref = state.borrow();
-        state_ref.settings().ui.color_scheme
-    };
+    let color_scheme = with_state(state, |s| s.settings().ui.color_scheme);
 
     apply_color_scheme(color_scheme);
 }
 
 /// Applies the saved language from settings to gettext
 fn apply_saved_language(state: &SharedAppState) {
-    let language = {
-        let state_ref = state.borrow();
-        state_ref.settings().ui.language.clone()
-    };
+    let language = with_state(state, |s| s.settings().ui.language.clone());
 
     crate::i18n::apply_language(&language);
 }
