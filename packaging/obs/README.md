@@ -12,7 +12,7 @@
 | Fedora | 42 | System (1.93) | ✅ |
 | Fedora | 43 | System (1.90) | ✅ |
 
-**Примітка:** MSRV (Minimum Supported Rust Version) = 1.92
+**Примітка:** MSRV (Minimum Supported Rust Version) = 1.95
 
 Ubuntu/Debian не підтримуються в OBS — системний Rust занадто старий:
 - Ubuntu 24.04: Rust 1.75, Ubuntu 25.04: Rust 1.84, Ubuntu 25.10: Rust 1.85

@@ -14,8 +14,8 @@ URL:            https://github.com/totoshko88/RustConn
 Source0:        %{name}-%{version}.tar.xz
 Source1:        vendor.tar.zst
 
-# Rust 1.92+ required (MSRV)
-# openSUSE: use devel:languages:rust repo for Rust 1.92+
+# Rust 1.95+ required (MSRV)
+# openSUSE: use devel:languages:rust repo for Rust 1.95+
 # Fedora 42+: system Rust 1.93 is sufficient
 # Fedora <42/RHEL: use rustup fallback since system Rust < 1.92
 %if 0%{?suse_version}

@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Improved
 - **Context menu layout follows GNOME HIG** — sidebar context menu items reordered to match GNOME Files conventions: primary action (Connect) at top, organisation (Rename / Duplicate / Move) next, utilities (Copy credentials, SFTP, WOL) in the middle, creation and properties (New Connection, Edit) before the destructive action (Delete) at the bottom
+- **MSRV bumped to 1.95** — required by `constant_time_eq` 0.4.3 (transitive dependency via `zip`)
 
 ### Improved
 - **`SshOptionsWidgets` tuple replaced with named struct** — the 24-element tuple type alias in `ssh.rs` is now a proper struct with named fields; adding new SSH options is a single-point change instead of updating ~6 destructuring sites across `dialog.rs`
