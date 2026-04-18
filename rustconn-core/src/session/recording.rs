@@ -588,7 +588,7 @@ impl RecordingManager {
         }
 
         // Sort by created_at descending (newest first).
-        entries.sort_by(|a, b| b.metadata.created_at.cmp(&a.metadata.created_at));
+        entries.sort_by_key(|a| std::cmp::Reverse(a.metadata.created_at));
 
         Ok(entries)
     }

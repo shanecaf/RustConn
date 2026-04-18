@@ -323,7 +323,7 @@ impl ExpectEngine {
     /// Sorts rules by priority (highest first)
     fn sort_by_priority(&mut self) {
         self.rules
-            .sort_by(|a, b| b.rule.priority.cmp(&a.rule.priority));
+            .sort_by_key(|a| std::cmp::Reverse(a.rule.priority));
     }
 
     /// Validates all patterns in the engine
