@@ -674,7 +674,7 @@ mod tests {
             .with_interval_secs(60)
             .with_auto_cleanup(true);
         assert!(config.enabled);
-        assert_eq!(config.interval, Duration::from_secs(60));
+        assert_eq!(config.interval, Duration::from_mins(1));
         assert!(config.auto_cleanup);
     }
 

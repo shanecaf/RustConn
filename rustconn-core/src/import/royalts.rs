@@ -301,10 +301,8 @@ impl RoyalTsImporter {
             "Port" => conn.port = value.parse().ok(),
             "ParentID" => conn.parent_id = Some(value.to_string()),
             "CredentialId" => conn.credential_id = Some(value.to_string()),
-            "PrivateKeyFile" | "KeyFilePath" | "PrivateKeyPath" => {
-                if !value.is_empty() {
-                    conn.private_key_path = Some(value.to_string());
-                }
+            "PrivateKeyFile" | "KeyFilePath" | "PrivateKeyPath" if !value.is_empty() => {
+                conn.private_key_path = Some(value.to_string());
             }
             _ => {}
         }

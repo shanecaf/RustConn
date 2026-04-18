@@ -216,15 +216,11 @@ impl LibvirtXmlImporter {
                     entry.tls_port = val.parse().ok();
                 }
                 "autoport" => entry.autoport = val.eq_ignore_ascii_case("yes"),
-                "listen" => {
-                    if !val.is_empty() {
-                        entry.listen_address = Some(val);
-                    }
+                "listen" if !val.is_empty() => {
+                    entry.listen_address = Some(val);
                 }
-                "passwd" | "password" => {
-                    if !val.is_empty() {
-                        entry.password = Some(val);
-                    }
+                "passwd" | "password" if !val.is_empty() => {
+                    entry.password = Some(val);
                 }
                 _ => {}
             }

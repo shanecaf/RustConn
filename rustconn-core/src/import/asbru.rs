@@ -429,16 +429,15 @@ impl AsbruImporter {
                             "-X" | "-x" => x11_forwarding = true,
                             "-C" => compression = true,
                             "-A" => agent_forwarding = true,
-                            "-o" => {
+                            "-o"
                                 // Next part is the option value
-                                if i + 1 < parts.len() {
+                                if i + 1 < parts.len() => {
                                     i += 1;
                                     let opt = parts[i].trim_matches('"');
                                     if let Some((k, v)) = opt.split_once('=') {
                                         custom_options.insert(k.to_string(), v.to_string());
                                     }
                                 }
-                            }
                             _ if part.contains('=') => {
                                 // Standalone option like "Option=value"
                                 let clean = part.trim_matches('"');

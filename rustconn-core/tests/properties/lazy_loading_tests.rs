@@ -619,7 +619,7 @@ proptest! {
         let visible_in_lazy_tree: Vec<_> = all_connections
             .iter()
             .filter(|c| {
-                c.group_id.is_none() || c.group_id.is_some_and(|gid| loader.is_group_loaded(gid))
+                c.group_id.is_none_or(|gid| loader.is_group_loaded(gid))
             })
             .collect();
 

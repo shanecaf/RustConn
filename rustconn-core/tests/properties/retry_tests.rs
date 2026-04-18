@@ -235,26 +235,11 @@ fn test_exponential_backoff_sequence() {
         .with_max_attempts(5);
 
     // Expected sequence: 1000, 2000, 4000, 8000, 16000
-    assert_eq!(
-        config.delay_for_attempt(0),
-        Some(Duration::from_millis(1000))
-    );
-    assert_eq!(
-        config.delay_for_attempt(1),
-        Some(Duration::from_millis(2000))
-    );
-    assert_eq!(
-        config.delay_for_attempt(2),
-        Some(Duration::from_millis(4000))
-    );
-    assert_eq!(
-        config.delay_for_attempt(3),
-        Some(Duration::from_millis(8000))
-    );
-    assert_eq!(
-        config.delay_for_attempt(4),
-        Some(Duration::from_millis(16000))
-    );
+    assert_eq!(config.delay_for_attempt(0), Some(Duration::from_secs(1)));
+    assert_eq!(config.delay_for_attempt(1), Some(Duration::from_secs(2)));
+    assert_eq!(config.delay_for_attempt(2), Some(Duration::from_secs(4)));
+    assert_eq!(config.delay_for_attempt(3), Some(Duration::from_secs(8)));
+    assert_eq!(config.delay_for_attempt(4), Some(Duration::from_secs(16)));
     assert_eq!(config.delay_for_attempt(5), None); // Beyond max_attempts
 }
 

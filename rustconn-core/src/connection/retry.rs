@@ -287,20 +287,11 @@ mod tests {
             .with_max_delay_ms(10_000);
 
         // First retry: 1000ms
-        assert_eq!(
-            config.delay_for_attempt(0),
-            Some(Duration::from_millis(1000))
-        );
+        assert_eq!(config.delay_for_attempt(0), Some(Duration::from_secs(1)));
         // Second retry: 2000ms
-        assert_eq!(
-            config.delay_for_attempt(1),
-            Some(Duration::from_millis(2000))
-        );
+        assert_eq!(config.delay_for_attempt(1), Some(Duration::from_secs(2)));
         // Third retry: 4000ms
-        assert_eq!(
-            config.delay_for_attempt(2),
-            Some(Duration::from_millis(4000))
-        );
+        assert_eq!(config.delay_for_attempt(2), Some(Duration::from_secs(4)));
     }
 
     #[test]
@@ -312,15 +303,9 @@ mod tests {
             .with_max_attempts(5);
 
         // First retry: 5000ms
-        assert_eq!(
-            config.delay_for_attempt(0),
-            Some(Duration::from_millis(5000))
-        );
+        assert_eq!(config.delay_for_attempt(0), Some(Duration::from_secs(5)));
         // Second retry: would be 15000ms, capped to 10000ms
-        assert_eq!(
-            config.delay_for_attempt(1),
-            Some(Duration::from_millis(10_000))
-        );
+        assert_eq!(config.delay_for_attempt(1), Some(Duration::from_secs(10)));
     }
 
     #[test]

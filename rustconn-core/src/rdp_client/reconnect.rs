@@ -125,7 +125,7 @@ impl ReconnectPolicy {
             enabled: true,
             max_attempts: 3,
             initial_delay: Duration::from_secs(2),
-            max_delay: Duration::from_secs(60),
+            max_delay: Duration::from_mins(1),
             backoff_multiplier: 3.0,
             use_jitter: true,
             attempt_timeout: Duration::from_secs(45),

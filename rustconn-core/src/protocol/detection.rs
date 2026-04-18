@@ -128,7 +128,7 @@ impl ClientDetectionResult {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         if let Some((ref result, ref ts)) = *guard
-            && ts.elapsed() < Duration::from_secs(300)
+            && ts.elapsed() < Duration::from_mins(5)
         {
             return result.clone();
         }

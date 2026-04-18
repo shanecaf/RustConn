@@ -57,7 +57,7 @@ pub fn show_new_connection_dialog_internal(
     {
         let state_ref = state.borrow();
         let mut groups: Vec<_> = state_ref.list_groups().into_iter().cloned().collect();
-        groups.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+        groups.sort_by_key(|a| a.name.to_lowercase());
         dialog.set_groups(&groups);
         let connections: Vec<_> = state_ref.list_connections().into_iter().cloned().collect();
         dialog.set_connections(&connections);
@@ -271,7 +271,7 @@ pub fn show_new_group_dialog_with_parent(
             (g.id, path)
         })
         .collect();
-    groups.sort_by(|a, b| a.1.to_lowercase().cmp(&b.1.to_lowercase()));
+    groups.sort_by_key(|a| a.1.to_lowercase());
     drop(state_ref);
 
     let mut group_ids: Vec<Option<Uuid>> = vec![None];

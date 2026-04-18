@@ -783,7 +783,7 @@ proptest! {
         query in arb_cache_query(),
         results in arb_search_results()
     ) {
-        let mut cache = SearchCache::new(100, Duration::from_secs(60));
+        let mut cache = SearchCache::new(100, Duration::from_mins(1));
 
         // Insert results
         cache.insert(query.clone(), results.clone());
@@ -824,7 +824,7 @@ proptest! {
         query in arb_cache_query(),
         results in arb_search_results()
     ) {
-        let mut cache = SearchCache::new(100, Duration::from_secs(60));
+        let mut cache = SearchCache::new(100, Duration::from_mins(1));
 
         // Insert results
         cache.insert(query.clone(), results.clone());
@@ -857,7 +857,7 @@ proptest! {
         queries in prop::collection::vec(arb_cache_query(), 1..10),
         results in arb_search_results()
     ) {
-        let mut cache = SearchCache::new(100, Duration::from_secs(60));
+        let mut cache = SearchCache::new(100, Duration::from_mins(1));
 
         // Insert multiple entries
         for query in &queries {
@@ -889,7 +889,7 @@ proptest! {
         results1 in arb_search_results(),
         results2 in arb_search_results()
     ) {
-        let mut cache = SearchCache::new(100, Duration::from_secs(60));
+        let mut cache = SearchCache::new(100, Duration::from_mins(1));
 
         // Insert first results
         cache.insert(query.clone(), results1);
@@ -995,7 +995,7 @@ proptest! {
         max_entries in 1usize..20,
         queries in prop::collection::vec(arb_cache_query(), 1..50)
     ) {
-        let mut cache = SearchCache::new(max_entries, Duration::from_secs(60));
+        let mut cache = SearchCache::new(max_entries, Duration::from_mins(1));
 
         // Insert many entries
         for query in &queries {
@@ -1022,7 +1022,7 @@ proptest! {
             .collect();
 
         let max_entries = 3;
-        let mut cache = SearchCache::new(max_entries, Duration::from_secs(60));
+        let mut cache = SearchCache::new(max_entries, Duration::from_mins(1));
 
         // Insert entries with small delays to ensure ordering
         for query in &unique_queries {

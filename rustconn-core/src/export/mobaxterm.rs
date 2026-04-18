@@ -351,7 +351,7 @@ impl MobaXtermExporter {
             .iter()
             .filter(|(k, _)| k.is_some())
             .collect();
-        sorted_groups.sort_by(|(a, _), (b, _)| a.cmp(b));
+        sorted_groups.sort_by_key(|(a, _)| *a);
 
         for (group_path, group_connections) in sorted_groups {
             if let Some(path) = group_path {

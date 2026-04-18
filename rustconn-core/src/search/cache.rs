@@ -277,7 +277,7 @@ mod tests {
 
     #[test]
     fn test_cache_size_limit() {
-        let mut cache = SearchCache::new(3, Duration::from_secs(60));
+        let mut cache = SearchCache::new(3, Duration::from_mins(1));
 
         cache.insert("query1".to_string(), vec![]);
         cache.insert("query2".to_string(), vec![]);
@@ -293,7 +293,7 @@ mod tests {
 
     #[test]
     fn test_cache_evict_oldest() {
-        let mut cache = SearchCache::new(100, Duration::from_secs(60));
+        let mut cache = SearchCache::new(100, Duration::from_mins(1));
 
         cache.insert("first".to_string(), vec![]);
         std::thread::sleep(Duration::from_millis(5));

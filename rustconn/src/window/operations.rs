@@ -655,7 +655,7 @@ pub fn show_move_selected_to_group_dialog(
     };
 
     // Sort by path (hierarchical + alphabetical)
-    group_paths.sort_by(|a, b| a.1.to_lowercase().cmp(&b.1.to_lowercase()));
+    group_paths.sort_by_key(|a| a.1.to_lowercase());
 
     let mut group_ids: Vec<Option<Uuid>> = vec![None];
     let first_option = if group_ids_to_move.is_empty() {
