@@ -171,6 +171,8 @@ pub struct ConnectionDialog {
     rdp_show_local_cursor_check: CheckButton,
     rdp_jiggler_check: CheckButton,
     rdp_jiggler_interval_spin: gtk4::SpinButton,
+    rdp_jump_host_dropdown: DropDown,
+    rdp_connections_data: Rc<RefCell<Vec<(Option<Uuid>, String)>>>,
     rdp_shared_folders: Rc<RefCell<Vec<SharedFolder>>>,
     rdp_shared_folders_list: gtk4::ListBox,
     rdp_custom_args_entry: Entry,
@@ -513,6 +515,7 @@ impl ConnectionDialog {
             rdp_show_local_cursor_check,
             rdp_jiggler_check,
             rdp_jiggler_interval_spin,
+            rdp_jump_host_dropdown,
             rdp_shared_folders,
             rdp_shared_folders_list,
             rdp_custom_args_entry,
@@ -768,6 +771,8 @@ impl ConnectionDialog {
             Rc::new(RefCell::new(vec![(None, "(Root)".to_string())]));
         let connections_data: Rc<RefCell<Vec<(Option<Uuid>, String)>>> =
             Rc::new(RefCell::new(vec![(None, "(None)".to_string())]));
+        let rdp_connections_data: Rc<RefCell<Vec<(Option<Uuid>, String)>>> =
+            Rc::new(RefCell::new(vec![(None, "(None)".to_string())]));
 
         // Connect save button handler
         Self::connect_save_button(
@@ -824,6 +829,8 @@ impl ConnectionDialog {
             &rdp_show_local_cursor_check,
             &rdp_jiggler_check,
             &rdp_jiggler_interval_spin,
+            &rdp_jump_host_dropdown,
+            &rdp_connections_data,
             &rdp_shared_folders,
             &rdp_custom_args_entry,
             &rdp_keyboard_layout_dropdown,
@@ -993,6 +1000,8 @@ impl ConnectionDialog {
             rdp_show_local_cursor_check,
             rdp_jiggler_check,
             rdp_jiggler_interval_spin,
+            rdp_jump_host_dropdown,
+            rdp_connections_data,
             rdp_shared_folders,
             rdp_shared_folders_list,
             rdp_custom_args_entry,
@@ -1863,6 +1872,8 @@ impl ConnectionDialog {
         rdp_show_local_cursor_check: &CheckButton,
         rdp_jiggler_check: &CheckButton,
         rdp_jiggler_interval_spin: &SpinButton,
+        rdp_jump_host_dropdown: &DropDown,
+        rdp_connections_data: &Rc<RefCell<Vec<(Option<Uuid>, String)>>>,
         rdp_shared_folders: &Rc<RefCell<Vec<SharedFolder>>>,
         rdp_custom_args_entry: &Entry,
         rdp_keyboard_layout_dropdown: &DropDown,
@@ -2017,6 +2028,8 @@ impl ConnectionDialog {
         let rdp_show_local_cursor_check = rdp_show_local_cursor_check.clone();
         let rdp_jiggler_check = rdp_jiggler_check.clone();
         let rdp_jiggler_interval_spin = rdp_jiggler_interval_spin.clone();
+        let rdp_jump_host_dropdown = rdp_jump_host_dropdown.clone();
+        let rdp_connections_data = rdp_connections_data.clone();
         let rdp_shared_folders = rdp_shared_folders.clone();
         let rdp_custom_args_entry = rdp_custom_args_entry.clone();
         let rdp_keyboard_layout_dropdown = rdp_keyboard_layout_dropdown.clone();
@@ -2185,6 +2198,8 @@ impl ConnectionDialog {
                 rdp_show_local_cursor_check: &rdp_show_local_cursor_check,
                 rdp_jiggler_check: &rdp_jiggler_check,
                 rdp_jiggler_interval_spin: &rdp_jiggler_interval_spin,
+                rdp_jump_host_dropdown: &rdp_jump_host_dropdown,
+                rdp_connections_data: &rdp_connections_data,
                 rdp_shared_folders: &rdp_shared_folders,
                 rdp_custom_args_entry: &rdp_custom_args_entry,
                 rdp_keyboard_layout_dropdown: &rdp_keyboard_layout_dropdown,
@@ -2336,6 +2351,7 @@ impl ConnectionDialog {
         CheckButton,
         CheckButton,
         SpinButton,
+        DropDown,
         Rc<RefCell<Vec<SharedFolder>>>,
         gtk4::ListBox,
         Entry,
@@ -2633,6 +2649,30 @@ impl ConnectionDialog {
 
         content.append(&features_group);
 
+        // === Connection Group (Jump Host) ===
+        let rdp_connection_group = adw::PreferencesGroup::builder()
+            .title(i18n("Connection"))
+            .build();
+
+        let none_items: Vec<String> = vec![i18n("(None)")];
+        let none_refs: Vec<&str> = none_items.iter().map(String::as_str).collect();
+        let rdp_jump_host_list = StringList::new(&none_refs);
+        let rdp_jump_host_dropdown =
+            DropDown::new(Some(rdp_jump_host_list), gtk4::Expression::NONE);
+        rdp_jump_host_dropdown.set_selected(0);
+        rdp_jump_host_dropdown.set_enable_search(true);
+        rdp_jump_host_dropdown.set_size_request(200, -1);
+        rdp_jump_host_dropdown.set_hexpand(false);
+
+        let rdp_jump_host_row = adw::ActionRow::builder()
+            .title(i18n("Jump Host"))
+            .subtitle(i18n("Tunnel RDP through an SSH connection"))
+            .build();
+        rdp_jump_host_row.add_suffix(&rdp_jump_host_dropdown);
+        rdp_connection_group.add(&rdp_jump_host_row);
+
+        content.append(&rdp_connection_group);
+
         // === Shared Folders Group ===
         let folders_group = adw::PreferencesGroup::builder()
             .title(i18n("Shared Folders"))
@@ -2776,6 +2816,7 @@ impl ConnectionDialog {
             rdp_show_local_cursor_check,
             rdp_jiggler_check,
             rdp_jiggler_interval_spin,
+            rdp_jump_host_dropdown,
             shared_folders,
             folders_list,
             args_entry,
@@ -5263,6 +5304,11 @@ impl ConnectionDialog {
             .collect();
         let model = StringList::new(&display_strings);
         self.ssh_jump_host_dropdown.set_model(Some(&model));
+
+        // Also populate the RDP jump host dropdown with the same SSH connections
+        *self.rdp_connections_data.borrow_mut() = connections_data.clone();
+        let rdp_model = StringList::new(&display_strings);
+        self.rdp_jump_host_dropdown.set_model(Some(&rdp_model));
     }
 
     fn set_groups_list(&self, groups_data: &[(Option<Uuid>, String)]) {
@@ -5870,6 +5916,15 @@ impl ConnectionDialog {
             self.rdp_keyboard_layout_dropdown.set_selected(index);
         } else {
             self.rdp_keyboard_layout_dropdown.set_selected(0); // Auto
+        }
+
+        // Set jump host dropdown
+        if let Some(jump_id) = rdp.jump_host_id {
+            let conns = self.rdp_connections_data.borrow();
+            if let Some(idx) = conns.iter().position(|(id, _)| *id == Some(jump_id)) {
+                #[allow(clippy::cast_possible_truncation)]
+                self.rdp_jump_host_dropdown.set_selected(idx as u32);
+            }
         }
     }
 
@@ -6730,6 +6785,8 @@ struct ConnectionDialogData<'a> {
     rdp_show_local_cursor_check: &'a CheckButton,
     rdp_jiggler_check: &'a CheckButton,
     rdp_jiggler_interval_spin: &'a SpinButton,
+    rdp_jump_host_dropdown: &'a DropDown,
+    rdp_connections_data: &'a Rc<RefCell<Vec<(Option<Uuid>, String)>>>,
     rdp_shared_folders: &'a Rc<RefCell<Vec<SharedFolder>>>,
     rdp_custom_args_entry: &'a Entry,
     rdp_keyboard_layout_dropdown: &'a DropDown,
@@ -7761,6 +7818,15 @@ impl ConnectionDialogData<'_> {
             show_local_cursor: self.rdp_show_local_cursor_check.is_active(),
             jiggler_enabled: self.rdp_jiggler_check.is_active(),
             jiggler_interval_secs: self.rdp_jiggler_interval_spin.value() as u32,
+            jump_host_id: {
+                let idx = self.rdp_jump_host_dropdown.selected() as usize;
+                let conns = self.rdp_connections_data.borrow();
+                if idx < conns.len() {
+                    conns[idx].0
+                } else {
+                    None
+                }
+            },
         }
     }
 

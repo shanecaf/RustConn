@@ -58,6 +58,7 @@ pub mod snippet;
 pub mod spice_client;
 pub mod split;
 pub mod ssh_agent;
+pub mod ssh_tunnel;
 pub mod sync;
 pub mod template;
 pub mod terminal_themes;

@@ -1,3 +1,27 @@
+rustconn (0.11.2-1) unstable; urgency=medium
+
+  * [Fixed] Reconnect reuses existing tab for all VTE protocols — SSH,
+    Telnet, Serial, Kubernetes, ZeroTrust, MOSH; tab position, group,
+    and split view state fully preserved (#89)
+  * [Fixed] RDP port check skipped with jump host — direct TCP probe
+    always timed out for jump-host connections
+  * [Fixed] Hoop.dev CLI download — switched to versioned URL (HTTP 403)
+  * [Fixed] Azure/gcloud/OCI CLI wrapper test in Flatpak — Read-only
+    file system crash during pip install verification
+  * [Fixed] Flatpak SFTP always uses mc — xdg-open unreachable in sandbox
+  * [Improved] Reconnect banner consistent across all protocols — RDP,
+    VNC, SPICE now show bottom banner like SSH/Telnet
+  * [Improved] Sidebar width tuned for HiDPI — 360px→320px default,
+    old saved widths reset on upgrade
+  * [Added] SSH Jump Host for RDP via ssh -L tunnel (#90)
+  * [Added] Tab context menu: Close Others/Left/Right/All/Ungrouped
+  * [Added] CLI: all 10 protocols and 11 Zero Trust providers
+  * [Documentation] Complete CLI reference in User Guide
+  * [Dependencies] open 5.3.4, openssl 0.10.78, typenum 1.20.0,
+    Hoop.dev CLI 1.56.1
+
+ -- Anton Isaiev <totoshko88@gmail.com>  Mon, 20 Apr 2026 12:00:00 +0200
+
 rustconn (0.11.1-1) unstable; urgency=medium
 
   * [Fixed] Reconnect preserves tab position — new tab opens at the

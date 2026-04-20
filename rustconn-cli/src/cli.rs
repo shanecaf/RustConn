@@ -84,7 +84,8 @@ pub enum Commands {
         #[arg(short, long)]
         port: Option<u16>,
 
-        /// Protocol type (ssh, rdp, vnc, spice, telnet, serial)
+        /// Protocol type (ssh, rdp, vnc, spice, sftp, telnet, serial,
+        /// mosh, kubernetes/k8s, zerotrust/zt)
         #[arg(short = 'P', long, default_value = "ssh")]
         protocol: String,
 
@@ -138,6 +139,63 @@ pub enum Commands {
         /// Hoop.dev gRPC URL (optional, for --provider hoop_dev)
         #[arg(long, value_name = "URL")]
         hoop_grpc_url: Option<String>,
+
+        /// AWS SSM instance ID (for --provider aws_ssm, uses --host as target if not set)
+        #[arg(long, value_name = "PROFILE")]
+        aws_profile: Option<String>,
+
+        /// AWS region (for --provider aws_ssm)
+        #[arg(long, value_name = "REGION")]
+        aws_region: Option<String>,
+
+        /// GCP zone (for --provider gcp_iap)
+        #[arg(long, value_name = "ZONE")]
+        gcp_zone: Option<String>,
+
+        /// GCP project (for --provider gcp_iap)
+        #[arg(long, value_name = "PROJECT")]
+        gcp_project: Option<String>,
+
+        /// Azure resource group (for --provider azure_bastion or azure_ssh)
+        #[arg(long, value_name = "GROUP")]
+        resource_group: Option<String>,
+
+        /// Azure Bastion host name (for --provider azure_bastion)
+        #[arg(long, value_name = "NAME")]
+        bastion_name: Option<String>,
+
+        /// Azure VM name (for --provider azure_ssh)
+        #[arg(long, value_name = "NAME")]
+        vm_name: Option<String>,
+
+        /// OCI Bastion OCID (for --provider oci_bastion)
+        #[arg(long, value_name = "OCID")]
+        bastion_id: Option<String>,
+
+        /// OCI target resource OCID (for --provider oci_bastion)
+        #[arg(long, value_name = "OCID")]
+        target_resource_id: Option<String>,
+
+        /// OCI target private IP (for --provider oci_bastion)
+        #[arg(long, value_name = "IP")]
+        target_private_ip: Option<String>,
+
+        /// Teleport cluster (for --provider teleport)
+        #[arg(long, value_name = "CLUSTER")]
+        teleport_cluster: Option<String>,
+
+        /// Boundary target (for --provider boundary)
+        #[arg(long, value_name = "TARGET")]
+        boundary_target: Option<String>,
+
+        /// Boundary address (for --provider boundary)
+        #[arg(long, value_name = "URL")]
+        boundary_addr: Option<String>,
+
+        /// Generic command template (for --provider generic)
+        /// Placeholders: {host}, {user}, {port}
+        #[arg(long, value_name = "COMMAND")]
+        custom_command: Option<String>,
     },
 
     /// Export connections to external format
@@ -259,6 +317,62 @@ pub enum Commands {
         /// Hoop.dev gRPC URL (optional, for --provider hoop_dev)
         #[arg(long, value_name = "URL")]
         hoop_grpc_url: Option<String>,
+
+        /// AWS profile (for --provider aws_ssm)
+        #[arg(long, value_name = "PROFILE")]
+        aws_profile: Option<String>,
+
+        /// AWS region (for --provider aws_ssm)
+        #[arg(long, value_name = "REGION")]
+        aws_region: Option<String>,
+
+        /// GCP zone (for --provider gcp_iap)
+        #[arg(long, value_name = "ZONE")]
+        gcp_zone: Option<String>,
+
+        /// GCP project (for --provider gcp_iap)
+        #[arg(long, value_name = "PROJECT")]
+        gcp_project: Option<String>,
+
+        /// Azure resource group (for --provider azure_bastion or azure_ssh)
+        #[arg(long, value_name = "GROUP")]
+        resource_group: Option<String>,
+
+        /// Azure Bastion host name (for --provider azure_bastion)
+        #[arg(long, value_name = "NAME")]
+        bastion_name: Option<String>,
+
+        /// Azure VM name (for --provider azure_ssh)
+        #[arg(long, value_name = "NAME")]
+        vm_name: Option<String>,
+
+        /// OCI Bastion OCID (for --provider oci_bastion)
+        #[arg(long, value_name = "OCID")]
+        bastion_id: Option<String>,
+
+        /// OCI target resource OCID (for --provider oci_bastion)
+        #[arg(long, value_name = "OCID")]
+        target_resource_id: Option<String>,
+
+        /// OCI target private IP (for --provider oci_bastion)
+        #[arg(long, value_name = "IP")]
+        target_private_ip: Option<String>,
+
+        /// Teleport cluster (for --provider teleport)
+        #[arg(long, value_name = "CLUSTER")]
+        teleport_cluster: Option<String>,
+
+        /// Boundary target (for --provider boundary)
+        #[arg(long, value_name = "TARGET")]
+        boundary_target: Option<String>,
+
+        /// Boundary address (for --provider boundary)
+        #[arg(long, value_name = "URL")]
+        boundary_addr: Option<String>,
+
+        /// Generic command template (for --provider generic)
+        #[arg(long, value_name = "COMMAND")]
+        custom_command: Option<String>,
     },
 
     /// Send Wake-on-LAN magic packet

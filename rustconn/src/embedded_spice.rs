@@ -205,7 +205,9 @@ pub struct EmbeddedSpiceWidget {
     on_error: Rc<RefCell<Option<ErrorCallback>>>,
     /// Reconnect callback
     on_reconnect: Rc<RefCell<Option<Box<dyn Fn() + 'static>>>>,
-    /// Reconnect button (shown when disconnected)
+    /// Reconnect banner (shown when disconnected, at bottom of container)
+    reconnect_banner: GtkBox,
+    /// Reconnect button inside the banner
     reconnect_button: Button,
     /// Native SPICE client (when spice-embedded feature is enabled)
     #[cfg(feature = "spice-embedded")]
@@ -260,13 +262,6 @@ impl EmbeddedSpiceWidget {
         ctrl_alt_del_button.set_tooltip_text(Some(&i18n("Send Ctrl+Alt+Del to remote session")));
         toolbar.append(&ctrl_alt_del_button);
 
-        // Reconnect button (shown when disconnected)
-        let reconnect_button = Button::with_label(&i18n("Reconnect"));
-        reconnect_button.add_css_class("suggested-action");
-        reconnect_button.set_tooltip_text(Some(&i18n("Reconnect to the remote session")));
-        reconnect_button.set_visible(false); // Hidden by default
-        toolbar.append(&reconnect_button);
-
         // Hide toolbar initially
         toolbar.set_visible(false);
 
@@ -279,6 +274,28 @@ impl EmbeddedSpiceWidget {
         drawing_area.set_focusable(true);
 
         container.append(&drawing_area);
+
+        // Reconnect banner (shown when disconnected, at bottom like VTE sessions)
+        let reconnect_banner = GtkBox::new(Orientation::Horizontal, 6);
+        reconnect_banner.set_margin_start(12);
+        reconnect_banner.set_margin_end(12);
+        reconnect_banner.set_margin_top(6);
+        reconnect_banner.set_margin_bottom(6);
+        reconnect_banner.set_halign(gtk4::Align::Center);
+        reconnect_banner.set_widget_name("reconnect-banner");
+        reconnect_banner.set_visible(false);
+
+        let reconnect_label = Label::new(Some(&i18n("Session disconnected")));
+        reconnect_label.add_css_class("dim-label");
+
+        let reconnect_button = Button::with_label(&i18n("Reconnect"));
+        reconnect_button.add_css_class("suggested-action");
+        reconnect_button.set_tooltip_text(Some(&i18n("Reconnect to this session")));
+
+        reconnect_banner.append(&reconnect_label);
+        reconnect_banner.append(&reconnect_button);
+
+        container.append(&reconnect_banner);
 
         let pixel_buffer = Rc::new(RefCell::new(SpicePixelBuffer::new(1280, 720)));
         let cairo_buffer = Rc::new(RefCell::new(crate::cairo_buffer::CairoBackedBuffer::new(
@@ -312,6 +329,7 @@ impl EmbeddedSpiceWidget {
             on_state_changed: Rc::new(RefCell::new(None)),
             on_error: Rc::new(RefCell::new(None)),
             on_reconnect: Rc::new(RefCell::new(None)),
+            reconnect_banner,
             reconnect_button,
             #[cfg(feature = "spice-embedded")]
             spice_client: Rc::new(RefCell::new(None)),
@@ -817,7 +835,7 @@ impl EmbeddedSpiceWidget {
     where
         F: Fn(SpiceConnectionState) + 'static,
     {
-        let reconnect_button = self.reconnect_button.clone();
+        let reconnect_banner = self.reconnect_banner.clone();
         let copy_button = self.copy_button.clone();
         let paste_button = self.paste_button.clone();
         let ctrl_alt_del_button = self.ctrl_alt_del_button.clone();
@@ -831,16 +849,18 @@ impl EmbeddedSpiceWidget {
                 SpiceConnectionState::Disconnected | SpiceConnectionState::Error
             );
 
-            // When showing reconnect, hide other buttons
-            reconnect_button.set_visible(show_reconnect);
+            // Show/hide reconnect banner at bottom
+            reconnect_banner.set_visible(show_reconnect);
+
+            // When disconnected, hide toolbar buttons
             copy_button.set_visible(!show_reconnect);
             paste_button.set_visible(!show_reconnect);
             ctrl_alt_del_button.set_visible(!show_reconnect);
             separator.set_visible(!show_reconnect);
 
-            // Show toolbar when reconnect button should be visible
+            // Hide toolbar when disconnected (no reconnect button there anymore)
             if show_reconnect {
-                toolbar.set_visible(true);
+                toolbar.set_visible(false);
             }
             // Call the user's callback
             callback(state);

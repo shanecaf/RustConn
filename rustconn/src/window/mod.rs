@@ -117,10 +117,20 @@ impl MainWindow {
         let overlay_split_view = adw::OverlaySplitView::new();
 
         // Apply saved sidebar width as max-sidebar-width
-        let sidebar_width = with_state(&state, |s| s.settings().ui.sidebar_width.unwrap_or(300));
-        overlay_split_view.set_max_sidebar_width(f64::from(sidebar_width.max(360).clamp(360, 600)));
-        overlay_split_view.set_min_sidebar_width(360.0);
-        overlay_split_view.set_sidebar_width_fraction(0.3);
+        // Migration: if saved width > 400, it was set with the old 360px minimum —
+        // reset to default to avoid an overly wide sidebar on HiDPI displays.
+        let saved_width = with_state(&state, |s| s.settings().ui.sidebar_width);
+        // Migration: reset sidebar width if it was set by an older version.
+        // - Values > 400 came from the old 360px minimum (too wide on HiDPI)
+        // - Values < 320 came from the intermediate 240/280/300px default (too narrow for filters)
+        // Only keep values in the 320..=400 range that the user intentionally set.
+        let sidebar_width = match saved_width {
+            Some(w) if (320..=400).contains(&w) => w,
+            _ => 320,
+        };
+        overlay_split_view.set_max_sidebar_width(f64::from(sidebar_width.clamp(260, 600)));
+        overlay_split_view.set_min_sidebar_width(260.0);
+        overlay_split_view.set_sidebar_width_fraction(0.27);
         overlay_split_view.set_enable_show_gesture(true);
         overlay_split_view.set_enable_hide_gesture(true);
         overlay_split_view.set_pin_sidebar(true);
@@ -180,9 +190,10 @@ impl MainWindow {
         });
 
         // Set up reconnect callback for VTE sessions
-        // When user clicks "Reconnect" in a disconnected tab, preserve the tab
-        // position by noting it, closing the old tab, launching a new connection,
-        // and moving the new tab to the original position.
+        // When user clicks "Reconnect" in a disconnected tab, reuse the
+        // existing terminal tab instead of closing and creating a new one.
+        // This preserves tab position, avoids visual flicker, and keeps
+        // the user's tab arrangement intact (#89).
         {
             let state_for_reconnect = state.clone();
             let notebook_for_reconnect = terminal_notebook.clone();
@@ -197,7 +208,50 @@ impl MainWindow {
                     "Reconnecting session in-place"
                 );
 
-                // Remember the tab position before closing
+                // Determine the protocol of the disconnected session
+                let protocol = notebook_for_reconnect
+                    .get_session_info(session_id)
+                    .map(|info| info.protocol.clone());
+
+                // For VTE-based sessions, reconnect in-place (reuse existing tab)
+                let is_vte_protocol = protocol.as_deref().is_some_and(|p| {
+                    p == "ssh"
+                        || p == "telnet"
+                        || p == "serial"
+                        || p == "kubernetes"
+                        || p == "mosh"
+                        || p.starts_with("zerotrust")
+                });
+                if is_vte_protocol {
+                    let success = if protocol.as_deref() == Some("ssh") {
+                        protocols::reconnect_ssh_in_place(
+                            &state_for_reconnect,
+                            &notebook_for_reconnect,
+                            &sidebar_for_reconnect,
+                            &monitoring_for_reconnect,
+                            session_id,
+                            connection_id,
+                        )
+                    } else {
+                        protocols::reconnect_generic_vte_in_place(
+                            &state_for_reconnect,
+                            &notebook_for_reconnect,
+                            &sidebar_for_reconnect,
+                            session_id,
+                            connection_id,
+                        )
+                    };
+                    if success {
+                        return;
+                    }
+                    tracing::warn!(
+                        %session_id,
+                        "In-place reconnect failed, falling back to close+create"
+                    );
+                }
+
+                // Fallback for non-SSH protocols or if in-place failed:
+                // close old tab, create new one, reorder to original position
                 let tab_position = {
                     let sessions = notebook_for_reconnect.sessions_map();
                     let sessions_ref = sessions.borrow();
@@ -206,13 +260,10 @@ impl MainWindow {
                         .map(|page| notebook_for_reconnect.tab_view().page_position(page))
                 };
 
-                // Close the disconnected tab
                 notebook_for_reconnect.close_tab(session_id);
 
-                // Remember tab count before launching new connection
                 let tabs_before = notebook_for_reconnect.tab_view().n_pages();
 
-                // Launch a new connection (creates a new tab at the end)
                 Self::start_connection_with_credential_resolution(
                     state_for_reconnect.clone(),
                     notebook_for_reconnect.clone(),
@@ -223,10 +274,8 @@ impl MainWindow {
                     Some(activity_for_reconnect.clone()),
                 );
 
-                // Move the newly created tab to the original position
                 if let Some(original_pos) = tab_position {
                     let tabs_after = notebook_for_reconnect.tab_view().n_pages();
-                    // Only reorder if a new tab was actually added
                     if tabs_after > tabs_before {
                         let new_page = notebook_for_reconnect.tab_view().nth_page(tabs_after - 1);
                         notebook_for_reconnect
@@ -1834,7 +1883,7 @@ impl MainWindow {
 
             // Save window geometry and expanded groups state
             let (width, height) = win.default_size();
-            let sidebar_width = split_view_clone.max_sidebar_width() as i32;
+            let sidebar_width = (split_view_clone.max_sidebar_width() as i32).max(260);
 
             // Save expanded groups state
             let expanded = sidebar_clone.get_expanded_groups();
@@ -2303,7 +2352,26 @@ impl MainWindow {
             let settings = state_ref.settings();
             let conn = state_ref.get_connection(connection_id);
             if let Some(conn) = conn {
-                let should = settings.connection.pre_connect_port_check && !conn.skip_port_check;
+                // Skip port check when a jump host is configured — the destination
+                // is only reachable through the SSH tunnel, so a direct TCP probe
+                // will always time out.
+                let has_jump_host = matches!(
+                    &conn.protocol_config,
+                    rustconn_core::ProtocolConfig::Rdp(rdp) if rdp.jump_host_id.is_some()
+                );
+                let should = settings.connection.pre_connect_port_check
+                    && !conn.skip_port_check
+                    && !has_jump_host;
+                if has_jump_host
+                    && settings.connection.pre_connect_port_check
+                    && !conn.skip_port_check
+                {
+                    tracing::debug!(
+                        protocol = "rdp",
+                        host = %conn.host,
+                        "Skipping port check — connection uses a jump host"
+                    );
+                }
                 (
                     should,
                     conn.host.clone(),

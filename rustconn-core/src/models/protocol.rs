@@ -1325,6 +1325,11 @@ pub struct RdpConfig {
     /// Mouse jiggler interval in seconds (10–600, default: 60)
     #[serde(default = "default_jiggler_interval")]
     pub jiggler_interval_secs: u32,
+    /// ID of an SSH connection to use as a jump host (SSH tunnel).
+    /// The RDP connection is tunnelled through this SSH host via local
+    /// port forwarding (`ssh -L`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub jump_host_id: Option<uuid::Uuid>,
 }
 
 impl RdpConfig {

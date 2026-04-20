@@ -247,7 +247,115 @@ fn start_rdp_session_internal(
         rustconn_core::models::RdpConfig::default()
     };
 
-    // Clone connection for history recording
+    // --- SSH tunnel for jump host ---
+    let (effective_host, effective_port, ssh_tunnel) = if let Some(jump_id) =
+        rdp_config.jump_host_id
+    {
+        if let Some(jump_conn) = state_ref.get_connection(jump_id) {
+            let mut jump_dest = jump_conn.host.clone();
+            if let Some(user) = &jump_conn.username {
+                jump_dest = format!("{user}@{}", jump_dest);
+            }
+            let jump_port = jump_conn.port;
+            let identity_file = if let rustconn_core::ProtocolConfig::Ssh(ref ssh_cfg) =
+                jump_conn.protocol_config
+            {
+                ssh_cfg
+                    .key_path
+                    .as_ref()
+                    .and_then(|p| rustconn_core::resolve_key_path(p))
+                    .map(|p| p.to_string_lossy().to_string())
+            } else {
+                None
+            };
+
+            let params = rustconn_core::ssh_tunnel::SshTunnelParams {
+                jump_host: jump_dest,
+                jump_port,
+                remote_host: host.clone(),
+                remote_port: port,
+                identity_file,
+                extra_args: Vec::new(),
+            };
+
+            // Clone connection for history before dropping state borrow
+            let conn_for_history = conn.clone();
+            drop(state_ref);
+
+            match rustconn_core::ssh_tunnel::create_tunnel(&params) {
+                Ok(tunnel) => {
+                    let local_port = tunnel.local_port();
+                    tracing::info!(
+                        %connection_id,
+                        local_port,
+                        "SSH tunnel established for RDP connection"
+                    );
+                    // Give the tunnel a moment to establish
+                    std::thread::sleep(std::time::Duration::from_millis(500));
+
+                    // Record connection start in history
+                    let history_entry_id = if let Ok(mut state_mut) = state.try_borrow_mut() {
+                        Some(state_mut.record_connection_start(&conn_for_history, Some(&username)))
+                    } else {
+                        None
+                    };
+
+                    // Dispatch to embedded or external
+                    if rdp_config.client_mode == RdpClientMode::Embedded {
+                        start_embedded_rdp_session(
+                            state,
+                            notebook,
+                            split_view,
+                            sidebar,
+                            connection_id,
+                            &conn_name,
+                            "127.0.0.1",
+                            local_port,
+                            &username,
+                            password,
+                            domain,
+                            window_mode,
+                            &rdp_config,
+                            history_entry_id,
+                            Some(tunnel),
+                        );
+                    } else {
+                        start_external_rdp_session(
+                            state,
+                            notebook,
+                            split_view,
+                            sidebar,
+                            connection_id,
+                            &conn_name,
+                            "127.0.0.1",
+                            local_port,
+                            &username,
+                            password,
+                            domain,
+                            &rdp_config,
+                            history_entry_id,
+                            Some(tunnel),
+                        );
+                    }
+                    return;
+                }
+                Err(e) => {
+                    tracing::error!(%connection_id, %e, "Failed to create SSH tunnel for RDP");
+                    crate::toast::show_error_toast_on_active_window(&crate::i18n::i18n_f(
+                        "SSH tunnel failed: {}",
+                        &[&e.to_string()],
+                    ));
+                    return;
+                }
+            }
+        }
+        tracing::warn!(%connection_id, %jump_id, "Jump host connection not found");
+        (host.clone(), port, None)
+    } else {
+        (host.clone(), port, None)
+    };
+
+    // Clone connection for history recording (no-tunnel path)
     let conn_for_history = conn.clone();
 
     drop(state_ref);
@@ -268,14 +376,15 @@ fn start_rdp_session_internal(
             sidebar,
             connection_id,
             &conn_name,
-            &host,
-            port,
+            &effective_host,
+            effective_port,
             &username,
             password,
             domain,
             window_mode,
             &rdp_config,
             history_entry_id,
+            ssh_tunnel,
         );
         return;
     }
@@ -288,13 +397,14 @@ fn start_rdp_session_internal(
         sidebar,
         connection_id,
         &conn_name,
-        &host,
-        port,
+        &effective_host,
+        effective_port,
         &username,
         password,
         domain,
         &rdp_config,
         history_entry_id,
+        ssh_tunnel,
     );
 }
 
@@ -315,6 +425,7 @@ fn start_embedded_rdp_session(
     window_mode: rustconn_core::models::WindowMode,
     rdp_config: &rustconn_core::models::RdpConfig,
     history_entry_id: Option<Uuid>,
+    ssh_tunnel: Option<rustconn_core::ssh_tunnel::SshTunnel>,
 ) {
     use crate::embedded_rdp::{EmbeddedRdpWidget, RdpConfig as EmbeddedRdpConfig};
     use gtk4::glib;
@@ -462,6 +573,11 @@ fn start_embedded_rdp_session(
         embedded_widget.clone(),
     );
 
+    // Store SSH tunnel so it stays alive for the duration of the session
+    if let Some(tunnel) = ssh_tunnel {
+        notebook.store_ssh_tunnel(session_id, tunnel);
+    }
+
     // Store history entry ID in session for later use
     if let Some(entry_id) = history_entry_id {
         notebook.set_history_entry_id(session_id, entry_id);
@@ -543,6 +659,7 @@ fn start_external_rdp_session(
     domain: &str,
     rdp_config: &rustconn_core::models::RdpConfig,
     history_entry_id: Option<Uuid>,
+    ssh_tunnel: Option<rustconn_core::ssh_tunnel::SshTunnel>,
 ) {
     let (tab, _is_embedded) = EmbeddedSessionTab::new(connection_id, conn_name, "rdp");
     let session_id = tab.id();
@@ -615,6 +732,11 @@ fn start_external_rdp_session(
         tab.widget(),
         Some(tab.process_handle()),
     );
+
+    // Store SSH tunnel so it stays alive for the duration of the session
+    if let Some(tunnel) = ssh_tunnel {
+        notebook.store_ssh_tunnel(session_id, tunnel);
+    }
 
     // Add to split_view
     if let Some(info) = notebook.get_session_info(session_id) {

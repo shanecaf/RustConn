@@ -105,8 +105,8 @@ impl ConnectionSidebar {
     #[must_use]
     pub fn new() -> Self {
         let container = GtkBox::new(Orientation::Vertical, 0);
-        // Minimum sidebar width — fits bottom toolbar, search bar, and nested items
-        container.set_width_request(360);
+        // Minimum sidebar width — fits bottom toolbar, search bar, and protocol filters
+        container.set_width_request(260);
         container.add_css_class("sidebar");
 
         // Search box with entry and help button

@@ -1117,6 +1117,586 @@ fn start_spice_connection_internal(
     Some(session_id)
 }
 
+/// Reconnects an SSH session in-place, reusing the existing terminal tab.
+///
+/// Instead of closing the old tab and creating a new one (which disrupts
+/// tab ordering when managing 10+ sessions), this function:
+/// 1. Prepares the existing tab (removes banner, resets VTE)
+/// 2. Re-applies highlight rules and automation
+/// 3. Re-spawns the SSH process in the same terminal
+/// 4. Re-wires password injection, status detection, and monitoring
+///
+/// Returns `true` if reconnect was initiated, `false` if the tab no longer exists.
+#[allow(clippy::too_many_arguments)]
+pub fn reconnect_ssh_in_place(
+    state: &SharedAppState,
+    notebook: &SharedNotebook,
+    sidebar: &SharedSidebar,
+    monitoring: &super::types::SharedMonitoring,
+    session_id: Uuid,
+    connection_id: Uuid,
+) -> bool {
+    use rustconn_core::protocol::{format_command_message, format_connection_message};
+
+    // Prepare the existing tab for reconnect
+    if !notebook.prepare_for_reconnect(session_id) {
+        tracing::warn!(%session_id, "Tab no longer exists, cannot reconnect in-place");
+        return false;
+    }
+
+    // Get connection data
+    let conn = {
+        let Ok(state_ref) = state.try_borrow() else {
+            return false;
+        };
+        match state_ref.get_connection(connection_id) {
+            Some(c) => c.clone(),
+            None => return false,
+        }
+    };
+
+    // Re-apply highlight rules
+    {
+        let global_rules = state
+            .try_borrow()
+            .ok()
+            .map(|s| s.settings().highlight_rules.clone())
+            .unwrap_or_default();
+        notebook.set_highlight_rules(session_id, &global_rules, &conn.highlight_rules);
+    }
+
+    // Record connection start in history
+    let history_entry_id = if let Ok(mut state_mut) = state.try_borrow_mut() {
+        Some(state_mut.record_connection_start(&conn, conn.username.as_deref()))
+    } else {
+        None
+    };
+    if let Some(entry_id) = history_entry_id {
+        notebook.set_history_entry_id(session_id, entry_id);
+    }
+
+    // Get global variables for substitution
+    let global_variables = state
+        .try_borrow()
+        .ok()
+        .map(|s| crate::state::resolve_global_variables(s.settings()))
+        .unwrap_or_default();
+
+    let host = substitute_variables(&conn.host, &global_variables);
+    let username = conn
+        .username
+        .as_ref()
+        .map(|u| substitute_variables(u, &global_variables));
+
+    let has_jump_host = matches!(
+        &conn.protocol_config,
+        rustconn_core::ProtocolConfig::Ssh(ssh)
+            if ssh.jump_host_id.is_some() || ssh.proxy_jump.is_some()
+    );
+
+    // Build SSH args (same logic as start_ssh_connection_internal)
+    let (identity_file, extra_args, use_waypipe, jump_host_chain) =
+        if let rustconn_core::ProtocolConfig::Ssh(ssh_config) = &conn.protocol_config {
+            let key = ssh_config
+                .key_path
+                .as_ref()
+                .and_then(|p| rustconn_core::resolve_key_path(p))
+                .map(|p| p.to_string_lossy().to_string());
+
+            let mut args = ssh_config.build_command_args();
+
+            let mut jump_hosts = Vec::new();
+            if let Some(proxy) = &ssh_config.proxy_jump {
+                jump_hosts.push(proxy.clone());
+            }
+            if let Some(jump_id) = ssh_config.jump_host_id
+                && let Ok(state_ref) = state.try_borrow()
+            {
+                let mut current_id = Some(jump_id);
+                let mut visited = std::collections::HashSet::new();
+                visited.insert(connection_id);
+                for _ in 0..10 {
+                    if let Some(jid) = current_id {
+                        if visited.contains(&jid) {
+                            break;
+                        }
+                        visited.insert(jid);
+                        if let Some(jump_conn) = state_ref.get_connection(jid) {
+                            let mut host_str = jump_conn.host.clone();
+                            if let Some(user) = &jump_conn.username {
+                                host_str = format!("{}@{}", user, host_str);
+                            }
+                            if jump_conn.port != 22 {
+                                host_str = format!("{}:{}", host_str, jump_conn.port);
+                            }
+                            jump_hosts.push(host_str);
+                            if let rustconn_core::ProtocolConfig::Ssh(jump_config) =
+                                &jump_conn.protocol_config
+                            {
+                                if let Some(p) = &jump_config.proxy_jump {
+                                    jump_hosts.insert(jump_hosts.len() - 1, p.clone());
+                                }
+                                current_id = jump_config.jump_host_id;
+                            } else {
+                                current_id = None;
+                            }
+                        } else {
+                            current_id = None;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+            }
+
+            let flatpak_known_hosts = {
+                let user_set = ssh_config
+                    .custom_options
+                    .keys()
+                    .any(|k| k.eq_ignore_ascii_case("UserKnownHostsFile"));
+                if user_set {
+                    None
+                } else {
+                    rustconn_core::get_flatpak_known_hosts_path()
+                }
+            };
+            if let Some(ref kh_path) = flatpak_known_hosts {
+                args.push("-o".to_string());
+                args.push(format!("UserKnownHostsFile={}", kh_path.display()));
+            }
+
+            let jump_host_str = if jump_hosts.is_empty() {
+                None
+            } else {
+                if ssh_config.proxy_jump.is_some()
+                    && let Some(pos) = args.iter().position(|a| a == "-J")
+                {
+                    args.remove(pos);
+                    if pos < args.len() {
+                        args.remove(pos);
+                    }
+                }
+                let chain = jump_hosts.join(",");
+                if flatpak_known_hosts.is_some() {
+                    let mut proxy_parts =
+                        vec!["ssh".to_string(), "-W".to_string(), "%h:%p".to_string()];
+                    if let Some(pos) = args.iter().position(|a| a == "-i")
+                        && let Some(key_path) = args.get(pos + 1)
+                    {
+                        proxy_parts.push("-i".to_string());
+                        proxy_parts.push(key_path.clone());
+                        proxy_parts.push("-o".to_string());
+                        proxy_parts.push("IdentitiesOnly=yes".to_string());
+                    }
+                    if let Some(ref kh_path) = flatpak_known_hosts {
+                        proxy_parts.push("-o".to_string());
+                        proxy_parts.push(format!("UserKnownHostsFile={}", kh_path.display()));
+                    }
+                    if jump_hosts.len() > 1 {
+                        let inner_chain = jump_hosts[1..].join(",");
+                        proxy_parts.push("-J".to_string());
+                        proxy_parts.push(inner_chain);
+                    }
+                    proxy_parts.push(jump_hosts[0].clone());
+                    let proxy_cmd = proxy_parts.join(" ");
+                    args.push("-o".to_string());
+                    args.push(format!("ProxyCommand={proxy_cmd}"));
+                } else {
+                    args.push("-J".to_string());
+                    args.push(chain.clone());
+                }
+                Some(chain)
+            };
+
+            let waypipe = ssh_config.waypipe && rustconn_core::protocol::detect_waypipe().installed;
+            (key, args, waypipe, jump_host_str)
+        } else {
+            (None, Vec::new(), false, None)
+        };
+
+    // Re-wire child-exited handler for the new process
+    MainWindow::setup_child_exited_handler(state, notebook, sidebar, session_id, connection_id);
+
+    // Build SSH command string for display
+    let port = conn.port;
+    let mut ssh_cmd_parts = if use_waypipe {
+        vec!["waypipe".to_string(), "ssh".to_string()]
+    } else {
+        vec!["ssh".to_string()]
+    };
+    if port != 22 {
+        ssh_cmd_parts.push("-p".to_string());
+        ssh_cmd_parts.push(port.to_string());
+    }
+    if let Some(ref key) = identity_file {
+        ssh_cmd_parts.push("-i".to_string());
+        ssh_cmd_parts.push(key.clone());
+    }
+    ssh_cmd_parts.extend(extra_args.clone());
+    let destination = if let Some(ref user) = username {
+        format!("{user}@{host}")
+    } else {
+        host.clone()
+    };
+    ssh_cmd_parts.push(destination);
+    let ssh_command = ssh_cmd_parts.join(" ");
+
+    // Display CLI output feedback
+    let conn_msg = format_connection_message("SSH", &host);
+    let cmd_msg = format_command_message(&ssh_command);
+    let feedback = format!("{conn_msg}\r\n{cmd_msg}\r\n\r\n");
+    notebook.display_output(session_id, &feedback);
+
+    // Retrieve cached credentials
+    let cached_password: Option<SecretString> = state
+        .try_borrow()
+        .ok()
+        .and_then(|s| s.get_cached_credentials(connection_id).cloned())
+        .and_then(|c| {
+            use secrecy::ExposeSecret;
+            let pw = c.password.expose_secret();
+            if pw.is_empty() {
+                None
+            } else {
+                Some(c.password.clone())
+            }
+        });
+
+    // Spawn SSH in the existing terminal
+    {
+        let extra_refs: Vec<&str> = extra_args.iter().map(std::string::String::as_str).collect();
+        notebook.spawn_ssh(
+            session_id,
+            &host,
+            port,
+            username.as_deref(),
+            identity_file.as_deref(),
+            &extra_refs,
+            use_waypipe,
+            None,
+        );
+    }
+
+    // VTE password injection
+    if let Some(vault_password) = cached_password {
+        let notebook_clone = notebook.clone();
+        let password_sent = std::rc::Rc::new(std::cell::Cell::new(false));
+        let password_sent_clone = password_sent.clone();
+
+        notebook.connect_contents_changed(session_id, move || {
+            if password_sent_clone.get() {
+                return;
+            }
+            let Some(text) = notebook_clone.get_terminal_text(session_id) else {
+                return;
+            };
+            let lower = text.to_lowercase();
+            let has_prompt = lower.ends_with("password: ")
+                || lower.ends_with("password:")
+                || lower.contains("password: \n")
+                || lower.lines().last().is_some_and(|line| {
+                    let l = line.trim().to_lowercase();
+                    l.ends_with("password:")
+                        || l.ends_with("password: ")
+                        || l.contains("'s password:")
+                });
+
+            if has_prompt {
+                use secrecy::ExposeSecret;
+                let pw = vault_password.expose_secret();
+                let input = format!("{pw}\n");
+                notebook_clone.send_text_to_session(session_id, &input);
+                password_sent_clone.set(true);
+            }
+        });
+    }
+
+    // SSH status detection
+    {
+        let sidebar_clone = sidebar.clone();
+        let notebook_clone = notebook.clone();
+        let connection_id_str = connection_id.to_string();
+        let session_connected = std::rc::Rc::new(std::cell::Cell::new(false));
+        let session_connected_clone = session_connected.clone();
+        let uses_jump_host = has_jump_host;
+
+        notebook.connect_contents_changed(session_id, move || {
+            if session_connected_clone.get() {
+                return;
+            }
+            if let Some(row) = notebook_clone.get_terminal_cursor_row(session_id)
+                && row > 2
+            {
+                if uses_jump_host
+                    && let Some(text) = notebook_clone.get_terminal_text(session_id)
+                    && contains_ssh_failure(&text)
+                {
+                    return;
+                }
+                sidebar_clone.increment_session_count(&connection_id_str);
+                session_connected_clone.set(true);
+            }
+        });
+    }
+
+    // Deferred monitoring start
+    if let Ok(state_ref) = state.try_borrow() {
+        let settings = state_ref.settings().monitoring.clone();
+        let mon_enabled = conn
+            .monitoring_config
+            .as_ref()
+            .map_or(settings.enabled, |mc| mc.is_enabled(&settings));
+        if mon_enabled {
+            let effective = rustconn_core::MonitoringSettings {
+                enabled: true,
+                interval_secs: conn.monitoring_config.as_ref().map_or_else(
+                    || settings.effective_interval_secs(),
+                    |mc| mc.effective_interval(&settings),
+                ),
+                ..settings
+            };
+            let identity_file_mon =
+                if let rustconn_core::ProtocolConfig::Ssh(ref ssh_cfg) = conn.protocol_config {
+                    ssh_cfg
+                        .key_path
+                        .as_ref()
+                        .and_then(|p| rustconn_core::resolve_key_path(p))
+                        .map(|p| p.to_string_lossy().to_string())
+                } else {
+                    None
+                };
+            let cached_pw = state_ref
+                .get_cached_credentials(connection_id)
+                .and_then(|c| {
+                    use secrecy::ExposeSecret;
+                    let pw = c.password.expose_secret();
+                    if pw.is_empty() {
+                        None
+                    } else {
+                        Some(c.password.clone())
+                    }
+                });
+
+            let monitoring_clone = Rc::clone(monitoring);
+            let notebook_clone = notebook.clone();
+            let mon_host = conn.host.clone();
+            let mon_port = conn.port;
+            let mon_username = conn.username.clone();
+            let mon_jump_host = jump_host_chain;
+            let monitoring_started = std::rc::Rc::new(std::cell::Cell::new(false));
+            let monitoring_started_clone = monitoring_started.clone();
+
+            notebook.connect_contents_changed(session_id, move || {
+                if monitoring_started_clone.get() {
+                    return;
+                }
+                let Some(row) = notebook_clone.get_terminal_cursor_row(session_id) else {
+                    return;
+                };
+                if row <= 2 {
+                    return;
+                }
+                monitoring_started_clone.set(true);
+                if let Some(container) = notebook_clone.get_session_container(session_id) {
+                    monitoring_clone.start_monitoring(
+                        session_id,
+                        &container,
+                        &effective,
+                        &mon_host,
+                        mon_port,
+                        mon_username.as_deref(),
+                        identity_file_mon.as_deref(),
+                        cached_pw.clone(),
+                        mon_jump_host.as_deref(),
+                    );
+                }
+            });
+        }
+    }
+
+    // Update last_connected timestamp
+    if let Ok(mut state_mut) = state.try_borrow_mut()
+        && let Err(e) = state_mut.update_last_connected(connection_id)
+    {
+        tracing::warn!(?e, "Failed to update last_connected");
+    }
+
+    true
+}
+
+/// Reconnects a generic VTE session (Telnet, Serial, Kubernetes, ZeroTrust, MOSH)
+/// in-place, reusing the existing terminal tab.
+///
+/// Returns `true` if reconnect was initiated, `false` if the tab no longer exists.
+pub fn reconnect_generic_vte_in_place(
+    state: &SharedAppState,
+    notebook: &SharedNotebook,
+    sidebar: &SharedSidebar,
+    session_id: Uuid,
+    connection_id: Uuid,
+) -> bool {
+    use rustconn_core::protocol::{
+        KubernetesProtocol, MoshProtocol, Protocol, SerialProtocol, format_command_message,
+        format_connection_message,
+    };
+
+    if !notebook.prepare_for_reconnect(session_id) {
+        tracing::warn!(%session_id, "Tab no longer exists, cannot reconnect in-place");
+        return false;
+    }
+
+    let conn = {
+        let Ok(state_ref) = state.try_borrow() else {
+            return false;
+        };
+        match state_ref.get_connection(connection_id) {
+            Some(c) => c.clone(),
+            None => return false,
+        }
+    };
+
+    // Re-apply highlight rules
+    {
+        let global_rules = state
+            .try_borrow()
+            .ok()
+            .map(|s| s.settings().highlight_rules.clone())
+            .unwrap_or_default();
+        notebook.set_highlight_rules(session_id, &global_rules, &conn.highlight_rules);
+    }
+
+    // Record connection start in history
+    if let Ok(mut state_mut) = state.try_borrow_mut() {
+        let entry_id = state_mut.record_connection_start(&conn, conn.username.as_deref());
+        notebook.set_history_entry_id(session_id, entry_id);
+    }
+
+    // Re-wire child-exited handler
+    MainWindow::setup_child_exited_handler(state, notebook, sidebar, session_id, connection_id);
+
+    // Build and spawn command based on protocol
+    match &conn.protocol_config {
+        rustconn_core::ProtocolConfig::ZeroTrust(zt_config) => {
+            let (program, args) = zt_config.build_command(conn.username.as_deref());
+            let provider_name = zt_config.provider.display_name();
+            let full_command = std::iter::once(program.as_str())
+                .chain(args.iter().map(String::as_str))
+                .collect::<Vec<_>>()
+                .join(" ");
+
+            let conn_msg = format_connection_message(provider_name, &conn.name);
+            let cmd_msg = format_command_message(&full_command);
+            notebook.display_output(session_id, &format!("{conn_msg}\r\n{cmd_msg}\r\n\r\n"));
+
+            let spawn_command = rustconn_core::flatpak::wrap_host_command(&full_command);
+            let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/bash".to_string());
+            notebook.spawn_command(
+                session_id,
+                &[&shell, "-c", &spawn_command],
+                None,
+                None,
+                None,
+            );
+        }
+        rustconn_core::ProtocolConfig::Telnet(telnet_config) => {
+            let conn_msg = format_connection_message("Telnet", &conn.host);
+            let cmd_msg = format_command_message(&format!("telnet {} {}", conn.host, conn.port));
+            notebook.display_output(session_id, &format!("{conn_msg}\r\n{cmd_msg}\r\n\r\n"));
+
+            notebook.spawn_telnet(
+                session_id,
+                &conn.host,
+                conn.port,
+                &[],
+                telnet_config.backspace_sends,
+                telnet_config.delete_sends,
+            );
+        }
+        rustconn_core::ProtocolConfig::Serial(_) => {
+            let serial = SerialProtocol::new();
+            let Some(command) = serial.build_command(&conn) else {
+                tracing::warn!(%session_id, "Failed to build Serial command for reconnect");
+                return false;
+            };
+            let serial_config =
+                if let rustconn_core::ProtocolConfig::Serial(ref cfg) = conn.protocol_config {
+                    cfg
+                } else {
+                    return false;
+                };
+
+            let conn_msg = format_connection_message("Serial", &serial_config.device);
+            let cmd_msg = format_command_message(&command.join(" "));
+            notebook.display_output(session_id, &format!("{conn_msg}\r\n{cmd_msg}\r\n\r\n"));
+
+            notebook.spawn_serial(session_id, &command);
+        }
+        rustconn_core::ProtocolConfig::Kubernetes(_) => {
+            let k8s = KubernetesProtocol::new();
+            let Some(command) = k8s.build_command(&conn) else {
+                tracing::warn!(%session_id, "Failed to build Kubernetes command for reconnect");
+                return false;
+            };
+
+            let conn_msg = format_connection_message("Kubernetes", &conn.name);
+            let cmd_msg = format_command_message(&command.join(" "));
+            notebook.display_output(session_id, &format!("{conn_msg}\r\n{cmd_msg}\r\n\r\n"));
+
+            let spawn_cmd = command.join(" ");
+            let wrapped = rustconn_core::flatpak::wrap_host_command(&spawn_cmd);
+            let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/bash".to_string());
+            notebook.spawn_command(session_id, &[&shell, "-c", &wrapped], None, None, None);
+        }
+        rustconn_core::ProtocolConfig::Mosh(_) => {
+            let mosh = MoshProtocol::new();
+            let Some(command) = mosh.build_command(&conn) else {
+                tracing::warn!(%session_id, "Failed to build MOSH command for reconnect");
+                return false;
+            };
+
+            let conn_msg = format_connection_message("MOSH", &conn.host);
+            let cmd_msg = format_command_message(&command.join(" "));
+            notebook.display_output(session_id, &format!("{conn_msg}\r\n{cmd_msg}\r\n\r\n"));
+
+            // Mosh uses direct exec (no shell wrapper needed)
+            let argv: Vec<&str> = command.iter().map(String::as_str).collect();
+            notebook.spawn_command(session_id, &argv, None, None, None);
+        }
+        _ => {
+            tracing::warn!("Unsupported protocol for generic VTE reconnect");
+            return false;
+        }
+    }
+
+    // Update last_connected
+    if let Ok(mut state_mut) = state.try_borrow_mut() {
+        let _ = state_mut.update_last_connected(connection_id);
+    }
+
+    // Status detection: mark connected when cursor advances past initial output
+    {
+        let sidebar_clone = sidebar.clone();
+        let notebook_clone = notebook.clone();
+        let connection_id_str = connection_id.to_string();
+        let session_connected = std::rc::Rc::new(std::cell::Cell::new(false));
+        let session_connected_clone = session_connected.clone();
+
+        notebook.connect_contents_changed(session_id, move || {
+            if session_connected_clone.get() {
+                return;
+            }
+            if let Some(row) = notebook_clone.get_terminal_cursor_row(session_id)
+                && row > 2
+            {
+                sidebar_clone.increment_session_count(&connection_id_str);
+                session_connected_clone.set(true);
+            }
+        });
+    }
+
+    true
+}
+
 /// Starts a Telnet connection
 ///
 /// Creates a terminal tab and spawns the telnet process.
