@@ -1,6 +1,6 @@
 # RustConn User Guide
 
-**Version 0.11.1** | GTK4/libadwaita Connection Manager for Linux
+**Version 0.11.2** | GTK4/libadwaita Connection Manager for Linux
 
 RustConn is a modern connection manager designed for Linux with Wayland-first approach. It supports SSH, RDP, VNC, SPICE, MOSH, SFTP, Telnet, Serial, Kubernetes protocols and Zero Trust integrations through a native GTK4/libadwaita interface.
 
@@ -2744,6 +2744,15 @@ Override terminal colors (background, foreground, cursor) on a per-connection ba
 
 The `rustconn-cli` binary provides full connection management from the terminal. It shares the same configuration files as the GUI (`~/.config/rustconn/`), so changes made in either tool are immediately visible to the other.
 
+### Installation
+
+| Install Method | How to Run |
+|----------------|------------|
+| Native (deb/rpm/AUR) | `rustconn-cli` is installed alongside `rustconn` |
+| Flatpak | `flatpak run --command=rustconn-cli io.github.totoshko88.RustConn [command]` |
+
+For Flatpak, create a shell alias to save typing (see [Flatpak Usage](#flatpak-usage) below).
+
 ### GUI Startup Flags
 
 The GUI binary (`rustconn`) accepts startup flags:
@@ -2812,9 +2821,13 @@ When stdout is not a terminal (piped or redirected), the format automatically sw
 | `1` | General error (configuration, validation, I/O, export, import) |
 | `2` | Connection failure (test failed, connection not found, connection error) |
 
-### Connection Management
+### Commands Reference
 
 #### list — List connections
+
+```bash
+rustconn-cli list [-f table|json|csv] [-p protocol] [-g group] [-t tag]
+```
 
 ```bash
 rustconn-cli list                                    # All connections (table)
@@ -2826,37 +2839,10 @@ rustconn-cli list --tag "web"                        # Filter by tag
 rustconn-cli list --group "Production" --tag "web"   # Combine filters
 ```
 
-#### show — Show connection details
-
-Displays all fields for a connection including protocol-specific configuration (SSH auth method, key path, RDP resolution, serial device settings, monitoring config).
-
-```bash
-rustconn-cli show "My Server"
-rustconn-cli show 550e8400-e29b-41d4-a716-446655440000   # By UUID
-```
-
 #### add — Add a new connection
 
 ```bash
-# SSH (default protocol)
-rustconn-cli add --name "Web Server" --host 192.168.1.10 --user admin
-rustconn-cli add --name "FIDO2 Server" --host 10.0.0.5 --key ~/.ssh/id_ed25519_sk --auth-method security-key
-
-# RDP
-rustconn-cli add --name "Windows DC" --host 10.0.0.1 --protocol rdp --user administrator
-
-# VNC
-rustconn-cli add --name "VNC Host" --host 10.0.0.2 --protocol vnc --port 5901
-
-# Serial
-rustconn-cli add --name "Router Console" --protocol serial --host /dev/ttyUSB0 --baud-rate 9600
-rustconn-cli add --name "Switch" --protocol serial --device /dev/ttyACM0 --baud-rate 115200
-
-# Telnet
-rustconn-cli add --name "Legacy Switch" --host 192.168.1.1 --protocol telnet --port 23
-
-# With custom icon
-rustconn-cli add --name "DB Primary" --host db.example.com --user postgres --icon "🗄️"
+rustconn-cli add -n <name> -H <host> [-P protocol] [-p port] [-u user] [-k key] [options...]
 ```
 
 Options:
@@ -2866,15 +2852,131 @@ Options:
 | `--name` | `-n` | Connection name (required) |
 | `--host` | `-H` | Hostname, IP, or device path (required) |
 | `--port` | `-p` | Port number (defaults: SSH=22, RDP=3389, VNC=5900, Telnet=23) |
-| `--protocol` | `-P` | Protocol type: `ssh`, `rdp`, `vnc`, `spice`, `telnet`, `serial`, `sftp`, `kubernetes` (default: `ssh`) |
+| `--protocol` | `-P` | Protocol: `ssh`, `rdp`, `vnc`, `spice`, `sftp`, `telnet`, `serial`, `mosh`, `kubernetes`/`k8s`, `zerotrust`/`zt` (default: `ssh`) |
 | `--user` | `-u` | Username |
 | `--key` | `-k` | Path to SSH private key file |
 | `--auth-method` | — | SSH auth: `password`, `publickey`, `keyboard-interactive`, `agent`, `security-key` |
 | `--device` | — | Serial device path (alias for `--host` with serial protocol) |
-| `--baud-rate` | — | Serial baud rate: 9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600 |
+| `--baud-rate` | — | Serial baud rate (default: 115200) |
 | `--icon` | — | Custom icon (emoji or GTK icon name, e.g. `"🏢"`, `"starred-symbolic"`) |
+| `--ssh-agent-socket` | — | Custom SSH agent socket path |
+| `--provider` | — | Zero Trust provider (see [Zero Trust examples](#zero-trust-examples) below) |
+
+**Protocol examples:**
+
+```bash
+# SSH (default protocol)
+rustconn-cli add -n "Server" -H 10.0.0.1 -P ssh -u admin -k ~/.ssh/id_rsa
+
+# SFTP
+rustconn-cli add -n "Files" -H 10.0.0.1 -P sftp -u admin -k ~/.ssh/id_rsa
+
+# RDP
+rustconn-cli add -n "Windows" -H 10.0.0.1 -P rdp -u Administrator
+
+# VNC
+rustconn-cli add -n "Desktop" -H 10.0.0.1 -P vnc
+
+# SPICE
+rustconn-cli add -n "VM" -H 10.0.0.1 -P spice
+
+# Telnet
+rustconn-cli add -n "Switch" -H 10.0.0.1 -P telnet
+
+# Serial
+rustconn-cli add -n "Router" -H /dev/ttyUSB0 -P serial --baud-rate 9600
+
+# MOSH
+rustconn-cli add -n "Mobile" -H 10.0.0.1 -P mosh -u admin
+
+# Kubernetes
+rustconn-cli add -n "Pod" -H pod-name -P k8s
+```
+
+**Zero Trust examples:**
+
+```bash
+# AWS SSM
+rustconn-cli add -n "EC2" -H i-0123456789 -P zt --provider aws_ssm --aws-region eu-west-1
+
+# GCP IAP
+rustconn-cli add -n "GCE" -H instance-1 -P zt --provider gcp_iap --gcp-zone us-central1-a
+
+# Azure Bastion
+rustconn-cli add -n "AzVM" -H /subscriptions/.../vm -P zt \
+    --provider azure_bastion --resource-group myRG --bastion-name myBastion
+
+# Teleport
+rustconn-cli add -n "Tele" -H node-1 -P zt --provider teleport
+
+# Tailscale SSH
+rustconn-cli add -n "Tail" -H myhost -P zt --provider tailscale_ssh
+
+# HashiCorp Boundary
+rustconn-cli add -n "Bound" -H target-host -P zt --provider boundary --boundary-target ttcp_1234
+
+# Hoop.dev
+rustconn-cli add -n "Hoop" -H gateway -P zt --provider hoop_dev --hoop-connection-name myconn
+
+# Generic (custom command template)
+rustconn-cli add -n "Custom" -H host -P zt --provider generic \
+    --custom-command "ssh -o ProxyCommand='...' {host}"
+```
+
+Zero Trust provider flags:
+
+| Flag | Providers | Description |
+|------|-----------|-------------|
+| `--provider` | all | Provider name (required for `-P zt`) |
+| `--aws-profile` | `aws_ssm` | AWS CLI profile |
+| `--aws-region` | `aws_ssm` | AWS region |
+| `--gcp-zone` | `gcp_iap` | GCP zone |
+| `--gcp-project` | `gcp_iap` | GCP project |
+| `--resource-group` | `azure_bastion`, `azure_ssh` | Azure resource group |
+| `--bastion-name` | `azure_bastion` | Azure Bastion host name |
+| `--vm-name` | `azure_ssh` | Azure VM name |
+| `--bastion-id` | `oci_bastion` | OCI Bastion OCID |
+| `--target-resource-id` | `oci_bastion` | OCI target resource OCID |
+| `--target-private-ip` | `oci_bastion` | OCI target private IP |
+| `--teleport-cluster` | `teleport` | Teleport cluster name |
+| `--boundary-target` | `boundary` | Boundary target ID |
+| `--boundary-addr` | `boundary` | Boundary controller URL |
+| `--hoop-connection-name` | `hoop_dev` | Hoop.dev connection name |
+| `--hoop-gateway-url` | `hoop_dev` | Hoop.dev gateway URL |
+| `--hoop-grpc-url` | `hoop_dev` | Hoop.dev gRPC URL |
+| `--custom-command` | `generic` | Command template with `{host}`, `{user}`, `{port}` placeholders |
+
+#### connect — Initiate a connection
+
+```bash
+rustconn-cli connect "Server" [--dry-run]
+```
+
+```bash
+rustconn-cli connect "My Server"
+rustconn-cli connect "My Server" --dry-run   # Show command without executing
+```
+
+The `--dry-run` flag prints the exact command that would be executed (e.g. `ssh -p 22 admin@192.168.1.10`), useful for debugging or scripting. For SFTP connections, `connect` prints a hint to use `rustconn-cli sftp` instead.
+
+#### show — Show connection details
+
+```bash
+rustconn-cli show "Server"
+```
+
+Displays all fields for a connection including protocol-specific configuration (SSH auth method, key path, RDP resolution, serial device settings, monitoring config, Zero Trust provider details).
+
+```bash
+rustconn-cli show "My Server"
+rustconn-cli show 550e8400-e29b-41d4-a716-446655440000   # By UUID
+```
 
 #### update — Update an existing connection
+
+```bash
+rustconn-cli update "Server" [--new-name "New Name"] [--host H] [--port P] [--user U] [options...]
+```
 
 ```bash
 rustconn-cli update "My Server" --host 192.168.1.20 --port 2222
@@ -2885,16 +2987,11 @@ rustconn-cli update "My Server" --icon "⭐"
 
 All flags from `add` are available (except `--protocol`), plus `--new-name` to rename. Only specified fields are changed; unspecified fields remain unchanged.
 
-#### duplicate — Duplicate a connection
+#### delete — Delete a connection
 
 ```bash
-rustconn-cli duplicate "My Server"                          # Creates "My Server (copy)"
-rustconn-cli duplicate "My Server" --new-name "Staging"     # Custom name
+rustconn-cli delete "Server" [--force]
 ```
-
-The duplicate gets a new UUID, fresh timestamps, and no `last_connected` value.
-
-#### delete — Delete a connection
 
 ```bash
 rustconn-cli delete "My Server"              # Prompts for confirmation
@@ -2903,18 +3000,25 @@ rustconn-cli delete "My Server" --force      # Skip confirmation
 
 In non-interactive mode (piped stdin), confirmation is automatically assumed.
 
-#### connect — Initiate a connection
+#### duplicate — Duplicate a connection
 
 ```bash
-rustconn-cli connect "My Server"
-rustconn-cli connect "My Server" --dry-run   # Show command without executing
+rustconn-cli duplicate "Server" [--new-name "Server Copy"]
 ```
 
-The `--dry-run` flag prints the exact command that would be executed (e.g. `ssh -p 22 admin@192.168.1.10`), useful for debugging or scripting.
+```bash
+rustconn-cli duplicate "My Server"                          # Creates "My Server (copy)"
+rustconn-cli duplicate "My Server" --new-name "Staging"     # Custom name
+```
 
-For SFTP connections, `connect` prints a hint to use `rustconn-cli sftp` instead.
+The duplicate gets a new UUID, fresh timestamps, and no `last_connected` value.
 
 #### test — Test connectivity
+
+```bash
+rustconn-cli test "Server" [--timeout 10]
+rustconn-cli test all [--timeout 10]
+```
 
 ```bash
 rustconn-cli test "My Server"                # Test single connection
@@ -2924,9 +3028,13 @@ rustconn-cli test all --timeout 5            # Custom timeout (seconds, default:
 
 Output shows colored pass/fail indicators with latency measurements. When testing all connections, a summary with pass rate is printed at the end. Exit code is `2` if any test fails.
 
-### SFTP
+#### sftp — Open SFTP session
 
-Open an SFTP session for an SSH connection. Three modes are available:
+```bash
+rustconn-cli sftp "Server" [--mc] [--cli]
+```
+
+Three modes are available:
 
 ```bash
 rustconn-cli sftp "My Server"                # Open in file manager (Dolphin/Nautilus/xdg-open)
@@ -2936,18 +3044,21 @@ rustconn-cli sftp "My Server" --mc           # Open in Midnight Commander
 
 The command automatically manages SSH agent keys before connecting. Only SSH connections are supported; other protocols return an error.
 
-### Import & Export
-
-#### export
+#### export — Export connections
 
 ```bash
-rustconn-cli export --format native --output backup.rcn
-rustconn-cli export --format ansible --output inventory.yml
-rustconn-cli export --format ssh-config --output config
-rustconn-cli export --format remmina --output ~/remmina-export/
-rustconn-cli export --format royal-ts --output connections.rtsz
-rustconn-cli export --format moba-xterm --output sessions.mxtsessions
-rustconn-cli export --format asbru --output asbru.yml
+rustconn-cli export -f <format> -o <path>
+```
+
+```bash
+rustconn-cli export -f native -o backup.rcn
+rustconn-cli export -f ansible -o inventory.yml
+rustconn-cli export -f ssh-config -o config
+rustconn-cli export -f remmina -o ~/remmina-export/
+rustconn-cli export -f royal-ts -o connections.rtsz
+rustconn-cli export -f moba-xterm -o sessions.mxtsessions
+rustconn-cli export -f asbru -o asbru.yml
+rustconn-cli export -f csv -o connections.csv
 ```
 
 | Format | Description |
@@ -2959,22 +3070,49 @@ rustconn-cli export --format asbru --output asbru.yml
 | `asbru` | Asbru-CM YAML |
 | `royal-ts` | Royal TS JSON (`.rtsz`) |
 | `moba-xterm` | MobaXterm sessions (`.mxtsessions`) |
+| `csv` | CSV format (`.csv`) |
 
-#### import
+#### import — Import connections
 
 ```bash
-rustconn-cli import --format ssh-config ~/.ssh/config
-rustconn-cli import --format remmina ~/remmina/
-rustconn-cli import --format native backup.rcn
-rustconn-cli import --format ansible inventory.yml
-rustconn-cli import --format royal-ts connections.rtsz
-rustconn-cli import --format moba-xterm sessions.mxtsessions
-rustconn-cli import --format asbru asbru.yml
+rustconn-cli import -f <format> <file>
 ```
 
-Import formats match the export formats listed above. Passwords are never included in import/export files — re-enter them after importing.
+```bash
+rustconn-cli import -f ssh-config ~/.ssh/config
+rustconn-cli import -f remmina ~/remmina/
+rustconn-cli import -f native backup.rcn
+rustconn-cli import -f ansible inventory.yml
+rustconn-cli import -f royal-ts connections.rtsz
+rustconn-cli import -f moba-xterm sessions.mxtsessions
+rustconn-cli import -f rdp session.rdp
+rustconn-cli import -f virt-viewer vm.vv
+rustconn-cli import -f libvirt domain.xml
+rustconn-cli import -f csv connections.csv
+```
 
-### Sync
+Additional import formats: `rdp` (Microsoft RDP files), `rdm` (Remote Desktop Manager), `virt-viewer` (`.vv` files), `libvirt` (GNOME Boxes / virsh XML). Passwords are never included in import/export files — re-enter them after importing.
+
+#### wol — Wake-on-LAN
+
+```bash
+rustconn-cli wol "Server"
+rustconn-cli wol AA:BB:CC:DD:EE:FF
+```
+
+```bash
+rustconn-cli wol AA:BB:CC:DD:EE:FF                                  # Direct MAC address
+rustconn-cli wol "Server Name"                                       # Uses MAC from connection config
+rustconn-cli wol AA:BB:CC:DD:EE:FF --broadcast 192.168.1.255 --port 9
+```
+
+Three packets are sent with retry. Default broadcast address is `255.255.255.255`, default port is `9`.
+
+#### sync — Sync from external inventory
+
+```bash
+rustconn-cli sync <file> --source <name> [--remove-stale] [--dry-run]
+```
 
 Synchronize connections from an external inventory source (JSON or YAML). Useful for keeping RustConn in sync with a CMDB, NetBox, or Ansible inventory.
 
@@ -2992,118 +3130,129 @@ rustconn-cli sync inventory.json --source netbox --dry-run
 
 The sync report shows added, updated, removed, and skipped counts.
 
-### Groups
-
-```bash
-rustconn-cli group list                                          # List all groups
-rustconn-cli group list --format json                            # JSON output
-rustconn-cli group show "Production"                             # Show group details and connections
-rustconn-cli group create --name "Staging"                       # Create a top-level group
-rustconn-cli group create --name "EU" --parent "Production"      # Create a child group
-rustconn-cli group create --name "DB" --description "Databases" --icon "🗄️"
-rustconn-cli group add-connection -g "Production" -c "Web-01"    # Add connection to group
-rustconn-cli group remove-connection -g "Production" -c "Web-01" # Remove from group
-rustconn-cli group delete "Old Group"                            # Delete a group
-```
-
-Groups support hierarchical nesting via `--parent`. The `show` subcommand lists all connections belonging to the group.
-
-### Templates
-
-Templates define reusable connection presets. Create a template once, then apply it to create connections with pre-filled fields.
-
-```bash
-rustconn-cli template list                                       # List all templates
-rustconn-cli template list --protocol ssh                        # Filter by protocol
-rustconn-cli template show "SSH Bastion"                         # Show template details
-rustconn-cli template create --name "SSH Bastion" --protocol ssh --port 2222 --user ops
-rustconn-cli template create --name "RDP Standard" --protocol rdp --description "Standard RDP"
-rustconn-cli template delete "Old Template"
-
-# Create a connection from a template
-rustconn-cli template apply "SSH Bastion" --name "Prod Bastion" --host bastion.example.com
-rustconn-cli template apply "SSH Bastion" --host 10.0.0.1 --user admin   # Override fields
-```
-
-When applying a template, `--host` and `--name` fill in the connection-specific values. `--port` and `--user` can override the template defaults.
-
-### Clusters
-
-Clusters group connections for broadcast command execution (send the same input to all sessions simultaneously).
-
-```bash
-rustconn-cli cluster list
-rustconn-cli cluster show "Web Servers"                          # Show cluster and its connections
-rustconn-cli cluster create --name "DB Cluster" --broadcast      # Create with broadcast enabled
-rustconn-cli cluster create --name "Mixed" --connections "DB-01,DB-02,Web-01"  # Pre-populate
-rustconn-cli cluster add-connection -C "DB Cluster" -c "DB-01"
-rustconn-cli cluster remove-connection -C "DB Cluster" -c "DB-01"
-rustconn-cli cluster delete "Old Cluster"
-```
-
-### Snippets
+#### snippet — Manage command snippets
 
 Snippets are reusable command templates with variable substitution. Variables use `${var}` syntax.
 
+| Subcommand | Description |
+|------------|-------------|
+| `snippet list` | List all snippets (`--format`, `--category`, `--tag`) |
+| `snippet show <name>` | Show snippet details and variables |
+| `snippet add` | Create a snippet (`--name`, `--command`, `--description`, `--category`, `--tags`) |
+| `snippet delete <name>` | Delete a snippet |
+| `snippet run <name>` | Execute with variable substitution (`--var key=value`, `--execute`) |
+
 ```bash
 rustconn-cli snippet list
-rustconn-cli snippet list --category deploy                      # Filter by category
-rustconn-cli snippet list --tag production                       # Filter by tag
-rustconn-cli snippet show "Deploy Script"                        # Show details and variables
-
-# Create a snippet
+rustconn-cli snippet list --category deploy --tag production
 rustconn-cli snippet add --name "Restart" --command "sudo systemctl restart \${service}"
-rustconn-cli snippet add --name "Deploy" --command "cd /app && git pull && \${restart_cmd}" \
-    --category deploy --tags "production,ci" --description "Standard deploy"
-
-# Run a snippet (preview mode — prints the expanded command)
-rustconn-cli snippet run "Deploy" --var service=nginx --var restart_cmd="systemctl restart nginx"
-
-# Run a snippet (execute mode — actually runs the command)
-rustconn-cli snippet run "Deploy" --var service=nginx --execute
-
+rustconn-cli snippet run "Restart" --var service=nginx             # Preview only
+rustconn-cli snippet run "Restart" --var service=nginx --execute   # Actually run
 rustconn-cli snippet delete "Old Snippet"
 ```
 
-The `run` subcommand without `--execute` only prints the expanded command (safe preview). With `--execute`, it runs the command via `sh -c` and warns about shell metacharacters in variable values.
+The `run` subcommand without `--execute` only prints the expanded command (safe preview). With `--execute`, it runs the command via `sh -c`.
 
-### Variables
+#### group — Manage connection groups
+
+| Subcommand | Description |
+|------------|-------------|
+| `group list` | List all groups (`--format`) |
+| `group show <name>` | Show group details and connections |
+| `group create` | Create a group (`--name`, `--parent`, `--description`, `--icon`) |
+| `group delete <name>` | Delete a group |
+| `group add-connection` | Add connection to group (`-g group -c connection`) |
+| `group remove-connection` | Remove connection from group (`-g group -c connection`) |
+
+```bash
+rustconn-cli group list
+rustconn-cli group create --name "Staging"
+rustconn-cli group create --name "EU" --parent "Production" --icon "🇪🇺"
+rustconn-cli group add-connection -g "Production" -c "Web-01"
+rustconn-cli group remove-connection -g "Production" -c "Web-01"
+rustconn-cli group delete "Old Group"
+```
+
+Groups support hierarchical nesting via `--parent`.
+
+#### template — Manage connection templates
+
+Templates define reusable connection presets.
+
+| Subcommand | Description |
+|------------|-------------|
+| `template list` | List all templates (`--format`, `--protocol`) |
+| `template show <name>` | Show template details |
+| `template create` | Create a template (`--name`, `--protocol`, `--host`, `--port`, `--user`, `--description`) |
+| `template delete <name>` | Delete a template |
+| `template apply <template>` | Create connection from template (`--name`, `--host`, `--port`, `--user`) |
+
+```bash
+rustconn-cli template list
+rustconn-cli template create --name "SSH Bastion" --protocol ssh --port 2222 --user ops
+rustconn-cli template apply "SSH Bastion" --name "Prod Bastion" --host bastion.example.com
+rustconn-cli template delete "Old Template"
+```
+
+#### cluster — Manage connection clusters
+
+Clusters group connections for broadcast command execution (send the same input to all sessions simultaneously).
+
+| Subcommand | Description |
+|------------|-------------|
+| `cluster list` | List all clusters (`--format`) |
+| `cluster show <name>` | Show cluster and its connections |
+| `cluster create` | Create a cluster (`--name`, `--connections`, `--broadcast`) |
+| `cluster delete <name>` | Delete a cluster |
+| `cluster add-connection` | Add connection (`-C cluster -c connection`) |
+| `cluster remove-connection` | Remove connection (`-C cluster -c connection`) |
+
+```bash
+rustconn-cli cluster list
+rustconn-cli cluster create --name "DB Cluster" --broadcast
+rustconn-cli cluster create --name "Mixed" --connections "DB-01,DB-02,Web-01"
+rustconn-cli cluster add-connection -C "DB Cluster" -c "DB-01"
+rustconn-cli cluster delete "Old Cluster"
+```
+
+#### var — Manage global variables
 
 Global variables can be referenced in snippets and connection templates. Secret variables are masked in output.
 
+| Subcommand | Description |
+|------------|-------------|
+| `var list` | List all variables (`--format`) |
+| `var show <name>` | Show variable value |
+| `var set <name> <value>` | Set a variable (`--secret`, `--description`) |
+| `var delete <name>` | Delete a variable |
+
 ```bash
 rustconn-cli var list
-rustconn-cli var list --format json
-rustconn-cli var show "my_var"
 rustconn-cli var set my_var "my_value"
 rustconn-cli var set api_key "secret123" --secret                # Masked in output
 rustconn-cli var set deploy_env "staging" --description "Current deploy target"
 rustconn-cli var delete "my_var"
 ```
 
-### Secrets
+#### secret — Manage secret backends
 
-Manage credentials stored in secret backends. Supports system keyring (libsecret), KeePass (KDBX), Bitwarden, 1Password, Passbolt, and Pass.
-
-```bash
-rustconn-cli secret status                                       # Show backend availability
-rustconn-cli secret get "My Server"                              # Get credentials (default backend)
-rustconn-cli secret get "My Server" --backend keepass            # Specific backend
-rustconn-cli secret set "My Server"                              # Store (prompts for password)
-rustconn-cli secret set "My Server" --user admin --backend keyring
-rustconn-cli secret delete "My Server"
-rustconn-cli secret delete "My Server" --backend bitwarden
-rustconn-cli secret verify-keepass --database ~/vault.kdbx
-rustconn-cli secret verify-keepass -d ~/vault.kdbx -k ~/key.key  # With key file
-```
+Manage credentials stored in secret backends (system keyring, KeePass, Bitwarden, 1Password, Passbolt, Pass).
 
 | Subcommand | Description |
 |------------|-------------|
-| `status` | Show available backends and their configuration status |
-| `get` | Retrieve credentials for a connection |
-| `set` | Store credentials (interactive password prompt if `--password` is omitted) |
-| `delete` | Delete credentials from a backend |
-| `verify-keepass` | Verify that a KeePass database can be unlocked |
+| `secret status` | Show available backends and their configuration status |
+| `secret get <connection>` | Retrieve credentials (`--backend`) |
+| `secret set <connection>` | Store credentials (`--user`, `--password`, `--backend`) |
+| `secret delete <connection>` | Delete credentials (`--backend`) |
+| `secret verify-keepass` | Verify KeePass database (`--database`, `--key-file`) |
+
+```bash
+rustconn-cli secret status
+rustconn-cli secret get "My Server" --backend keepass
+rustconn-cli secret set "My Server" --user admin --backend keyring
+rustconn-cli secret delete "My Server"
+rustconn-cli secret verify-keepass --database ~/vault.kdbx
+```
 
 Backend aliases:
 
@@ -3118,19 +3267,60 @@ Backend aliases:
 
 > **Security note:** Prefer the interactive password prompt (omit `--password`) over passing passwords on the command line, which may be visible in process listings.
 
-### Wake-on-LAN
+#### smart-folder — Manage smart folders
 
-Send magic packets to wake sleeping machines. Accepts a MAC address directly or a connection name (if the connection has WoL configured).
+Smart folders dynamically group connections based on filter criteria.
+
+| Subcommand | Description |
+|------------|-------------|
+| `smart-folder list` | List all smart folders (`--format`) |
+| `smart-folder show <name>` | Show matching connections |
+| `smart-folder create` | Create a smart folder (`--name`, `--protocol`, `--host-pattern`, `--tags`) |
+| `smart-folder delete <name>` | Delete a smart folder |
 
 ```bash
-rustconn-cli wol AA:BB:CC:DD:EE:FF
-rustconn-cli wol "Server Name"                                   # Uses MAC from connection config
-rustconn-cli wol AA:BB:CC:DD:EE:FF --broadcast 192.168.1.255 --port 9
+rustconn-cli smart-folder list
+rustconn-cli smart-folder create --name "Production SSH" --protocol ssh --host-pattern "*.prod.*"
+rustconn-cli smart-folder create --name "Tagged Web" --tags "web,frontend"
+rustconn-cli smart-folder show "Production SSH"
+rustconn-cli smart-folder delete "Old Folder"
 ```
 
-Three packets are sent with retry. Default broadcast address is `255.255.255.255`, default port is `9`.
+#### recording — Manage session recordings
 
-### Statistics
+| Subcommand | Description |
+|------------|-------------|
+| `recording list` | List all recordings with metadata (`--format`) |
+| `recording delete <name>` | Delete a recording (`--force`) |
+| `recording import <data_file> <timing_file>` | Import external scriptreplay files |
+
+```bash
+rustconn-cli recording list
+rustconn-cli recording list --format json
+rustconn-cli recording delete "My Session" --force
+rustconn-cli recording import session.data session.timing
+```
+
+#### completions — Generate shell completions
+
+```bash
+rustconn-cli completions <shell>
+```
+
+```bash
+# Bash
+rustconn-cli completions bash > ~/.local/share/bash-completion/completions/rustconn-cli
+
+# Zsh
+rustconn-cli completions zsh > ~/.local/share/zsh/site-functions/_rustconn-cli
+
+# Fish
+rustconn-cli completions fish > ~/.config/fish/completions/rustconn-cli.fish
+```
+
+Supported shells: `bash`, `zsh`, `fish`, `elvish`, `powershell`.
+
+#### stats — Show connection statistics
 
 ```bash
 rustconn-cli stats
@@ -3138,19 +3328,63 @@ rustconn-cli stats
 
 Shows a summary: total connections by protocol, groups, templates, clusters, snippets, variables, recently used connections (last 7 days), and ever-connected count.
 
-### Shell Completions & Man Page
+### Shell Completions
 
+Install tab completions for your shell:
+
+**Bash:**
 ```bash
-# Generate shell completions
 rustconn-cli completions bash > ~/.local/share/bash-completion/completions/rustconn-cli
-rustconn-cli completions zsh > ~/.local/share/zsh/site-functions/_rustconn-cli
-rustconn-cli completions fish > ~/.config/fish/completions/rustconn-cli.fish
+```
 
-# Generate man page
+**Zsh:**
+```bash
+rustconn-cli completions zsh > ~/.local/share/zsh/site-functions/_rustconn-cli
+```
+
+**Fish:**
+```bash
+rustconn-cli completions fish > ~/.config/fish/completions/rustconn-cli.fish
+```
+
+**Man page:**
+```bash
 rustconn-cli man-page > ~/.local/share/man/man1/rustconn-cli.1
 ```
 
-Supported shells: `bash`, `zsh`, `fish`, `elvish`, `powershell`.
+### Flatpak Usage
+
+When running RustConn as a Flatpak, the CLI requires the full Flatpak invocation prefix:
+
+```bash
+flatpak run --command=rustconn-cli io.github.totoshko88.RustConn list
+flatpak run --command=rustconn-cli io.github.totoshko88.RustConn add -n "Server" -H 10.0.0.1
+flatpak run --command=rustconn-cli io.github.totoshko88.RustConn connect "Server"
+```
+
+Create a shell alias to simplify this:
+
+```bash
+# Add to ~/.bashrc, ~/.zshrc, or ~/.config/fish/config.fish
+alias rcli='flatpak run --command=rustconn-cli io.github.totoshko88.RustConn'
+```
+
+Then use it like the native binary:
+
+```bash
+rcli list
+rcli add -n "Server" -H 10.0.0.1
+rcli connect "Server"
+```
+
+For shell completions in Flatpak:
+
+```bash
+flatpak run --command=rustconn-cli io.github.totoshko88.RustConn completions bash \
+    > ~/.local/share/bash-completion/completions/rcli
+```
+
+> **Note:** The Flatpak config directory is `~/.var/app/io.github.totoshko88.RustConn/config/rustconn/` instead of `~/.config/rustconn/`.
 
 ### Scripting Examples
 

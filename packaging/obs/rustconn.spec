@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.11.1
+Version:        0.11.2
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -226,6 +226,20 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Mon Apr 20 2026 Anton Isaiev <totoshko88@gmail.com> - 0.11.2-0
+- [Fixed] Reconnect reuses existing tab for all VTE protocols (#89)
+- [Fixed] RDP port check skipped with jump host
+- [Fixed] Hoop.dev CLI download — versioned URL (HTTP 403)
+- [Fixed] Azure/gcloud/OCI CLI wrapper test in Flatpak
+- [Fixed] Flatpak SFTP always uses mc
+- [Improved] Reconnect banner consistent across all protocols
+- [Improved] Sidebar width tuned for HiDPI — 360px→320px
+- [Added] SSH Jump Host for RDP via ssh -L tunnel (#90)
+- [Added] Tab context menu: Close Others/Left/Right/All/Ungrouped
+- [Added] CLI: all 10 protocols and 11 Zero Trust providers
+- [Documentation] Complete CLI reference in User Guide
+- [Dependencies] open 5.3.4, openssl 0.10.78, typenum 1.20.0
+
 * Sat Apr 19 2026 Anton Isaiev <totoshko88@gmail.com> - 0.11.1-0
 - [Fixed] Reconnect preserves tab position (#89)
 - [Fixed] Context menu handoff between items (#87)

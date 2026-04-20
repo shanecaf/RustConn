@@ -137,6 +137,9 @@ pub struct TerminalNotebook {
     /// Cancel tokens for background polling tasks (host check, auto-reconnect, WoL)
     /// Keyed by session_id or connection_id depending on context
     poll_cancel_tokens: Rc<RefCell<HashMap<Uuid, std::sync::Arc<std::sync::atomic::AtomicBool>>>>,
+    /// SSH tunnels for jump-host connections (RDP, VNC, SPICE, Telnet).
+    /// Killed automatically when the tab is closed.
+    ssh_tunnels: Rc<RefCell<HashMap<Uuid, rustconn_core::ssh_tunnel::SshTunnel>>>,
     /// Activity coordinator for terminal activity/silence monitoring (set after construction)
     activity_coordinator: Rc<RefCell<Option<Rc<ActivityCoordinator>>>>,
 }
@@ -203,6 +206,7 @@ impl TerminalNotebook {
             remote_recordings: RefCell::new(HashMap::new()),
             broadcast_controller: Rc::new(RefCell::new(BroadcastController::new())),
             poll_cancel_tokens: Rc::new(RefCell::new(HashMap::new())),
+            ssh_tunnels: Rc::new(RefCell::new(HashMap::new())),
             activity_coordinator: Rc::new(RefCell::new(None)),
         };
 
@@ -226,6 +230,7 @@ impl TerminalNotebook {
         let active_recordings = self.active_recordings.clone();
         let session_highlight_rules = self.session_highlight_rules.clone();
         let broadcast_controller = self.broadcast_controller.clone();
+        let ssh_tunnels = self.ssh_tunnels.clone();
 
         // Handle create-window signal - we must connect this to prevent the default
         // behavior which causes CRITICAL warnings. Returning None cancels the tearoff.
@@ -311,6 +316,9 @@ impl TerminalNotebook {
                 }
 
                 session_info.borrow_mut().remove(&session_id);
+
+                // Drop SSH tunnel — the SshTunnel::drop impl kills the SSH process
+                ssh_tunnels.borrow_mut().remove(&session_id);
             }
 
             // Confirm close
@@ -713,6 +721,87 @@ impl TerminalNotebook {
         });
         action_group.add_action(&close_all_group_action);
 
+        // "Close All Tabs" action
+        let close_all_action = gio::SimpleAction::new("close-all", None);
+        let tab_view_for_close_all = self.tab_view.clone();
+        close_all_action.connect_activate(move |_, _| {
+            let pages: Vec<_> = (0..tab_view_for_close_all.n_pages())
+                .map(|i| tab_view_for_close_all.nth_page(i))
+                .collect();
+            for page in pages {
+                tab_view_for_close_all.close_page(&page);
+            }
+        });
+        action_group.add_action(&close_all_action);
+
+        // "Close Others" action — close all except selected
+        let close_others_action = gio::SimpleAction::new("close-others", None);
+        let tab_view_for_close_others = self.tab_view.clone();
+        close_others_action.connect_activate(move |_, _| {
+            let selected = tab_view_for_close_others.selected_page();
+            let pages: Vec<_> = (0..tab_view_for_close_others.n_pages())
+                .map(|i| tab_view_for_close_others.nth_page(i))
+                .filter(|p| selected.as_ref() != Some(p))
+                .collect();
+            for page in pages {
+                tab_view_for_close_others.close_page(&page);
+            }
+        });
+        action_group.add_action(&close_others_action);
+
+        // "Close to the Left" action
+        let close_left_action = gio::SimpleAction::new("close-left", None);
+        let tab_view_for_close_left = self.tab_view.clone();
+        close_left_action.connect_activate(move |_, _| {
+            if let Some(selected) = tab_view_for_close_left.selected_page() {
+                let pos = tab_view_for_close_left.page_position(&selected);
+                let pages: Vec<_> = (0..pos)
+                    .map(|i| tab_view_for_close_left.nth_page(i))
+                    .collect();
+                for page in pages {
+                    tab_view_for_close_left.close_page(&page);
+                }
+            }
+        });
+        action_group.add_action(&close_left_action);
+
+        // "Close to the Right" action
+        let close_right_action = gio::SimpleAction::new("close-right", None);
+        let tab_view_for_close_right = self.tab_view.clone();
+        close_right_action.connect_activate(move |_, _| {
+            if let Some(selected) = tab_view_for_close_right.selected_page() {
+                let pos = tab_view_for_close_right.page_position(&selected);
+                let pages: Vec<_> = ((pos + 1)..tab_view_for_close_right.n_pages())
+                    .map(|i| tab_view_for_close_right.nth_page(i))
+                    .collect();
+                for page in pages {
+                    tab_view_for_close_right.close_page(&page);
+                }
+            }
+        });
+        action_group.add_action(&close_right_action);
+
+        // "Close All Ungrouped" action — close tabs without a tab group
+        let close_ungrouped_action = gio::SimpleAction::new("close-ungrouped", None);
+        let tab_view_for_close_ungrouped = self.tab_view.clone();
+        let sessions_for_close_ungrouped = self.sessions.clone();
+        let session_info_for_close_ungrouped = self.session_info.clone();
+        close_ungrouped_action.connect_activate(move |_, _| {
+            let info = session_info_for_close_ungrouped.borrow();
+            let sessions_ref = sessions_for_close_ungrouped.borrow();
+            let ungrouped_pages: Vec<_> = sessions_ref
+                .iter()
+                .filter(|(sid, _)| info.get(sid).and_then(|i| i.tab_group.as_ref()).is_none())
+                .map(|(_, page)| page.clone())
+                .collect();
+            drop(info);
+            drop(sessions_ref);
+            for page in ungrouped_pages {
+                tab_view_for_close_ungrouped.close_page(&page);
+            }
+        });
+        action_group.add_action(&close_ungrouped_action);
+
         // "Close Tab" action
         let close_action = gio::SimpleAction::new("close", None);
         let context_page_close = context_page.clone();
@@ -799,8 +888,19 @@ impl TerminalNotebook {
         menu.append_section(None, &monitor_section);
 
         let close_section = gio::Menu::new();
-        close_section.append(Some(&i18n("Close Tab")), Some("tab.close"));
+        close_section.append(Some(&i18n("Close Others")), Some("tab.close-others"));
+        close_section.append(Some(&i18n("Close to the Left")), Some("tab.close-left"));
+        close_section.append(Some(&i18n("Close to the Right")), Some("tab.close-right"));
+        close_section.append(
+            Some(&i18n("Close All Ungrouped")),
+            Some("tab.close-ungrouped"),
+        );
+        close_section.append(Some(&i18n("Close All Tabs")), Some("tab.close-all"));
         menu.append_section(None, &close_section);
+
+        let close_current_section = gio::Menu::new();
+        close_current_section.append(Some(&i18n("Close Tab")), Some("tab.close"));
+        menu.append_section(None, &close_current_section);
     }
 
     /// Creates the welcome tab content - uses the full welcome screen with features
@@ -1695,6 +1795,66 @@ impl TerminalNotebook {
         }
     }
 
+    /// Prepares an existing disconnected tab for in-place reconnect.
+    ///
+    /// Instead of closing the old tab and creating a new one (which loses
+    /// tab position, scrollback, and causes visual flicker), this method:
+    /// 1. Removes the reconnect banner from the tab container
+    /// 2. Resets the VTE terminal (clears screen, resets state)
+    /// 3. Clears the disconnected indicator
+    /// 4. Removes stale automation sessions
+    /// 5. Cancels any background polling
+    ///
+    /// After calling this, the caller can re-use the same `session_id` to
+    /// spawn a new process in the existing terminal via `spawn_ssh()` etc.
+    ///
+    /// Returns `true` if the tab was successfully prepared, `false` if the
+    /// session no longer exists (tab was closed by user).
+    pub fn prepare_for_reconnect(&self, session_id: Uuid) -> bool {
+        // Check that the session still exists
+        let page = self.sessions.borrow().get(&session_id).cloned();
+        let Some(page) = page else {
+            return false;
+        };
+
+        // Cancel any background polling (auto-reconnect)
+        self.cancel_poll(session_id);
+
+        // Remove reconnect banner from the tab container
+        if let Ok(container) = page.child().downcast::<GtkBox>() {
+            // Find and remove the reconnect-banner widget
+            let mut child = container.first_child();
+            while let Some(widget) = child {
+                let next = widget.next_sibling();
+                if widget.widget_name() == "reconnect-banner" {
+                    container.remove(&widget);
+                }
+                child = next;
+            }
+        }
+
+        // Reset the VTE terminal (clear screen, reset state machine)
+        if let Some(terminal) = self.terminals.borrow().get(&session_id) {
+            terminal.reset(true, true);
+        }
+
+        // Clear disconnected indicator
+        page.set_indicator_icon(gio::Icon::NONE);
+
+        // Allow a new reconnect banner to be shown if this reconnect also fails
+        self.reconnect_shown.borrow_mut().remove(&session_id);
+
+        // Remove stale automation session (will be re-created by the caller)
+        self.automation_sessions.borrow_mut().remove(&session_id);
+
+        // Remove stale highlight rules (will be re-applied by the caller)
+        self.session_highlight_rules
+            .borrow_mut()
+            .remove(&session_id);
+
+        true
+    }
+
     /// Registers a cancel token for a background polling task
     pub fn register_poll_cancel(
         &self,
@@ -2079,6 +2239,11 @@ impl TerminalNotebook {
     #[must_use]
     pub fn get_session_info(&self, session_id: Uuid) -> Option<TerminalSession> {
         self.session_info.borrow().get(&session_id).cloned()
+    }
+
+    /// Stores an SSH tunnel for a session. The tunnel is killed when the tab closes.
+    pub fn store_ssh_tunnel(&self, session_id: Uuid, tunnel: rustconn_core::ssh_tunnel::SshTunnel) {
+        self.ssh_tunnels.borrow_mut().insert(session_id, tunnel);
     }
 
     /// Gets the page container widget for a session

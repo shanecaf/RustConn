@@ -41,6 +41,7 @@ pub type RdpOptionsWidgets = (
     CheckButton,                    // disable_nla_check
     CheckButton,                    // clipboard_check
     CheckButton,                    // show_local_cursor_check
+    DropDown,                       // jump_host_dropdown
     Rc<RefCell<Vec<SharedFolder>>>, // shared_folders
     gtk4::ListBox,                  // folders_list
     Entry,                          // custom_args_entry
@@ -76,6 +77,10 @@ pub fn create_rdp_options() -> RdpOptionsWidgets {
     ) = create_features_group();
     content.append(&features_group);
 
+    // === Connection Group (Jump Host) ===
+    let (connection_group, jump_host_dropdown) = create_connection_group();
+    content.append(&connection_group);
+
     // === Shared Folders Group ===
     let (folders_group, shared_folders, folders_list) =
         shared_folders::create_shared_folders_group();
@@ -100,6 +105,7 @@ pub fn create_rdp_options() -> RdpOptionsWidgets {
         disable_nla_check,
         clipboard_check,
         show_local_cursor_check,
+        jump_host_dropdown,
         shared_folders,
         folders_list,
         args_entry,
@@ -328,6 +334,33 @@ fn create_features_group() -> (
         clipboard_check,
         show_local_cursor_check,
     )
+}
+
+/// Creates the Connection preferences group with Jump Host dropdown
+fn create_connection_group() -> (adw::PreferencesGroup, DropDown) {
+    let connection_group = adw::PreferencesGroup::builder()
+        .title(i18n("Connection"))
+        .build();
+
+    // Jump Host dropdown
+    let none_items: Vec<String> = vec![i18n("(None)")];
+    let none_refs: Vec<&str> = none_items.iter().map(String::as_str).collect();
+    let jump_host_list = gtk4::StringList::new(&none_refs);
+    let jump_host_dropdown = DropDown::new(Some(jump_host_list), gtk4::Expression::NONE);
+    jump_host_dropdown.set_selected(0);
+    jump_host_dropdown.set_enable_search(true);
+    // Limit width so long hostnames don't stretch the dialog
+    jump_host_dropdown.set_size_request(200, -1);
+    jump_host_dropdown.set_hexpand(false);
+
+    let jump_host_row = adw::ActionRow::builder()
+        .title(i18n("Jump Host"))
+        .subtitle(i18n("Tunnel RDP through an SSH connection"))
+        .build();
+    jump_host_row.add_suffix(&jump_host_dropdown);
+    connection_group.add(&jump_host_row);
+
+    (connection_group, jump_host_dropdown)
 }
 
 /// Creates the Advanced preferences group

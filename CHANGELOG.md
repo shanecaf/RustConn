@@ -5,6 +5,34 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.2] - 2026-04-20
+
+### Fixed
+- **Reconnect reuses existing tab for all VTE protocols** — clicking "Reconnect" on a disconnected session now respawns the process in the same terminal tab instead of closing and creating a new one; works for SSH, Telnet, Serial, Kubernetes, ZeroTrust (all providers), and MOSH; tab position, tab group, and split view state are fully preserved ([#89](https://github.com/totoshko88/RustConn/issues/89))
+- **RDP port check skipped with jump host** — pre-connect TCP port check is now skipped for RDP connections that have a jump host configured; the destination is only reachable through the SSH tunnel, so direct probing always timed out
+- **Hoop.dev CLI download** — `releases.hoop.dev` removed the `latest` URL alias (HTTP 403); switched to versioned URL format; pinned to 1.56.1
+- **Azure/gcloud/OCI CLI wrapper test in Flatpak** — `az --version` verification after pip install crashed with `Read-only file system`; now sets Flatpak-writable config dirs during wrapper script test
+- **Flatpak SFTP always uses mc** — SFTP in Flatpak now always opens via Midnight Commander; `xdg-open sftp://` is unreachable from the sandbox
+
+### Improved
+- **Reconnect banner consistent across all protocols** — RDP, VNC, and SPICE sessions now show the "Session disconnected / Reconnect" banner at the bottom of the tab (same position as SSH/Telnet) instead of a button in the top-right toolbar
+- **Sidebar width tuned for HiDPI** — default sidebar width lowered from 360px to 320px and fraction from 30% to 27%; saved widths from older versions are reset on upgrade; fixes overly wide sidebar on 4K displays with 200% scaling while keeping all protocol filter icons visible
+
+### Added
+- **SSH Jump Host for RDP** — SSH jump host selector is now available for RDP connections; the session is tunnelled through the selected SSH bastion host via `ssh -L` local port forwarding; tunnel process is managed automatically and killed on tab close ([#90](https://github.com/totoshko88/RustConn/issues/90))
+- **Tab context menu: Close Others / Left / Right / All / Ungrouped** — right-click a tab for browser-style close actions: close all other tabs, close tabs to the left or right, close all ungrouped tabs, or close all tabs
+- **CLI: all protocols and Zero Trust providers** — `rustconn-cli add` now supports all 10 protocols (`ssh`, `rdp`, `vnc`, `spice`, `sftp`, `telnet`, `serial`, `mosh`, `k8s`, `zt`) and all 11 Zero Trust providers with provider-specific flags (`--aws-region`, `--gcp-zone`, `--resource-group`, `--boundary-target`, etc.)
+
+### Documentation
+- **Complete CLI reference in User Guide** — comprehensive documentation for all 23 CLI commands with syntax, options tables, examples for every protocol and Zero Trust provider, shell completions, Flatpak usage with alias, and scripting examples
+
+### Dependencies
+- open 5.3.3 → 5.3.4
+- openssl 0.10.77 → 0.10.78
+- openssl-sys 0.9.113 → 0.9.114
+- typenum 1.19.0 → 1.20.0
+- Hoop.dev CLI pinned to 1.56.1
+
 ## [0.11.1] - 2026-04-18
 
 ### Fixed

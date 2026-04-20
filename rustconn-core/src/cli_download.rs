@@ -659,17 +659,17 @@ pub static DOWNLOADABLE_COMPONENTS: &[DownloadableComponent] = &[
         category: ComponentCategory::ZeroTrust,
         install_method: InstallMethod::Download,
         download_url: Some(
-            "https://releases.hoop.dev/release/latest/hoop_latest_linux_amd64.tar.gz",
+            "https://releases.hoop.dev/release/1.56.1/hoop_1.56.1_Linux_x86_64.tar.gz",
         ),
         aarch64_url: Some(
-            "https://releases.hoop.dev/release/latest/hoop_latest_linux_arm64.tar.gz",
+            "https://releases.hoop.dev/release/1.56.1/hoop_1.56.1_Linux_arm64.tar.gz",
         ),
         checksum: ChecksumPolicy::SkipLatest,
         pip_package: None,
         size_hint: "~30 MB",
         binary_name: "hoop",
         install_subdir: "hoop",
-        pinned_version: None,
+        pinned_version: Some("1.56.1"),
         works_in_sandbox: true,
     },
     // Password manager CLIs
@@ -1399,10 +1399,29 @@ exec python3 -c "from ssm_session_client.main import main; main()" "$@"
     tracing::info!("Created wrapper script at {:?}", binary_path);
 
     // Verify the script works by running --version
-    let test_output = tokio::process::Command::new(&binary_path)
-        .arg("--version")
-        .output()
-        .await;
+    // In Flatpak, some CLIs need writable config dirs (e.g. Azure CLI
+    // writes to ~/.azure/az.sess on startup). Set the same env overrides
+    // that spawn_command() uses for VTE terminals.
+    let mut test_cmd = tokio::process::Command::new(&binary_path);
+    test_cmd.arg("--version");
+
+    if crate::flatpak::is_flatpak() {
+        if component.id == "az" {
+            if let Some(dir) = crate::flatpak::get_flatpak_azure_config_dir() {
+                test_cmd.env("AZURE_CONFIG_DIR", &dir);
+            }
+        } else if component.id == "gcloud" {
+            if let Some(dir) = crate::flatpak::get_flatpak_gcloud_config_dir() {
+                test_cmd.env("CLOUDSDK_CONFIG", &dir);
+            }
+        } else if component.id == "oci"
+            && let Some(dir) = crate::flatpak::get_flatpak_oci_config_dir()
+        {
+            test_cmd.env("OCI_CLI_CONFIG_FILE", dir.join("config"));
+        }
+    }
+
+    let test_output = test_cmd.output().await;
 
     match test_output {
         Ok(output) if output.status.success() => {

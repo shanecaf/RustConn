@@ -550,7 +550,8 @@ impl MainWindow {
             let Some(conn) = state_ref.get_connection(conn_id) else {
                 return;
             };
-            let use_mc = state_ref.settings().terminal.sftp_use_mc;
+            let use_mc =
+                state_ref.settings().terminal.sftp_use_mc || rustconn_core::flatpak::is_flatpak();
 
             // Ensure SSH key is in agent before SFTP (mc and
             // file managers cannot pass identity files directly).
@@ -881,7 +882,8 @@ impl MainWindow {
         let Some(conn) = state_ref.get_connection(connection_id) else {
             return;
         };
-        let use_mc = state_ref.settings().terminal.sftp_use_mc;
+        let use_mc =
+            state_ref.settings().terminal.sftp_use_mc || rustconn_core::flatpak::is_flatpak();
         let key_path = rustconn_core::sftp::get_ssh_key_path(conn)
             .and_then(|p| rustconn_core::resolve_key_path(&p));
 

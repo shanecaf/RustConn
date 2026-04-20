@@ -4,8 +4,10 @@ use std::path::Path;
 
 use rustconn_core::config::ConfigManager;
 use rustconn_core::models::{
-    Connection, HoopDevConfig, ProtocolConfig, ProtocolType, SshAuthMethod, ZeroTrustConfig,
-    ZeroTrustProvider, ZeroTrustProviderConfig,
+    AwsSsmConfig, AzureBastionConfig, AzureSshConfig, BoundaryConfig, CloudflareAccessConfig,
+    Connection, GcpIapConfig, GenericZeroTrustConfig, HoopDevConfig, OciBastionConfig,
+    ProtocolConfig, ProtocolType, SshAuthMethod, TailscaleSshConfig, TeleportConfig,
+    ZeroTrustConfig, ZeroTrustProvider, ZeroTrustProviderConfig,
 };
 
 use crate::error::CliError;
@@ -28,6 +30,20 @@ pub struct AddParams<'a> {
     pub hoop_connection_name: Option<&'a str>,
     pub hoop_gateway_url: Option<&'a str>,
     pub hoop_grpc_url: Option<&'a str>,
+    pub aws_profile: Option<&'a str>,
+    pub aws_region: Option<&'a str>,
+    pub gcp_zone: Option<&'a str>,
+    pub gcp_project: Option<&'a str>,
+    pub resource_group: Option<&'a str>,
+    pub bastion_name: Option<&'a str>,
+    pub vm_name: Option<&'a str>,
+    pub bastion_id: Option<&'a str>,
+    pub target_resource_id: Option<&'a str>,
+    pub target_private_ip: Option<&'a str>,
+    pub teleport_cluster: Option<&'a str>,
+    pub boundary_target: Option<&'a str>,
+    pub boundary_addr: Option<&'a str>,
+    pub custom_command: Option<&'a str>,
 }
 
 /// Add connection command handler
@@ -260,7 +276,36 @@ fn create_connection(
     Ok(conn)
 }
 
+/// Helper to build a `Connection` from a `ZeroTrustConfig`.
+fn zt_connection(name: &str, params: &AddParams<'_>, zt_config: ZeroTrustConfig) -> Connection {
+    Connection::new(
+        name.to_string(),
+        params.host.to_string(),
+        params.port.unwrap_or(22),
+        ProtocolConfig::ZeroTrust(zt_config),
+    )
+}
+
+/// Shorthand for building a [`ZeroTrustConfig`].
+fn zt_cfg(
+    provider: ZeroTrustProvider,
+    provider_config: ZeroTrustProviderConfig,
+) -> ZeroTrustConfig {
+    ZeroTrustConfig {
+        provider,
+        provider_config,
+        custom_args: Vec::new(),
+        detected_provider: None,
+    }
+}
+
+/// Require a CLI option or return a descriptive error.
+fn require<'a>(value: Option<&'a str>, flag: &str, provider: &str) -> Result<&'a str, CliError> {
+    value.ok_or_else(|| CliError::Config(format!("{flag} is required for --provider {provider}")))
+}
+
 /// Create a Zero Trust connection from CLI parameters
+#[allow(clippy::too_many_lines)]
 fn create_zerotrust_connection(name: &str, params: &AddParams<'_>) -> Result<Connection, CliError> {
     let provider_str = params.provider.ok_or_else(|| {
         CliError::Config(
@@ -270,32 +315,147 @@ fn create_zerotrust_connection(name: &str, params: &AddParams<'_>) -> Result<Con
 
     match provider_str {
         "hoop_dev" => {
-            let connection_name = params.hoop_connection_name.ok_or_else(|| {
-                CliError::Config(
-                    "--hoop-connection-name is required for --provider hoop_dev".into(),
-                )
-            })?;
-
-            let zt_config = ZeroTrustConfig {
-                provider: ZeroTrustProvider::HoopDev,
-                provider_config: ZeroTrustProviderConfig::HoopDev(HoopDevConfig {
+            let connection_name = require(
+                params.hoop_connection_name,
+                "--hoop-connection-name",
+                "hoop_dev",
+            )?;
+            let cfg = zt_cfg(
+                ZeroTrustProvider::HoopDev,
+                ZeroTrustProviderConfig::HoopDev(HoopDevConfig {
                     connection_name: connection_name.to_string(),
                     gateway_url: params.hoop_gateway_url.map(String::from),
                     grpc_url: params.hoop_grpc_url.map(String::from),
                 }),
-                custom_args: Vec::new(),
-                detected_provider: None,
-            };
-
-            Ok(Connection::new(
-                name.to_string(),
-                params.host.to_string(),
-                params.port.unwrap_or(22),
-                ProtocolConfig::ZeroTrust(zt_config),
-            ))
+            );
+            Ok(zt_connection(name, params, cfg))
+        }
+        "aws_ssm" => {
+            let cfg = zt_cfg(
+                ZeroTrustProvider::AwsSsm,
+                ZeroTrustProviderConfig::AwsSsm(AwsSsmConfig {
+                    target: params.host.to_string(),
+                    profile: params.aws_profile.unwrap_or("default").to_string(),
+                    region: params.aws_region.map(String::from),
+                }),
+            );
+            Ok(zt_connection(name, params, cfg))
+        }
+        "gcp_iap" => {
+            let zone = require(params.gcp_zone, "--gcp-zone", "gcp_iap")?;
+            let cfg = zt_cfg(
+                ZeroTrustProvider::GcpIap,
+                ZeroTrustProviderConfig::GcpIap(GcpIapConfig {
+                    instance: params.host.to_string(),
+                    zone: zone.to_string(),
+                    project: params.gcp_project.map(String::from),
+                }),
+            );
+            Ok(zt_connection(name, params, cfg))
+        }
+        "azure_bastion" => {
+            let rg = require(params.resource_group, "--resource-group", "azure_bastion")?;
+            let bn = require(params.bastion_name, "--bastion-name", "azure_bastion")?;
+            let cfg = zt_cfg(
+                ZeroTrustProvider::AzureBastion,
+                ZeroTrustProviderConfig::AzureBastion(AzureBastionConfig {
+                    target_resource_id: params.host.to_string(),
+                    resource_group: rg.to_string(),
+                    bastion_name: bn.to_string(),
+                }),
+            );
+            Ok(zt_connection(name, params, cfg))
+        }
+        "azure_ssh" => {
+            let vm = require(params.vm_name, "--vm-name", "azure_ssh")?;
+            let rg = require(params.resource_group, "--resource-group", "azure_ssh")?;
+            let cfg = zt_cfg(
+                ZeroTrustProvider::AzureSsh,
+                ZeroTrustProviderConfig::AzureSsh(AzureSshConfig {
+                    vm_name: vm.to_string(),
+                    resource_group: rg.to_string(),
+                }),
+            );
+            Ok(zt_connection(name, params, cfg))
+        }
+        "oci_bastion" => {
+            let bid = require(params.bastion_id, "--bastion-id", "oci_bastion")?;
+            let trid = require(
+                params.target_resource_id,
+                "--target-resource-id",
+                "oci_bastion",
+            )?;
+            let tip = require(
+                params.target_private_ip,
+                "--target-private-ip",
+                "oci_bastion",
+            )?;
+            let cfg = zt_cfg(
+                ZeroTrustProvider::OciBastion,
+                ZeroTrustProviderConfig::OciBastion(OciBastionConfig {
+                    bastion_id: bid.to_string(),
+                    target_resource_id: trid.to_string(),
+                    target_private_ip: tip.to_string(),
+                    ..OciBastionConfig::default()
+                }),
+            );
+            Ok(zt_connection(name, params, cfg))
+        }
+        "cloudflare_access" => {
+            let cfg = zt_cfg(
+                ZeroTrustProvider::CloudflareAccess,
+                ZeroTrustProviderConfig::CloudflareAccess(CloudflareAccessConfig {
+                    hostname: params.host.to_string(),
+                    username: params.user.map(String::from),
+                }),
+            );
+            Ok(zt_connection(name, params, cfg))
+        }
+        "teleport" => {
+            let cfg = zt_cfg(
+                ZeroTrustProvider::Teleport,
+                ZeroTrustProviderConfig::Teleport(TeleportConfig {
+                    host: params.host.to_string(),
+                    username: params.user.map(String::from),
+                    cluster: params.teleport_cluster.map(String::from),
+                }),
+            );
+            Ok(zt_connection(name, params, cfg))
+        }
+        "tailscale_ssh" => {
+            let cfg = zt_cfg(
+                ZeroTrustProvider::TailscaleSsh,
+                ZeroTrustProviderConfig::TailscaleSsh(TailscaleSshConfig {
+                    host: params.host.to_string(),
+                    username: params.user.map(String::from),
+                }),
+            );
+            Ok(zt_connection(name, params, cfg))
+        }
+        "boundary" => {
+            let target = require(params.boundary_target, "--boundary-target", "boundary")?;
+            let cfg = zt_cfg(
+                ZeroTrustProvider::Boundary,
+                ZeroTrustProviderConfig::Boundary(BoundaryConfig {
+                    target: target.to_string(),
+                    addr: params.boundary_addr.map(String::from),
+                }),
+            );
+            Ok(zt_connection(name, params, cfg))
+        }
+        "generic" => {
+            let cmd = require(params.custom_command, "--custom-command", "generic")?;
+            let cfg = zt_cfg(
+                ZeroTrustProvider::Generic,
+                ZeroTrustProviderConfig::Generic(GenericZeroTrustConfig {
+                    command_template: cmd.to_string(),
+                }),
+            );
+            Ok(zt_connection(name, params, cfg))
         }
         other => Err(CliError::Config(format!(
-            "CLI creation for provider '{other}' is not yet supported. Use the GUI."
+            "Unknown provider '{other}'. Valid: aws_ssm, gcp_iap, azure_bastion, azure_ssh, \
+             oci_bastion, cloudflare_access, teleport, tailscale_ssh, boundary, hoop_dev, generic"
         ))),
     }
 }

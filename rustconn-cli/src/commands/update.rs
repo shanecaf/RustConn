@@ -25,6 +25,20 @@ pub struct UpdateParams<'a> {
     pub hoop_connection_name: Option<&'a str>,
     pub hoop_gateway_url: Option<&'a str>,
     pub hoop_grpc_url: Option<&'a str>,
+    pub aws_profile: Option<&'a str>,
+    pub aws_region: Option<&'a str>,
+    pub gcp_zone: Option<&'a str>,
+    pub gcp_project: Option<&'a str>,
+    pub resource_group: Option<&'a str>,
+    pub bastion_name: Option<&'a str>,
+    pub vm_name: Option<&'a str>,
+    pub bastion_id: Option<&'a str>,
+    pub target_resource_id: Option<&'a str>,
+    pub target_private_ip: Option<&'a str>,
+    pub teleport_cluster: Option<&'a str>,
+    pub boundary_target: Option<&'a str>,
+    pub boundary_addr: Option<&'a str>,
+    pub custom_command: Option<&'a str>,
 }
 
 /// Update connection command handler
@@ -112,20 +126,15 @@ pub fn cmd_update(config_path: Option<&Path>, params: UpdateParams<'_>) -> Resul
         }
     }
 
-    // Update ZeroTrust HoopDev-specific fields
-    if params.hoop_connection_name.is_some()
-        || params.hoop_gateway_url.is_some()
-        || params.hoop_grpc_url.is_some()
+    // Update ZeroTrust provider-specific fields
+    if let rustconn_core::models::ProtocolConfig::ZeroTrust(ref mut zt_config) =
+        connection.protocol_config
     {
         if let Some(provider) = params.provider {
             tracing::debug!("ZeroTrust provider hint: {provider}");
         }
-        if let rustconn_core::models::ProtocolConfig::ZeroTrust(ref mut zt_config) =
-            connection.protocol_config
-        {
-            if let rustconn_core::models::ZeroTrustProviderConfig::HoopDev(ref mut cfg) =
-                zt_config.provider_config
-            {
+        match zt_config.provider_config {
+            rustconn_core::models::ZeroTrustProviderConfig::HoopDev(ref mut cfg) => {
                 if let Some(conn_name) = params.hoop_connection_name {
                     cfg.connection_name = conn_name.to_string();
                 }
@@ -135,13 +144,99 @@ pub fn cmd_update(config_path: Option<&Path>, params: UpdateParams<'_>) -> Resul
                 if let Some(url) = params.hoop_grpc_url {
                     cfg.grpc_url = Some(url.to_string());
                 }
-            } else {
-                tracing::warn!(
-                    "--hoop-* options are only applicable to HoopDev ZeroTrust connections"
-                );
             }
-        } else {
-            tracing::warn!("--hoop-* options are only applicable to ZeroTrust connections");
+            rustconn_core::models::ZeroTrustProviderConfig::AwsSsm(ref mut cfg) => {
+                if let Some(profile) = params.aws_profile {
+                    cfg.profile = profile.to_string();
+                }
+                if let Some(region) = params.aws_region {
+                    cfg.region = Some(region.to_string());
+                }
+                if let Some(host) = params.host {
+                    cfg.target = host.to_string();
+                }
+            }
+            rustconn_core::models::ZeroTrustProviderConfig::GcpIap(ref mut cfg) => {
+                if let Some(host) = params.host {
+                    cfg.instance = host.to_string();
+                }
+                if let Some(zone) = params.gcp_zone {
+                    cfg.zone = zone.to_string();
+                }
+                if let Some(project) = params.gcp_project {
+                    cfg.project = Some(project.to_string());
+                }
+            }
+            rustconn_core::models::ZeroTrustProviderConfig::AzureBastion(ref mut cfg) => {
+                if let Some(host) = params.host {
+                    cfg.target_resource_id = host.to_string();
+                }
+                if let Some(rg) = params.resource_group {
+                    cfg.resource_group = rg.to_string();
+                }
+                if let Some(bn) = params.bastion_name {
+                    cfg.bastion_name = bn.to_string();
+                }
+            }
+            rustconn_core::models::ZeroTrustProviderConfig::AzureSsh(ref mut cfg) => {
+                if let Some(vm) = params.vm_name {
+                    cfg.vm_name = vm.to_string();
+                }
+                if let Some(rg) = params.resource_group {
+                    cfg.resource_group = rg.to_string();
+                }
+            }
+            rustconn_core::models::ZeroTrustProviderConfig::OciBastion(ref mut cfg) => {
+                if let Some(bid) = params.bastion_id {
+                    cfg.bastion_id = bid.to_string();
+                }
+                if let Some(trid) = params.target_resource_id {
+                    cfg.target_resource_id = trid.to_string();
+                }
+                if let Some(tip) = params.target_private_ip {
+                    cfg.target_private_ip = tip.to_string();
+                }
+            }
+            rustconn_core::models::ZeroTrustProviderConfig::CloudflareAccess(ref mut cfg) => {
+                if let Some(host) = params.host {
+                    cfg.hostname = host.to_string();
+                }
+                if let Some(user) = params.user {
+                    cfg.username = Some(user.to_string());
+                }
+            }
+            rustconn_core::models::ZeroTrustProviderConfig::Teleport(ref mut cfg) => {
+                if let Some(host) = params.host {
+                    cfg.host = host.to_string();
+                }
+                if let Some(user) = params.user {
+                    cfg.username = Some(user.to_string());
+                }
+                if let Some(cluster) = params.teleport_cluster {
+                    cfg.cluster = Some(cluster.to_string());
+                }
+            }
+            rustconn_core::models::ZeroTrustProviderConfig::TailscaleSsh(ref mut cfg) => {
+                if let Some(host) = params.host {
+                    cfg.host = host.to_string();
+                }
+                if let Some(user) = params.user {
+                    cfg.username = Some(user.to_string());
+                }
+            }
+            rustconn_core::models::ZeroTrustProviderConfig::Boundary(ref mut cfg) => {
+                if let Some(target) = params.boundary_target {
+                    cfg.target = target.to_string();
+                }
+                if let Some(addr) = params.boundary_addr {
+                    cfg.addr = Some(addr.to_string());
+                }
+            }
+            rustconn_core::models::ZeroTrustProviderConfig::Generic(ref mut cfg) => {
+                if let Some(cmd) = params.custom_command {
+                    cfg.command_template = cmd.to_string();
+                }
+            }
         }
     }
 
