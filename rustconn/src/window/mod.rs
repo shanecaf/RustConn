@@ -2491,9 +2491,7 @@ impl MainWindow {
                 .try_borrow()
                 .ok()
                 .and_then(|s| s.get_connection(connection_id).cloned())
-                .is_some_and(|c| {
-                    c.password_source == rustconn_core::models::PasswordSource::None
-                });
+                .is_some_and(|c| c.password_source == rustconn_core::models::PasswordSource::None);
 
             if try_empty {
                 let username = state
@@ -2682,9 +2680,7 @@ impl MainWindow {
                 .try_borrow()
                 .ok()
                 .and_then(|s| s.get_connection(connection_id).cloned())
-                .is_some_and(|c| {
-                    c.password_source == rustconn_core::models::PasswordSource::None
-                });
+                .is_some_and(|c| c.password_source == rustconn_core::models::PasswordSource::None);
 
             if try_empty {
                 // Use start_vnc_session_with_password (not start_connection_with_split)
