@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.11.4
+Version:        0.11.5
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -226,6 +226,12 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Wed Apr 22 2026 Anton Isaiev <totoshko88@gmail.com> - 0.11.5-0
+- [Added] Simplified Chinese (zh-cn) translation (PR #94)
+- [Added] User Guide: libvirt NSS hostname resolution (#91)
+- [Dependencies] picky-asn1-der 0.5.6, rustls-webpki 0.103.13,
+  winnow 1.0.2, kubectl 1.35.4
+
 * Tue Apr 21 2026 Anton Isaiev <totoshko88@gmail.com> - 0.11.4-1
 - [Fixed] Sidebar flashes red during SSH connection — introduced
   ConnectionStartResult enum to distinguish async port check in

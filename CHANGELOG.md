@@ -5,6 +5,18 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.5] - 2026-04-22
+
+### Added
+- **Simplified Chinese (zh-cn) translation** — complete translation of all 1573 UI strings; contributed by GaaChun ([PR #94](https://github.com/totoshko88/RustConn/pull/94))
+- **User Guide: libvirt NSS hostname resolution** — added troubleshooting section explaining how to resolve VM hostnames via the libvirt NSS module when connecting with RDP/VNC from Flatpak or native installs ([#91](https://github.com/totoshko88/RustConn/issues/91))
+
+### Dependencies
+- picky-asn1-der 0.5.5 → 0.5.6
+- rustls-webpki 0.103.12 → 0.103.13
+- winnow 1.0.1 → 1.0.2
+- kubectl 1.35.3 → 1.35.4
+
 ## [0.11.4] - 2026-04-21
 
 ### Fixed

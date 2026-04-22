@@ -1,6 +1,6 @@
 # RustConn User Guide
 
-**Version 0.11.4** | GTK4/libadwaita Connection Manager for Linux
+**Version 0.11.5** | GTK4/libadwaita Connection Manager for Linux
 
 RustConn is a modern connection manager designed for Linux with Wayland-first approach. It supports SSH, RDP, VNC, SPICE, MOSH, SFTP, Telnet, Serial, Kubernetes protocols and Zero Trust integrations through a native GTK4/libadwaita interface.
 
@@ -3644,6 +3644,43 @@ Settings → Backup → Export creates a ZIP archive of all configuration files.
 2. Check credentials
 3. SSH key permissions: `chmod 600 ~/.ssh/id_rsa`
 4. Firewall settings
+
+### Libvirt VM Hostname Resolution (NSS Module)
+
+If you use libvirt VMs (QEMU/KVM, GNOME Boxes) and connect to them by hostname via RDP or VNC, hostname resolution may fail because RustConn uses DNS by default, which does not query the [libvirt NSS module](https://libvirt.org/nss.html).
+
+**Symptoms:**
+- RDP/VNC connection to a libvirt VM by hostname fails with "Host unreachable"
+- `ping vm-name` works from the terminal but RustConn cannot resolve it
+
+**Solution — Install and enable the libvirt NSS module:**
+
+1. Install the NSS module:
+   ```bash
+   # Fedora
+   sudo dnf install libvirt-nss
+
+   # Debian/Ubuntu
+   sudo apt install libnss-libvirt
+   ```
+
+2. Enable it in `/etc/nsswitch.conf` — add `libvirt libvirt_guest` to the `hosts` line:
+   ```
+   hosts: files libvirt libvirt_guest dns myhostname
+   ```
+
+3. Verify resolution works:
+   ```bash
+   getent hosts your-vm-name
+   ```
+
+**Flatpak users:** The Flatpak sandbox does not have access to the host's NSS configuration. Use the VM's IP address instead of hostname, or configure a local DNS entry. You can find the VM's IP with:
+```bash
+virsh domifaddr your-vm-name
+```
+
+**Alternative — use IP address directly:**
+If you prefer not to install the NSS module, use the VM's IP address in the connection host field. You can find it with `virsh domifaddr vm-name` or in the GNOME Boxes / virt-manager UI.
 
 ### 1Password Not Working
 
