@@ -150,6 +150,14 @@ pub fn setup_context_menu(terminal: &Terminal) {
     );
     menu.append_section(None, &clipboard_section);
 
+    // Snippet execution — reuses the existing window-level action
+    let snippet_section = gio::Menu::new();
+    snippet_section.append(
+        Some(&crate::i18n::i18n("Execute Snippet…")),
+        Some("win.execute-snippet"),
+    );
+    menu.append_section(None, &snippet_section);
+
     // Register the action group on the container so VTE's popover can
     // resolve "terminal.*" actions by walking up the widget tree.
     let action_group = gio::SimpleActionGroup::new();

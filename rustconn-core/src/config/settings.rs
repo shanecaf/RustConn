@@ -107,6 +107,9 @@ pub struct TerminalSettings {
     /// Automatically copy selected text to clipboard (X11-style)
     #[serde(default)]
     pub copy_on_select: bool,
+    /// Show a scrollbar next to the terminal
+    #[serde(default = "default_show_scrollbar")]
+    pub show_scrollbar: bool,
 }
 
 fn default_font_family() -> String {
@@ -162,6 +165,10 @@ fn default_sftp_use_mc() -> bool {
     crate::flatpak::is_flatpak()
 }
 
+const fn default_show_scrollbar() -> bool {
+    true
+}
+
 impl Default for TerminalSettings {
     fn default() -> Self {
         Self {
@@ -179,6 +186,7 @@ impl Default for TerminalSettings {
             log_timestamps: false,
             sftp_use_mc: default_sftp_use_mc(),
             copy_on_select: false,
+            show_scrollbar: default_show_scrollbar(),
         }
     }
 }

@@ -1229,6 +1229,9 @@ pub fn reconnect_ssh_in_place(
         return false;
     }
 
+    // Show "connecting" status in sidebar immediately
+    sidebar.update_connection_status(&connection_id.to_string(), "connecting");
+
     // Get connection data
     let conn = {
         let Ok(state_ref) = state.try_borrow() else {
@@ -1629,6 +1632,9 @@ pub fn reconnect_generic_vte_in_place(
         tracing::warn!(%session_id, "Tab no longer exists, cannot reconnect in-place");
         return false;
     }
+
+    // Show "connecting" status in sidebar immediately
+    sidebar.update_connection_status(&connection_id.to_string(), "connecting");
 
     let conn = {
         let Ok(state_ref) = state.try_borrow() else {

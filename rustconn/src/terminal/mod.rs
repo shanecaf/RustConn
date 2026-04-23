@@ -1018,10 +1018,18 @@ impl TerminalNotebook {
         // VTE implements GtkScrollable natively — no ScrolledWindow needed.
         // Wrapping in ScrolledWindow intercepts mouse events and breaks
         // ncurses apps (mc, htop) that rely on VTE's internal mouse handling.
-        let container = GtkBox::new(Orientation::Vertical, 0);
+        // Instead, pair VTE with a standalone GtkScrollbar connected to its
+        // vadjustment — the same approach used by GNOME Terminal.
+        let container = GtkBox::new(Orientation::Horizontal, 0);
         container.set_hexpand(true);
         container.set_vexpand(true);
         container.append(&terminal);
+
+        if settings.show_scrollbar {
+            let scrollbar =
+                gtk4::Scrollbar::new(Orientation::Vertical, terminal.vadjustment().as_ref());
+            container.append(&scrollbar);
+        }
 
         // Right-click context menu actions installed on the terminal widget
         // so they follow it when reparented between TabView and split view.

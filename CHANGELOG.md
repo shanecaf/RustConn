@@ -5,6 +5,20 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.6] - 2026-04-23
+
+### Added
+- **Terminal scrollbar** — VTE terminals now display a vertical scrollbar (using a standalone `GtkScrollbar` connected to VTE's `vadjustment`, the same approach as GNOME Terminal); scrollbar is shown by default and can be toggled in Settings → Terminal → Scrolling ([#95](https://github.com/totoshko88/RustConn/issues/95))
+- **"Execute Snippet…" in terminal context menu** — right-clicking inside a terminal now shows an "Execute Snippet…" option that opens the snippet picker; follows GNOME HIG (no nested submenus, verb label with ellipsis) ([#95](https://github.com/totoshko88/RustConn/issues/95))
+
+### Fixed
+- **Sidebar status stays gray after reconnect** — clicking "Reconnect" on a disconnected SSH/VTE session now immediately sets the sidebar status to "connecting" (yellow) instead of leaving it gray; the status then transitions to "connected" (green) once the session is established ([#96](https://github.com/totoshko88/RustConn/issues/96))
+- **Context menu intermittently fails to open on right-click** — reverted sidebar popover from `autohide(true)` back to `autohide(false)` because GTK4's pointer grab consumed right-click events before the gesture handler could fire; added manual Escape key handler and window `focus-widget` tracking to auto-dismiss the menu when a dialog opens ([#87](https://github.com/totoshko88/RustConn/issues/87))
+
+### Dependencies
+- pastey 0.2.1 → 0.2.2
+- rustls 0.23.38 → 0.23.39
+
 ## [0.11.5] - 2026-04-22
 
 ### Added

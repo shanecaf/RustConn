@@ -150,9 +150,11 @@ impl MainWindow {
 
         // Create split terminal view as the main terminal container
         // Uses the global color pool for consistent color allocation
-        let split_view = Rc::new(SplitViewBridge::with_color_pool(Rc::clone(
-            &global_color_pool,
-        )));
+        let mut split_bridge = SplitViewBridge::with_color_pool(Rc::clone(&global_color_pool));
+        with_state(&state, |s| {
+            split_bridge.set_show_scrollbar(s.settings().terminal.show_scrollbar);
+        });
+        let split_view = Rc::new(split_bridge);
 
         // Create per-session split bridges map
         // Requirement 3: Each tab maintains its own independent split layout

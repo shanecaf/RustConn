@@ -264,16 +264,66 @@ fn show_popover(
     #[allow(clippy::cast_possible_truncation)]
     let rect = gdk::Rectangle::new(x as i32, y as i32, 1, 1);
     popover.set_pointing_to(Some(&rect));
-    // Enable autohide so the popover closes automatically when the user
-    // clicks outside it or opens another dialog / keyboard shortcut.
-    // The gesture handler already calls close_active_popover() before
-    // opening a new menu, so seamless right-click switching still works.
-    popover.set_autohide(true);
+    // Use autohide=false so GTK4 does not grab the pointer.  With a grab,
+    // a right-click on a *different* sidebar row is consumed by the
+    // autohide mechanism and never reaches the row's GestureClick handler,
+    // causing the context menu to intermittently fail to open (issue #87).
+    //
+    // Dismissal is handled manually:
+    // - Left-click dismiss gesture on ScrolledWindow (CAPTURE phase)
+    // - close_active_popover() called before every new context menu
+    // - Each button closes the popover before activating its action
+    // - Escape key handler below
+    popover.set_autohide(false);
     popover.set_has_arrow(false);
+
+    // Escape key closes the popover (autohide=false means GTK4 won't do it)
+    let key_controller = gtk4::EventControllerKey::new();
+    let popover_weak_esc = popover.downgrade();
+    key_controller.connect_key_pressed(move |_, key, _, _| {
+        if key == gdk::Key::Escape {
+            if let Some(p) = popover_weak_esc.upgrade() {
+                p.popdown();
+            }
+            gtk4::glib::Propagation::Stop
+        } else {
+            gtk4::glib::Propagation::Proceed
+        }
+    });
+    popover.add_controller(key_controller);
 
     popover.connect_closed(|p| {
         p.unparent();
         clear_active_popover(p);
+    });
+
+    // Close the popover when focus leaves it (e.g. user presses a keyboard
+    // shortcut that opens a dialog, or clicks a toolbar button).  This
+    // replaces the autohide behaviour for the focus-loss scenario (#93)
+    // without the pointer-grab side-effect that breaks right-click
+    // switching (#87).
+    //
+    // We watch the window's focus-widget property: when it changes to a
+    // widget that is NOT a descendant of this popover, we close the menu.
+    let popover_weak_focus = popover.downgrade();
+    window.connect_notify_local(Some("focus-widget"), move |win, _| {
+        let Some(pop) = popover_weak_focus.upgrade() else {
+            return;
+        };
+        // If the popover is not visible, nothing to do
+        if !pop.is_visible() {
+            return;
+        }
+        // Check if the new focus widget is inside the popover
+        let win_ref: &gtk4::Window = win.upcast_ref();
+        if let Some(focus) = gtk4::prelude::GtkWindowExt::focus(win_ref) {
+            if !focus.is_ancestor(&pop) {
+                pop.popdown();
+            }
+        } else {
+            // No focus widget — dialog or another window took focus
+            pop.popdown();
+        }
     });
 
     set_active_popover(&popover);

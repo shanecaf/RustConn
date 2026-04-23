@@ -28,6 +28,7 @@ pub fn create_terminal_page() -> (
     CheckButton,
     CheckButton, // sftp_use_mc
     CheckButton, // copy_on_select
+    CheckButton, // show_scrollbar
 ) {
     let page = adw::PreferencesPage::builder()
         .title(i18n("Terminal"))
@@ -199,6 +200,19 @@ pub fn create_terminal_page() -> (
     scroll_on_keystroke_row.add_prefix(&scroll_on_keystroke_check);
     scrolling_group.add(&scroll_on_keystroke_row);
 
+    // Show scrollbar
+    let show_scrollbar_check = CheckButton::builder()
+        .active(true)
+        .valign(gtk4::Align::Center)
+        .build();
+    let show_scrollbar_row = adw::ActionRow::builder()
+        .title(i18n("Scrollbar"))
+        .subtitle(i18n("Show a scrollbar next to the terminal"))
+        .activatable_widget(&show_scrollbar_check)
+        .build();
+    show_scrollbar_row.add_prefix(&show_scrollbar_check);
+    scrolling_group.add(&show_scrollbar_row);
+
     page.add(&scrolling_group);
 
     // === Behavior Group ===
@@ -279,6 +293,7 @@ pub fn create_terminal_page() -> (
         audible_bell_check,
         sftp_use_mc_check,
         copy_on_select_check,
+        show_scrollbar_check,
     )
 }
 
@@ -298,6 +313,7 @@ pub fn load_terminal_settings(
     audible_bell_check: &CheckButton,
     sftp_use_mc_check: &CheckButton,
     copy_on_select_check: &CheckButton,
+    show_scrollbar_check: &CheckButton,
     settings: &TerminalSettings,
 ) {
     font_family_entry.set_text(&settings.font_family);
@@ -342,6 +358,7 @@ pub fn load_terminal_settings(
     audible_bell_check.set_active(settings.audible_bell);
     sftp_use_mc_check.set_active(settings.sftp_use_mc);
     copy_on_select_check.set_active(settings.copy_on_select);
+    show_scrollbar_check.set_active(settings.show_scrollbar);
 }
 
 /// Gets the toggle button at a specific index in a button box
@@ -390,6 +407,7 @@ pub fn collect_terminal_settings(
     audible_bell_check: &CheckButton,
     sftp_use_mc_check: &CheckButton,
     copy_on_select_check: &CheckButton,
+    show_scrollbar_check: &CheckButton,
     log_timestamps: bool,
 ) -> TerminalSettings {
     let theme_names = TerminalTheme::theme_names();
@@ -426,5 +444,6 @@ pub fn collect_terminal_settings(
         log_timestamps,
         sftp_use_mc: sftp_use_mc_check.is_active(),
         copy_on_select: copy_on_select_check.is_active(),
+        show_scrollbar: show_scrollbar_check.is_active(),
     }
 }

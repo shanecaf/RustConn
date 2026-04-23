@@ -483,6 +483,8 @@ pub struct SplitViewBridge {
     focused_pane_uuid: Rc<RefCell<Option<Uuid>>>,
     /// Legacy panes for backward compatibility with panes_ref() API
     panes: Rc<RefCell<Vec<TerminalPane>>>,
+    /// Whether to show a scrollbar next to VTE terminals
+    show_scrollbar: bool,
 }
 
 impl SplitViewBridge {
@@ -542,6 +544,7 @@ impl SplitViewBridge {
             uuid_panel_map: Rc::new(RefCell::new(uuid_panel_map)),
             focused_pane_uuid: Rc::new(RefCell::new(focused_uuid)),
             panes: Rc::new(RefCell::new(panes)),
+            show_scrollbar: true,
         }
     }
 
@@ -892,8 +895,8 @@ impl SplitViewBridge {
             // This is critical - GTK widgets can only have one parent
             Self::detach_terminal_from_parent(&terminal);
 
-            Self::prepare_terminal_for_panel(&terminal);
-            self.adapter.borrow().set_panel_content(panel_id, &terminal);
+            let wrapper = self.wrap_terminal_for_panel(&terminal);
+            self.adapter.borrow().set_panel_content(panel_id, &wrapper);
 
             // Ensure terminal is visible
             terminal.set_visible(true);
@@ -969,9 +972,9 @@ impl SplitViewBridge {
         // Detach from current parent
         Self::detach_terminal_from_parent(&terminal);
 
-        // Set terminal directly as panel content (no ScrolledWindow)
-        Self::prepare_terminal_for_panel(&terminal);
-        self.adapter.borrow().set_panel_content(panel_id, &terminal);
+        // Set terminal directly as panel content with optional scrollbar
+        let wrapper = self.wrap_terminal_for_panel(&terminal);
+        self.adapter.borrow().set_panel_content(panel_id, &wrapper);
 
         // Ensure terminal is visible
         terminal.set_visible(true);
@@ -996,6 +999,29 @@ impl SplitViewBridge {
     fn prepare_terminal_for_panel(terminal: &Terminal) {
         terminal.set_hexpand(true);
         terminal.set_vexpand(true);
+    }
+
+    /// Wraps a terminal in a horizontal box with an optional scrollbar.
+    ///
+    /// Uses a standalone `GtkScrollbar` connected to VTE's `vadjustment`
+    /// (the same approach used by GNOME Terminal).
+    fn wrap_terminal_for_panel(&self, terminal: &Terminal) -> GtkBox {
+        Self::prepare_terminal_for_panel(terminal);
+        let wrapper = GtkBox::new(Orientation::Horizontal, 0);
+        wrapper.set_hexpand(true);
+        wrapper.set_vexpand(true);
+        wrapper.append(terminal);
+        if self.show_scrollbar {
+            let scrollbar =
+                gtk4::Scrollbar::new(Orientation::Vertical, terminal.vadjustment().as_ref());
+            wrapper.append(&scrollbar);
+        }
+        wrapper
+    }
+
+    /// Sets whether split panels show a scrollbar next to VTE terminals.
+    pub fn set_show_scrollbar(&mut self, show: bool) {
+        self.show_scrollbar = show;
     }
 
     /// Clears a session from all panes
@@ -1162,9 +1188,9 @@ impl SplitViewBridge {
                     // Detach from current parent
                     Self::detach_terminal_from_parent(&terminal);
 
-                    // Set terminal directly as panel content (no ScrolledWindow)
-                    Self::prepare_terminal_for_panel(&terminal);
-                    adapter.set_panel_content(panel_id, &terminal);
+                    // Set terminal with optional scrollbar as panel content
+                    let wrapper = self.wrap_terminal_for_panel(&terminal);
+                    adapter.set_panel_content(panel_id, &wrapper);
 
                     // Ensure terminal is visible
                     terminal.set_visible(true);
@@ -1284,6 +1310,7 @@ impl SplitViewBridge {
         let sessions_rc = Rc::clone(&self.sessions);
         let terminals_rc = Rc::clone(&self.terminals);
         let focused_pane_uuid = Rc::new(RefCell::new(pane_uuid));
+        let show_scrollbar_for_drop = self.show_scrollbar;
 
         // Visual feedback on enter
         drop_target.connect_enter(move |_target, _x, _y| {
@@ -1361,7 +1388,18 @@ impl SplitViewBridge {
             if let Some(terminal) = terminal_opt {
                 Self::detach_terminal_from_parent(&terminal);
                 Self::prepare_terminal_for_panel(&terminal);
-                adapter_rc.borrow().set_panel_content(panel_id, &terminal);
+                let wrapper = GtkBox::new(Orientation::Horizontal, 0);
+                wrapper.set_hexpand(true);
+                wrapper.set_vexpand(true);
+                wrapper.append(&terminal);
+                if show_scrollbar_for_drop {
+                    let scrollbar = gtk4::Scrollbar::new(
+                        Orientation::Vertical,
+                        terminal.vadjustment().as_ref(),
+                    );
+                    wrapper.append(&scrollbar);
+                }
+                adapter_rc.borrow().set_panel_content(panel_id, &wrapper);
                 terminal.set_visible(true);
             }
 
@@ -2174,8 +2212,8 @@ impl SplitViewBridge {
         // Set terminal content if available from internal map
         if let Some(terminal) = self.terminals.borrow().get(&session_id).cloned() {
             Self::detach_terminal_from_parent(&terminal);
-            Self::prepare_terminal_for_panel(&terminal);
-            self.adapter.borrow().set_panel_content(panel_id, &terminal);
+            let wrapper = self.wrap_terminal_for_panel(&terminal);
+            self.adapter.borrow().set_panel_content(panel_id, &wrapper);
             terminal.set_visible(true);
         }
 
@@ -2268,8 +2306,8 @@ impl SplitViewBridge {
 
         // Detach terminal from any previous parent and display in panel
         Self::detach_terminal_from_parent(terminal);
-        Self::prepare_terminal_for_panel(terminal);
-        self.adapter.borrow().set_panel_content(panel_id, terminal);
+        let wrapper = self.wrap_terminal_for_panel(terminal);
+        self.adapter.borrow().set_panel_content(panel_id, &wrapper);
         terminal.set_visible(true);
 
         // Update pane's current_session for filtering in Select Tab

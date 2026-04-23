@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.11.5
+Version:        0.11.6
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -226,6 +226,12 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Thu Apr 23 2026 Anton Isaiev <totoshko88@gmail.com> - 0.11.6-0
+- [Added] Terminal scrollbar (#95)
+- [Added] "Execute Snippet…" in terminal context menu (#95)
+- [Fixed] Sidebar status stays gray after reconnect (#96)
+- [Fixed] Context menu intermittently fails to open on right-click (#87)
+
 * Wed Apr 22 2026 Anton Isaiev <totoshko88@gmail.com> - 0.11.5-0
 - [Added] Simplified Chinese (zh-cn) translation (PR #94)
 - [Added] User Guide: libvirt NSS hostname resolution (#91)
