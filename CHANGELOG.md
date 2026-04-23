@@ -5,6 +5,21 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.7] - 2026-04-23
+
+### Fixed
+- **Monitoring bar broken after scrollbar addition** — the terminal scrollbar (added in 0.11.6) changed the session container from vertical to horizontal layout, causing the monitoring bar to appear side-by-side with the terminal instead of below it; wrapped the horizontal terminal+scrollbar row in a vertical outer container so the monitoring bar is correctly appended underneath
+- **Monitoring collector keeps running in split view** — when a session entered split view the monitoring bar was removed but the SSH exec collector continued polling the remote host every 3 seconds; added `suspend_monitoring`/`resume_monitoring` to `MonitoringCoordinator` that stops the collector on split entry and restarts it (with stored connection params) when the session returns to tab view
+
+### Documentation
+- **User Guide restructured** — reorganized USER_GUIDE.md from 41 flat sections (~4000 lines) into 13 logically grouped sections (~2000 lines); protocols, sessions, organization, and productivity tools are now grouped by topic instead of scattered across the document
+- **CLI Reference extracted** — moved the full CLI command reference (~700 lines) to a dedicated [CLI_REFERENCE.md](docs/CLI_REFERENCE.md) for easier navigation
+- **Zero Trust Providers extracted** — moved all Zero Trust provider documentation (~220 lines) to a dedicated [ZERO_TRUST.md](docs/ZERO_TRUST.md)
+- **FAQ and Troubleshooting merged** — combined the previously separate FAQ, Troubleshooting, and Migration Guide sections to reduce duplication
+
+### Dependencies
+- clap_mangen 0.2.33 → 0.3.0
+
 ## [0.11.6] - 2026-04-23
 
 ### Added

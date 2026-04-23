@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.11.6
+Version:        0.11.7
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -226,6 +226,11 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Thu Apr 23 2026 Anton Isaiev <totoshko88@gmail.com> - 0.11.7-1
+- [Fixed] Monitoring bar broken after scrollbar addition — wrapped the
+  horizontal terminal+scrollbar row in a vertical outer container so the
+  monitoring bar is correctly appended underneath
+
 * Thu Apr 23 2026 Anton Isaiev <totoshko88@gmail.com> - 0.11.6-0
 - [Added] Terminal scrollbar (#95)
 - [Added] "Execute Snippet…" in terminal context menu (#95)

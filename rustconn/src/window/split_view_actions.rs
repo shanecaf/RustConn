@@ -52,6 +52,7 @@ impl MainWindow {
         let global_split_view_h = self.split_view.clone();
         let color_pool_h = self.global_color_pool.clone();
         let window_weak_h = window.downgrade();
+        let monitoring_h = self.monitoring.clone();
         split_horizontal_action.connect_activate(move |_, _| {
             // Get current active session before splitting
             let Some(current_session) = notebook_for_split_h.get_active_session_id() else {
@@ -137,6 +138,9 @@ impl MainWindow {
                         original_color_index,
                         current_session
                     );
+
+                    // Suspend monitoring — bar is not visible in split view
+                    monitoring_h.suspend_monitoring(current_session);
                 }
 
                 // Swap visible split view in container
@@ -213,6 +217,7 @@ impl MainWindow {
                 let session_bridges_for_clear = session_bridges.clone();
                 // Clone for provider closure
                 let split_view_for_provider = split_view.clone();
+                let monitoring_for_select_h = monitoring_h.clone();
                 split_view.setup_select_tab_callback_with_provider(
                     move || {
                         // Get all sessions from the notebook, excluding those already in THIS split
@@ -288,6 +293,9 @@ impl MainWindow {
                                 // Set tab color indicator using the color from the panel
                                 notebook_for_select.set_tab_split_color(session_id, color_index);
 
+                                // Suspend monitoring — session is now in split view
+                                monitoring_for_select_h.suspend_monitoring(session_id);
+
                                 tracing::debug!(
                                     "Select Tab callback (horizontal): moved session {} to panel {} with color {}",
                                     session_id,
@@ -329,6 +337,7 @@ impl MainWindow {
         let global_split_view_v = self.split_view.clone();
         let color_pool_v = self.global_color_pool.clone();
         let window_weak_v = window.downgrade();
+        let monitoring_v = self.monitoring.clone();
         split_vertical_action.connect_activate(move |_, _| {
             // Get current active session before splitting
             let Some(current_session) = notebook_for_split_v.get_active_session_id() else {
@@ -414,6 +423,9 @@ impl MainWindow {
                         original_color_index,
                         current_session
                     );
+
+                    // Suspend monitoring — bar is not visible in split view
+                    monitoring_v.suspend_monitoring(current_session);
                 }
 
                 // Swap visible split view in container
@@ -490,6 +502,7 @@ impl MainWindow {
                 let session_bridges_for_clear = session_bridges_v.clone();
                 // Clone for provider closure
                 let split_view_for_provider = split_view.clone();
+                let monitoring_for_select_v = monitoring_v.clone();
                 split_view.setup_select_tab_callback_with_provider(
                     move || {
                         // Get all sessions from the notebook, excluding those already in THIS split
@@ -565,6 +578,9 @@ impl MainWindow {
                                 // Set tab color indicator using the color from the panel
                                 notebook_for_select.set_tab_split_color(session_id, color_index);
 
+                                // Suspend monitoring — session is now in split view
+                                monitoring_for_select_v.suspend_monitoring(session_id);
+
                                 tracing::debug!(
                                     "Select Tab callback (vertical): moved session {} to panel {} with color {}",
                                     session_id,
@@ -604,6 +620,7 @@ impl MainWindow {
         let notebook_for_close = self.terminal_notebook.clone();
         let split_view_for_close = self.split_view.clone();
         let split_container_close = self.split_container.clone();
+        let monitoring_close = self.monitoring.clone();
         close_pane_action.connect_activate(move |_, _| {
             // Find the bridge for the current session and close its focused pane
             if let Some(session_id) = notebook_for_close.get_active_session_id() {
@@ -674,6 +691,13 @@ impl MainWindow {
                                     notebook_for_close.clear_tab_split_color(*sess_id);
                                     // Reparent terminal back to TabView
                                     notebook_for_close.reparent_terminal_to_tab(*sess_id);
+                                    // Resume monitoring if it was suspended
+                                    if monitoring_close.is_suspended(*sess_id)
+                                        && let Some(container) =
+                                            notebook_for_close.get_session_container(*sess_id)
+                                    {
+                                        monitoring_close.resume_monitoring(*sess_id, &container);
+                                    }
                                 }
 
                                 // Hide split view and show TabView
@@ -719,6 +743,7 @@ impl MainWindow {
         let session_bridges_unsplit = self.session_split_bridges.clone();
         let notebook_for_unsplit = self.terminal_notebook.clone();
         let split_container_unsplit = self.split_container.clone();
+        let monitoring_unsplit = self.monitoring.clone();
         unsplit_session_action.connect_activate(move |_, param| {
             if let Some(param) = param
                 && let Some(session_id_str) = param.get::<String>()
@@ -736,6 +761,14 @@ impl MainWindow {
 
                         // Clear tab color indicator
                         notebook_for_unsplit.clear_tab_split_color(session_id);
+
+                        // Resume monitoring if it was suspended
+                        if monitoring_unsplit.is_suspended(session_id)
+                            && let Some(container) =
+                                notebook_for_unsplit.get_session_container(session_id)
+                        {
+                            monitoring_unsplit.resume_monitoring(session_id, &container);
+                        }
 
                         // Check if any sessions remain in this split view
                         let has_sessions_in_split = bridge

@@ -1020,16 +1020,23 @@ impl TerminalNotebook {
         // ncurses apps (mc, htop) that rely on VTE's internal mouse handling.
         // Instead, pair VTE with a standalone GtkScrollbar connected to its
         // vadjustment — the same approach used by GNOME Terminal.
-        let container = GtkBox::new(Orientation::Horizontal, 0);
-        container.set_hexpand(true);
-        container.set_vexpand(true);
-        container.append(&terminal);
+        let terminal_row = GtkBox::new(Orientation::Horizontal, 0);
+        terminal_row.set_hexpand(true);
+        terminal_row.set_vexpand(true);
+        terminal_row.append(&terminal);
 
         if settings.show_scrollbar {
             let scrollbar =
                 gtk4::Scrollbar::new(Orientation::Vertical, terminal.vadjustment().as_ref());
-            container.append(&scrollbar);
+            terminal_row.append(&scrollbar);
         }
+
+        // Outer vertical container: terminal row on top, monitoring bar below.
+        // get_session_container() returns this box so monitoring can append to it.
+        let container = GtkBox::new(Orientation::Vertical, 0);
+        container.set_hexpand(true);
+        container.set_vexpand(true);
+        container.append(&terminal_row);
 
         // Right-click context menu actions installed on the terminal widget
         // so they follow it when reparented between TabView and split view.

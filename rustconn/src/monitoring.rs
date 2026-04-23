@@ -481,6 +481,21 @@ pub struct MonitoringCoordinator {
     bars: RefCell<HashMap<Uuid, Rc<MonitoringBar>>>,
     /// Active collector stop handles keyed by session ID
     handles: RefCell<HashMap<Uuid, rustconn_core::monitoring::CollectorHandle>>,
+    /// Suspended session params — stored when monitoring is suspended for split view,
+    /// so it can be resumed when the session returns to the tab view.
+    suspended: RefCell<HashMap<Uuid, MonitoringParams>>,
+}
+
+/// Connection parameters needed to restart monitoring after suspend.
+#[derive(Clone)]
+struct MonitoringParams {
+    settings: MonitoringSettings,
+    host: String,
+    port: u16,
+    username: Option<String>,
+    identity_file: Option<String>,
+    password: Option<secrecy::SecretString>,
+    jump_host: Option<String>,
 }
 
 use std::collections::HashMap;
@@ -494,6 +509,7 @@ impl MonitoringCoordinator {
         Self {
             bars: RefCell::new(HashMap::new()),
             handles: RefCell::new(HashMap::new()),
+            suspended: RefCell::new(HashMap::new()),
         }
     }
 
@@ -538,6 +554,9 @@ impl MonitoringCoordinator {
         let bar = Rc::new(MonitoringBar::new());
         bar.apply_settings(settings);
         container.append(bar.widget());
+
+        // Clone password before it's consumed by the exec factory
+        let password_clone = password.clone();
 
         // Start the collector with SSH exec
         let exec_fn = rustconn_core::monitoring::ssh_exec_factory(
@@ -594,6 +613,19 @@ impl MonitoringCoordinator {
         self.bars.borrow_mut().insert(session_id, bar);
         self.handles.borrow_mut().insert(session_id, handle);
 
+        // Store connection params for suspend/resume
+        self.suspended.borrow_mut().remove(&session_id);
+        self.store_params(
+            session_id,
+            settings,
+            host,
+            port,
+            username,
+            identity_file,
+            password_clone,
+            jump_host,
+        );
+
         tracing::info!(
             session_id = %session_id,
             host = %host,
@@ -604,6 +636,9 @@ impl MonitoringCoordinator {
 
     /// Stops monitoring for a session and removes the bar widget.
     pub fn stop_monitoring(&self, session_id: Uuid) {
+        // Clean up stored params (no longer needed)
+        self.suspended.borrow_mut().remove(&session_id);
+
         if let Some(handle) = self.handles.borrow_mut().remove(&session_id) {
             // Fire-and-forget stop signal
             crate::async_utils::spawn_async(async move {
@@ -627,6 +662,103 @@ impl MonitoringCoordinator {
         for session_id in session_ids {
             self.stop_monitoring(session_id);
         }
+    }
+
+    /// Suspends monitoring for a session (e.g. when entering split view).
+    ///
+    /// Stops the collector and removes the bar widget, but keeps the
+    /// connection parameters so monitoring can be resumed later.
+    pub fn suspend_monitoring(&self, session_id: Uuid) {
+        if !self.bars.borrow().contains_key(&session_id) {
+            return;
+        }
+
+        // Stop the collector
+        if let Some(handle) = self.handles.borrow_mut().remove(&session_id) {
+            crate::async_utils::spawn_async(async move {
+                handle.stop().await;
+            });
+        }
+
+        // Remove the bar widget
+        if let Some(bar) = self.bars.borrow_mut().remove(&session_id)
+            && let Some(parent) = bar.widget().parent()
+            && let Some(parent_box) = parent.downcast_ref::<gtk4::Box>()
+        {
+            parent_box.remove(bar.widget());
+        }
+
+        tracing::info!(
+            session_id = %session_id,
+            "Suspended monitoring for split view"
+        );
+    }
+
+    /// Resumes monitoring for a session (e.g. when returning from split view).
+    ///
+    /// Restarts the collector using stored connection parameters and attaches
+    /// a new bar to the given container.
+    pub fn resume_monitoring(&self, session_id: Uuid, container: &gtk4::Box) {
+        // Don't resume if already active
+        if self.bars.borrow().contains_key(&session_id) {
+            return;
+        }
+
+        let params = match self.suspended.borrow().get(&session_id).cloned() {
+            Some(p) => p,
+            None => return,
+        };
+
+        tracing::info!(
+            session_id = %session_id,
+            host = %params.host,
+            "Resuming monitoring after split view"
+        );
+
+        self.start_monitoring(
+            session_id,
+            container,
+            &params.settings,
+            &params.host,
+            params.port,
+            params.username.as_deref(),
+            params.identity_file.as_deref(),
+            params.password,
+            params.jump_host.as_deref(),
+        );
+    }
+
+    /// Returns whether a session has suspended monitoring params.
+    #[must_use]
+    pub fn is_suspended(&self, session_id: Uuid) -> bool {
+        self.suspended.borrow().contains_key(&session_id)
+    }
+
+    /// Stores connection parameters for later suspend/resume.
+    #[allow(clippy::too_many_arguments)]
+    fn store_params(
+        &self,
+        session_id: Uuid,
+        settings: &MonitoringSettings,
+        host: &str,
+        port: u16,
+        username: Option<&str>,
+        identity_file: Option<&str>,
+        password: Option<secrecy::SecretString>,
+        jump_host: Option<&str>,
+    ) {
+        self.suspended.borrow_mut().insert(
+            session_id,
+            MonitoringParams {
+                settings: settings.clone(),
+                host: host.to_string(),
+                port,
+                username: username.map(String::from),
+                identity_file: identity_file.map(String::from),
+                password,
+                jump_host: jump_host.map(String::from),
+            },
+        );
     }
 
     /// Returns the monitoring bar for a session, if active
