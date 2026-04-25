@@ -1,0 +1,19 @@
+# cargo-audit configuration for RustConn
+# https://rustsec.org/
+
+[advisories]
+# Transitive dependency advisories with no available fix:
+ignore = [
+    # rsa Marvin Attack — no patched version; pulled by ironrdp (sspi)
+    # and spice-client. Not exploitable in our local-client context.
+    "RUSTSEC-2023-0071",
+    # atomic-polyfill unmaintained — transitive via ironrdp/sspi chain;
+    # no upstream update available.
+    "RUSTSEC-2023-0089",
+    # instant unmaintained — transitive via ironrdp/sspi chain;
+    # no upstream update available.
+    "RUSTSEC-2024-0384",
+    # paste unmaintained — transitive via ironrdp/sspi/cryptoki chain;
+    # no upstream update available.
+    "RUSTSEC-2024-0436",
+]
