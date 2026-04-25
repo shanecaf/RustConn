@@ -1394,7 +1394,9 @@ The settings dialog uses `adw::PreferencesDialog` with built-in search. Settings
 
 ### Terminal page
 
-**Terminal group:** Font (family and size), Scrollback (history buffer lines), Color Theme (Dark, Light, Solarized, Monokai, Dracula), Cursor (shape and blink mode), Behavior (scroll on output/keystroke, hyperlinks, mouse autohide, bell, SFTP via mc, copy on select).
+**Terminal group:** Font (family and size), Scrollback (history buffer lines), Color Theme (Dark, Light, Solarized, Monokai, Dracula, plus user-created custom themes), Cursor (shape and blink mode), Behavior (scroll on output/keystroke, hyperlinks, mouse autohide, bell, SFTP via mc, copy on select).
+
+**Custom Themes:** Click the **+** button next to the theme dropdown to create a new custom theme. The theme editor lets you set background, foreground, cursor, and all 16 ANSI palette colors. Custom themes are saved to `~/.config/rustconn/custom_themes.json` and appear alongside built-in themes. Edit or delete custom themes with the pencil and trash buttons.
 
 **Logging group:** Enable Logging (global toggle), Log Directory, Retention Days, Logging Modes (activity, user input, terminal output), Timestamps.
 
@@ -1714,8 +1716,13 @@ The inheritance chain walks from the connection's immediate group up to the root
 
 When connecting to a synced connection that references an unconfigured variable or secret backend, RustConn shows an interactive dialog instead of silently failing:
 
-- **Variable Not Configured** — enter the value and select a storage backend, then Save & Connect
-- **Secret Backend Not Configured** — choose "Enter Password Manually" or "Open Settings" to configure the backend
+- **Variable Not Configured** — an `AdwAlertDialog` prompts you to enter the variable value and select a storage backend (LibSecret, KeePassXC, Bitwarden, 1Password). Click "Save & Connect" to store the value and proceed, or "Cancel" to abort.
+- **Secret Backend Not Configured** — shown when the connection's password source references a vault that isn't set up on this device. Choose "Enter Password Manually" to proceed with a one-time password prompt, or "Open Settings" to configure the backend first.
+- **Vault Entry Missing** — if the vault is configured but the specific credential entry doesn't exist, the connection proceeds without stored credentials and the protocol handler prompts for a password (RDP/VNC password dialog, SSH terminal prompt).
+
+**Sidebar sync indicators** show the current sync state for each synced group:
+- ⟳ (`emblem-synchronizing-symbolic`) — synced successfully, tooltip shows "Master — synced to cloud" or "Import — synced from cloud"
+- ⚠ (`dialog-warning-symbolic`) — last sync operation failed, tooltip shows the specific error (e.g. "Sync error: Parse error: invalid JSON")
 
 ---
 

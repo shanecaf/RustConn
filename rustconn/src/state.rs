@@ -888,7 +888,7 @@ impl AppState {
     /// ```
     pub fn resolve_credentials_gtk<F>(&self, connection_id: Uuid, callback: F)
     where
-        F: FnOnce(Result<Option<Credentials>, String>) + 'static,
+        F: FnOnce(Result<rustconn_core::sync::CredentialResolutionResult, String>) + 'static,
     {
         // Get connection and settings needed for resolution
         let connection = if let Some(conn) = self.get_connection(connection_id) {
@@ -937,14 +937,15 @@ impl AppState {
     ///
     /// This is extracted from `resolve_credentials` to be callable from a background
     /// thread without needing `&self`.
-    // TODO(cloud-sync): Refactor to return `CredentialResolutionResult` from
-    // `rustconn_core::sync::credential_check` instead of `Option<Credentials>`.
-    // This enables the UI to show specific dialogs (VariableMissing,
-    // BackendNotConfigured, VaultEntryMissing) instead of silently returning None.
+    ///
+    /// Returns a [`CredentialResolutionResult`] that the UI layer uses to show
+    /// the appropriate dialog (variable setup, backend missing, etc.) instead
+    /// of silently returning `None`.
     fn resolve_credentials_blocking(
         ctx: CredentialResolutionContext,
-    ) -> Result<Option<Credentials>, String> {
+    ) -> Result<rustconn_core::sync::CredentialResolutionResult, String> {
         use rustconn_core::secret::{KeePassHierarchy, KeePassStatus};
+        use rustconn_core::sync::CredentialResolutionResult;
         use secrecy::ExposeSecret;
 
         let connection = &ctx.connection;
@@ -957,9 +958,6 @@ impl AppState {
         let secret_manager = ctx.secret_manager;
 
         // For Variable password source — resolve directly via vault backend
-        // This bypasses SecretManager's backend list and uses the same
-        // backend selection logic as save_variable_to_vault, ensuring
-        // the variable is read from the same backend it was written to.
         if let PasswordSource::Variable(ref var_name) = connection.password_source {
             tracing::debug!(
                 var_name,
@@ -978,13 +976,19 @@ impl AppState {
                             domain: None,
                         }
                     };
-                    return Ok(Some(creds));
+                    return Ok(CredentialResolutionResult::Resolved(creds));
                 }
                 Ok(None) => {
                     tracing::warn!(
                         var_name,
                         "[resolve_credentials_blocking] No secret found for variable"
                     );
+                    // Variable exists but has no value on this device
+                    return Ok(CredentialResolutionResult::VariableMissing {
+                        variable_name: var_name.clone(),
+                        description: None,
+                        is_secret: true,
+                    });
                 }
                 Err(e) => {
                     tracing::error!(
@@ -992,6 +996,12 @@ impl AppState {
                         error = %e,
                         "[resolve_credentials_blocking] Failed to load variable from vault"
                     );
+                    // Backend may not be configured
+                    return Ok(CredentialResolutionResult::VariableMissing {
+                        variable_name: var_name.clone(),
+                        description: None,
+                        is_secret: true,
+                    });
                 }
             }
         }
@@ -1048,7 +1058,7 @@ impl AppState {
                             domain: None,
                         }
                     };
-                    return Ok(Some(creds));
+                    return Ok(CredentialResolutionResult::Resolved(creds));
                 }
                 Ok(None) => {
                     tracing::debug!("[resolve_credentials_blocking] No password found in KeePass");
@@ -1089,16 +1099,35 @@ impl AppState {
             match dispatch_vault_op(&secret_settings, &lookup_key, VaultOp::Retrieve) {
                 Ok(Some(creds)) => {
                     tracing::debug!("[resolve_credentials_blocking] Found password in vault");
-                    return Ok(Some(creds));
+                    return Ok(CredentialResolutionResult::Resolved(creds));
                 }
                 Ok(None) => {
                     tracing::debug!("[resolve_credentials_blocking] No password found in vault");
+                    // Vault entry not found — return specific result so UI can prompt
+                    let protocol_str = connection
+                        .protocol_config
+                        .protocol_type()
+                        .as_str()
+                        .to_lowercase();
+                    return Ok(CredentialResolutionResult::VaultEntryMissing {
+                        connection_name: connection.name.clone(),
+                        lookup_key: generate_store_key(
+                            &connection.name,
+                            &connection.host,
+                            &protocol_str,
+                            backend_type,
+                        ),
+                    });
                 }
                 Err(e) => {
                     tracing::warn!(
                         error = %e,
                         "[resolve_credentials_blocking] Vault lookup failed"
                     );
+                    // Backend may not be properly configured
+                    return Ok(CredentialResolutionResult::BackendNotConfigured {
+                        required_backend: secret_settings.preferred_backend,
+                    });
                 }
             }
         }
@@ -1170,7 +1199,7 @@ impl AppState {
                                     domain: None,
                                 }
                             };
-                            return Ok(Some(creds));
+                            return Ok(CredentialResolutionResult::Resolved(creds));
                         }
                         Ok(None) => {
                             tracing::debug!(
@@ -1250,7 +1279,7 @@ impl AppState {
                             if let Some(ref dom) = group.domain {
                                 creds.domain = Some(dom.clone());
                             }
-                            return Ok(Some(creds));
+                            return Ok(CredentialResolutionResult::Resolved(creds));
                         }
                         Ok(None) => {
                             tracing::debug!(
@@ -1287,14 +1316,21 @@ impl AppState {
         let groups = groups.clone();
 
         // Use thread-local runtime (created lazily per thread)
-        crate::async_utils::with_runtime(|rt| {
+        let fallback_result = crate::async_utils::with_runtime(|rt| {
             rt.block_on(async {
                 resolver
                     .resolve_with_hierarchy(&connection, &groups)
                     .await
                     .map_err(|e| format!("Failed to resolve credentials: {e}"))
             })
-        })?
+        })?;
+
+        // Convert Option<Credentials> to CredentialResolutionResult
+        Ok(match fallback_result {
+            Ok(Some(creds)) => CredentialResolutionResult::Resolved(creds),
+            Ok(None) => CredentialResolutionResult::NotNeeded,
+            Err(e) => return Err(e),
+        })
     }
 
     // ========== Settings Operations ==========

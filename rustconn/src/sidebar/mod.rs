@@ -1653,6 +1653,9 @@ mod imp {
         /// Cloud Sync mode for groups: "none", "master", or "import".
         #[property(get, set)]
         sync_mode: RefCell<String>,
+        /// Cloud Sync error message (empty string = no error).
+        #[property(get, set)]
+        sync_error: RefCell<String>,
         /// Whether this group is a root group (parent_id is None).
         #[property(get, set)]
         is_root_group: RefCell<bool>,
@@ -1762,16 +1765,17 @@ impl ConnectionItem {
     /// Creates a new group item with a custom icon
     #[must_use]
     pub fn new_group_with_icon(id: &str, name: &str, icon: &str) -> Self {
-        Self::new_group_full(id, name, icon, "none", false)
+        Self::new_group_full(id, name, icon, "none", "", false)
     }
 
-    /// Creates a new group item with icon, sync mode, and root group flag
+    /// Creates a new group item with icon, sync mode, sync error, and root group flag
     #[must_use]
     pub fn new_group_full(
         id: &str,
         name: &str,
         icon: &str,
         sync_mode: &str,
+        sync_error: &str,
         is_root_group: bool,
     ) -> Self {
         let item: Self = glib::Object::builder()
@@ -1784,6 +1788,7 @@ impl ConnectionItem {
             .property("host", "")
             .property("icon", icon)
             .property("sync-mode", sync_mode)
+            .property("sync-error", sync_error)
             .property("is-root-group", is_root_group)
             .build();
 

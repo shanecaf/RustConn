@@ -36,11 +36,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **SSH tunnel password authentication** — SSH tunnels (used by RDP, VNC, SPICE jump host connections) now support password-authenticated jump hosts via `SSH_ASKPASS` mechanism; previously `BatchMode=yes` was unconditional, silently blocking password auth
 - **VTE passphrase prompt guard** — VTE password auto-fill now explicitly rejects SSH key passphrase prompts (`"Enter passphrase for key"`) to prevent sending the wrong secret when SSH auth method is PublicKey
 - **Connection dialog: protocol-aware Password Source** — Password Source dropdown is now hidden for protocols that don't use stored passwords (Telnet, Serial, MOSH, Kubernetes, Zero Trust); previously visible but non-functional for these protocols
+- **Credential Resolution UX fully wired** — `CredentialResolutionResult` enum now drives the connection flow: `VariableMissing` shows the variable setup `AdwAlertDialog` (enter value + select backend → Save & Connect), `BackendNotConfigured` shows the backend missing dialog (Enter Manually / Open Settings), `VaultEntryMissing` falls through to the protocol's password prompt; previously the resolver silently returned `None` on all failure paths
+- **Sidebar sync error indicators** — synced groups now show `dialog-warning-symbolic` with error tooltip when the last sync operation failed (e.g. parse error, missing file); previously always showed the generic synced icon regardless of error state
+- **Custom themes atomic write** — `custom_themes.json` now uses temp file + rename (atomic write) with `0600` permissions and `tracing::warn` on errors; consistent with sync file write pattern
 
 ### Dependencies
 - notify 7 (new — file watching for Cloud Sync)
 - hostname 0.4 (new — default device name)
 - slug 0.1 (new — sync filename generation)
+- Tailscale CLI 1.96.4 → 1.96.5
+- cc 1.2.60 → 1.2.61, data-encoding 2.10.0 → 2.11.0, hybrid-array 0.4.10 → 0.4.11, libc 0.2.185 → 0.2.186, rustls-pki-types 1.14.0 → 1.14.1
 
 ### Fixed
 - **Tab Overview SIGSEGV with split-view tabs** — opening Tab Overview when split-view tabs were active caused Pango `size >= 0` assertion failures and crashes because `AdwTabOverview` attempted to snapshot `TabPage` children with 0×0 allocation; refactored to keep `TabView` always visible with per-tab `TabPageContainer` wrappers that guarantee non-zero allocation

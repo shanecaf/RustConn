@@ -95,16 +95,42 @@ fn load_custom_themes_from_disk() -> Vec<TerminalTheme> {
     }
 }
 
-/// Persists custom themes to disk.
+/// Persists custom themes to disk using atomic write (temp file + rename).
 fn save_custom_themes_to_disk(themes: &[TerminalTheme]) {
     let Some(path) = custom_themes_path() else {
         return;
     };
-    if let Some(parent) = path.parent() {
-        let _ = std::fs::create_dir_all(parent);
+    if let Some(parent) = path.parent()
+        && let Err(e) = std::fs::create_dir_all(parent)
+    {
+        tracing::warn!(error = %e, "Failed to create custom themes directory");
+        return;
     }
-    if let Ok(json) = serde_json::to_string_pretty(themes) {
-        let _ = std::fs::write(&path, json);
+    let json = match serde_json::to_string_pretty(themes) {
+        Ok(j) => j,
+        Err(e) => {
+            tracing::warn!(error = %e, "Failed to serialize custom themes");
+            return;
+        }
+    };
+
+    // Atomic write: temp file + rename (consistent with sync file writes)
+    let temp_path = path.with_extension("json.tmp");
+    if let Err(e) = std::fs::write(&temp_path, &json) {
+        tracing::warn!(error = %e, "Failed to write custom themes temp file");
+        return;
+    }
+    if let Err(e) = std::fs::rename(&temp_path, &path) {
+        tracing::warn!(error = %e, "Failed to rename custom themes temp file");
+        let _ = std::fs::remove_file(&temp_path);
+        return;
+    }
+
+    // Restrict file permissions to owner-only (0600) for consistency
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600));
     }
 }
 

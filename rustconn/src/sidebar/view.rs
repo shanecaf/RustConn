@@ -8,7 +8,7 @@ use gtk4::{
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::i18n::i18n;
+use crate::i18n::{i18n, i18n_f};
 use crate::sidebar::ConnectionItem;
 use crate::sidebar_ui;
 
@@ -349,30 +349,54 @@ pub fn bind_list_item(
                 content_box.append(&img);
                 img
             };
-            // TODO: check for sync errors via GroupSyncState; for now show synced
-            sync_icon.set_icon_name(Some("emblem-synchronizing-symbolic"));
-            sync_icon.set_visible(true);
-            sync_icon.add_css_class("dim-label");
 
-            // Tooltip with sync mode and last sync time
-            let tooltip = if sync_mode == "master" {
-                i18n("Master — synced to cloud")
-            } else {
-                i18n("Import — synced from cloud")
-            };
-            sync_icon.set_tooltip_text(Some(&tooltip));
-            sync_icon.update_property(&[gtk4::accessible::Property::Label(&tooltip)]);
+            // Check for sync errors via the sync_error property
+            let sync_err = item.sync_error();
+            if sync_err.is_empty() {
+                // No error — show synced indicator
+                sync_icon.set_icon_name(Some("emblem-synchronizing-symbolic"));
+                sync_icon.remove_css_class("error");
+                sync_icon.add_css_class("dim-label");
 
-            // Override group tooltip to include sync info
-            if child_count > 0 {
-                expander.set_tooltip_text(Some(&format!(
-                    "{} ({child_count}) — {}",
-                    item.name(),
-                    tooltip
-                )));
+                let tooltip = if sync_mode == "master" {
+                    i18n("Master — synced to cloud")
+                } else {
+                    i18n("Import — synced from cloud")
+                };
+                sync_icon.set_tooltip_text(Some(&tooltip));
+                sync_icon.update_property(&[gtk4::accessible::Property::Label(&tooltip)]);
+
+                // Override group tooltip to include sync info
+                if child_count > 0 {
+                    expander.set_tooltip_text(Some(&format!(
+                        "{} ({child_count}) — {}",
+                        item.name(),
+                        tooltip
+                    )));
+                } else {
+                    expander.set_tooltip_text(Some(&format!("{} — {}", item.name(), tooltip)));
+                }
             } else {
-                expander.set_tooltip_text(Some(&format!("{} — {}", item.name(), tooltip)));
+                // Error state — show warning indicator
+                sync_icon.set_icon_name(Some("dialog-warning-symbolic"));
+                sync_icon.remove_css_class("dim-label");
+                sync_icon.add_css_class("error");
+
+                let tooltip = i18n_f("Sync error: {}", &[&sync_err]);
+                sync_icon.set_tooltip_text(Some(&tooltip));
+                sync_icon.update_property(&[gtk4::accessible::Property::Label(&tooltip)]);
+
+                if child_count > 0 {
+                    expander.set_tooltip_text(Some(&format!(
+                        "{} ({child_count}) — {}",
+                        item.name(),
+                        tooltip
+                    )));
+                } else {
+                    expander.set_tooltip_text(Some(&format!("{} — {}", item.name(), tooltip)));
+                }
             }
+            sync_icon.set_visible(true);
         } else if let Some(existing) = sync_indicator {
             existing.set_visible(false);
         }

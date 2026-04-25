@@ -166,11 +166,19 @@ pub fn rebuild_sidebar_sorted(state: &SharedAppState, sidebar: &SharedSidebar) {
             rustconn_core::sync::SyncMode::Master => "master",
             rustconn_core::sync::SyncMode::Import => "import",
         };
+        // Look up sync error from SyncManager state
+        let sync_error = state_ref
+            .sync_manager()
+            .state()
+            .get(&group.id)
+            .and_then(|s| s.last_error.as_deref())
+            .unwrap_or("");
         let group_item = ConnectionItem::new_group_full(
             &group.id.to_string(),
             &group.name,
             icon,
             sync_mode_str,
+            sync_error,
             true, // root groups
         );
         add_sorted_group_children(&state_ref, sidebar, &group_item, group.id);

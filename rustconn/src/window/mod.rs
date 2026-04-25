@@ -2291,32 +2291,158 @@ impl MainWindow {
                 return;
             };
 
-            // TODO(cloud-sync): When `resolve_credentials_blocking` returns
-            // `CredentialResolutionResult`, handle `VariableMissing` by calling
-            // `show_variable_setup_dialog` and `BackendNotConfigured` by calling
-            // `show_backend_missing_dialog` before falling through to
-            // `handle_resolved_credentials`.
+            // Handle CredentialResolutionResult variants with appropriate dialogs
             state_ref.resolve_credentials_gtk(connection_id, move |result| {
-                let resolved_credentials = match result {
-                    Ok(creds) => creds,
+                use rustconn_core::sync::CredentialResolutionResult;
+
+                let resolution = match result {
+                    Ok(r) => r,
                     Err(e) => {
                         tracing::warn!("Failed to resolve credentials: {e}");
-                        None
+                        // Fall through with no credentials — protocol handler will prompt if needed
+                        CredentialResolutionResult::NotNeeded
                     }
                 };
 
-                Self::handle_resolved_credentials(
-                    state_clone,
-                    notebook_clone,
-                    split_view_clone,
-                    sidebar_clone,
-                    monitoring_clone,
-                    connection_id,
-                    protocol_type,
-                    resolved_credentials,
-                    None, // No cached credentials
-                    activity_clone,
-                );
+                match resolution {
+                    CredentialResolutionResult::Resolved(creds) => {
+                        Self::handle_resolved_credentials(
+                            state_clone,
+                            notebook_clone,
+                            split_view_clone,
+                            sidebar_clone,
+                            monitoring_clone,
+                            connection_id,
+                            protocol_type,
+                            Some(creds),
+                            None,
+                            activity_clone,
+                        );
+                    }
+                    CredentialResolutionResult::NotNeeded => {
+                        Self::handle_resolved_credentials(
+                            state_clone,
+                            notebook_clone,
+                            split_view_clone,
+                            sidebar_clone,
+                            monitoring_clone,
+                            connection_id,
+                            protocol_type,
+                            None,
+                            None,
+                            activity_clone,
+                        );
+                    }
+                    CredentialResolutionResult::VariableMissing {
+                        variable_name,
+                        description,
+                        ..
+                    } => {
+                        // Show variable setup dialog so the user can enter the value
+                        let conn_name = state_clone
+                            .try_borrow()
+                            .ok()
+                            .and_then(|s| s.get_connection(connection_id).map(|c| c.name.clone()))
+                            .unwrap_or_default();
+                        let backend_names = ["LibSecret", "KeePassXC", "Bitwarden", "1Password"];
+                        let backend_refs: Vec<&str> = backend_names.to_vec();
+
+                        {
+                            let state_var = state_clone.clone();
+                            let notebook_var = notebook_clone.clone();
+                            let split_var = split_view_clone.clone();
+                            let sidebar_var = sidebar_clone.clone();
+                            let monitoring_var = monitoring_clone.clone();
+                            let activity_var = activity_clone.clone();
+                            let variable_name_owned = variable_name.clone();
+
+                            crate::dialogs::show_variable_setup_dialog(
+                                notebook_clone.widget(),
+                                &conn_name,
+                                &variable_name,
+                                description.as_deref(),
+                                &backend_refs,
+                                move |response| {
+                                    if let crate::dialogs::VariableSetupResponse::Save { value, .. } = response {
+                                        // Save the variable value and retry connection
+                                        if let Ok(state_ref) = state_var.try_borrow() {
+                                            let settings = state_ref.settings().secrets.clone();
+                                            let _ = crate::state::save_variable_to_vault(&settings, &variable_name_owned, &value);
+                                        }
+                                        // Retry with the newly saved variable
+                                        Self::handle_resolved_credentials(
+                                            state_var.clone(),
+                                            notebook_var.clone(),
+                                            split_var.clone(),
+                                            sidebar_var.clone(),
+                                            monitoring_var.clone(),
+                                            connection_id,
+                                            protocol_type,
+                                            None,
+                                            None,
+                                            activity_var.clone(),
+                                        );
+                                    }
+                                    // Cancel — do nothing, connection is not started
+                                },
+                            );
+                        }
+                    }
+                    CredentialResolutionResult::BackendNotConfigured { .. } => {
+                        // Show backend missing dialog
+                        {
+                            let state_be = state_clone.clone();
+                            let notebook_be = notebook_clone.clone();
+                            let split_be = split_view_clone.clone();
+                            let sidebar_be = sidebar_clone.clone();
+                            let monitoring_be = monitoring_clone.clone();
+                            let activity_be = activity_clone.clone();
+
+                            crate::dialogs::show_backend_missing_dialog(
+                                notebook_clone.widget(),
+                                move |response| {
+                                    match response {
+                                        crate::dialogs::BackendMissingResponse::EnterManually => {
+                                            // Proceed without credentials — protocol handler will prompt
+                                            Self::handle_resolved_credentials(
+                                                state_be.clone(),
+                                                notebook_be.clone(),
+                                                split_be.clone(),
+                                                sidebar_be.clone(),
+                                                monitoring_be.clone(),
+                                                connection_id,
+                                                protocol_type,
+                                                None,
+                                                None,
+                                                activity_be.clone(),
+                                            );
+                                        }
+                                        crate::dialogs::BackendMissingResponse::OpenSettings => {
+                                            // Connection not started — user will retry after configuring
+                                            tracing::info!("User chose to open settings to configure secret backend");
+                                        }
+                                    }
+                                },
+                            );
+                        }
+                    }
+                    CredentialResolutionResult::VaultEntryMissing { .. } => {
+                        // Vault entry not found — proceed without credentials,
+                        // protocol handler will prompt for password
+                        Self::handle_resolved_credentials(
+                            state_clone,
+                            notebook_clone,
+                            split_view_clone,
+                            sidebar_clone,
+                            monitoring_clone,
+                            connection_id,
+                            protocol_type,
+                            None,
+                            None,
+                            activity_clone,
+                        );
+                    }
+                }
             });
         }
     }
