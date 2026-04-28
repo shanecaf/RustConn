@@ -13,6 +13,7 @@ License:        GPL-3.0-or-later
 URL:            https://github.com/totoshko88/RustConn
 Source0:        %{name}-%{version}.tar.xz
 Source1:        vendor.tar.zst
+Source2:        rust-toolchain.tar.zst
 
 # Rust 1.95+ required (MSRV)
 # openSUSE: use devel:languages:rust repo for Rust 1.95+
@@ -25,21 +26,13 @@ BuildRequires:  cargo-packaging
 BuildRequires:  alsa-devel
 %endif
 
-%if 0%{?fedora} >= 42
-BuildRequires:  cargo >= 1.95
-BuildRequires:  rust >= 1.95
-BuildRequires:  alsa-lib-devel
-%endif
-
-%if 0%{?fedora} && 0%{?fedora} < 42
-# Older Fedora: use rustup
-BuildRequires:  curl
+%if 0%{?fedora}
+# Rust provided via bundled toolchain (rust-toolchain.tar.zst)
 BuildRequires:  alsa-lib-devel
 %endif
 
 %if 0%{?rhel}
-# RHEL: use rustup
-BuildRequires:  curl
+# Rust provided via bundled toolchain (rust-toolchain.tar.zst)
 BuildRequires:  alsa-lib-devel
 %endif
 
@@ -52,7 +45,12 @@ BuildRequires:  pkgconfig(openssl)
 BuildRequires:  zstd
 BuildRequires:  gcc
 BuildRequires:  make
+%if 0%{?suse_version}
 BuildRequires:  gettext-tools
+%endif
+%if 0%{?fedora} || 0%{?rhel}
+BuildRequires:  gettext-devel
+%endif
 
 # Runtime dependencies
 %if 0%{?suse_version}
@@ -133,15 +131,12 @@ Productivity:
 %prep
 %autosetup -a1 -n %{name}-%{version}
 
-# Install rustup for older Fedora/RHEL (system Rust < 1.95)
-%if 0%{?fedora} && 0%{?fedora} < 42
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.95.0 --profile minimal
-export PATH="$HOME/.cargo/bin:$PATH"
-%endif
-
-%if 0%{?rhel}
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.95.0 --profile minimal
-export PATH="$HOME/.cargo/bin:$PATH"
+# Unpack standalone Rust toolchain for Fedora/RHEL (OBS has no internet for rustup)
+%if 0%{?fedora} || 0%{?rhel}
+tar --zstd -xf %{SOURCE2}
+export PATH="$PWD/rust-toolchain/bin:$PATH"
+rustc --version
+cargo --version
 %endif
 
 mkdir -p .cargo
@@ -158,9 +153,9 @@ directory = "vendor"
 EOF
 
 %build
-# Ensure rustup path is available for older Fedora/RHEL
-%if (0%{?fedora} && 0%{?fedora} < 42) || 0%{?rhel}
-export PATH="$HOME/.cargo/bin:$PATH"
+# Use bundled Rust toolchain for Fedora/RHEL
+%if 0%{?fedora} || 0%{?rhel}
+export PATH="$PWD/rust-toolchain/bin:$PATH"
 %endif
 
 # Determine libadwaita feature flags based on distro version:
@@ -233,6 +228,10 @@ done
 %{_datadir}/mime/packages/io.github.totoshko88.RustConn-rdp.xml
 %{_datadir}/metainfo/io.github.totoshko88.RustConn.metainfo.xml
 %{_datadir}/icons/hicolor/*/apps/io.github.totoshko88.RustConn.*
+%dir %{_datadir}/locale/uz
+%dir %{_datadir}/locale/uz/LC_MESSAGES
+%dir %{_datadir}/locale/zh-cn
+%dir %{_datadir}/locale/zh-cn/LC_MESSAGES
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog

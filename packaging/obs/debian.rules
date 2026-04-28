@@ -2,13 +2,20 @@
 
 export DH_VERBOSE = 1
 export CARGO_HOME = $(CURDIR)/debian/cargo_home
+SOURCES_DIR = /usr/src/packages/SOURCES
 
 %:
 	dh $@
 
 override_dh_auto_configure:
-	# Install rustup with Rust 1.95
-	curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.95.0 --profile minimal
+	# Unpack standalone Rust toolchain (no internet needed)
+	# OBS keeps extra files in SOURCES_DIR, not in BUILD
+	tar --zstd -xf $(SOURCES_DIR)/rust-toolchain.tar.zst
+	export PATH="$(CURDIR)/rust-toolchain/bin:$$PATH"; \
+	rustc --version; \
+	cargo --version
+	# Unpack vendored dependencies
+	tar --zstd -xf $(SOURCES_DIR)/vendor.tar.zst
 	# Setup vendor config
 	mkdir -p .cargo
 	echo '[source.crates-io]' > .cargo/config.toml
@@ -22,10 +29,7 @@ override_dh_auto_configure:
 	echo 'directory = "vendor"' >> .cargo/config.toml
 
 override_dh_auto_build:
-	# Detect libadwaita version and set feature flags accordingly:
-	#   adw-1-8: libadwaita >= 1.8 (Ubuntu 26.04+)
-	#   adw-1-6: libadwaita >= 1.6 (Ubuntu 24.10, 25.04)
-	#   (none):  libadwaita 1.5 baseline (Ubuntu 24.04)
+	# Detect libadwaita version and set feature flags accordingly
 	ADW_VERSION=$$(pkg-config --modversion libadwaita-1 2>/dev/null | cut -d. -f1,2); \
 	ADW_FEATURES=""; \
 	case "$$ADW_VERSION" in \
@@ -34,28 +38,24 @@ override_dh_auto_build:
 		1.6*)       ADW_FEATURES="--features adw-1-6" ;; \
 	esac; \
 	echo "=== libadwaita $$ADW_VERSION => features: $$ADW_FEATURES ==="; \
-	. "$$HOME/.cargo/env" && cargo build --release -p rustconn $$ADW_FEATURES -p rustconn-cli
+	export PATH="$(CURDIR)/rust-toolchain/bin:$$PATH"; \
+	cargo build --release --offline -p rustconn $$ADW_FEATURES -p rustconn-cli
 
 override_dh_auto_install:
-	# Binaries
 	install -Dm755 target/release/rustconn debian/rustconn/usr/bin/rustconn
 	install -Dm755 target/release/rustconn-cli debian/rustconn/usr/bin/rustconn-cli
-	# Desktop file and metainfo
 	install -Dm644 rustconn/assets/io.github.totoshko88.RustConn.desktop \
 		debian/rustconn/usr/share/applications/io.github.totoshko88.RustConn.desktop
 	install -Dm644 rustconn/assets/io.github.totoshko88.RustConn.metainfo.xml \
 		debian/rustconn/usr/share/metainfo/io.github.totoshko88.RustConn.metainfo.xml
-	# Icons
 	install -Dm644 rustconn/assets/icons/hicolor/scalable/apps/io.github.totoshko88.RustConn.svg \
 		debian/rustconn/usr/share/icons/hicolor/scalable/apps/io.github.totoshko88.RustConn.svg
 	install -Dm644 rustconn/assets/icons/hicolor/128x128/apps/io.github.totoshko88.RustConn.png \
 		debian/rustconn/usr/share/icons/hicolor/128x128/apps/io.github.totoshko88.RustConn.png
 	install -Dm644 rustconn/assets/icons/hicolor/256x256/apps/io.github.totoshko88.RustConn.png \
 		debian/rustconn/usr/share/icons/hicolor/256x256/apps/io.github.totoshko88.RustConn.png
-	# MIME type for .rdp files
 	install -Dm644 rustconn/assets/io.github.totoshko88.RustConn-rdp.xml \
 		debian/rustconn/usr/share/mime/packages/io.github.totoshko88.RustConn-rdp.xml
-	# Locale files (compile .po to .mo)
 	for po_file in po/*.po; do \
 		[ -f "$$po_file" ] || continue; \
 		lang=$$(basename "$$po_file" .po); \
@@ -65,3 +65,6 @@ override_dh_auto_install:
 
 override_dh_auto_test:
 	# Skip tests during package build
+
+override_dh_auto_clean:
+	rm -rf rust-toolchain vendor .cargo target

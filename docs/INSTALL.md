@@ -169,7 +169,7 @@ chmod +x RustConn-*-x86_64.AppImage
 ./RustConn-*-x86_64.AppImage
 ```
 
-## Ubuntu / Debian (OBS Repository)
+## Debian / Ubuntu (OBS Repository)
 
 Pre-built packages are available from the openSUSE Build Service:
 
@@ -200,9 +200,8 @@ sudo apt install rustconn
 ```
 
 Debian 12 (bookworm) is not supported — GTK4 4.8 is too old (4.14+ required).
-Feature flags are auto-detected: `adw-1-8` on Ubuntu 26.04, `adw-1-7` on Debian 13, baseline on Ubuntu 24.04.
 
-## Debian/Ubuntu (Manual .deb)
+Alternatively, download `.deb` from [GitHub Releases](https://github.com/totoshko88/RustConn/releases):
 
 ```bash
 sudo dpkg -i rustconn_*_amd64.deb

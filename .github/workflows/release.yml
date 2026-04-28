@@ -446,8 +446,24 @@ jobs:
           tar --zstd -cf vendor.tar.zst vendor/
           echo "=== Vendor tarball created ==="
           ls -lh vendor.tar.zst
-          echo "=== Checking for gdk4-wayland ==="
-          ls vendor/ | grep -i gdk4 || echo "Warning: no gdk4 packages found"
+
+      - name: Create standalone Rust toolchain for OBS Debian/Ubuntu/Fedora builds
+        run: |
+          # OBS VMs have no internet — bundle Rust toolchain as a tarball
+          # IMPORTANT: copy from sysroot, not from ~/.cargo/bin (those are rustup shims)
+          SYSROOT=$(rustc --print sysroot)
+          RUST_VERSION=$(rustc --version | grep -oP '\d+\.\d+\.\d+')
+          echo "Bundling Rust toolchain $RUST_VERSION from $SYSROOT"
+          mkdir -p rust-toolchain
+          cp -r "$SYSROOT/bin" rust-toolchain/
+          cp -r "$SYSROOT/lib" rust-toolchain/
+          # Verify these are real binaries, not rustup shims
+          file rust-toolchain/bin/rustc
+          rust-toolchain/bin/rustc --version
+          rust-toolchain/bin/cargo --version
+          tar --zstd -cf rust-toolchain.tar.zst rust-toolchain/
+          echo "=== Rust toolchain tarball created ==="
+          ls -lh rust-toolchain.tar.zst
 
       - name: Get version from tag
         id: version
@@ -561,6 +577,11 @@ jobs:
           cp vendor.tar.zst "$OBS_DIR/vendor.tar.zst"
           echo "=== Vendor tarball copied to OBS ==="
           ls -lh "$OBS_DIR/vendor.tar.zst"
+          
+          # Copy Rust toolchain tarball for Debian/Ubuntu builds
+          cp rust-toolchain.tar.zst "$OBS_DIR/rust-toolchain.tar.zst"
+          echo "=== Rust toolchain tarball copied to OBS ==="
+          ls -lh "$OBS_DIR/rust-toolchain.tar.zst"
 
       - name: Commit to OBS
         run: |

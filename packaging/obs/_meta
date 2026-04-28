@@ -31,22 +31,24 @@
     <arch>x86_64</arch>
   </repository>
   
-  <!-- Debian 13 (Trixie) — GTK4 4.18, libadwaita 1.7, Rust via rustup
-       openSUSE:Tools provides obs-service-* packages for buildtime services -->
+  <!-- Debian 13 (Trixie) — GTK4 4.18, libadwaita 1.7
+       Rust 1.95 provided via standalone toolchain in rust-toolchain.tar.zst -->
   <repository name="Debian_13">
     <path project="openSUSE:Tools" repository="Debian_13"/>
     <path project="Debian:13" repository="standard"/>
     <arch>x86_64</arch>
   </repository>
   
-  <!-- Ubuntu 24.04 LTS (Noble) — GTK4 4.14, libadwaita 1.5, Rust via rustup -->
+  <!-- Ubuntu 24.04 LTS (Noble) — GTK4 4.14, libadwaita 1.5
+       Rust 1.95 provided via standalone toolchain in rust-toolchain.tar.zst -->
   <repository name="xUbuntu_24.04">
     <path project="openSUSE:Tools" repository="xUbuntu_24.04"/>
     <path project="Ubuntu:24.04" repository="universe"/>
     <arch>x86_64</arch>
   </repository>
   
-  <!-- Ubuntu 26.04 LTS (Resolute) — GNOME 50, GTK4 4.18, libadwaita 1.9, Rust via rustup -->
+  <!-- Ubuntu 26.04 LTS (Resolute) — GNOME 50, GTK4 4.18, libadwaita 1.9
+       Rust 1.95 provided via standalone toolchain in rust-toolchain.tar.zst -->
   <repository name="xUbuntu_26.04">
     <path project="openSUSE:Tools" repository="xUbuntu_26.04"/>
     <path project="Ubuntu:26.04" repository="universe"/>
