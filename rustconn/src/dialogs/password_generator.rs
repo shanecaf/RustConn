@@ -87,6 +87,9 @@ pub fn show_password_generator_dialog(parent: Option<&impl IsA<gtk4::Window>>) {
         .tooltip_text(i18n("Generate new password"))
         .valign(gtk4::Align::Center)
         .build();
+    generate_btn.update_property(&[gtk4::accessible::Property::Label(&i18n(
+        "Generate new password",
+    ))]);
     password_box.append(&password_entry);
     password_box.append(&generate_btn);
     password_group.add(&password_box);

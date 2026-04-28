@@ -672,6 +672,9 @@ pub(super) fn create_highlight_rule_row(
         .tooltip_text(i18n("Delete rule"))
         .valign(gtk4::Align::Center)
         .build();
+    delete_button.update_property(&[gtk4::accessible::Property::Label(&i18n(
+        "Delete highlight rule",
+    ))]);
 
     hbox.append(&name_entry);
     hbox.append(&pattern_entry);

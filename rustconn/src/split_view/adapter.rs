@@ -1151,6 +1151,9 @@ impl SplitViewAdapter {
         close_button.add_css_class("flat");
         close_button.add_css_class("circular");
         close_button.add_css_class("panel-close-button");
+        close_button.update_property(&[gtk4::accessible::Property::Label(&i18n(
+            "Close split view panel",
+        ))]);
 
         // Create overlay to position close button over status page
         let overlay = Overlay::new();

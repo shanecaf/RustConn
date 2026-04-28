@@ -72,6 +72,9 @@ pub fn create_ssh_agent_page() -> (
         .valign(gtk4::Align::Center)
         .tooltip_text(i18n("Refresh status"))
         .build();
+    ssh_agent_refresh_button.update_property(&[gtk4::accessible::Property::Label(&i18n(
+        "Refresh SSH agent status",
+    ))]);
 
     let buttons_box = GtkBox::builder()
         .orientation(Orientation::Horizontal)
@@ -380,6 +383,9 @@ pub fn populate_available_keys_list(
                         .valign(gtk4::Align::Center)
                         .tooltip_text(i18n("Load this key"))
                         .build();
+                    load_button.update_property(&[gtk4::accessible::Property::Label(&i18n(
+                        "Load SSH key into agent",
+                    ))]);
 
                     // Connect load button handler
                     let manager_clone = manager.clone();
@@ -628,6 +634,9 @@ fn create_loaded_key_row(
         .tooltip_text(i18n("Remove from agent"))
         .css_classes(["destructive-action", "flat"])
         .build();
+    remove_button.update_property(&[gtk4::accessible::Property::Label(&i18n(
+        "Remove key from SSH agent",
+    ))]);
 
     // Connect remove button handler
     let manager_clone = ssh_agent_manager.clone();

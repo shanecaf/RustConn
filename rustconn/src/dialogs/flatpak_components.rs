@@ -284,6 +284,9 @@ impl FlatpakComponentsDialog {
             .visible(false)
             .build();
         cancel_button.add_css_class("flat");
+        cancel_button.update_property(&[gtk4::accessible::Property::Label(&i18n(
+            "Cancel component operation",
+        ))]);
         row.add_suffix(&cancel_button);
 
         // Update button (visible only when installed and downloadable)
@@ -294,6 +297,8 @@ impl FlatpakComponentsDialog {
             .visible(is_installed && component.is_downloadable())
             .build();
         update_button.add_css_class("flat");
+        update_button
+            .update_property(&[gtk4::accessible::Property::Label(&i18n("Update component"))]);
         row.add_suffix(&update_button);
 
         // Action button (Install/Remove)

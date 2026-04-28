@@ -610,7 +610,7 @@ impl MainWindow {
                     match state_mut.sync_now_group(root_group_id) {
                         Ok(report) => {
                             let msg = crate::i18n::i18n_f(
-                                "Synced '%1': +%2 connections, ~%3 updated, -%4 removed",
+                                "Synced '{}': +{} connections, ~{} updated, -{} removed",
                                 &[
                                     &report.group_name,
                                     &report.connections_added.to_string(),
@@ -624,7 +624,7 @@ impl MainWindow {
                             Self::reload_sidebar_preserving_state(&state_clone, &sidebar_clone);
                         }
                         Err(e) => {
-                            let msg = crate::i18n::i18n_f("Sync failed: %1", &[&e]);
+                            let msg = crate::i18n::i18n_f("Sync failed: {}", &[&e]);
                             toast_clone.show_error(&msg);
                         }
                     }

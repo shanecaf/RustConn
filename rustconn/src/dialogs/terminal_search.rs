@@ -105,12 +105,14 @@ impl TerminalSearchDialog {
             .icon_name("go-up-symbolic")
             .tooltip_text(&i18n("Previous match"))
             .build();
+        prev_btn.update_property(&[gtk4::accessible::Property::Label(&i18n("Previous match"))]);
         nav_box.append(&prev_btn);
 
         let next_btn = Button::builder()
             .icon_name("go-down-symbolic")
             .tooltip_text(&i18n("Next match"))
             .build();
+        next_btn.update_property(&[gtk4::accessible::Property::Label(&i18n("Next match"))]);
         nav_box.append(&next_btn);
 
         let match_label = Label::builder()

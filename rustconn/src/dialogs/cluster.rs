@@ -529,24 +529,33 @@ impl ClusterListDialog {
             .tooltip_text(&i18n("Connect to cluster"))
             .css_classes(["flat"])
             .build();
+        connect_button.update_property(&[gtk4::accessible::Property::Label(&i18n(
+            "Connect to cluster",
+        ))]);
 
         let disconnect_button = Button::builder()
             .icon_name("media-playback-stop-symbolic")
             .tooltip_text(&i18n("Disconnect all cluster sessions"))
             .css_classes(["flat"])
             .build();
+        disconnect_button.update_property(&[gtk4::accessible::Property::Label(&i18n(
+            "Disconnect all cluster sessions",
+        ))]);
 
         let edit_button = Button::builder()
             .icon_name("document-edit-symbolic")
             .tooltip_text(&i18n("Edit cluster"))
             .css_classes(["flat"])
             .build();
+        edit_button.update_property(&[gtk4::accessible::Property::Label(&i18n("Edit cluster"))]);
 
         let delete_button = Button::builder()
             .icon_name("user-trash-symbolic")
             .tooltip_text(&i18n("Delete cluster"))
             .css_classes(["flat", "destructive-action"])
             .build();
+        delete_button
+            .update_property(&[gtk4::accessible::Property::Label(&i18n("Delete cluster"))]);
 
         hbox.append(&connect_button);
         hbox.append(&disconnect_button);

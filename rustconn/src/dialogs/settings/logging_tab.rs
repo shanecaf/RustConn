@@ -76,6 +76,9 @@ pub fn create_logging_page() -> (
         .tooltip_text(i18n("Open logs directory"))
         .sensitive(false)
         .build();
+    open_logs_btn.update_property(&[gtk4::accessible::Property::Label(&i18n(
+        "Open logs directory",
+    ))]);
     let open_logs_row = adw::ActionRow::builder()
         .title(i18n("Open Logs Directory"))
         .activatable(true)

@@ -989,6 +989,9 @@ pub fn create_secrets_page() -> SecretsPageWidgets {
         .valign(gtk4::Align::Center)
         .tooltip_text(i18n("Choose password store directory"))
         .build();
+    pass_store_dir_browse_button.update_property(&[gtk4::accessible::Property::Label(&i18n(
+        "Choose password store directory",
+    ))]);
 
     let pass_dir_box = GtkBox::builder()
         .orientation(Orientation::Horizontal)
@@ -1072,6 +1075,9 @@ pub fn create_secrets_page() -> SecretsPageWidgets {
         .valign(gtk4::Align::Center)
         .tooltip_text(i18n("Browse for database file"))
         .build();
+    kdbx_browse_button.update_property(&[gtk4::accessible::Property::Label(&i18n(
+        "Browse for KeePass database file",
+    ))]);
     let kdbx_path_box = GtkBox::builder()
         .orientation(Orientation::Horizontal)
         .spacing(6)
@@ -1193,6 +1199,9 @@ pub fn create_secrets_page() -> SecretsPageWidgets {
         .valign(gtk4::Align::Center)
         .tooltip_text(i18n("Browse for key file"))
         .build();
+    kdbx_key_file_browse_button.update_property(&[gtk4::accessible::Property::Label(&i18n(
+        "Browse for key file",
+    ))]);
     let key_file_box = GtkBox::builder()
         .orientation(Orientation::Horizontal)
         .spacing(6)

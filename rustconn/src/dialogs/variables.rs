@@ -207,6 +207,8 @@ impl VariablesDialog {
             .css_classes(["destructive-action", "flat"])
             .tooltip_text(i18n("Delete variable"))
             .build();
+        delete_button
+            .update_property(&[gtk4::accessible::Property::Label(&i18n("Delete variable"))]);
 
         grid.attach(&name_label, 0, 0, 1, 1);
         grid.attach(&name_entry, 1, 0, 1, 1);

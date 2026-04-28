@@ -49,6 +49,9 @@ pub fn show_sessions_manager(
         .icon_name("view-refresh-symbolic")
         .tooltip_text(&i18n("Refresh"))
         .build();
+    refresh_btn.update_property(&[gtk4::accessible::Property::Label(&i18n(
+        "Refresh session list",
+    ))]);
     header.pack_start(&close_btn);
     header.pack_end(&refresh_btn);
 

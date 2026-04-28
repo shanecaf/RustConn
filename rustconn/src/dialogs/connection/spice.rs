@@ -104,6 +104,9 @@ fn create_security_group() -> (
         .icon_name("folder-open-symbolic")
         .tooltip_text(i18n("Browse for certificate"))
         .build();
+    ca_cert_button.update_property(&[gtk4::accessible::Property::Label(&i18n(
+        "Browse for CA certificate file",
+    ))]);
     ca_cert_box.append(&ca_cert_entry);
     ca_cert_box.append(&ca_cert_button);
 

@@ -73,6 +73,9 @@ pub fn create_keybindings_page() -> (adw::PreferencesPage, Rc<RefCell<Keybinding
                 .tooltip_text(&i18n("Reset to default"))
                 .css_classes(["flat"])
                 .build();
+            reset_btn.update_property(&[gtk4::accessible::Property::Label(&i18n(
+                "Reset keybinding to default",
+            ))]);
 
             row.add_suffix(&accel_label);
             row.add_suffix(&record_btn);

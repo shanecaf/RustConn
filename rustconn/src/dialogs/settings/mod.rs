@@ -1148,6 +1148,9 @@ fn create_settings_highlight_rule_row(
         .valign(gtk4::Align::Center)
         .build();
     delete_button.set_widget_name("hl_delete");
+    delete_button.update_property(&[gtk4::accessible::Property::Label(&i18n(
+        "Delete highlight rule",
+    ))]);
 
     hbox.append(&name_entry);
     hbox.append(&pattern_entry);

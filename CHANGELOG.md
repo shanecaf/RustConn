@@ -5,6 +5,22 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.3] - 2026-04-28
+
+### Fixed
+- **Sync toast shows raw placeholders instead of values** — the Cloud Sync notification displayed `%1`, `%2`, `%3`, `%4` instead of actual connection counts because `i18n_f()` only supports `{}` placeholders; changed both sync message strings and all 16 translations to use `{}` format
+
+### Accessibility
+- **Icon-only buttons missing accessible labels** — added `update_property(accessible::Property::Label)` with `i18n()` wrappers to 24 icon-only buttons across 15 files (password generator, terminal search, history, cluster management, split view, SSH agent, settings tabs, flatpak components); screen readers now correctly announce button purpose instead of just the icon name
+
+### Dependencies
+- Teleport CLI 18.7.4 → 18.7.6
+- clap_complete 4.6.2 → 4.6.3
+- gio 0.22.5 → 0.22.6, glib 0.22.5 → 0.22.6, glib-macros 0.22.2 → 0.22.6
+- gtk4 0.11.2 → 0.11.3
+- pango 0.22.4 → 0.22.6
+- zbus 5.14.0 → 5.15.0, zvariant 5.10.0 → 5.10.1
+
 ## [0.12.2] - 2026-04-26
 
 ### Fixed

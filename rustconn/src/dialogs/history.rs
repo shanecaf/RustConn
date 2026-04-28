@@ -302,6 +302,9 @@ impl HistoryDialog {
             .valign(gtk4::Align::Center)
             .tooltip_text(i18n("Remove from history"))
             .build();
+        delete_btn.update_property(&[gtk4::accessible::Property::Label(&i18n(
+            "Remove entry from history",
+        ))]);
 
         let entries_ref = self.entries.clone();
         let list_box_ref = self.list_box.clone();

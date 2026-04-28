@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.12.2
+Version:        0.12.3
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -236,6 +236,17 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Tue Apr 28 2026 Anton Isaiev <totoshko88@gmail.com> - 0.12.3-0
+- [Fixed] Sync toast shows raw placeholders instead of values —
+  i18n_f() only supports {} placeholders; changed both sync message
+  strings and all 16 translations to use {} format
+- [Accessibility] Added accessible labels to 24 icon-only buttons
+  across 15 files for screen reader support
+- [Dependencies] Teleport CLI 18.7.4 → 18.7.6
+- [Dependencies] clap_complete 4.6.2 → 4.6.3, gio 0.22.5 → 0.22.6,
+  glib 0.22.5 → 0.22.6, gtk4 0.11.2 → 0.11.3, pango 0.22.4 → 0.22.6,
+  zbus 5.14.0 → 5.15.0, zvariant 5.10.0 → 5.10.1
+
 * Sun Apr 26 2026 Anton Isaiev <totoshko88@gmail.com> - 0.12.2-0
 - [Fixed] Flatpak SFTP ssh-add fails with missing askpass — strips
   SSH_ASKPASS from the environment for bare ssh-add calls (#102)
