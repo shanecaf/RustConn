@@ -16,6 +16,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Setup LXD
+        uses: canonical/setup-lxd@main
+
       - name: Install Snapcraft
         run: sudo snap install snapcraft --classic
 
