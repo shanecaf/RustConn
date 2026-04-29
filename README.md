@@ -7,7 +7,7 @@
 </p>
 <p align="center">
   <a href="https://flathub.org/apps/io.github.totoshko88.RustConn"><img src="https://img.shields.io/flathub/v/io.github.totoshko88.RustConn" alt="Flathub"></a>
-  <a href="https://snapcraft.io/rustconn"><img src="https://img.shields.io/badge/snap-rustconn-blue" alt="Snap"></a>
+  <a href="https://snapcraft.io/rustconn"><img src="https://img.shields.io/snapcraft/v/rustconn/latest/edge" alt="Snap"></a>
   <a href="https://aur.archlinux.org/packages/rustconn"><img src="https://img.shields.io/aur/version/rustconn" alt="AUR"></a>
   <a href="https://build.opensuse.org/package/show/home:totoshko88:rustconn/rustconn"><img src="https://img.shields.io/badge/OBS-rustconn-green" alt="OBS"></a>
   <a href="https://www.freshports.org/net/rustconn/"><img src="https://img.shields.io/badge/FreeBSD-ports-red" alt="FreeBSD"></a>
