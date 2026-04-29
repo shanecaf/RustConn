@@ -131,6 +131,18 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.12.5" date="2026-04-29">
+      <description>
+        <p>Version 0.12.5 — Bug fixes for settings dialog and tray icon:</p>
+        <ul>
+          <li>Fixed Settings dialog overflows after Hoop.dev install — added dedicated JSON version parser</li>
+          <li>Fixed kubectl version not shown in settings — switched to compatible kubectl version --client parsing</li>
+          <li>Fixed tray icon SIGSEGV on restart — explicitly drops TrayManager in shutdown handler</li>
+          <li>Fixed Teleport CLI download URL 404 — corrected pinned version to 18.7.5</li>
+          <li>Hoop.dev CLI 1.56.1 → 1.59.3, Teleport CLI 18.7.6 → 18.7.5</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.12.4" date="2026-04-28">
       <description>
         <p>Version 0.12.4 — Dead code cleanup and dependency updates:</p>

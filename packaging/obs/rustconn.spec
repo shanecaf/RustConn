@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.12.4
+Version:        0.12.5
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -235,6 +235,21 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Tue Apr 29 2026 Anton Isaiev <totoshko88@gmail.com> - 0.12.5-1
+- [Fixed] Settings dialog overflows after Hoop.dev install — hoop
+  version outputs JSON; added dedicated parser that extracts only
+  the version field
+- [Fixed] kubectl version not shown in settings — kubectl version
+  --client --short fails on kubectl >= 1.28; switched to kubectl
+  version --client and parse Client Version: vX.Y.Z
+- [Fixed] Tray icon SIGSEGV on restart — connect_shutdown did not
+  drop the TrayManager; now explicitly drops tray manager in shutdown
+  handler before flushing persistence
+- [Fixed] Teleport CLI download URL 404 — pinned version 18.7.6 did
+  not exist on the CDN; corrected to 18.7.5
+- [Dependencies] Hoop.dev CLI 1.56.1 → 1.59.3
+- [Dependencies] Teleport CLI 18.7.6 → 18.7.5 (URL fix)
+
 * Tue Apr 28 2026 Anton Isaiev <totoshko88@gmail.com> - 0.12.4-0
 - [Cleaned] Removed dead mosh.rs dialog module — MOSH settings already
   integrated into SSH tab via ssh::create_ssh_options()

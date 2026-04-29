@@ -496,16 +496,22 @@ fn detect_k8s_clients() -> Vec<ClientInfo> {
     let installed = command_path.is_some();
     let version = command_path.as_ref().and_then(|p| {
         let extended_path = rustconn_core::cli_download::get_extended_path();
+        // `--short` was removed in kubectl v1.28; use `--client` only.
+        // Output format: "Client Version: v1.36.0"
         let output = std::process::Command::new(p)
-            .args(["version", "--client", "--short"])
+            .args(["version", "--client"])
             .env("PATH", &extended_path)
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
             .output()
             .ok()?;
         let stdout = String::from_utf8_lossy(&output.stdout);
-        let line = stdout.lines().next()?.trim().to_string();
-        if line.is_empty() { None } else { Some(line) }
+        // Extract version from "Client Version: vX.Y.Z"
+        stdout.lines().find_map(|line| {
+            line.strip_prefix("Client Version:")
+                .map(|v| v.trim().to_string())
+                .filter(|s| !s.is_empty())
+        })
     });
     let path_str = command_path.as_ref().map(|p| p.display().to_string());
 
@@ -773,6 +779,36 @@ fn parse_version_output(command: &str, output: &str) -> Option<String> {
             .next()
             .map(|line| line.trim().to_string())
             .filter(|s| !s.is_empty()),
+
+        "hoop" => {
+            // `hoop version` outputs JSON: {"version":"1.59.3","git_commit":"...","build_date":"..."}
+            // Extract the "version" field value.
+            let trimmed = output.trim();
+            if trimmed.starts_with('{') {
+                // Simple JSON extraction without serde — find "version":"<value>"
+                trimmed
+                    .split("\"version\"")
+                    .nth(1)
+                    .and_then(|rest| {
+                        // skip colon and optional whitespace, then grab quoted value
+                        let after_colon = rest.trim_start().strip_prefix(':')?;
+                        let after_ws = after_colon.trim_start().strip_prefix('"')?;
+                        let end = after_ws.find('"')?;
+                        Some(after_ws[..end].to_string())
+                    })
+                    .or_else(|| {
+                        // Fallback: return first 30 chars to avoid blowing up the UI
+                        Some(trimmed.chars().take(30).collect())
+                    })
+            } else {
+                // Plain text output — take first line
+                output
+                    .lines()
+                    .next()
+                    .map(|line| line.trim().to_string())
+                    .filter(|s| !s.is_empty())
+            }
+        }
 
         "oci" => output
             .lines()

@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "name": "Release Version",
+  "description": "Automates the full release process: bumps version in all packaging files, propagates changelog, regenerates cargo-sources.json, and verifies consistency. Trigger manually and provide the version number (e.g. \"0.12.6\") in your message.",
+  "version": "1",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "The user wants to finalize a release. Read the `rustconn` power steering file `release.md` for the full checklist. Then perform ALL of the following steps:\n\n1. **Read version** from user message (e.g. \"0.12.6\"). If not provided, ask.\n\n2. **Cargo.toml** — set `[workspace.package] version` to the new version.\n\n3. **CHANGELOG.md** — verify a `## [X.Y.Z] - YYYY-MM-DD` section exists. If not, ask user to write it first.\n\n4. **Propagate changelog** to ALL of these files (convert format as needed):\n   - `debian/changelog` (Debian format, prepend)\n   - `packaging/obs/debian.changelog` (same Debian format, prepend)\n   - `packaging/obs/rustconn.changes` (OBS format, prepend)\n   - `packaging/obs/rustconn.spec` (update `Version:` field + add `%changelog` entry)\n   - `rustconn/assets/io.github.totoshko88.RustConn.metainfo.xml` (add `<release>` entry)\n\n5. **Update version strings** in:\n   - `snap/snapcraft.yaml` → `version: 'X.Y.Z'`\n   - `packaging/obs/AppImageBuilder.yml` → `version: X.Y.Z`\n   - `packaging/flatpak/io.github.totoshko88.RustConn.yml` → `tag: vX.Y.Z`\n   - `packaging/flathub/io.github.totoshko88.RustConn.yml` → `tag: vX.Y.Z`\n   - `packaging/obs/rustconn.dsc` → `Version: X.Y.Z-1` + tar filenames\n   - `packaging/obs/debian.dsc` → `Version: X.Y.Z-1` + `DEBTRANSFORM-TAR`\n   - `packaging/obs/_service` → `<param name=\"revision\">vX.Y.Z</param>`\n   - `docs/ARCHITECTURE.md` → `**Version X.Y.Z**`\n   - `docs/CI_BUILD_FLOW.md` → update example version strings\n\n6. **Regenerate Cargo.lock** — run `cargo generate-lockfile`\n\n7. **Regenerate cargo-sources.json** — run:\n   ```\n   python3 packaging/flatpak/flatpak-cargo-generator.py Cargo.lock -o packaging/flatpak/cargo-sources.json\n   cp packaging/flatpak/cargo-sources.json packaging/flathub/cargo-sources.json\n   ```\n\n8. **Verify consistency** — grep for the OLD version across the repo (excluding Cargo.lock, target/, .git/) and report any remaining references that are NOT historical changelog entries.\n\n9. **Run quality checks** — delegate to `rust-quality-check` sub-agent for fmt + clippy.\n\n10. **Report summary** — list all files modified and any issues found."
+  }
+}

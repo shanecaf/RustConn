@@ -186,11 +186,18 @@ fn build_ui(app: &adw::Application, tray_manager: SharedTrayManager) {
     setup_app_actions(app, &window, &state, tray_manager.clone());
 
     // Set up tray message polling
+    let tray_shutdown = tray_manager.clone();
     setup_tray_polling(app, &window, state.clone(), tray_manager);
 
-    // Connect shutdown signal to flush persistence
+    // Connect shutdown signal to flush persistence and drop tray manager.
+    // Dropping the tray manager before GTK tears down widgets prevents
+    // D-Bus callbacks from referencing already-finalized GObjects (SIGSEGV).
     let state_shutdown = state.clone();
     app.connect_shutdown(move |_| {
+        // Drop tray manager first — stops D-Bus service loop and releases
+        // any widget references held by tray state callbacks.
+        tray_shutdown.borrow_mut().take();
+
         if let Some(Err(e)) = try_with_state(&state_shutdown, |s| s.flush_persistence()) {
             tracing::error!(%e, "Failed to flush persistence on shutdown");
         }

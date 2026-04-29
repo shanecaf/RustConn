@@ -5,6 +5,18 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.5] - 2026-04-29
+
+### Fixed
+- **Settings dialog overflows after Hoop.dev install** — `hoop version` outputs JSON (`{"version":"1.59.3","git_commit":"...","build_date":"..."}`) which was displayed as-is in the version suffix label, stretching the `AdwToolbarView` to 1331 px and breaking the 700 px settings dialog layout; added a dedicated `hoop` parser that extracts only the `"version"` field
+- **kubectl version not shown in settings** — `kubectl version --client --short` fails on kubectl ≥ 1.28 (`error: unknown flag: --short`); switched to `kubectl version --client` and parse `Client Version: vX.Y.Z`
+- **Tray icon SIGSEGV on restart** — `connect_shutdown` did not drop the `TrayManager`, so D-Bus callbacks could reference already-finalized GObjects during GTK teardown; now explicitly drops the tray manager in the shutdown handler before flushing persistence
+- **Teleport CLI download URL 404** — pinned version 18.7.6 did not exist on the CDN; corrected to 18.7.5
+
+### Dependencies
+- Hoop.dev CLI 1.56.1 → 1.59.3
+- Teleport CLI 18.7.6 → 18.7.5 (URL fix)
+
 ## [0.12.4] - 2026-04-29
 
 ### Fixed
