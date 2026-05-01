@@ -16,4 +16,10 @@ ignore = [
     # paste unmaintained — transitive via ironrdp/sspi/cryptoki chain;
     # no upstream update available.
     "RUSTSEC-2024-0436",
+    # hickory-proto NSEC3 unbounded loop — transitive via sspi/ironrdp;
+    # pinned to 0.25.x, no safe upgrade available.
+    "RUSTSEC-2026-0118",
+    # hickory-proto O(n²) name compression CPU exhaustion — transitive
+    # via sspi/ironrdp; fix requires >=0.26.1, sspi pins 0.25.x.
+    "RUSTSEC-2026-0119",
 ]

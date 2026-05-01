@@ -247,6 +247,7 @@ mod tests {
 
         let val = cache.get().await.unwrap();
         assert_eq!(val.value, 1);
+        drop(val);
         assert_eq!(call_count.load(Ordering::SeqCst), 1);
     }
 
@@ -262,6 +263,7 @@ mod tests {
         // Second call should reuse cached value
         let val2 = cache.get().await.unwrap();
         assert_eq!(val2.value, 1);
+        drop(val2);
         assert_eq!(
             call_count.load(Ordering::SeqCst),
             1,
@@ -284,6 +286,7 @@ mod tests {
         let val2 = cache.get().await.unwrap();
         // Previous value (1) + call_count (1) + 1 = 3
         assert_eq!(val2.value, 3);
+        drop(val2);
         assert_eq!(
             call_count.load(Ordering::SeqCst),
             2,
@@ -318,8 +321,9 @@ mod tests {
 
         let result = cache.get().await;
         assert!(result.is_err());
-        assert_eq!(result.err().expect("expected error"), "construction failed");
-        // result is consumed by .err() above, no drop needed
+        let err = result.err().expect("expected error");
+        assert_eq!(err, "construction failed");
+        drop(err);
         assert!(!cache.is_valid().await);
     }
 

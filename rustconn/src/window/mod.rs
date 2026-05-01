@@ -2405,8 +2405,8 @@ impl MainWindow {
             // Handle CredentialResolutionResult variants with appropriate dialogs
             state_ref.resolve_credentials_gtk(connection_id, move |result| {
                 // Keep busy guard alive until the callback completes
-                let _busy_guard = busy_guard;
                 use rustconn_core::sync::CredentialResolutionResult;
+                let _busy_guard = busy_guard;
 
                 let resolution = match result {
                     Ok(r) => r,
@@ -3104,14 +3104,15 @@ impl MainWindow {
                     sidebar.update_connection_status(&connection_id.to_string(), "failed");
                     // Show connection failure toast with connection name
                     if let Ok(state_ref) = state.try_borrow()
-                        && let Some(conn) = state_ref.get_connection(connection_id) {
-                            let name = conn.name.clone();
-                            drop(state_ref);
-                            crate::toast::show_error_toast_on_active_window(&crate::i18n::i18n_f(
-                                "Connection to \u{2018}{}\u{2019} failed",
-                                &[&name],
-                            ));
-                        }
+                        && let Some(conn) = state_ref.get_connection(connection_id)
+                    {
+                        let name = conn.name.clone();
+                        drop(state_ref);
+                        crate::toast::show_error_toast_on_active_window(&crate::i18n::i18n_f(
+                            "Connection to \u{2018}{}\u{2019} failed",
+                            &[&name],
+                        ));
+                    }
                     return None;
                 }
             };
