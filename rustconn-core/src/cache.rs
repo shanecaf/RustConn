@@ -219,7 +219,7 @@ mod tests {
             params: &Self::Params,
         ) -> Result<Self, Self::Error> {
             let call_count = params.fetch_add(1, Ordering::SeqCst);
-            Ok(Counter {
+            Ok(Self {
                 value: previous.map_or(0, |p| p.value) + call_count + 1,
             })
         }

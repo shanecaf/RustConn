@@ -141,8 +141,7 @@ impl MainWindow {
         // GTK widgets are !Send, so we bridge via std::sync::mpsc channel.
         // The BusyStack callback (Send+Sync) sends a bool, and a
         // glib::idle_add_local receiver dispatches it on the main thread.
-        let (busy_tx, busy_rx) =
-            std::sync::mpsc::channel::<bool>();
+        let (busy_tx, busy_rx) = std::sync::mpsc::channel::<bool>();
         let busy_stack = rustconn_core::BusyStack::new(move |busy| {
             let _ = busy_tx.send(busy);
             // Wake the main loop so it processes the message promptly
@@ -691,7 +690,7 @@ impl MainWindow {
                             Self::reload_sidebar_preserving_state(&state_clone, &sidebar_clone);
                         }
                         Err(e) => {
-                            let error_str = e.to_string();
+                            let error_str = e.clone();
                             let msg = if error_str.contains("not configured")
                                 && rustconn_core::flatpak::is_flatpak()
                             {
@@ -3104,8 +3103,8 @@ impl MainWindow {
                 types::ConnectionStartResult::Failed => {
                     sidebar.update_connection_status(&connection_id.to_string(), "failed");
                     // Show connection failure toast with connection name
-                    if let Ok(state_ref) = state.try_borrow() {
-                        if let Some(conn) = state_ref.get_connection(connection_id) {
+                    if let Ok(state_ref) = state.try_borrow()
+                        && let Some(conn) = state_ref.get_connection(connection_id) {
                             let name = conn.name.clone();
                             drop(state_ref);
                             crate::toast::show_error_toast_on_active_window(&crate::i18n::i18n_f(
@@ -3113,7 +3112,6 @@ impl MainWindow {
                                 &[&name],
                             ));
                         }
-                    }
                     return None;
                 }
             };

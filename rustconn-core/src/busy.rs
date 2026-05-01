@@ -183,7 +183,7 @@ mod tests {
     #[test]
     fn test_clone_shares_state() {
         let is_busy = Arc::new(AtomicBool::new(false));
-        let is_busy_clone = is_busy.clone();
+        let is_busy_clone = is_busy;
 
         let stack1 = BusyStack::new(move |busy| {
             is_busy_clone.store(busy, Ordering::SeqCst);

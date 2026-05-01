@@ -258,7 +258,7 @@ mod tests {
     impl ConnectionStrategy for Unavailable {
         type Output = u32;
 
-        fn name(&self) -> &str {
+        fn name(&self) -> &'static str {
             "unavailable"
         }
 
