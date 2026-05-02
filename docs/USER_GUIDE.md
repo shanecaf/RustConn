@@ -1,6 +1,6 @@
 # RustConn User Guide
 
-**Version 0.12.9** | GTK4/libadwaita Connection Manager for Linux
+**Version 0.13.0** | GTK4/libadwaita Connection Manager for Linux
 
 RustConn is a modern connection manager designed for Linux with Wayland-first approach. It supports SSH, RDP, VNC, SPICE, MOSH, SFTP, Telnet, Serial, Kubernetes protocols and Zero Trust integrations through a native GTK4/libadwaita interface.
 
@@ -1992,11 +1992,70 @@ When connecting to a synced connection that references an unconfigured variable 
 
 - **Variable Not Configured** — an `AdwAlertDialog` prompts you to enter the variable value and select a storage backend (LibSecret, KeePassXC, Bitwarden, 1Password). Click "Save & Connect" to store the value and proceed, or "Cancel" to abort.
 - **Secret Backend Not Configured** — shown when the connection's password source references a vault that isn't set up on this device. Choose "Enter Password Manually" to proceed with a one-time password prompt, or "Open Settings" to configure the backend first.
-- **Vault Entry Missing** — if the vault is configured but the specific credential entry doesn't exist, the connection proceeds without stored credentials and the protocol handler prompts for a password (RDP/VNC password dialog, SSH terminal prompt).
+- **Vault Entry Missing** — if the vault is configured but the specific credential entry doesn't exist, a warning toast is shown ("Vault entry not found for '…'") and the connection proceeds without stored credentials; the protocol handler prompts for a password (RDP/VNC password dialog, SSH terminal prompt).
 
 **Sidebar sync indicators** show the current sync state for each synced group:
 - ⟳ (`emblem-synchronizing-symbolic`) — synced successfully, tooltip shows "Master — synced to cloud" or "Import — synced from cloud"
 - ⚠ (`dialog-warning-symbolic`) — last sync operation failed, tooltip shows the specific error (e.g. "Sync error: Parse error: invalid JSON")
+
+### Auto-Login with Stored Passwords
+
+RustConn can automatically fill SSH password prompts using credentials stored in your vault. For this to work:
+
+1. **Set Password Source to "Vault"** — in the connection dialog (Basic tab → Authentication → Password Source), select "Vault". Other sources (Prompt, None) will not trigger auto-login.
+
+2. **Store the password in your vault** — use the "Load from vault" button (📂) to verify the password is retrievable. The lookup key format depends on your backend:
+   - **KeePass/KDBX**: `RustConn/GroupName/ConnectionName (protocol)` — hierarchical path matching your group structure
+   - **Keyring (libsecret)**: `ConnectionName (protocol)` — e.g. "MyServer (ssh)"
+   - **Bitwarden/1Password/Passbolt/Pass**: `rustconn/ConnectionName`
+
+3. **Test before connecting** — click the ✓ button next to the password field to run a credential resolution test. It shows the exact lookup key used and whether the vault returned a password.
+
+4. **How it works at connect time**:
+   - RustConn resolves credentials from the vault asynchronously
+   - The resolved password is cached in memory for the session
+   - When the SSH terminal shows a `password:` prompt, the password is automatically sent
+   - The prompt is detected in 15+ languages (English, German, French, Spanish, Ukrainian, Chinese, Japanese, Korean, etc.)
+   - Passphrase prompts ("Enter passphrase for key…") are excluded to avoid sending the wrong secret
+
+#### Using Variables for Auto-Login
+
+Instead of storing passwords directly per-connection, you can use **Global Variables** (Menu → Tools → Variables) as a shared credential source:
+
+1. **Set Password Source to "Variable"** — select "Variable" and choose the variable name from the dropdown (e.g. `RADIUS`, `DEPLOY_KEY`).
+
+2. **Store the variable value** — go to Menu → Tools → Variables and create a secret variable with the password value. The value is stored in your configured vault backend.
+
+3. **First-time connection on a new device** — if the variable has not been configured on this device yet, RustConn shows a **"Variable Not Configured"** dialog:
+   - Enter the password value
+   - Select a storage backend (LibSecret, KeePassXC, Bitwarden, 1Password)
+   - Click "Save & Connect" to store the value and proceed immediately
+
+   This dialog only appears once per device. After saving, subsequent connections use the stored value automatically.
+
+4. **Sharing across connections** — multiple connections can reference the same variable. Update the variable value once and all connections pick up the new password at next connect.
+
+#### Password Source Summary
+
+| Source | Behavior | Auto-Login |
+|--------|----------|------------|
+| **Vault** | Resolves password from configured secret backend using connection name as lookup key | ✅ Yes |
+| **Variable** | Resolves password from a named Global Variable stored in vault | ✅ Yes |
+| **Script** | Executes an external command and uses stdout as password | ✅ Yes |
+| **Inherit** | Walks up the group hierarchy to find the first parent with Vault credentials | ✅ Yes |
+| **Prompt** | Always asks for password at connect time | ❌ No |
+| **None** | No password — relies on SSH keys or other auth methods | ❌ No |
+
+**Common issues:**
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| Password prompt appears despite vault configured | Password Source set to "Prompt" or "None" | Change to "Vault" or "Variable" in connection dialog |
+| "Vault entry not found" toast | Entry name in vault doesn't match lookup key | Use ✓ test button to see expected key, rename vault entry |
+| "Variable Not Configured" dialog appears | Variable value not stored on this device | Enter the value and click "Save & Connect" |
+| Password sent but rejected | Wrong password stored in vault | Update the vault entry with correct password |
+| Non-English prompt not detected | Unsupported language | Open an issue — we support 15+ languages |
+| KeePass lookup fails | Database locked or wrong path | Check Settings → Secrets → KDBX path and password |
 
 ---
 

@@ -101,16 +101,33 @@ fn matches_all(
         return false;
     }
 
-    // Host glob pattern filter
-    if folder.filter_host_pattern.is_some() {
-        match compiled_pattern {
-            Some(pattern) => {
-                if !pattern.matches(&conn.host) {
-                    return false;
-                }
-            }
-            // Invalid glob pattern → treat as non-matching
-            None => return false,
+    // Host glob pattern filter — matches against host OR connection name (case-insensitive).
+    // If the pattern contains glob metacharacters (* or ?), use glob matching.
+    // Additionally, always try substring containment (case-insensitive) so that
+    // a pattern like "*.dk" also matches names containing ".dk" anywhere.
+    if let Some(ref raw_pattern) = folder.filter_host_pattern {
+        let opts = glob::MatchOptions {
+            case_sensitive: false,
+            require_literal_separator: false,
+            require_literal_leading_dot: false,
+        };
+
+        let glob_match = compiled_pattern
+            .as_ref()
+            .is_some_and(|p| p.matches_with(&conn.host, opts) || p.matches_with(&conn.name, opts));
+
+        // Substring fallback: strip leading/trailing '*' and check containment
+        let needle = raw_pattern.trim_matches('*');
+        let substring_match = if needle.is_empty() {
+            true
+        } else {
+            let needle_lower = needle.to_lowercase();
+            conn.host.to_lowercase().contains(&needle_lower)
+                || conn.name.to_lowercase().contains(&needle_lower)
+        };
+
+        if !glob_match && !substring_match {
+            return false;
         }
     }
 

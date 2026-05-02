@@ -385,6 +385,18 @@ pub fn show_new_connection_from_template(
                 .as_ref()
                 .map(|p| p.expose_secret().to_string()),
             settings.secrets.kdbx_key_file.clone(),
+            groups.clone(),
+            settings.secrets.clone(),
+        );
+        dialog.connect_vault_test_button(
+            settings.secrets.kdbx_enabled,
+            settings.secrets.kdbx_path.clone(),
+            settings
+                .secrets
+                .kdbx_password
+                .as_ref()
+                .map(|p| p.expose_secret().to_string()),
+            settings.secrets.kdbx_key_file.clone(),
             groups,
             settings.secrets.clone(),
         );

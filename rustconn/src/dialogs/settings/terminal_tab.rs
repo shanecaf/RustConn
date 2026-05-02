@@ -31,6 +31,7 @@ pub fn create_terminal_page() -> (
     CheckButton, // sftp_use_mc
     CheckButton, // copy_on_select
     CheckButton, // show_scrollbar
+    CheckButton, // mouse_passthrough
 ) {
     let page = adw::PreferencesPage::builder()
         .title(i18n("Terminal"))
@@ -393,6 +394,21 @@ pub fn create_terminal_page() -> (
     copy_on_select_row.add_prefix(&copy_on_select_check);
     behavior_group.add(&copy_on_select_row);
 
+    // Mouse passthrough to terminal applications
+    let mouse_passthrough_check = CheckButton::builder()
+        .active(true)
+        .valign(gtk4::Align::Center)
+        .build();
+    let mouse_passthrough_row = adw::ActionRow::builder()
+        .title(i18n("Mouse passthrough"))
+        .subtitle(i18n(
+            "Forward mouse events to terminal apps (mc, vim, htop)",
+        ))
+        .activatable_widget(&mouse_passthrough_check)
+        .build();
+    mouse_passthrough_row.add_prefix(&mouse_passthrough_check);
+    behavior_group.add(&mouse_passthrough_row);
+
     page.add(&behavior_group);
 
     (
@@ -411,6 +427,7 @@ pub fn create_terminal_page() -> (
         sftp_use_mc_check,
         copy_on_select_check,
         show_scrollbar_check,
+        mouse_passthrough_check,
     )
 }
 
@@ -431,6 +448,7 @@ pub fn load_terminal_settings(
     sftp_use_mc_check: &CheckButton,
     copy_on_select_check: &CheckButton,
     show_scrollbar_check: &CheckButton,
+    mouse_passthrough_check: &CheckButton,
     settings: &TerminalSettings,
 ) {
     font_family_entry.set_text(&settings.font_family);
@@ -476,6 +494,7 @@ pub fn load_terminal_settings(
     sftp_use_mc_check.set_active(settings.sftp_use_mc);
     copy_on_select_check.set_active(settings.copy_on_select);
     show_scrollbar_check.set_active(settings.show_scrollbar);
+    mouse_passthrough_check.set_active(settings.mouse_passthrough);
 }
 
 /// Gets the toggle button at a specific index in a button box
@@ -525,6 +544,7 @@ pub fn collect_terminal_settings(
     sftp_use_mc_check: &CheckButton,
     copy_on_select_check: &CheckButton,
     show_scrollbar_check: &CheckButton,
+    mouse_passthrough_check: &CheckButton,
     log_timestamps: bool,
 ) -> TerminalSettings {
     let theme_names = TerminalTheme::theme_names();
@@ -562,6 +582,7 @@ pub fn collect_terminal_settings(
         sftp_use_mc: sftp_use_mc_check.is_active(),
         copy_on_select: copy_on_select_check.is_active(),
         show_scrollbar: show_scrollbar_check.is_active(),
+        mouse_passthrough: mouse_passthrough_check.is_active(),
     }
 }
 

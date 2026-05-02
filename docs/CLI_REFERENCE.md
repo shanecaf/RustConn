@@ -1,6 +1,6 @@
 # RustConn CLI Reference
 
-**Version 0.12.0** | Full command-line interface for RustConn connection management
+**Version 0.13.0** | Full command-line interface for RustConn connection management
 
 The `rustconn-cli` binary provides full connection management from the terminal. It shares the same configuration files as the GUI (`~/.config/rustconn/`), so changes made in either tool are immediately visible to the other.
 
@@ -27,6 +27,7 @@ The GUI binary (`rustconn`) accepts startup flags:
 rustconn --shell                        # Open local shell on startup
 rustconn --connect "My Server"          # Connect by name (case-insensitive)
 rustconn --connect 550e8400-...         # Connect by UUID
+rustconn file.vv                        # Open a virt-viewer .vv file
 rustconn --version                      # Print version
 rustconn --help                         # Print usage
 ```
@@ -138,6 +139,11 @@ Options:
 | `--baud-rate` | — | Serial baud rate (default: 115200) |
 | `--icon` | — | Custom icon (emoji or GTK icon name, e.g. `"🏢"`, `"starred-symbolic"`) |
 | `--ssh-agent-socket` | — | Custom SSH agent socket path |
+| `--jump-host` | — | SSH jump host (connection name or UUID, for SSH/SFTP/RDP/VNC/SPICE) |
+| `--keep-alive-interval` | — | SSH keep-alive interval in seconds (`ServerAliveInterval`) |
+| `--keep-alive-count` | — | SSH keep-alive count max (`ServerAliveCountMax`) |
+| `--ssh-verbose` | — | Enable SSH verbose/debug output (`-v` flag) |
+| `--ignore-certificate` | — | Accept any RDP server certificate (skip TOFU verification) |
 | `--provider` | — | Zero Trust provider (see [Zero Trust examples](#zero-trust-examples) below) |
 
 **Protocol examples:**
@@ -261,6 +267,10 @@ rustconn-cli update "My Server" --host 192.168.1.20 --port 2222
 rustconn-cli update "My Server" --new-name "Renamed Server"
 rustconn-cli update "My Server" --auth-method security-key --key ~/.ssh/id_ed25519_sk
 rustconn-cli update "My Server" --icon "⭐"
+rustconn-cli update "My Server" --jump-host "Bastion"
+rustconn-cli update "My Server" --keep-alive-interval 60 --keep-alive-count 3
+rustconn-cli update "My Server" --ssh-verbose
+rustconn-cli update "Windows" --ignore-certificate
 ```
 
 All flags from `add` are available (except `--protocol`), plus `--new-name` to rename. Only specified fields are changed; unspecified fields remain unchanged.
@@ -389,15 +399,15 @@ Three packets are sent with retry. Default broadcast address is `255.255.255.255
 ### sync — Sync from external inventory
 
 ```bash
-rustconn-cli sync <file> --source <name> [--remove-stale] [--dry-run]
+rustconn-cli sync inventory <file> --source <name> [--remove-stale] [--dry-run]
 ```
 
 Synchronize connections from an external inventory source (JSON or YAML). Useful for keeping RustConn in sync with a CMDB, NetBox, or Ansible inventory.
 
 ```bash
-rustconn-cli sync inventory.json --source netbox
-rustconn-cli sync inventory.yml --source ansible --remove-stale
-rustconn-cli sync inventory.json --source netbox --dry-run
+rustconn-cli sync inventory inventory.json --source netbox
+rustconn-cli sync inventory inventory.yml --source ansible --remove-stale
+rustconn-cli sync inventory inventory.json --source netbox --dry-run
 ```
 
 | Flag | Description |
@@ -438,6 +448,7 @@ Snippets are reusable command templates with variable substitution. Variables us
 | `snippet list` | List all snippets (`--format`, `--category`, `--tag`) |
 | `snippet show <name>` | Show snippet details and variables |
 | `snippet add` | Create a snippet (`--name`, `--command`, `--description`, `--category`, `--tags`) |
+| `snippet edit <name>` | Edit a snippet (`--new-name`, `--command`, `--description`, `--category`, `--tags`) |
 | `snippet delete <name>` | Delete a snippet |
 | `snippet run <name>` | Execute with variable substitution (`--var key=value`, `--execute`) |
 
@@ -445,12 +456,13 @@ Snippets are reusable command templates with variable substitution. Variables us
 rustconn-cli snippet list
 rustconn-cli snippet list --category deploy --tag production
 rustconn-cli snippet add --name "Restart" --command "sudo systemctl restart \${service}"
+rustconn-cli snippet edit "Restart" --command "sudo systemctl restart \${service} --no-block"
 rustconn-cli snippet run "Restart" --var service=nginx             # Preview only
 rustconn-cli snippet run "Restart" --var service=nginx --execute   # Actually run
 rustconn-cli snippet delete "Old Snippet"
 ```
 
-The `run` subcommand without `--execute` only prints the expanded command (safe preview). With `--execute`, it runs the command via `sh -c`.
+The `run` subcommand without `--execute` only prints the expanded command (safe preview). With `--execute`, it runs the command via `sh -c`. Variables referencing Global Variables (`${VARIABLE}`) are automatically resolved before execution; if all variables are resolved, the snippet executes immediately without prompting.
 
 ### group — Manage connection groups
 
@@ -486,12 +498,14 @@ Templates define reusable connection presets.
 | `template list` | List all templates (`--format`, `--protocol`) |
 | `template show <name>` | Show template details |
 | `template create` | Create a template (`--name`, `--protocol`, `--host`, `--port`, `--user`, `--description`) |
+| `template edit <name>` | Edit a template (`--new-name`, `--host`, `--port`, `--user`, `--description`) |
 | `template delete <name>` | Delete a template |
 | `template apply <template>` | Create connection from template (`--name`, `--host`, `--port`, `--user`) |
 
 ```bash
 rustconn-cli template list
 rustconn-cli template create --name "SSH Bastion" --protocol ssh --port 2222 --user ops
+rustconn-cli template edit "SSH Bastion" --port 2200 --user admin
 rustconn-cli template apply "SSH Bastion" --name "Prod Bastion" --host bastion.example.com
 rustconn-cli template delete "Old Template"
 ```
@@ -505,6 +519,7 @@ Clusters group connections for broadcast command execution (send the same input 
 | `cluster list` | List all clusters (`--format`) |
 | `cluster show <name>` | Show cluster and its connections |
 | `cluster create` | Create a cluster (`--name`, `--connections`, `--broadcast`) |
+| `cluster edit <name>` | Edit a cluster (`--new-name`, `--broadcast true/false`) |
 | `cluster delete <name>` | Delete a cluster |
 | `cluster add-connection` | Add connection (`-C cluster -c connection`) |
 | `cluster remove-connection` | Remove connection (`-C cluster -c connection`) |
@@ -513,6 +528,8 @@ Clusters group connections for broadcast command execution (send the same input 
 rustconn-cli cluster list
 rustconn-cli cluster create --name "DB Cluster" --broadcast
 rustconn-cli cluster create --name "Mixed" --connections "DB-01,DB-02,Web-01"
+rustconn-cli cluster edit "DB Cluster" --new-name "Database Cluster"
+rustconn-cli cluster edit "DB Cluster" --broadcast false
 rustconn-cli cluster add-connection -C "DB Cluster" -c "DB-01"
 rustconn-cli cluster delete "Old Cluster"
 ```
@@ -578,12 +595,15 @@ Smart folders dynamically group connections based on filter criteria.
 | `smart-folder list` | List all smart folders (`--format`) |
 | `smart-folder show <name>` | Show matching connections |
 | `smart-folder create` | Create a smart folder (`--name`, `--protocol`, `--host-pattern`, `--tags`) |
+| `smart-folder edit <name>` | Edit a smart folder (`--new-name`, `--protocol`, `--host-pattern`, `--tags`; use `"none"` to clear a filter) |
 | `smart-folder delete <name>` | Delete a smart folder |
 
 ```bash
 rustconn-cli smart-folder list
 rustconn-cli smart-folder create --name "Production SSH" --protocol ssh --host-pattern "*.prod.*"
 rustconn-cli smart-folder create --name "Tagged Web" --tags "web,frontend"
+rustconn-cli smart-folder edit "Production SSH" --host-pattern "*.production.*"
+rustconn-cli smart-folder edit "Tagged Web" --tags "none"          # Clear tag filter
 rustconn-cli smart-folder show "Production SSH"
 rustconn-cli smart-folder delete "Old Folder"
 ```
@@ -734,6 +754,6 @@ done
 rustconn-cli connect "Production DB" --dry-run
 
 # Sync from inventory with dry-run first
-rustconn-cli sync inventory.yml --source ansible --dry-run
-rustconn-cli sync inventory.yml --source ansible --remove-stale
+rustconn-cli sync inventory inventory.yml --source ansible --dry-run
+rustconn-cli sync inventory inventory.yml --source ansible --remove-stale
 ```

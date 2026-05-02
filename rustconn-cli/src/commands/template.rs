@@ -32,6 +32,22 @@ pub fn cmd_template(config_path: Option<&Path>, subcmd: TemplateCommands) -> Res
             user.as_deref(),
             description.as_deref(),
         ),
+        TemplateCommands::Edit {
+            name,
+            new_name,
+            host,
+            port,
+            user,
+            description,
+        } => cmd_template_edit(
+            config_path,
+            &name,
+            new_name.as_deref(),
+            host.as_deref(),
+            port,
+            user.as_deref(),
+            description.as_deref(),
+        ),
         TemplateCommands::Delete { name } => cmd_template_delete(config_path, &name),
         TemplateCommands::Apply {
             template,
@@ -195,6 +211,46 @@ fn cmd_template_create(
         .map_err(|e| CliError::Template(format!("Failed to create template: {e}")))?;
 
     println!("Created template '{name}' with ID {id}");
+
+    Ok(())
+}
+
+fn cmd_template_edit(
+    config_path: Option<&Path>,
+    name: &str,
+    new_name: Option<&str>,
+    host: Option<&str>,
+    port: Option<u16>,
+    user: Option<&str>,
+    description: Option<&str>,
+) -> Result<(), CliError> {
+    let mut manager = create_template_manager(config_path)?;
+    let template = find_template_in_manager(&manager, name)?;
+    let id = template.id;
+
+    let mut updated = template.clone();
+
+    if let Some(n) = new_name {
+        updated.name = n.to_string();
+    }
+    if let Some(h) = host {
+        updated.host = h.to_string();
+    }
+    if let Some(p) = port {
+        updated.port = p;
+    }
+    if let Some(u) = user {
+        updated.username = Some(u.to_string());
+    }
+    if let Some(d) = description {
+        updated.description = Some(d.to_string());
+    }
+
+    manager
+        .update_template(id, updated)
+        .map_err(|e| CliError::Template(format!("Failed to update template: {e}")))?;
+
+    println!("Updated template '{name}' (ID: {id})");
 
     Ok(())
 }

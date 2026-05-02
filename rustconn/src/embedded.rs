@@ -4,8 +4,10 @@
 //! within the main application window using native protocol clients.
 //! On Wayland, sessions fall back to external windows.
 
+use gtk4::glib;
 use gtk4::prelude::*;
 use gtk4::{Box as GtkBox, Button, DrawingArea, Label, Orientation};
+use libadwaita as adw;
 use std::cell::RefCell;
 use std::process::Child;
 use std::rc::Rc;
@@ -143,11 +145,19 @@ pub struct EmbeddedSessionTab {
 
 impl EmbeddedSessionTab {
     /// Creates a new embedded session tab
+    ///
+    /// If `force_external` is `true`, the tab always shows the external-window
+    /// StatusPage regardless of display server capabilities.
     #[must_use]
-    pub fn new(connection_id: Uuid, connection_name: &str, protocol: &str) -> (Self, bool) {
+    pub fn new(
+        connection_id: Uuid,
+        connection_name: &str,
+        protocol: &str,
+        force_external: bool,
+    ) -> (Self, bool) {
         let id = Uuid::new_v4();
         let display_server = DisplayServer::detect();
-        let is_embedded = display_server.supports_embedding();
+        let is_embedded = !force_external && display_server.supports_embedding();
 
         let container = GtkBox::new(Orientation::Vertical, 0);
         container.set_hexpand(true);
@@ -175,76 +185,34 @@ impl EmbeddedSessionTab {
                 connection_name
             ));
 
-            let protocol_clone = protocol.to_string();
-            let name_clone = connection_name.to_string();
-            embed_area.set_draw_func(move |_area, cr, width, height| {
-                // Dark background
-                cr.set_source_rgb(0.12, 0.12, 0.14);
-                let _ = cr.paint();
+            // StatusPage for external sessions — shows hotkeys and connection info.
+            // adw::StatusPage description already supports Pango markup natively.
+            let description = format!(
+                "{}\n\n<b>Ctrl+Alt+Enter</b>  —  {}\n<b>Right Ctrl</b>  —  {}\n<b>Ctrl+Alt+C</b>  —  {}\n\n<small>{}</small>",
+                glib::markup_escape_text(connection_name),
+                i18n("Toggle fullscreen"),
+                i18n("Release keyboard/mouse grab"),
+                i18n("Toggle remote control (assistance)"),
+                i18n("This tab will close automatically when the session ends"),
+            );
+            let status_page = adw::StatusPage::builder()
+                .icon_name("preferences-desktop-remote-desktop-symbolic")
+                .title(i18n("Session running in separate window"))
+                .description(description)
+                .hexpand(true)
+                .vexpand(true)
+                .build();
+            container.append(&status_page);
 
-                cr.select_font_face(
-                    "Sans",
-                    gtk4::cairo::FontSlant::Normal,
-                    gtk4::cairo::FontWeight::Normal,
-                );
-
-                // Icon placeholder (circle with protocol letter)
-                let center_y = f64::from(height) / 2.0 - 40.0;
-                cr.set_source_rgb(0.3, 0.5, 0.7);
-                cr.arc(
-                    f64::from(width) / 2.0,
-                    center_y,
-                    40.0,
-                    0.0,
-                    2.0 * std::f64::consts::PI,
-                );
-                let _ = cr.fill();
-
-                cr.set_source_rgb(1.0, 1.0, 1.0);
-                cr.set_font_size(32.0);
-                let letter = protocol_clone
-                    .chars()
-                    .next()
-                    .unwrap_or('?')
-                    .to_uppercase()
-                    .to_string();
-                if let Ok(extents) = cr.text_extents(&letter) {
-                    cr.move_to(
-                        f64::from(width) / 2.0 - extents.width() / 2.0,
-                        center_y + extents.height() / 2.0,
-                    );
-                    let _ = cr.show_text(&letter);
-                }
-
-                // Connection name
-                cr.set_source_rgb(0.9, 0.9, 0.9);
-                cr.set_font_size(18.0);
-                if let Ok(extents) = cr.text_extents(&name_clone) {
-                    cr.move_to((f64::from(width) - extents.width()) / 2.0, center_y + 70.0);
-                    let _ = cr.show_text(&name_clone);
-                }
-
-                // Status message
-                cr.set_font_size(13.0);
-                cr.set_source_rgb(0.6, 0.8, 0.6);
-                let status = "Session running in separate window";
-                if let Ok(extents) = cr.text_extents(status) {
-                    cr.move_to((f64::from(width) - extents.width()) / 2.0, center_y + 100.0);
-                    let _ = cr.show_text(status);
-                }
-
-                // Info text
-                cr.set_font_size(11.0);
-                cr.set_source_rgb(0.5, 0.5, 0.5);
-                let info = "Close this tab to disconnect • Use Disconnect button to terminate";
-                if let Ok(extents) = cr.text_extents(info) {
-                    cr.move_to((f64::from(width) - extents.width()) / 2.0, center_y + 130.0);
-                    let _ = cr.show_text(info);
-                }
-            });
+            tracing::debug!(
+                connection = %connection_name,
+                "External RDP tab: StatusPage appended to container (children: controls + status_page)"
+            );
         }
 
-        container.append(&embed_area);
+        if is_embedded {
+            container.append(&embed_area);
+        }
 
         let tab = Self {
             id,
@@ -376,6 +344,7 @@ impl RdpLauncher {
             None,
             true,
             &[],
+            false,
         )
     }
 
@@ -394,6 +363,7 @@ impl RdpLauncher {
     /// * `window_geometry` - Optional window geometry (x, y, width, height)
     /// * `remember_window_position` - Whether to apply window geometry
     /// * `shared_folders` - Shared folders for drive redirection (share_name, local_path)
+    /// * `ignore_certificate` - Skip TLS certificate verification
     ///
     /// # Errors
     /// Returns error if the RDP client fails to start
@@ -410,6 +380,7 @@ impl RdpLauncher {
         window_geometry: Option<(i32, i32, i32, i32)>,
         remember_window_position: bool,
         shared_folders: &[(String, std::path::PathBuf)],
+        ignore_certificate: bool,
     ) -> Result<(), EmbeddingError> {
         use std::process::Command;
 
@@ -433,9 +404,10 @@ impl RdpLauncher {
         }
 
         let has_password = password.is_some_and(|p| !p.is_empty());
-        if has_password {
-            cmd.arg("/from-stdin");
-            cmd.stdin(std::process::Stdio::piped());
+        if has_password && let Some(pass) = password {
+            // Use /p: for password — works for both NLA and non-NLA modes.
+            // /from-stdin:force is unreliable with sdl-freerdp3 GUI event loop.
+            cmd.arg(format!("/p:{pass}"));
         }
 
         if let Some((width, height)) = resolution {
@@ -447,8 +419,15 @@ impl RdpLauncher {
             cmd.arg("/h:1080");
         }
 
-        // Security settings — use TOFU by default (trust-on-first-use)
-        cmd.arg("/cert:tofu");
+        // Security settings — conditional based on connection settings.
+        // Default is TOFU (trust-on-first-use), matching SSH known_hosts behavior.
+        if ignore_certificate {
+            // Remove old certificate file to accept new one (like SSH known_hosts removal)
+            Self::remove_known_certificate(host, port);
+            cmd.arg("/cert:ignore");
+        } else {
+            cmd.arg("/cert:tofu");
+        }
         // Enable dynamic resolution for better display
         cmd.arg("/dynamic-resolution");
 
@@ -478,21 +457,121 @@ impl RdpLauncher {
             cmd.arg(format!("/v:{host}:{port}"));
         }
 
+        // Capture stderr for error detection
+        cmd.stderr(std::process::Stdio::piped());
+
         match cmd.spawn() {
             Ok(mut child) => {
-                if has_password
-                    && let Some(pass) = password
-                    && let Some(mut stdin) = child.stdin.take()
-                {
-                    use std::io::Write;
-                    let _ = writeln!(stdin, "{pass}");
-                    drop(stdin);
+                // Wait briefly to detect immediate failures (certificate errors, auth failures)
+                std::thread::sleep(std::time::Duration::from_millis(1500));
+
+                match child.try_wait() {
+                    Ok(Some(status)) if !status.success() => {
+                        // Process exited quickly with error — extract stderr
+                        let error_msg = child
+                            .stderr
+                            .take()
+                            .and_then(|stderr| {
+                                use std::io::Read;
+                                let mut buf = String::new();
+                                let mut reader = std::io::BufReader::new(stderr);
+                                reader.read_to_string(&mut buf).ok()?;
+                                Some(buf)
+                            })
+                            .unwrap_or_default();
+
+                        // Parse meaningful error from FreeRDP output
+                        let user_error = Self::parse_freerdp_error(&error_msg);
+                        Err(EmbeddingError::ProcessStartFailed(user_error))
+                    }
+                    _ => {
+                        // Process still running or exited successfully — treat as connected
+                        tab.set_process(child);
+                        tab.set_status(&format!("Connected to {host}"));
+                        Ok(())
+                    }
                 }
-                tab.set_process(child);
-                tab.set_status(&format!("Connected to {host}"));
-                Ok(())
             }
             Err(e) => Err(EmbeddingError::ProcessStartFailed(e.to_string())),
+        }
+    }
+
+    /// Parses FreeRDP stderr output to extract a user-friendly error message
+    fn parse_freerdp_error(stderr: &str) -> String {
+        if stderr.contains("certificate not trusted")
+            || stderr.contains("ERRCONNECT_TLS_CONNECT_FAILED")
+        {
+            if stderr.contains("NEW HOST IDENTIFICATION") || stderr.contains("has changed") {
+                return "RDP certificate has changed. Enable 'Ignore Certificate' or accept the new certificate.".to_string();
+            }
+            return "TLS certificate verification failed. Enable 'Ignore Certificate' in connection settings.".to_string();
+        }
+        if stderr.contains("ERRCONNECT_CONNECT_CANCELLED")
+            || stderr.contains("nla_client_setup_identity")
+        {
+            return "NLA authentication failed. Check username/password or disable NLA."
+                .to_string();
+        }
+        if stderr.contains("ERRCONNECT_CONNECT_TRANSPORT_FAILED") {
+            return "Connection refused. Check host and port.".to_string();
+        }
+        if stderr.contains("ERRCONNECT_DNS_NAME_NOT_FOUND") {
+            return "Host not found. Check the hostname.".to_string();
+        }
+        // Fallback: return last ERROR line or generic message
+        stderr
+            .lines()
+            .rev()
+            .find(|line| line.contains("[ERROR]"))
+            .map(|line| {
+                // Extract the message part after the last ]:
+                line.rsplit("]: ").next().unwrap_or(line).trim().to_string()
+            })
+            .unwrap_or_else(|| "FreeRDP exited with error (exit code non-zero)".to_string())
+    }
+
+    /// Removes the stored FreeRDP certificate for a host, allowing TOFU to accept a new one.
+    /// This is equivalent to removing a line from SSH known_hosts.
+    fn remove_known_certificate(host: &str, port: u16) {
+        // FreeRDP stores known certificates in ~/.config/freerdp/server/<host>_<port>.pem
+        // and also in ~/.config/freerdp/known_hosts2 (FreeRDP 3.x)
+        if let Some(config_dir) = dirs::config_dir() {
+            let freerdp_dir = config_dir.join("freerdp").join("server");
+            let pem_file = if port == 3389 {
+                freerdp_dir.join(format!("{host}_3389.pem"))
+            } else {
+                freerdp_dir.join(format!("{host}_{port}.pem"))
+            };
+            if pem_file.exists() {
+                tracing::debug!(
+                    ?pem_file,
+                    "Removing old FreeRDP certificate to accept new one"
+                );
+                let _ = std::fs::remove_file(&pem_file);
+            }
+
+            // Also try the known_hosts2 file (FreeRDP 3.x format)
+            let known_hosts = config_dir.join("freerdp").join("known_hosts2");
+            if known_hosts.exists()
+                && let Ok(content) = std::fs::read_to_string(&known_hosts)
+            {
+                let host_pattern = if port == 3389 {
+                    format!("{host} 3389")
+                } else {
+                    format!("{host} {port}")
+                };
+                let filtered: Vec<&str> = content
+                    .lines()
+                    .filter(|line| !line.contains(&host_pattern))
+                    .collect();
+                if filtered.len() < content.lines().count() {
+                    tracing::debug!(
+                        ?known_hosts,
+                        "Removing host entry from FreeRDP known_hosts2"
+                    );
+                    let _ = std::fs::write(&known_hosts, filtered.join("\n") + "\n");
+                }
+            }
         }
     }
 }

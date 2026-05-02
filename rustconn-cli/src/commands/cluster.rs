@@ -19,6 +19,11 @@ pub fn cmd_cluster(config_path: Option<&Path>, subcmd: ClusterCommands) -> Resul
             connections,
             broadcast,
         } => cmd_cluster_create(config_path, &name, connections.as_deref(), broadcast),
+        ClusterCommands::Edit {
+            name,
+            new_name,
+            broadcast,
+        } => cmd_cluster_edit(config_path, &name, new_name.as_deref(), broadcast),
         ClusterCommands::Delete { name } => cmd_cluster_delete(config_path, &name),
         ClusterCommands::AddConnection {
             cluster,
@@ -170,6 +175,41 @@ fn cmd_cluster_create(
         .map_err(|e| CliError::Cluster(format!("Failed to save clusters: {e}")))?;
 
     println!("Created cluster '{name}' with ID {id}");
+
+    Ok(())
+}
+
+fn cmd_cluster_edit(
+    config_path: Option<&Path>,
+    name: &str,
+    new_name: Option<&str>,
+    broadcast: Option<bool>,
+) -> Result<(), CliError> {
+    let config_manager = create_config_manager(config_path)?;
+
+    let mut clusters = config_manager
+        .load_clusters()
+        .map_err(|e| CliError::Cluster(format!("Failed to load clusters: {e}")))?;
+
+    let cluster = clusters
+        .iter_mut()
+        .find(|c| c.name.eq_ignore_ascii_case(name) || c.id.to_string() == name)
+        .ok_or_else(|| CliError::Cluster(format!("Cluster not found: {name}")))?;
+
+    let id = cluster.id;
+
+    if let Some(n) = new_name {
+        cluster.name = n.to_string();
+    }
+    if let Some(b) = broadcast {
+        cluster.broadcast_enabled = b;
+    }
+
+    config_manager
+        .save_clusters(&clusters)
+        .map_err(|e| CliError::Cluster(format!("Failed to save clusters: {e}")))?;
+
+    println!("Updated cluster '{name}' (ID: {id})");
 
     Ok(())
 }

@@ -77,6 +77,14 @@ pub struct ConnectionGroup {
     /// Timestamp of the last successful sync operation.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub last_synced_at: Option<DateTime<Utc>>,
+    /// Expect rules for inheritance by child connections.
+    /// Connections with empty `automation.expect_rules` inherit from their group chain.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub expect_rules: Vec<crate::automation::ExpectRule>,
+    /// Post-login scripts for inheritance by child connections.
+    /// Connections with empty `automation.post_login_scripts` inherit from their group chain.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub post_login_scripts: Vec<String>,
 }
 
 impl ConnectionGroup {
@@ -104,6 +112,8 @@ impl ConnectionGroup {
             dynamic_folder: None,
             sync_file: None,
             last_synced_at: None,
+            expect_rules: Vec::new(),
+            post_login_scripts: Vec::new(),
         }
     }
 
@@ -131,6 +141,8 @@ impl ConnectionGroup {
             dynamic_folder: None,
             sync_file: None,
             last_synced_at: None,
+            expect_rules: Vec::new(),
+            post_login_scripts: Vec::new(),
         }
     }
 

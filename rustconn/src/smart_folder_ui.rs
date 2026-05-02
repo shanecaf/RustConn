@@ -2,16 +2,23 @@
 //!
 //! Provides a collapsible "Smart Folders" section for the sidebar with:
 //! - A header with 🔍 icon and "Add" button
-//! - A `ListBox` showing each smart folder with name and match count
+//! - Expandable rows: click to reveal matching connections inline
 //! - Context menu with Edit / Delete actions
+//! - Double-click on a connection row activates `win.connect-to` action
 //! - Read-only view (no drag-drop)
 
 use crate::i18n::i18n;
 use gtk4::gdk;
 use gtk4::prelude::*;
-use gtk4::{Box as GtkBox, Button, Label, ListBox, Orientation, SelectionMode, Widget};
+use gtk4::{
+    Box as GtkBox, Button, Image, Label, ListBox, ListBoxRow, Orientation, Revealer,
+    RevealerTransitionType, SelectionMode, Widget,
+};
+use rustconn_core::get_protocol_icon;
 use rustconn_core::models::{Connection, SmartFolder};
 use rustconn_core::smart_folder::SmartFolderManager;
+use std::cell::Cell;
+use std::rc::Rc;
 
 /// Sidebar section that displays smart folders with dynamic connection counts.
 pub struct SmartFoldersSidebar {
@@ -68,7 +75,7 @@ impl SmartFoldersSidebar {
         let list_box = ListBox::new();
         list_box.set_selection_mode(SelectionMode::Single);
         list_box.add_css_class("navigation-sidebar");
-        list_box.set_activate_on_single_click(true);
+        list_box.set_activate_on_single_click(false);
         container.append(&list_box);
 
         Self {
@@ -100,7 +107,8 @@ impl SmartFoldersSidebar {
     /// Refreshes the list with current smart folders and connections.
     ///
     /// For each folder the manager evaluates matching connections and
-    /// displays the folder name with a count badge.
+    /// displays the folder name with a count badge. Clicking a folder
+    /// row expands/collapses the list of matching connections inline.
     pub fn update(&self, folders: &[SmartFolder], connections: &[Connection]) {
         // Remove all existing rows
         while let Some(child) = self.list_box.first_child() {
@@ -119,9 +127,9 @@ impl SmartFoldersSidebar {
         let manager = SmartFolderManager::new();
 
         for folder in folders {
-            let count = manager.evaluate(folder, connections).len();
-            let row = build_folder_row(folder, count);
-            self.list_box.append(&row);
+            let matched = manager.evaluate(folder, connections);
+            let row_widget = build_expandable_folder_row(folder, &matched);
+            self.list_box.append(&row_widget);
         }
     }
 }
@@ -132,41 +140,171 @@ impl Default for SmartFoldersSidebar {
     }
 }
 
-/// Builds a single smart folder row with name and connection count.
-fn build_folder_row(folder: &SmartFolder, count: usize) -> GtkBox {
-    let row = GtkBox::new(Orientation::Horizontal, 8);
-    row.set_margin_top(4);
-    row.set_margin_bottom(4);
-    row.set_margin_start(4);
-    row.set_margin_end(4);
+/// Builds an expandable smart folder row.
+///
+/// The row contains:
+/// - A header with expander arrow, folder icon, name, and count badge
+/// - A `Revealer` with a nested list of matching connections
+///
+/// Clicking the header toggles the revealer. Right-click shows context menu.
+fn build_expandable_folder_row(folder: &SmartFolder, connections: &[&Connection]) -> GtkBox {
+    let outer = GtkBox::new(Orientation::Vertical, 0);
+
+    // --- Header row (clickable) ---
+    let header = GtkBox::new(Orientation::Horizontal, 6);
+    header.set_margin_top(4);
+    header.set_margin_bottom(4);
+    header.set_margin_start(4);
+    header.set_margin_end(4);
+
+    // Expander arrow
+    let arrow = Image::from_icon_name("pan-end-symbolic");
+    arrow.add_css_class("dim-label");
+    header.append(&arrow);
 
     // Folder icon
     let icon = Label::new(Some("📁"));
-    row.append(&icon);
+    header.append(&icon);
 
     // Folder name
     let name_label = Label::new(Some(&folder.name));
     name_label.set_hexpand(true);
     name_label.set_halign(gtk4::Align::Start);
     name_label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
-    row.append(&name_label);
+    header.append(&name_label);
 
     // Connection count badge
-    let count_label = Label::new(Some(&count.to_string()));
+    let count_label = Label::new(Some(&connections.len().to_string()));
     count_label.add_css_class("dim-label");
-    row.append(&count_label);
+    header.append(&count_label);
 
-    // Attach context menu via right-click gesture
+    outer.append(&header);
+
+    // --- Revealer with scrollable connection list ---
+    let revealer = Revealer::builder()
+        .transition_type(RevealerTransitionType::SlideDown)
+        .transition_duration(150)
+        .reveal_child(false)
+        .build();
+
+    let conn_list = ListBox::new();
+    conn_list.set_selection_mode(SelectionMode::None);
+    conn_list.add_css_class("navigation-sidebar");
+    conn_list.set_margin_start(20);
+
+    for conn in connections {
+        let conn_row = build_connection_row(conn);
+        conn_list.append(&conn_row);
+    }
+
+    // Connection list directly in revealer — the outer ScrolledWindow
+    // in the sidebar handles scrolling for the entire smart folders section
+    revealer.set_child(Some(&conn_list));
+    outer.append(&revealer);
+
+    // --- Toggle expand/collapse on header click ---
+    let expanded = Rc::new(Cell::new(false));
     let gesture = gtk4::GestureClick::new();
-    gesture.set_button(gdk::BUTTON_SECONDARY);
+    gesture.set_button(gdk::BUTTON_PRIMARY);
+    let revealer_clone = revealer.clone();
+    let arrow_clone = arrow.clone();
+    let expanded_clone = expanded.clone();
+    gesture.connect_released(move |_gesture, _n, _x, _y| {
+        let is_expanded = !expanded_clone.get();
+        expanded_clone.set(is_expanded);
+        revealer_clone.set_reveal_child(is_expanded);
+        if is_expanded {
+            arrow_clone.set_icon_name(Some("pan-down-symbolic"));
+        } else {
+            arrow_clone.set_icon_name(Some("pan-end-symbolic"));
+        }
+    });
+    header.add_controller(gesture);
+
+    // --- Context menu via right-click on header ---
+    let ctx_gesture = gtk4::GestureClick::new();
+    ctx_gesture.set_button(gdk::BUTTON_SECONDARY);
     let folder_id = folder.id;
-    gesture.connect_pressed(move |gesture, _n, x, y| {
+    ctx_gesture.connect_pressed(move |gesture, _n, x, y| {
         if let Some(widget) = gesture.widget() {
+            // Select the parent ListBoxRow so edit/delete actions can find it
+            let mut current: Option<gtk4::Widget> = Some(widget.clone().upcast());
+            while let Some(w) = current {
+                if let Some(row) = w.downcast_ref::<ListBoxRow>() {
+                    if let Some(list_box) = row.parent().and_then(|p| p.downcast::<ListBox>().ok())
+                    {
+                        list_box.select_row(Some(row));
+                    }
+                    break;
+                }
+                current = w.parent();
+            }
             show_smart_folder_context_menu(&widget, x, y, folder_id);
         }
     });
-    row.add_controller(gesture);
+    header.add_controller(ctx_gesture);
 
+    // --- Double-click on connection row → connect ---
+    conn_list.connect_row_activated(move |_list_box, row| {
+        // row-activated fires on Enter or double-click (activate_on_single_click is false)
+        let conn_id = row.widget_name();
+        if conn_id.is_empty() {
+            return;
+        }
+        if let Some(root) = row.root()
+            && let Some(win) = root.downcast_ref::<gtk4::ApplicationWindow>()
+            && let Some(action) = win.lookup_action("connect-to")
+        {
+            action.activate(Some(&conn_id.to_variant()));
+        }
+    });
+
+    outer
+}
+
+/// Builds a single connection row for the expanded smart folder view.
+fn build_connection_row(conn: &Connection) -> ListBoxRow {
+    let row = ListBoxRow::new();
+    // Store connection ID in widget name for retrieval on activation
+    row.set_widget_name(&conn.id.to_string());
+
+    let hbox = GtkBox::new(Orientation::Horizontal, 6);
+    hbox.set_margin_top(2);
+    hbox.set_margin_bottom(2);
+    hbox.set_margin_start(4);
+    hbox.set_margin_end(4);
+
+    // Protocol icon
+    let icon_name = get_protocol_icon(conn.protocol);
+    let icon = Image::from_icon_name(icon_name);
+    icon.set_pixel_size(16);
+    hbox.append(&icon);
+
+    // Connection name
+    let name_label = Label::new(Some(&conn.name));
+    name_label.set_hexpand(true);
+    name_label.set_halign(gtk4::Align::Start);
+    name_label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
+    hbox.append(&name_label);
+
+    // Host (dim)
+    if !conn.host.is_empty() {
+        let host_label = Label::new(Some(&conn.host));
+        host_label.add_css_class("dim-label");
+        host_label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
+        host_label.set_max_width_chars(16);
+        hbox.append(&host_label);
+    }
+
+    // Tooltip with full info
+    let tooltip = if conn.host.is_empty() {
+        conn.name.clone()
+    } else {
+        format!("{}\n{}", conn.name, conn.host)
+    };
+    row.set_tooltip_text(Some(&tooltip));
+
+    row.set_child(Some(&hbox));
     row
 }
 
@@ -217,7 +355,7 @@ fn show_smart_folder_context_menu(
 
     // Delete
     let delete_btn = create_menu_button(&i18n("Delete"));
-    delete_btn.add_css_class("destructive-action");
+    delete_btn.add_css_class("error");
     let win = window_clone;
     let popover_c = popover_ref;
     delete_btn.connect_clicked(move |_| {

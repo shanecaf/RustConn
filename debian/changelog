@@ -1,3 +1,29 @@
+rustconn (0.13.0-1) unstable; urgency=medium
+
+  * Version bump to 0.13.0
+  * [Fixed] External RDP tab shows only toolbar, content area empty —
+    added force_external parameter so external sessions always render
+    the informational StatusPage
+  * [Fixed] Group edit: SSH settings toggle reopens confirmation dialog
+    in a loop — added guard flag to prevent re-entry
+  * [Fixed] Incomplete translations for Dynamic Folder strings —
+    provided correct translations and removed fuzzy flags for all 16 languages
+  * [Fixed] Bulk actions: Move to Group icon missing — replaced with
+    standard folder-drag-accept-symbolic from Adwaita
+  * [Fixed] External RDP (FreeRDP) fails on changed server certificate —
+    added ignore_certificate field and Accept Certificate checkbox (#112)
+  * [Added] Smart Folders in sidebar — dynamically groups connections
+    based on tag, protocol, host pattern, and group filters (#111)
+  * [Added] Group-level Expect rules and post-login scripts inheritance —
+    connections inherit automation config from parent group chain (#110)
+  * [Improved] Vault entry missing toast notification (#114)
+  * [Improved] Test credential resolution button in connection dialog (#114)
+  * [Improved] Multi-language SSH password prompt detection (#114)
+  * [Improved] GNOME HIG: sidebar toolbar decluttered — removed
+    Import/Export buttons from bottom toolbar
+
+ -- Anton Isaiev <totoshko88@gmail.com>  Sat, 02 May 2026 14:00:00 +0200
+
 rustconn (0.12.9-1) unstable; urgency=medium
 
   * [Fixed] Export group exports entire tree instead of selected subtree —

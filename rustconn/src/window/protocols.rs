@@ -11,8 +11,10 @@ use crate::terminal::TerminalNotebook;
 use crate::utils::spawn_blocking_with_callback;
 use gtk4::glib;
 use gtk4::prelude::*;
+use rustconn_core::connection::automation_inheritance;
 use rustconn_core::connection::check_port;
 use rustconn_core::connection::ssh_inheritance;
+use rustconn_core::models::AutomationConfig;
 use rustconn_core::variables::{Variable, VariableManager, VariableScope};
 use secrecy::SecretString;
 use std::rc::Rc;
@@ -23,6 +25,22 @@ pub type SharedSidebar = Rc<ConnectionSidebar>;
 
 /// Type alias for shared notebook reference
 pub type SharedNotebook = Rc<TerminalNotebook>;
+
+/// Resolves the effective automation config for a connection, inheriting from
+/// the group hierarchy if the connection has no own expect rules / post-login scripts.
+fn resolve_automation_for_connection(
+    state: &SharedAppState,
+    conn: &rustconn_core::Connection,
+) -> AutomationConfig {
+    state
+        .try_borrow()
+        .ok()
+        .map(|s| {
+            let groups: Vec<_> = s.list_groups().into_iter().cloned().collect();
+            automation_inheritance::resolve_automation(conn, &groups)
+        })
+        .unwrap_or_else(|| conn.automation.clone())
+}
 
 /// Substitutes variables in a string using global variables from settings
 ///
@@ -209,12 +227,15 @@ fn start_ssh_connection_internal(
         .map(|s| crate::state::resolve_global_variables(s.settings()))
         .unwrap_or_default();
 
+    // Resolve automation config with group inheritance
+    let resolved_automation = resolve_automation_for_connection(state, conn);
+
     // Create terminal tab for SSH with user settings
     let session_id = notebook.create_terminal_tab_with_settings(
         connection_id,
         &conn.name,
         "ssh",
-        Some(&conn.automation),
+        Some(&resolved_automation),
         &terminal_settings,
         conn.theme_override.as_ref(),
         &global_variables,
@@ -565,7 +586,7 @@ fn start_ssh_connection_internal(
                 return;
             }
 
-            // Check for common SSH password prompts (case-insensitive)
+            // Check for SSH password prompts in multiple languages (case-insensitive)
             let has_prompt = lower.ends_with("password: ")
                 || lower.ends_with("password:")
                 || lower.contains("password: \n")
@@ -574,6 +595,54 @@ fn start_ssh_connection_internal(
                     l.ends_with("password:")
                         || l.ends_with("password: ")
                         || l.contains("'s password:")
+                        // German
+                        || l.ends_with("passwort:")
+                        || l.ends_with("passwort: ")
+                        || l.ends_with("kennwort:")
+                        || l.ends_with("kennwort: ")
+                        // French
+                        || l.ends_with("mot de passe:")
+                        || l.ends_with("mot de passe :")
+                        || l.ends_with("mot de passe : ")
+                        // Spanish
+                        || l.ends_with("contraseña:")
+                        || l.ends_with("contraseña: ")
+                        // Portuguese
+                        || l.ends_with("senha:")
+                        || l.ends_with("senha: ")
+                        // Italian
+                        || l.ends_with("password:")
+                        // Ukrainian / Belarusian
+                        || l.ends_with("пароль:")
+                        || l.ends_with("пароль: ")
+                        // Polish
+                        || l.ends_with("hasło:")
+                        || l.ends_with("hasło: ")
+                        // Czech/Slovak
+                        || l.ends_with("heslo:")
+                        || l.ends_with("heslo: ")
+                        // Dutch
+                        || l.ends_with("wachtwoord:")
+                        || l.ends_with("wachtwoord: ")
+                        // Swedish/Danish/Norwegian
+                        || l.ends_with("lösenord:")
+                        || l.ends_with("lösenord: ")
+                        || l.ends_with("adgangskode:")
+                        || l.ends_with("adgangskode: ")
+                        // Chinese
+                        || l.ends_with("密码:")
+                        || l.ends_with("密码：")
+                        || l.ends_with("密碼:")
+                        || l.ends_with("密碼：")
+                        // Japanese
+                        || l.ends_with("パスワード:")
+                        || l.ends_with("パスワード：")
+                        // Korean
+                        || l.ends_with("비밀번호:")
+                        || l.ends_with("비밀번호：")
+                        // Generic colon-terminated prompt (catch-all for PAM)
+                        || l.ends_with("pass:")
+                        || l.ends_with("pass: ")
                 });
 
             if has_prompt {
@@ -1921,12 +1990,15 @@ fn start_telnet_connection_internal(
         .map(|s| crate::state::resolve_global_variables(s.settings()))
         .unwrap_or_default();
 
+    // Resolve automation config with group inheritance
+    let resolved_automation = resolve_automation_for_connection(state, conn);
+
     // Create terminal tab for Telnet
     let session_id = notebook.create_terminal_tab_with_settings(
         connection_id,
         &conn.name,
         "telnet",
-        Some(&conn.automation),
+        Some(&resolved_automation),
         &terminal_settings,
         conn.theme_override.as_ref(),
         &global_variables,
@@ -2132,7 +2204,7 @@ pub fn start_zerotrust_connection(
             return None;
         };
 
-    let automation_config = conn.automation.clone();
+    let automation_config = resolve_automation_for_connection(state, conn);
 
     // Get terminal settings from state
     let terminal_settings = state
@@ -2280,12 +2352,15 @@ pub fn start_serial_connection(
         .map(|s| crate::state::resolve_global_variables(s.settings()))
         .unwrap_or_default();
 
+    // Resolve automation config with group inheritance
+    let resolved_automation = resolve_automation_for_connection(state, conn);
+
     // Create terminal tab for Serial
     let session_id = notebook.create_terminal_tab_with_settings(
         connection_id,
         &conn_name,
         "serial",
-        Some(&conn.automation),
+        Some(&resolved_automation),
         &terminal_settings,
         conn.theme_override.as_ref(),
         &global_variables,
@@ -2450,12 +2525,15 @@ pub fn start_kubernetes_connection(
         .map(|s| crate::state::resolve_global_variables(s.settings()))
         .unwrap_or_default();
 
+    // Resolve automation config with group inheritance
+    let resolved_automation = resolve_automation_for_connection(state, conn);
+
     // Create terminal tab for Kubernetes
     let session_id = notebook.create_terminal_tab_with_settings(
         connection_id,
         &conn_name,
         "kubernetes",
-        Some(&conn.automation),
+        Some(&resolved_automation),
         &terminal_settings,
         conn.theme_override.as_ref(),
         &global_variables,
@@ -2698,12 +2776,15 @@ fn start_mosh_connection_internal(
         .map(|s| crate::state::resolve_global_variables(s.settings()))
         .unwrap_or_default();
 
+    // Resolve automation config with group inheritance
+    let resolved_automation = resolve_automation_for_connection(state, conn);
+
     // Create terminal tab for MOSH
     let session_id = notebook.create_terminal_tab_with_settings(
         connection_id,
         &conn_name,
         "mosh",
-        Some(&conn.automation),
+        Some(&resolved_automation),
         &terminal_settings,
         conn.theme_override.as_ref(),
         &global_variables,

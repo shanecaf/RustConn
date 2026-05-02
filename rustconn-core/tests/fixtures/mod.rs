@@ -149,6 +149,7 @@ pub fn sample_rdp_connection_with_domain() -> Connection {
         keyboard_layout: None,
         scale_override: Default::default(),
         disable_nla: false,
+        ignore_certificate: false,
         clipboard_enabled: true,
         show_local_cursor: true,
         jiggler_enabled: false,

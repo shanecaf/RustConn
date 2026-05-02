@@ -54,13 +54,13 @@ Triggered by pushing a version tag (`v*`).
 
 ```mermaid
 graph TD
-    Tag[git push tag v0.12.5] --> BuildDeb[Build .deb]
+    Tag[git push tag v0.13.0] --> BuildDeb[Build .deb]
     Tag --> BuildRPM[Build .rpm]
     Tag --> BuildAppImage[Build AppImage]
 
-    BuildDeb --> |ubuntu-24.04| DebArtifact[rustconn_0.12.5_amd64.deb]
-    BuildRPM --> |fedora:44 container| RPMArtifact[rustconn-0.12.5-1.fc44.x86_64.rpm]
-    BuildAppImage --> |ubuntu-24.04| AppImageArtifact[RustConn-0.12.5-x86_64.AppImage]
+    BuildDeb --> |ubuntu-24.04| DebArtifact[rustconn_0.13.0_amd64.deb]
+    BuildRPM --> |fedora:44 container| RPMArtifact[rustconn-0.13.0-1.fc44.x86_64.rpm]
+    BuildAppImage --> |ubuntu-24.04| AppImageArtifact[RustConn-0.13.0-x86_64.AppImage]
 
     DebArtifact --> Release[Create GitHub Release]
     RPMArtifact --> Release
@@ -175,15 +175,15 @@ sequenceDiagram
     participant GH as GitHub Actions
     participant FH as flathub/io.github.totoshko88.RustConn
 
-    Dev->>GH: Push tag v0.12.5
+    Dev->>GH: Push tag v0.13.0
     GH->>GH: Generate cargo-sources.json
     GH->>GH: Update manifest tag
-    GH->>GH: Upload artifact: flathub-update-v0.12.5
+    GH->>GH: Upload artifact: flathub-update-v0.13.0
 
     Dev->>Dev: Download artifact
     Dev->>FH: Create branch
     Dev->>FH: Upload manifest + cargo-sources.json
-    Dev->>FH: Create PR "Update to v0.12.5"
+    Dev->>FH: Create PR "Update to v0.13.0"
     FH->>FH: Flathub CI builds and tests
     FH->>FH: Merge → published to Flathub
 ```
@@ -219,7 +219,7 @@ before tagging.
 ## CLI Version Check (`check-cli-versions.yml`)
 
 Runs weekly (Monday 06:00 UTC) to check for updates to bundled CLI tools
-(kubectl, Tailscale, Cloudflare, Boundary, Teleport, Bitwarden, 1Password).
+(kubectl, Tailscale, Cloudflare, Boundary, Teleport, Bitwarden, 1Password, Hoop.dev, TigerVNC).
 
 ## Files That Need Manual Updates at Release Time
 

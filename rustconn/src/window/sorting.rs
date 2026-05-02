@@ -204,6 +204,12 @@ pub fn rebuild_sidebar_sorted(state: &SharedAppState, sidebar: &SharedSidebar) {
         );
         store.append(&item);
     }
+
+    // Refresh Smart Folders section with current filter evaluation
+    let smart_folders = state_ref.settings().smart_folders.clone();
+    let all_connections: Vec<_> = state_ref.list_connections().into_iter().cloned().collect();
+    drop(state_ref);
+    sidebar.refresh_smart_folders(&smart_folders, &all_connections);
 }
 
 /// Recursively adds sorted group children

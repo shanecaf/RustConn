@@ -1324,6 +1324,10 @@ pub struct RdpConfig {
     /// Disable Network Level Authentication
     #[serde(default)]
     pub disable_nla: bool,
+    /// Skip TLS certificate verification (use `/cert:ignore` instead of `/cert:tofu`).
+    /// Default: false (TOFU — trust-on-first-use, like SSH known_hosts).
+    #[serde(default)]
+    pub ignore_certificate: bool,
     /// Enable clipboard sharing between local and remote
     #[serde(default = "default_true")]
     pub clipboard_enabled: bool,

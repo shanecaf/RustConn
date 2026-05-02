@@ -122,6 +122,7 @@ pub struct ConnectionDialog {
     password_entry: Entry,
     password_visibility_button: Button,
     password_load_button: Button,
+    vault_test_button: Button,
     password_row: GtkBox,
     // Variable name dropdown (for Variable password source)
     variable_dropdown: DropDown,
@@ -169,6 +170,7 @@ pub struct ConnectionDialog {
     rdp_gateway_port_spin: SpinButton,
     rdp_gateway_username_entry: Entry,
     rdp_disable_nla_check: CheckButton,
+    rdp_ignore_certificate_check: CheckButton,
     rdp_clipboard_check: CheckButton,
     rdp_show_local_cursor_check: CheckButton,
     rdp_jiggler_check: CheckButton,
@@ -434,6 +436,7 @@ impl ConnectionDialog {
         let password_entry = basic.password_entry.clone();
         let password_visibility_button = basic.password_visibility_button.clone();
         let password_load_button = basic.password_load_button.clone();
+        let vault_test_button = basic.vault_test_button.clone();
         let password_row = basic.password_row.clone();
         let variable_dropdown = basic.variable_dropdown.clone();
         let variable_row = basic.variable_row.clone();
@@ -519,6 +522,7 @@ impl ConnectionDialog {
             rdp_gateway_port_spin,
             rdp_gateway_username_entry,
             rdp_disable_nla_check,
+            ignore_certificate_check,
             rdp_clipboard_check,
             rdp_show_local_cursor_check,
             rdp_jiggler_check,
@@ -840,6 +844,7 @@ impl ConnectionDialog {
             &rdp_gateway_port_spin,
             &rdp_gateway_username_entry,
             &rdp_disable_nla_check,
+            &ignore_certificate_check,
             &rdp_clipboard_check,
             &rdp_show_local_cursor_check,
             &rdp_jiggler_check,
@@ -974,6 +979,7 @@ impl ConnectionDialog {
             password_entry,
             password_visibility_button,
             password_load_button,
+            vault_test_button,
             password_row,
             variable_dropdown,
             variable_row,
@@ -1017,6 +1023,7 @@ impl ConnectionDialog {
             rdp_gateway_port_spin,
             rdp_gateway_username_entry,
             rdp_disable_nla_check,
+            rdp_ignore_certificate_check: ignore_certificate_check,
             rdp_clipboard_check,
             rdp_show_local_cursor_check,
             rdp_jiggler_check,
@@ -1899,6 +1906,7 @@ impl ConnectionDialog {
         rdp_gateway_port_spin: &SpinButton,
         rdp_gateway_username_entry: &Entry,
         rdp_disable_nla_check: &CheckButton,
+        rdp_ignore_certificate_check: &CheckButton,
         rdp_clipboard_check: &CheckButton,
         rdp_show_local_cursor_check: &CheckButton,
         rdp_jiggler_check: &CheckButton,
@@ -2060,6 +2068,7 @@ impl ConnectionDialog {
         let rdp_gateway_port_spin = rdp_gateway_port_spin.clone();
         let rdp_gateway_username_entry = rdp_gateway_username_entry.clone();
         let rdp_disable_nla_check = rdp_disable_nla_check.clone();
+        let rdp_ignore_certificate_check = rdp_ignore_certificate_check.clone();
         let rdp_clipboard_check = rdp_clipboard_check.clone();
         let rdp_show_local_cursor_check = rdp_show_local_cursor_check.clone();
         let rdp_jiggler_check = rdp_jiggler_check.clone();
@@ -2235,6 +2244,7 @@ impl ConnectionDialog {
                 rdp_gateway_port_spin: &rdp_gateway_port_spin,
                 rdp_gateway_username_entry: &rdp_gateway_username_entry,
                 rdp_disable_nla_check: &rdp_disable_nla_check,
+                rdp_ignore_certificate_check: &rdp_ignore_certificate_check,
                 rdp_clipboard_check: &rdp_clipboard_check,
                 rdp_show_local_cursor_check: &rdp_show_local_cursor_check,
                 rdp_jiggler_check: &rdp_jiggler_check,
@@ -2391,6 +2401,7 @@ impl ConnectionDialog {
         Entry,
         SpinButton,
         Entry,
+        CheckButton,
         CheckButton,
         CheckButton,
         CheckButton,
@@ -2639,6 +2650,18 @@ impl ConnectionDialog {
         nla_row.add_suffix(&disable_nla_check);
         features_group.add(&nla_row);
 
+        // Ignore certificate
+        let ignore_certificate_check = CheckButton::new();
+        let cert_row = adw::ActionRow::builder()
+            .title(i18n("Accept Certificate"))
+            .subtitle(i18n(
+                "Accept changed/self-signed certificates (removes stored fingerprint)",
+            ))
+            .activatable_widget(&ignore_certificate_check)
+            .build();
+        cert_row.add_suffix(&ignore_certificate_check);
+        features_group.add(&cert_row);
+
         // Gateway
         let gateway_entry = Entry::builder()
             .hexpand(true)
@@ -2857,6 +2880,7 @@ impl ConnectionDialog {
             gateway_port_spin,
             gateway_username_entry,
             disable_nla_check,
+            ignore_certificate_check,
             clipboard_check,
             rdp_show_local_cursor_check,
             rdp_jiggler_check,
@@ -6038,6 +6062,8 @@ impl ConnectionDialog {
         self.rdp_jiggler_interval_spin
             .set_sensitive(rdp.jiggler_enabled);
         self.rdp_disable_nla_check.set_active(rdp.disable_nla);
+        self.rdp_ignore_certificate_check
+            .set_active(rdp.ignore_certificate);
         if let Some(ref gw) = rdp.gateway {
             self.rdp_gateway_entry.set_text(&gw.hostname);
             self.rdp_gateway_port_spin.set_value(f64::from(gw.port));
@@ -6772,6 +6798,262 @@ impl ConnectionDialog {
         });
     }
 
+    /// Wires up the "Test credential resolution" button.
+    ///
+    /// When clicked, performs a vault lookup using the current connection name,
+    /// host, protocol, and group — then shows a success/failure dialog with
+    /// the lookup key used. Helps users verify their vault configuration
+    /// before connecting.
+    #[allow(clippy::too_many_arguments)]
+    pub fn connect_vault_test_button(
+        &self,
+        kdbx_enabled: bool,
+        kdbx_path: Option<std::path::PathBuf>,
+        kdbx_password: Option<String>,
+        kdbx_key_file: Option<std::path::PathBuf>,
+        groups: Vec<rustconn_core::models::ConnectionGroup>,
+        secret_settings: rustconn_core::config::SecretSettings,
+    ) {
+        use crate::utils::spawn_blocking_with_callback;
+
+        let password_source_dropdown = self.password_source_dropdown.clone();
+        let name_entry = self.name_entry.clone();
+        let host_entry = self.host_entry.clone();
+        let protocol_dropdown = self.protocol_dropdown.clone();
+        let group_dropdown = self.group_dropdown.clone();
+        let groups_data = self.groups_data.clone();
+        let window = self.window.clone();
+        let groups = Rc::new(groups);
+
+        self.vault_test_button.connect_clicked(move |btn| {
+            let selected = password_source_dropdown.selected();
+            if selected != 1 {
+                // Only test for Vault source
+                alert::show_error(
+                    &window,
+                    &i18n("Test Not Available"),
+                    &i18n("Credential test is only available when Password Source is set to Vault."),
+                );
+                return;
+            }
+
+            let conn_name = name_entry.text().to_string();
+            let conn_host = host_entry.text().to_string();
+            let protocol_index = protocol_dropdown.selected();
+
+            let base_name = if conn_name.trim().is_empty() {
+                conn_host.clone()
+            } else {
+                conn_name.clone()
+            };
+
+            if base_name.trim().is_empty() {
+                alert::show_error(
+                    &window,
+                    &i18n("Cannot Test"),
+                    &i18n("Please enter a connection name or host first."),
+                );
+                return;
+            }
+
+            let protocol_suffix = match protocol_index {
+                0 => "ssh",
+                1 => "rdp",
+                2 => "vnc",
+                3 => "spice",
+                4 => "zerotrust",
+                _ => "ssh",
+            };
+
+            // Build hierarchical lookup key for KeePass
+            let lookup_key = if groups.is_empty() {
+                let sanitized_name = base_name.replace('/', "-");
+                format!("{sanitized_name} ({protocol_suffix})")
+            } else {
+                let selected_group_idx = group_dropdown.selected() as usize;
+                let groups_data_ref = groups_data.borrow();
+                let group_id = if selected_group_idx < groups_data_ref.len() {
+                    groups_data_ref[selected_group_idx].0
+                } else {
+                    None
+                };
+                drop(groups_data_ref);
+
+                let group_path = if let Some(gid) = group_id {
+                    rustconn_core::secret::KeePassHierarchy::resolve_group_path(gid, &groups)
+                } else {
+                    Vec::new()
+                };
+
+                if group_path.is_empty() {
+                    format!("{base_name} ({protocol_suffix})")
+                } else {
+                    let path = group_path.join("/");
+                    format!("{path}/{base_name} ({protocol_suffix})")
+                }
+            };
+
+            let flat_lookup_key = {
+                let backend_type = crate::state::select_backend_for_load(&secret_settings);
+                crate::state::generate_store_key(
+                    &conn_name,
+                    &conn_host,
+                    protocol_suffix,
+                    backend_type,
+                )
+            };
+
+            btn.set_sensitive(false);
+            btn.set_icon_name("content-loading-symbolic");
+
+            let btn_clone = btn.clone();
+            let window_clone = window.clone();
+            let lookup_key_display = lookup_key.clone();
+            let flat_key_display = flat_lookup_key.clone();
+
+            if kdbx_enabled
+                && matches!(
+                    secret_settings.preferred_backend,
+                    rustconn_core::config::SecretBackendType::KeePassXc
+                        | rustconn_core::config::SecretBackendType::KdbxFile
+                )
+            {
+                if let Some(ref kdbx_path) = kdbx_path {
+                    let kdbx_path = kdbx_path.clone();
+                    let db_password = kdbx_password
+                        .as_ref()
+                        .map(|p| secrecy::SecretString::from(p.clone()));
+                    let key_file = kdbx_key_file.clone();
+
+                    spawn_blocking_with_callback(
+                        move || {
+                            rustconn_core::secret::KeePassStatus::get_password_from_kdbx_with_key(
+                                &kdbx_path,
+                                db_password.as_ref(),
+                                key_file.as_deref(),
+                                &lookup_key,
+                                None,
+                            )
+                        },
+                        move |result: rustconn_core::error::SecretResult<
+                            Option<secrecy::SecretString>,
+                        >| {
+                            btn_clone.set_sensitive(true);
+                            btn_clone.set_icon_name("emblem-ok-symbolic");
+
+                            match result {
+                                Ok(Some(_)) => {
+                                    alert::show_success(
+                                        &window_clone,
+                                        &i18n("Credential Test Passed"),
+                                        &i18n_f(
+                                            "Password found in vault.\nLookup key: {}",
+                                            &[&lookup_key_display],
+                                        ),
+                                    );
+                                }
+                                Ok(None) => {
+                                    alert::show_error(
+                                        &window_clone,
+                                        &i18n("Credential Test Failed"),
+                                        &i18n_f(
+                                            "No password found in vault.\nLookup key: {}",
+                                            &[&lookup_key_display],
+                                        ),
+                                    );
+                                }
+                                Err(e) => {
+                                    tracing::error!("Vault test failed: {e}");
+                                    alert::show_error(
+                                        &window_clone,
+                                        &i18n("Credential Test Failed"),
+                                        &i18n_f(
+                                            "Vault error. Check your KeePass configuration.\nLookup key: {}",
+                                            &[&lookup_key_display],
+                                        ),
+                                    );
+                                }
+                            }
+                        },
+                    );
+                } else {
+                    btn.set_sensitive(true);
+                    btn.set_icon_name("emblem-ok-symbolic");
+                    alert::show_error(
+                        &window,
+                        &i18n("Vault Not Configured"),
+                        &i18n("Please configure a secret backend in Settings → Secrets."),
+                    );
+                }
+            } else {
+                // Non-KeePass backend
+                let secret_settings = secret_settings.clone();
+                spawn_blocking_with_callback(
+                    move || {
+                        crate::state::dispatch_vault_op(
+                            &secret_settings,
+                            &flat_lookup_key,
+                            crate::state::VaultOp::Retrieve,
+                        )
+                    },
+                    move |result: Result<
+                        Option<rustconn_core::models::Credentials>,
+                        String,
+                    >| {
+                        btn_clone.set_sensitive(true);
+                        btn_clone.set_icon_name("emblem-ok-symbolic");
+
+                        match result {
+                            Ok(Some(creds)) => {
+                                let has_pw = creds.expose_password().is_some();
+                                if has_pw {
+                                    alert::show_success(
+                                        &window_clone,
+                                        &i18n("Credential Test Passed"),
+                                        &i18n_f(
+                                            "Password found in vault.\nLookup key: {}",
+                                            &[&flat_key_display],
+                                        ),
+                                    );
+                                } else {
+                                    alert::show_error(
+                                        &window_clone,
+                                        &i18n("Credential Test Failed"),
+                                        &i18n_f(
+                                            "Entry found but contains no password.\nLookup key: {}",
+                                            &[&flat_key_display],
+                                        ),
+                                    );
+                                }
+                            }
+                            Ok(None) => {
+                                alert::show_error(
+                                    &window_clone,
+                                    &i18n("Credential Test Failed"),
+                                    &i18n_f(
+                                        "No entry found in vault.\nLookup key: {}",
+                                        &[&flat_key_display],
+                                    ),
+                                );
+                            }
+                            Err(e) => {
+                                tracing::error!("Vault test failed: {e}");
+                                alert::show_error(
+                                    &window_clone,
+                                    &i18n("Credential Test Failed"),
+                                    &i18n_f(
+                                        "Backend error. Check your vault configuration.\nLookup key: {}",
+                                        &[&flat_key_display],
+                                    ),
+                                );
+                            }
+                        }
+                    },
+                );
+            }
+        });
+    }
+
     /// Returns the password entry widget for external access
     #[must_use]
     pub const fn password_entry(&self) -> &Entry {
@@ -7003,6 +7285,7 @@ struct ConnectionDialogData<'a> {
     rdp_gateway_port_spin: &'a SpinButton,
     rdp_gateway_username_entry: &'a Entry,
     rdp_disable_nla_check: &'a CheckButton,
+    rdp_ignore_certificate_check: &'a CheckButton,
     rdp_clipboard_check: &'a CheckButton,
     rdp_show_local_cursor_check: &'a CheckButton,
     rdp_jiggler_check: &'a CheckButton,
@@ -8053,6 +8336,7 @@ impl ConnectionDialogData<'_> {
             keyboard_layout: dropdown_index_to_klid(self.rdp_keyboard_layout_dropdown.selected()),
             scale_override: ScaleOverride::from_index(self.rdp_scale_override_dropdown.selected()),
             disable_nla: self.rdp_disable_nla_check.is_active(),
+            ignore_certificate: self.rdp_ignore_certificate_check.is_active(),
             clipboard_enabled: self.rdp_clipboard_check.is_active(),
             show_local_cursor: self.rdp_show_local_cursor_check.is_active(),
             jiggler_enabled: self.rdp_jiggler_check.is_active(),

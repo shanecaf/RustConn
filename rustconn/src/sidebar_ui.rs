@@ -218,6 +218,7 @@ pub fn show_empty_space_context_menu(widget: &impl IsA<gtk4::Widget>, x: f64, y:
         ContextMenuItem::action(&i18n("Quick Connect"), "quick-connect"),
         ContextMenuItem::action(&i18n("New Connection"), "new-connection"),
         ContextMenuItem::action(&i18n("New Group"), "new-group"),
+        ContextMenuItem::action(&i18n("New Smart Folder"), "new-smart-folder"),
         ContextMenuItem::Separator,
         ContextMenuItem::action(&i18n("Import..."), "import"),
         ContextMenuItem::action(&i18n("Export..."), "export"),
@@ -395,7 +396,7 @@ pub fn create_bulk_actions_bar() -> GtkBox {
         .update_property(&[gtk4::accessible::Property::Label(&i18n("Create new group"))]);
     bar.append(&new_group_button);
 
-    let move_button = Button::from_icon_name("folder-move-symbolic");
+    let move_button = Button::from_icon_name("folder-drag-accept-symbolic");
     move_button.add_css_class("pill");
     move_button.add_css_class("bulk-action");
     move_button.set_tooltip_text(Some(&i18n("Move to Group")));
@@ -449,7 +450,7 @@ pub fn create_bulk_actions_bar() -> GtkBox {
 
 /// Creates the sidebar bottom toolbar with secondary actions
 ///
-/// Layout: [Group Ops] [History] [A-Z Sort] [Recent] [Import] [Export] [KeePass]
+/// Layout: [Group Ops] [History] [A-Z Sort] [Recent] [KeePass] [Smart Folders]
 #[must_use]
 pub fn create_sidebar_bottom_toolbar() -> (GtkBox, Button) {
     let toolbar = GtkBox::new(Orientation::Horizontal, 4);
@@ -484,7 +485,7 @@ pub fn create_sidebar_bottom_toolbar() -> (GtkBox, Button) {
     ))]);
     toolbar.append(&sort_button);
 
-    let sort_recent_button = Button::from_icon_name("document-open-recent-symbolic");
+    let sort_recent_button = Button::from_icon_name("view-sort-descending-symbolic");
     sort_recent_button.add_css_class("flat");
     sort_recent_button.set_tooltip_text(Some(&i18n("Sort by Recent Usage")));
     sort_recent_button.set_action_name(Some("win.sort-recent"));
@@ -492,24 +493,6 @@ pub fn create_sidebar_bottom_toolbar() -> (GtkBox, Button) {
         "Sort connections by recent usage",
     ))]);
     toolbar.append(&sort_recent_button);
-
-    let import_button = Button::from_icon_name("document-open-symbolic");
-    import_button.add_css_class("flat");
-    import_button.set_tooltip_text(Some(&i18n("Import Connections (Ctrl+I)")));
-    import_button.set_action_name(Some("win.import"));
-    import_button.update_property(&[gtk4::accessible::Property::Label(&i18n(
-        "Import connections from external sources",
-    ))]);
-    toolbar.append(&import_button);
-
-    let export_button = Button::from_icon_name("document-save-symbolic");
-    export_button.add_css_class("flat");
-    export_button.set_tooltip_text(Some(&i18n("Export Connections")));
-    export_button.set_action_name(Some("win.export"));
-    export_button.update_property(&[gtk4::accessible::Property::Label(&i18n(
-        "Export connections to file",
-    ))]);
-    toolbar.append(&export_button);
 
     let keepass_button = Button::from_icon_name("dialog-password-symbolic");
     keepass_button.add_css_class("flat");
@@ -520,6 +503,15 @@ pub fn create_sidebar_bottom_toolbar() -> (GtkBox, Button) {
         "Open password vault for credential management",
     ))]);
     toolbar.append(&keepass_button);
+
+    let smart_folders_button = Button::from_icon_name("folder-templates-symbolic");
+    smart_folders_button.add_css_class("flat");
+    smart_folders_button.set_tooltip_text(Some(&i18n("Toggle Smart Folders")));
+    smart_folders_button.set_action_name(Some("win.toggle-smart-folders"));
+    smart_folders_button.update_property(&[gtk4::accessible::Property::Label(&i18n(
+        "Show or hide smart folders panel",
+    ))]);
+    toolbar.append(&smart_folders_button);
 
     (toolbar, keepass_button)
 }

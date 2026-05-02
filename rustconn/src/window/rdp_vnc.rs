@@ -508,6 +508,9 @@ fn start_embedded_rdp_session(
     embedded_config.jiggler_enabled = rdp_config.jiggler_enabled;
     embedded_config.jiggler_interval_secs = rdp_config.jiggler_interval_secs;
 
+    // Pass certificate verification setting
+    embedded_config.ignore_certificate = rdp_config.ignore_certificate;
+
     // Wrap in Rc to keep widget alive in notebook
     let embedded_widget = Rc::new(embedded_widget);
 
@@ -681,14 +684,20 @@ fn start_external_rdp_session(
     history_entry_id: Option<Uuid>,
     ssh_tunnel: Option<rustconn_core::ssh_tunnel::SshTunnel>,
 ) {
-    let (tab, _is_embedded) = EmbeddedSessionTab::new(connection_id, conn_name, "rdp");
+    let (tab, _is_embedded) = EmbeddedSessionTab::new(connection_id, conn_name, "rdp", true);
     let session_id = tab.id();
 
     // Get resolution from RDP config
     let resolution = rdp_config.resolution.as_ref().map(|r| (r.width, r.height));
 
     // Get extra args from RDP config
-    let extra_args = rdp_config.custom_args.clone();
+    let mut extra_args = rdp_config.custom_args.clone();
+
+    // Add NLA disable flag if configured
+    // FreeRDP 3.x syntax: /sec:nla:off (disables NLA while keeping other methods)
+    if rdp_config.disable_nla {
+        extra_args.push("/sec:nla:off".to_string());
+    }
 
     // Prepare domain (use None if empty)
     let domain_opt = if domain.is_empty() {
@@ -717,9 +726,12 @@ fn start_external_rdp_session(
         None,
         false,
         &shared_folders,
+        rdp_config.ignore_certificate,
     ) {
         tracing::error!(%e, connection = %conn_name, "Failed to start RDP session");
         sidebar.update_connection_status(&connection_id.to_string(), "failed");
+        // Show toast with error details
+        crate::toast::show_error_toast_on_active_window(&e.to_string());
         // Record connection failure in history
         if let Some(entry_id) = history_entry_id
             && let Ok(mut state_mut) = state.try_borrow_mut()
@@ -753,6 +765,12 @@ fn start_external_rdp_session(
         Some(tab.process_handle()),
     );
 
+    // Ensure notebook is visible and expanded (matches start_embedded_rdp_session)
+    split_view.widget().set_visible(false);
+    split_view.widget().set_vexpand(false);
+    notebook.widget().set_vexpand(true);
+    notebook.show_tab_view_content();
+
     // Store SSH tunnel so it stays alive for the duration of the session
     if let Some(tunnel) = ssh_tunnel {
         notebook.store_ssh_tunnel(session_id, tunnel);
@@ -762,6 +780,37 @@ fn start_external_rdp_session(
     if let Some(info) = notebook.get_session_info(session_id) {
         split_view.add_session(info, None);
     }
+
+    // Monitor external process — auto-close tab when FreeRDP window is closed
+    let process_handle = tab.process_handle();
+    let notebook_for_monitor = notebook.clone();
+    let sidebar_for_monitor = sidebar.clone();
+    let connection_id_str = connection_id.to_string();
+    gtk4::glib::timeout_add_local(std::time::Duration::from_secs(2), move || {
+        let mut process_guard = process_handle.borrow_mut();
+        if let Some(ref mut child) = *process_guard {
+            match child.try_wait() {
+                Ok(Some(_status)) => {
+                    // Process exited — close tab and update sidebar
+                    drop(process_guard);
+                    notebook_for_monitor.close_tab(session_id);
+                    sidebar_for_monitor.decrement_session_count(&connection_id_str, false);
+                    gtk4::glib::ControlFlow::Break
+                }
+                Ok(None) => {
+                    // Still running
+                    gtk4::glib::ControlFlow::Continue
+                }
+                Err(_) => {
+                    // Error checking — stop monitoring
+                    gtk4::glib::ControlFlow::Break
+                }
+            }
+        } else {
+            // No process — stop monitoring
+            gtk4::glib::ControlFlow::Break
+        }
+    });
 
     // Update last_connected
     if let Ok(mut state_mut) = state.try_borrow_mut()

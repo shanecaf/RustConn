@@ -79,6 +79,10 @@ pub fn dispatch(config_path: Option<&Path>, command: Commands) -> Result<(), Cli
             boundary_addr,
             custom_command,
             jump_host,
+            keep_alive_interval,
+            keep_alive_count,
+            ssh_verbose,
+            ignore_certificate,
         } => add::cmd_add(
             config_path,
             add::AddParams {
@@ -112,6 +116,10 @@ pub fn dispatch(config_path: Option<&Path>, command: Commands) -> Result<(), Cli
                 boundary_addr: boundary_addr.as_deref(),
                 custom_command: custom_command.as_deref(),
                 jump_host: jump_host.as_deref(),
+                keep_alive_interval,
+                keep_alive_count,
+                ssh_verbose,
+                ignore_certificate,
             },
         ),
         Commands::Export { format, output } => {
@@ -152,6 +160,10 @@ pub fn dispatch(config_path: Option<&Path>, command: Commands) -> Result<(), Cli
             boundary_addr,
             custom_command,
             jump_host,
+            keep_alive_interval,
+            keep_alive_count,
+            ssh_verbose,
+            ignore_certificate,
         } => update::cmd_update(
             config_path,
             update::UpdateParams {
@@ -185,6 +197,10 @@ pub fn dispatch(config_path: Option<&Path>, command: Commands) -> Result<(), Cli
                 boundary_addr: boundary_addr.as_deref(),
                 custom_command: custom_command.as_deref(),
                 jump_host: jump_host.as_deref(),
+                keep_alive_interval,
+                keep_alive_count,
+                ssh_verbose,
+                ignore_certificate,
             },
         ),
         Commands::Wol {

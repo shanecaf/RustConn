@@ -32,6 +32,20 @@ pub fn cmd_smart_folder(
             host_pattern.as_deref(),
             tags.as_deref(),
         ),
+        SmartFolderCommands::Edit {
+            name,
+            new_name,
+            protocol,
+            host_pattern,
+            tags,
+        } => cmd_smart_folder_edit(
+            config_path,
+            &name,
+            new_name.as_deref(),
+            protocol.as_deref(),
+            host_pattern.as_deref(),
+            tags.as_deref(),
+        ),
         SmartFolderCommands::Delete { name } => cmd_smart_folder_delete(config_path, &name),
     }
 }
@@ -188,6 +202,61 @@ fn cmd_smart_folder_create(
         .map_err(|e| CliError::SmartFolder(format!("Failed to save settings: {e}")))?;
 
     println!("Created smart folder '{name}' with ID {id}");
+
+    Ok(())
+}
+
+fn cmd_smart_folder_edit(
+    config_path: Option<&Path>,
+    name: &str,
+    new_name: Option<&str>,
+    protocol: Option<&str>,
+    host_pattern: Option<&str>,
+    tags: Option<&str>,
+) -> Result<(), CliError> {
+    let config_manager = create_config_manager(config_path)?;
+    let mut settings = config_manager
+        .load_settings()
+        .map_err(|e| CliError::SmartFolder(format!("Failed to load settings: {e}")))?;
+
+    let folder = settings
+        .smart_folders
+        .iter_mut()
+        .find(|f| f.name.eq_ignore_ascii_case(name) || f.id.to_string() == name)
+        .ok_or_else(|| CliError::SmartFolder(format!("Smart folder not found: {name}")))?;
+
+    let id = folder.id;
+
+    if let Some(n) = new_name {
+        folder.name = n.to_string();
+    }
+    if let Some(p) = protocol {
+        if p.eq_ignore_ascii_case("none") {
+            folder.filter_protocol = None;
+        } else {
+            folder.filter_protocol = Some(parse_protocol_type(p)?);
+        }
+    }
+    if let Some(hp) = host_pattern {
+        if hp.eq_ignore_ascii_case("none") {
+            folder.filter_host_pattern = None;
+        } else {
+            folder.filter_host_pattern = Some(hp.to_string());
+        }
+    }
+    if let Some(t) = tags {
+        if t.eq_ignore_ascii_case("none") {
+            folder.filter_tags = Vec::new();
+        } else {
+            folder.filter_tags = t.split(',').map(|s| s.trim().to_string()).collect();
+        }
+    }
+
+    config_manager
+        .save_settings(&settings)
+        .map_err(|e| CliError::SmartFolder(format!("Failed to save settings: {e}")))?;
+
+    println!("Updated smart folder '{name}' (ID: {id})");
 
     Ok(())
 }

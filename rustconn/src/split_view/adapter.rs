@@ -1232,7 +1232,7 @@ impl SplitViewAdapter {
         click.connect_pressed(move |gesture, _, x, y| {
             // Check if the click lands on an interactive child widget (button or
             // VTE terminal). If so, fire the focus callback but do NOT claim the
-            // event — let the child handle it (button activation, text selection).
+            // event — let the child handle it (button activation, mouse tracking).
             if let Some(gesture_widget) = gesture.widget()
                 && let Some(target_widget) = gesture_widget.pick(x, y, gtk4::PickFlags::DEFAULT)
             {
@@ -1244,17 +1244,19 @@ impl SplitViewAdapter {
                             "Panel click handler: click on button in panel {}, not claiming",
                             panel_id
                         );
-                        gesture.set_state(gtk4::EventSequenceState::None);
+                        gesture.set_state(gtk4::EventSequenceState::Denied);
                         return;
                     }
-                    // Let VTE terminals handle clicks for text selection
+                    // Let VTE terminals handle clicks for mouse tracking (mc, vim)
+                    // and text selection. Deny the gesture so VTE receives the
+                    // raw button-press event for mouse tracking escape sequences.
                     if widget.type_().name() == "VteTerminal" {
                         tracing::debug!(
-                            "Panel click handler: click on terminal in panel {}, not claiming",
+                            "Panel click handler: click on terminal in panel {}, denying gesture",
                             panel_id
                         );
                         callback(panel_id);
-                        gesture.set_state(gtk4::EventSequenceState::None);
+                        gesture.set_state(gtk4::EventSequenceState::Denied);
                         return;
                     }
                     current = widget.parent();

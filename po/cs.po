@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: rustconn 0.12.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-02 01:18+0300\n"
+"POT-Creation-Date: 2026-05-02 23:17+0300\n"
 "PO-Revision-Date: 2026-04-25 10:46+0000\n"
 "Last-Translator: p-bo <https://github.com/p-bo>\n"
 "Language-Team: Czech\n"
@@ -23,16 +23,16 @@ msgstr "OK"
 #: rustconn/src/dialogs/history.rs:187 rustconn/src/dialogs/progress.rs:64
 #: rustconn/src/dialogs/progress.rs:184 rustconn/src/dialogs/recording.rs:435
 #: rustconn/src/dialogs/recording.rs:506
-#: rustconn/src/dialogs/settings/mod.rs:434
+#: rustconn/src/dialogs/settings/mod.rs:436
 #: rustconn/src/dialogs/settings/ssh_agent_tab.rs:494
-#: rustconn/src/dialogs/settings/terminal_tab.rs:593
-#: rustconn/src/dialogs/settings/terminal_tab.rs:640
-#: rustconn/src/dialogs/tunnel.rs:489 rustconn/src/dialogs/variable_setup.rs:85
-#: rustconn/src/terminal/mod.rs:533 rustconn/src/terminal/mod.rs:736
-#: rustconn/src/window/edit_dialogs.rs:243
-#: rustconn/src/window/edit_dialogs.rs:461
-#: rustconn/src/window/edit_dialogs.rs:1671
-#: rustconn/src/window/edit_dialogs.rs:1719 rustconn/src/window/groups.rs:60
+#: rustconn/src/dialogs/settings/terminal_tab.rs:614
+#: rustconn/src/dialogs/settings/terminal_tab.rs:661
+#: rustconn/src/dialogs/smart_folder.rs:83 rustconn/src/dialogs/tunnel.rs:489
+#: rustconn/src/dialogs/variable_setup.rs:85 rustconn/src/terminal/mod.rs:533
+#: rustconn/src/terminal/mod.rs:736 rustconn/src/window/edit_dialogs.rs:255
+#: rustconn/src/window/edit_dialogs.rs:473
+#: rustconn/src/window/edit_dialogs.rs:1694
+#: rustconn/src/window/edit_dialogs.rs:1742 rustconn/src/window/groups.rs:60
 #: rustconn/src/window/operations.rs:81 rustconn/src/window/operations.rs:414
 #: rustconn/src/window/operations.rs:582 rustconn/src/window/sessions.rs:328
 #: rustconn/src/window/snippets.rs:333 rustconn/src/window/snippets.rs:487
@@ -47,10 +47,11 @@ msgstr "Chyba ověření"
 msgid "Don't Save"
 msgstr "Neukládat"
 
-#: rustconn/src/alert.rs:94 rustconn/src/dialogs/connection/dialog.rs:5106
-#: rustconn/src/dialogs/settings/terminal_tab.rs:641
-#: rustconn/src/dialogs/snippet.rs:353 rustconn/src/dialogs/template.rs:2716
-#: rustconn/src/window/edit_dialogs.rs:463
+#: rustconn/src/alert.rs:94 rustconn/src/dialogs/connection/dialog.rs:5130
+#: rustconn/src/dialogs/settings/terminal_tab.rs:662
+#: rustconn/src/dialogs/smart_folder.rs:78 rustconn/src/dialogs/snippet.rs:353
+#: rustconn/src/dialogs/template.rs:2717
+#: rustconn/src/window/edit_dialogs.rs:475
 msgid "Save"
 msgstr "Uložit"
 
@@ -162,8 +163,8 @@ msgstr "Připojení"
 msgid "Select connections to include in this cluster"
 msgstr "Vyberte připojení která zahrnout do tohoto clusteru"
 
-#: rustconn/src/dialogs/cluster.rs:231 rustconn/src/sidebar_ui.rs:421
-#: rustconn/src/terminal/config.rs:148
+#: rustconn/src/dialogs/cluster.rs:231 rustconn/src/sidebar_ui.rs:422
+#: rustconn/src/terminal/config.rs:153
 msgid "Select All"
 msgstr "Vybrat vše"
 
@@ -309,12 +310,12 @@ msgid "Quick color presets for environment identification"
 msgstr "Rychlé barevné předvolby pro identifikaci prostředí"
 
 #: rustconn/src/dialogs/connection/advanced_tab.rs:144
-#: rustconn/src/dialogs/settings/terminal_tab.rs:664
+#: rustconn/src/dialogs/settings/terminal_tab.rs:685
 msgid "Background"
 msgstr "Pozadí"
 
 #: rustconn/src/dialogs/connection/advanced_tab.rs:152
-#: rustconn/src/dialogs/settings/terminal_tab.rs:665
+#: rustconn/src/dialogs/settings/terminal_tab.rs:686
 msgid "Foreground"
 msgstr "Popředí"
 
@@ -360,10 +361,10 @@ msgid "Detect terminal output activity or silence"
 msgstr "Detekovat aktivitu nebo ticho ve výstupu terminálu"
 
 #: rustconn/src/dialogs/connection/advanced_tab.rs:337
-#: rustconn/src/dialogs/connection/dialog.rs:3406
+#: rustconn/src/dialogs/connection/dialog.rs:3430
 #: rustconn/src/dialogs/connection/spice.rs:175
 #: rustconn/src/dialogs/settings/monitoring_tab.rs:181
-#: rustconn/src/dialogs/settings/terminal_tab.rs:256
+#: rustconn/src/dialogs/settings/terminal_tab.rs:257
 #: rustconn/src/dialogs/template.rs:1268
 msgid "Off"
 msgstr "Vypnuto"
@@ -406,7 +407,7 @@ msgid "Seconds of no output before silence notification"
 msgstr "Sekundy bez výstupu před oznámením ticha"
 
 #: rustconn/src/dialogs/connection/advanced_tab.rs:393
-#: rustconn/src/dialogs/settings/mod.rs:238
+#: rustconn/src/dialogs/settings/mod.rs:240
 msgid "Highlight Rules"
 msgstr "Pravidla zvýrazňování"
 
@@ -415,13 +416,13 @@ msgid "Regex-based text highlighting for this connection"
 msgstr "Zvýrazňování textu na základě regexu pro toto připojení"
 
 #: rustconn/src/dialogs/connection/advanced_tab.rs:407
-#: rustconn/src/dialogs/settings/mod.rs:253
+#: rustconn/src/dialogs/settings/mod.rs:255
 msgid "No highlight rules"
 msgstr "Žádná pravidla zvýrazňování"
 
 #: rustconn/src/dialogs/connection/advanced_tab.rs:417
 #: rustconn/src/dialogs/connection/automation_tab.rs:101
-#: rustconn/src/dialogs/settings/mod.rs:262
+#: rustconn/src/dialogs/settings/mod.rs:264
 msgid "Add Rule"
 msgstr "Přidat pravidlo"
 
@@ -477,44 +478,45 @@ msgid "Time to wait for boot"
 msgstr "Čas čekání na spuštění"
 
 #: rustconn/src/dialogs/connection/advanced_tab.rs:646
-#: rustconn/src/dialogs/connection/general_tab.rs:77
-#: rustconn/src/dialogs/export.rs:376 rustconn/src/dialogs/settings/mod.rs:1182
+#: rustconn/src/dialogs/connection/general_tab.rs:78
+#: rustconn/src/dialogs/export.rs:376 rustconn/src/dialogs/settings/mod.rs:1190
+#: rustconn/src/dialogs/smart_folder.rs:121
 #: rustconn/src/dialogs/template.rs:506
-#: rustconn/src/window/connection_dialogs.rs:247
-#: rustconn/src/window/edit_dialogs.rs:260
-#: rustconn/src/window/edit_dialogs.rs:496
+#: rustconn/src/window/connection_dialogs.rs:259
+#: rustconn/src/window/edit_dialogs.rs:272
+#: rustconn/src/window/edit_dialogs.rs:508
 msgid "Name"
 msgstr "Název"
 
 #: rustconn/src/dialogs/connection/advanced_tab.rs:648
-#: rustconn/src/dialogs/settings/mod.rs:1184
+#: rustconn/src/dialogs/settings/mod.rs:1192
 msgid "Rule name"
 msgstr "Název pravidla"
 
 #: rustconn/src/dialogs/connection/advanced_tab.rs:655
-#: rustconn/src/dialogs/settings/mod.rs:1192
+#: rustconn/src/dialogs/settings/mod.rs:1200
 msgid "Pattern (regex)"
 msgstr "Vzor (regex)"
 
 #: rustconn/src/dialogs/connection/advanced_tab.rs:657
-#: rustconn/src/dialogs/settings/mod.rs:1194
+#: rustconn/src/dialogs/settings/mod.rs:1202
 msgid "Regex pattern to match"
 msgstr "Regulární výraz pro shodu"
 
 #: rustconn/src/dialogs/connection/advanced_tab.rs:665
-#: rustconn/src/dialogs/settings/mod.rs:1203
+#: rustconn/src/dialogs/settings/mod.rs:1211
 msgid "Enable rule"
 msgstr "Povolit pravidlo"
 
 #: rustconn/src/dialogs/connection/advanced_tab.rs:672
-#: rustconn/src/dialogs/connection/dialog.rs:4315
-#: rustconn/src/dialogs/settings/mod.rs:1211
+#: rustconn/src/dialogs/connection/dialog.rs:4339
+#: rustconn/src/dialogs/settings/mod.rs:1219
 msgid "Delete rule"
 msgstr "Smazat pravidlo"
 
 #: rustconn/src/dialogs/connection/advanced_tab.rs:676
-#: rustconn/src/dialogs/connection/dialog.rs:4318
-#: rustconn/src/dialogs/settings/mod.rs:1216
+#: rustconn/src/dialogs/connection/dialog.rs:4342
+#: rustconn/src/dialogs/settings/mod.rs:1224
 msgid "Delete highlight rule"
 msgstr "Smazat pravidlo zvýraznění"
 
@@ -583,7 +585,7 @@ msgid "e.g., /path/to/script.sh or vpn-connect ${host}"
 msgstr "např. /cesta/ke/skriptu.sh nebo vpn-connect ${host}"
 
 #: rustconn/src/dialogs/connection/automation_tab.rs:229
-#: rustconn/src/dialogs/connection/general_tab.rs:324
+#: rustconn/src/dialogs/connection/general_tab.rs:334
 #: rustconn/src/dialogs/snippet.rs:202 rustconn/src/dialogs/template.rs:1932
 msgid "Command"
 msgstr "Příkaz"
@@ -661,28 +663,28 @@ msgstr "Žádné uživatelsky určené vlastnosti"
 msgid "Add Property"
 msgstr "Přidat vlastnost"
 
-#: rustconn/src/dialogs/connection/dialog.rs:453
+#: rustconn/src/dialogs/connection/dialog.rs:456
 #: rustconn/src/dialogs/template.rs:181
 msgid "Basic"
 msgstr "Základní"
 
-#: rustconn/src/dialogs/connection/dialog.rs:678
+#: rustconn/src/dialogs/connection/dialog.rs:682
 msgid "Data"
 msgstr "Data"
 
-#: rustconn/src/dialogs/connection/dialog.rs:688
+#: rustconn/src/dialogs/connection/dialog.rs:692
 #: rustconn/src/dialogs/settings/logging_tab.rs:25
 msgid "Logging"
 msgstr "Zaznamenávání relace"
 
-#: rustconn/src/dialogs/connection/dialog.rs:710
+#: rustconn/src/dialogs/connection/dialog.rs:714
 msgid "Automation"
 msgstr "Automatizace"
 
-#: rustconn/src/dialogs/connection/dialog.rs:739
-#: rustconn/src/dialogs/connection/dialog.rs:2775
-#: rustconn/src/dialogs/connection/dialog.rs:3208
-#: rustconn/src/dialogs/connection/dialog.rs:3729
+#: rustconn/src/dialogs/connection/dialog.rs:743
+#: rustconn/src/dialogs/connection/dialog.rs:2798
+#: rustconn/src/dialogs/connection/dialog.rs:3232
+#: rustconn/src/dialogs/connection/dialog.rs:3753
 #: rustconn/src/dialogs/connection/kubernetes.rs:133
 #: rustconn/src/dialogs/connection/rdp.rs:369
 #: rustconn/src/dialogs/connection/vnc.rs:255
@@ -692,11 +694,11 @@ msgstr "Automatizace"
 msgid "Advanced"
 msgstr "Pokročilé"
 
-#: rustconn/src/dialogs/connection/dialog.rs:1302
+#: rustconn/src/dialogs/connection/dialog.rs:1309
 msgid "Zero Trust Connection Test"
 msgstr "Test připojení Zero Trust"
 
-#: rustconn/src/dialogs/connection/dialog.rs:1303
+#: rustconn/src/dialogs/connection/dialog.rs:1310
 msgid ""
 "Zero Trust connections require provider-specific authentication.\n"
 "\n"
@@ -712,231 +714,232 @@ msgstr ""
 "2. Použijte tlačítko Připojit\n"
 "3. CLI poskytovatele zajistí ověření"
 
-#: rustconn/src/dialogs/connection/dialog.rs:1311
-#: rustconn/src/dialogs/connection/dialog.rs:1463
-#: rustconn/src/dialogs/connection/dialog.rs:1468
+#: rustconn/src/dialogs/connection/dialog.rs:1318
+#: rustconn/src/dialogs/connection/dialog.rs:1470
+#: rustconn/src/dialogs/connection/dialog.rs:1475
 msgid "Connection Test Failed"
 msgstr "Test připojení selhal"
 
-#: rustconn/src/dialogs/connection/dialog.rs:1312
+#: rustconn/src/dialogs/connection/dialog.rs:1319
 msgid "Please fill in required fields (name and host)"
 msgstr "Vyplňte povinná pole (název a host)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:1351
+#: rustconn/src/dialogs/connection/dialog.rs:1358
 msgid "Testing..."
 msgstr "Testování…"
 
-#: rustconn/src/dialogs/connection/dialog.rs:1445
-#: rustconn/src/dialogs/connection/dialog.rs:1670
-#: rustconn/src/dialogs/connection/general_tab.rs:320
+#: rustconn/src/dialogs/connection/dialog.rs:1452
+#: rustconn/src/dialogs/connection/dialog.rs:1677
+#: rustconn/src/dialogs/connection/general_tab.rs:330
 msgid "Test"
 msgstr "Vyzkoušet"
 
-#: rustconn/src/dialogs/connection/dialog.rs:1452
+#: rustconn/src/dialogs/connection/dialog.rs:1459
 msgid "Connection Test Successful"
 msgstr "Test připojení úspěšný"
 
-#: rustconn/src/dialogs/connection/dialog.rs:1454
+#: rustconn/src/dialogs/connection/dialog.rs:1461
 msgid "Connection successful! Latency: {}ms"
 msgstr "Připojení úspěšné! Latence: {} ms"
 
-#: rustconn/src/dialogs/connection/dialog.rs:1462
+#: rustconn/src/dialogs/connection/dialog.rs:1469
 msgid "Unknown error"
 msgstr "Neznámá chyba"
 
-#: rustconn/src/dialogs/connection/dialog.rs:1469
+#: rustconn/src/dialogs/connection/dialog.rs:1476
 msgid "Test timed out"
 msgstr "Časový limit testu vypršel"
 
-#: rustconn/src/dialogs/connection/dialog.rs:1487
-#: rustconn/src/dialogs/connection/dialog.rs:1497
-#: rustconn/src/dialogs/connection/dialog.rs:1506
-#: rustconn/src/dialogs/connection/dialog.rs:1567
-#: rustconn/src/dialogs/connection/dialog.rs:1572
+#: rustconn/src/dialogs/connection/dialog.rs:1494
+#: rustconn/src/dialogs/connection/dialog.rs:1504
+#: rustconn/src/dialogs/connection/dialog.rs:1513
+#: rustconn/src/dialogs/connection/dialog.rs:1574
+#: rustconn/src/dialogs/connection/dialog.rs:1579
 msgid "Script Test Failed"
 msgstr "Test skriptu selhal"
 
-#: rustconn/src/dialogs/connection/dialog.rs:1488
+#: rustconn/src/dialogs/connection/dialog.rs:1495
 msgid "Script command is empty"
 msgstr "Příkaz skriptu je prázdný"
 
-#: rustconn/src/dialogs/connection/dialog.rs:1498
+#: rustconn/src/dialogs/connection/dialog.rs:1505
 msgid "Script command is empty after parsing"
 msgstr "Příkaz skriptu je prázdný po zpracování"
 
-#: rustconn/src/dialogs/connection/dialog.rs:1507
+#: rustconn/src/dialogs/connection/dialog.rs:1514
 msgid "Failed to parse command"
 msgstr "Nepodařilo se zpracovat příkaz"
 
-#: rustconn/src/dialogs/connection/dialog.rs:1514
+#: rustconn/src/dialogs/connection/dialog.rs:1521
 msgid "Testing…"
 msgstr "Testování…"
 
-#: rustconn/src/dialogs/connection/dialog.rs:1537
+#: rustconn/src/dialogs/connection/dialog.rs:1544
 msgid "Test Script"
 msgstr "Otestovat skript"
 
-#: rustconn/src/dialogs/connection/dialog.rs:1544
+#: rustconn/src/dialogs/connection/dialog.rs:1551
 msgid "(empty output)"
 msgstr "(prázdný výstup)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:1550
+#: rustconn/src/dialogs/connection/dialog.rs:1557
 msgid "Script Test Successful"
 msgstr "Test skriptu úspěšný"
 
-#: rustconn/src/dialogs/connection/dialog.rs:1551
+#: rustconn/src/dialogs/connection/dialog.rs:1558
 #: rustconn/src/dialogs/export.rs:318
 msgid "Output"
 msgstr "Výstup"
 
-#: rustconn/src/dialogs/connection/dialog.rs:1558
+#: rustconn/src/dialogs/connection/dialog.rs:1565
 msgid "Command failed"
 msgstr "Příkaz selhal"
 
-#: rustconn/src/dialogs/connection/dialog.rs:1573
+#: rustconn/src/dialogs/connection/dialog.rs:1580
 msgid "Script timed out after 30 seconds"
 msgstr "Skript překročil časový limit (30 sekund)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:1653
+#: rustconn/src/dialogs/connection/dialog.rs:1660
 #: rustconn/src/sidebar_ui.rs:190 rustconn/src/sidebar_ui.rs:219
 #: rustconn/src/split_view/bridge.rs:1724 rustconn/src/window/ui.rs:65
 #: rustconn/src/window/ui.rs:151
 msgid "New Connection"
 msgstr "Nové připojení"
 
-#: rustconn/src/dialogs/connection/dialog.rs:1668
+#: rustconn/src/dialogs/connection/dialog.rs:1675
 #: rustconn/src/dialogs/export.rs:1103
 #: rustconn/src/dialogs/flatpak_components.rs:98
 #: rustconn/src/dialogs/import.rs:1551 rustconn/src/dialogs/recording.rs:77
 #: rustconn/src/dialogs/terminal_search.rs:57 rustconn/src/terminal/mod.rs:737
-#: rustconn/src/window/connection_dialogs.rs:207
-#: rustconn/src/window/edit_dialogs.rs:2015 rustconn/src/window/sessions.rs:47
+#: rustconn/src/window/connection_dialogs.rs:219
+#: rustconn/src/window/edit_dialogs.rs:2038 rustconn/src/window/sessions.rs:47
 #: rustconn/src/window/snippets.rs:66
 msgid "Close"
 msgstr "Zavřít"
 
-#: rustconn/src/dialogs/connection/dialog.rs:1671
+#: rustconn/src/dialogs/connection/dialog.rs:1678
 msgid "Test connection"
 msgstr "Testovat připojení"
 
-#: rustconn/src/dialogs/connection/dialog.rs:1674
-#: rustconn/src/dialogs/settings/terminal_tab.rs:594
-#: rustconn/src/window/connection_dialogs.rs:209
+#: rustconn/src/dialogs/connection/dialog.rs:1681
+#: rustconn/src/dialogs/settings/terminal_tab.rs:615
+#: rustconn/src/dialogs/smart_folder.rs:80
+#: rustconn/src/window/connection_dialogs.rs:221
 #: rustconn/src/window/snippets.rs:68
 msgid "Create"
 msgstr "Vytvořit"
 
-#: rustconn/src/dialogs/connection/dialog.rs:1722
-#: rustconn/src/dialogs/connection/general_tab.rs:116
+#: rustconn/src/dialogs/connection/dialog.rs:1729
+#: rustconn/src/dialogs/connection/general_tab.rs:117
 #: rustconn/src/dialogs/export.rs:394 rustconn/src/dialogs/template.rs:192
 #: rustconn/src/dialogs/template.rs:521 rustconn/src/split_view/bridge.rs:1489
-#: rustconn/src/window/edit_dialogs.rs:2073
+#: rustconn/src/window/edit_dialogs.rs:2096
 msgid "Protocol"
 msgstr "Protokol"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2424
-#: rustconn/src/dialogs/connection/dialog.rs:2998
+#: rustconn/src/dialogs/connection/dialog.rs:2435
+#: rustconn/src/dialogs/connection/dialog.rs:3022
 #: rustconn/src/dialogs/connection/rdp.rs:127
 #: rustconn/src/dialogs/connection/vnc.rs:106
 #: rustconn/src/dialogs/template.rs:810 rustconn/src/dialogs/template.rs:997
 msgid "Display"
 msgstr "Zobrazení"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2440
-#: rustconn/src/dialogs/connection/dialog.rs:3014
+#: rustconn/src/dialogs/connection/dialog.rs:2451
+#: rustconn/src/dialogs/connection/dialog.rs:3038
 #: rustconn/src/dialogs/template.rs:826 rustconn/src/dialogs/template.rs:1013
 msgid "Client Mode"
 msgstr "Režim klienta"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2442
-#: rustconn/src/dialogs/connection/dialog.rs:3016
+#: rustconn/src/dialogs/connection/dialog.rs:2453
+#: rustconn/src/dialogs/connection/dialog.rs:3040
 #: rustconn/src/dialogs/template.rs:828 rustconn/src/dialogs/template.rs:1015
 msgid "Embedded renders in tab, External opens separate window"
 msgstr "Vestavěný vykresluje v kartě, externí otevře samostatné okno"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2463
-#: rustconn/src/dialogs/connection/dialog.rs:3037
+#: rustconn/src/dialogs/connection/dialog.rs:2474
+#: rustconn/src/dialogs/connection/dialog.rs:3061
 msgid "Performance Mode"
 msgstr "Režim výkonu"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2464
-#: rustconn/src/dialogs/connection/dialog.rs:3038
+#: rustconn/src/dialogs/connection/dialog.rs:2475
+#: rustconn/src/dialogs/connection/dialog.rs:3062
 msgid "Quality/speed tradeoff for image rendering"
 msgstr "Kompromis kvality/rychlosti vykreslování obrazu"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2490
+#: rustconn/src/dialogs/connection/dialog.rs:2501
 #: rustconn/src/dialogs/connection/rdp.rs:177
 #: rustconn/src/dialogs/template.rs:855
 msgid "Resolution"
 msgstr "Rozlišení"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2491
+#: rustconn/src/dialogs/connection/dialog.rs:2502
 #: rustconn/src/dialogs/connection/rdp.rs:178
 #: rustconn/src/dialogs/template.rs:856
 msgid "Width × Height in pixels"
 msgstr "Šířka × výška v pixelech"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2498
+#: rustconn/src/dialogs/connection/dialog.rs:2509
 #: rustconn/src/dialogs/connection/rdp.rs:185
 #: rustconn/src/dialogs/template.rs:863
 msgid "32-bit (True Color)"
 msgstr "32-bit (True Color)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2499
+#: rustconn/src/dialogs/connection/dialog.rs:2510
 #: rustconn/src/dialogs/connection/rdp.rs:186
 #: rustconn/src/dialogs/template.rs:864
 msgid "24-bit"
 msgstr "24-bit"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2500
+#: rustconn/src/dialogs/connection/dialog.rs:2511
 #: rustconn/src/dialogs/connection/rdp.rs:187
 #: rustconn/src/dialogs/template.rs:865
 msgid "16-bit (High Color)"
 msgstr "16-bit (High Color)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2501
+#: rustconn/src/dialogs/connection/dialog.rs:2512
 #: rustconn/src/dialogs/connection/rdp.rs:188
 #: rustconn/src/dialogs/template.rs:866
 msgid "15-bit"
 msgstr "15-bit"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2502
+#: rustconn/src/dialogs/connection/dialog.rs:2513
 #: rustconn/src/dialogs/connection/rdp.rs:189
 #: rustconn/src/dialogs/template.rs:867
 msgid "8-bit"
 msgstr "8-bit"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2511
+#: rustconn/src/dialogs/connection/dialog.rs:2522
 #: rustconn/src/dialogs/template.rs:876
 msgid "Color Depth"
 msgstr "Barevná hloubka"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2512
+#: rustconn/src/dialogs/connection/dialog.rs:2523
 #: rustconn/src/dialogs/template.rs:877
 msgid "Higher values provide better quality"
 msgstr "Vyšší hodnoty poskytují lepší kvalitu"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2529
-#: rustconn/src/dialogs/connection/dialog.rs:3080
+#: rustconn/src/dialogs/connection/dialog.rs:2540
+#: rustconn/src/dialogs/connection/dialog.rs:3104
 msgid "Display Scale"
 msgstr "Měřítko zobrazení"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2530
-#: rustconn/src/dialogs/connection/dialog.rs:3081
+#: rustconn/src/dialogs/connection/dialog.rs:2541
+#: rustconn/src/dialogs/connection/dialog.rs:3105
 msgid "Override HiDPI scaling for embedded viewer"
 msgstr "Přepsat škálování HiDPI pro vestavěný prohlížeč"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2543
+#: rustconn/src/dialogs/connection/dialog.rs:2554
 msgid "Dynamic Resolution"
 msgstr "Dynamické rozlišení"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2544
+#: rustconn/src/dialogs/connection/dialog.rs:2555
 msgid "Embedded mode automatically matches window size"
 msgstr "Vestavěný režim se automaticky přizpůsobí velikosti okna"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2569
-#: rustconn/src/dialogs/connection/dialog.rs:3150
-#: rustconn/src/dialogs/connection/dialog.rs:3379
+#: rustconn/src/dialogs/connection/dialog.rs:2580
+#: rustconn/src/dialogs/connection/dialog.rs:3174
+#: rustconn/src/dialogs/connection/dialog.rs:3403
 #: rustconn/src/dialogs/connection/rdp.rs:250
 #: rustconn/src/dialogs/connection/spice.rs:158
 #: rustconn/src/dialogs/connection/vnc.rs:204
@@ -945,167 +948,175 @@ msgstr "Vestavěný režim se automaticky přizpůsobí velikosti okna"
 msgid "Features"
 msgstr "Funkce"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2575
+#: rustconn/src/dialogs/connection/dialog.rs:2586
 #: rustconn/src/dialogs/template.rs:905
 msgid "Audio Redirection"
 msgstr "Přesměrování zvuku"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2576
+#: rustconn/src/dialogs/connection/dialog.rs:2587
 #: rustconn/src/dialogs/template.rs:906
 msgid "Play remote audio locally"
 msgstr "Přehrávat vzdálený zvuk lokálně"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2585
-#: rustconn/src/dialogs/connection/dialog.rs:3178
-#: rustconn/src/dialogs/connection/dialog.rs:3396
+#: rustconn/src/dialogs/connection/dialog.rs:2596
+#: rustconn/src/dialogs/connection/dialog.rs:3202
+#: rustconn/src/dialogs/connection/dialog.rs:3420
 #: rustconn/src/dialogs/template.rs:1104 rustconn/src/dialogs/template.rs:1251
 msgid "Clipboard Sharing"
 msgstr "Sdílení schránky"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2586
-#: rustconn/src/dialogs/connection/dialog.rs:3179
-#: rustconn/src/dialogs/connection/dialog.rs:3397
+#: rustconn/src/dialogs/connection/dialog.rs:2597
+#: rustconn/src/dialogs/connection/dialog.rs:3203
+#: rustconn/src/dialogs/connection/dialog.rs:3421
 msgid "Synchronize clipboard with remote"
 msgstr "Synchronizovat schránku se vzdáleným"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2595
-#: rustconn/src/dialogs/connection/dialog.rs:3188
-#: rustconn/src/dialogs/connection/dialog.rs:3443
+#: rustconn/src/dialogs/connection/dialog.rs:2606
+#: rustconn/src/dialogs/connection/dialog.rs:3212
+#: rustconn/src/dialogs/connection/dialog.rs:3467
 msgid "Show Local Cursor"
 msgstr "Zobrazit místní kurzor"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2596
-#: rustconn/src/dialogs/connection/dialog.rs:3189
-#: rustconn/src/dialogs/connection/dialog.rs:3444
+#: rustconn/src/dialogs/connection/dialog.rs:2607
+#: rustconn/src/dialogs/connection/dialog.rs:3213
+#: rustconn/src/dialogs/connection/dialog.rs:3468
 msgid "Hide to avoid double cursor in embedded mode"
 msgstr "Vypněte, abyste předešli dvojitému kurzoru ve vestavěném režimu"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2605
+#: rustconn/src/dialogs/connection/dialog.rs:2616
 msgid "Mouse Jiggler"
 msgstr "Simulátor pohybu myši"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2606
+#: rustconn/src/dialogs/connection/dialog.rs:2617
 msgid "Prevent idle disconnect by simulating mouse movement"
 msgstr "Zabraňuje odpojení při nečinnosti simulací pohybu myši"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2620
+#: rustconn/src/dialogs/connection/dialog.rs:2631
 msgid "Jiggler Interval"
 msgstr "Interval pohybu"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2621
+#: rustconn/src/dialogs/connection/dialog.rs:2632
 msgid "Seconds between mouse movements"
 msgstr "Sekundy mezi pohyby myši"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2635
+#: rustconn/src/dialogs/connection/dialog.rs:2646
 msgid "Disable NLA"
 msgstr "Zakázat NLA"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2636
+#: rustconn/src/dialogs/connection/dialog.rs:2647
 msgid "Skip Network Level Authentication (less secure)"
 msgstr "Přeskočit ověření na úrovni sítě (méně bezpečné)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2645
+#: rustconn/src/dialogs/connection/dialog.rs:2656
+msgid "Accept Certificate"
+msgstr ""
+
+#: rustconn/src/dialogs/connection/dialog.rs:2658
+msgid "Accept changed/self-signed certificates (removes stored fingerprint)"
+msgstr ""
+
+#: rustconn/src/dialogs/connection/dialog.rs:2668
 msgid "gateway.example.com"
 msgstr "gateway.example.com"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2650
+#: rustconn/src/dialogs/connection/dialog.rs:2673
 #: rustconn/src/dialogs/template.rs:920
 msgid "RDP Gateway"
 msgstr "Brána RDP"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2651
+#: rustconn/src/dialogs/connection/dialog.rs:2674
 #: rustconn/src/dialogs/template.rs:921
 msgid "Remote Desktop Gateway server"
 msgstr "Server brány Vzdálené plochy"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2665
+#: rustconn/src/dialogs/connection/dialog.rs:2688
 #: rustconn/src/dialogs/connection/rdp.rs:295
 msgid "Gateway Port"
 msgstr "Port brány"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2666
+#: rustconn/src/dialogs/connection/dialog.rs:2689
 #: rustconn/src/dialogs/connection/rdp.rs:296
 msgid "Default: 443"
 msgstr "Výchozí: 443"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2674
+#: rustconn/src/dialogs/connection/dialog.rs:2697
 #: rustconn/src/dialogs/connection/rdp.rs:305
 msgid "Same as connection username"
 msgstr "Stejné jako uživatelské jméno připojení"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2678
+#: rustconn/src/dialogs/connection/dialog.rs:2701
 #: rustconn/src/dialogs/connection/rdp.rs:308
 msgid "Gateway Username"
 msgstr "Uživatelské jméno brány"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2679
+#: rustconn/src/dialogs/connection/dialog.rs:2702
 #: rustconn/src/dialogs/connection/rdp.rs:309
 msgid "If different from connection username"
 msgstr "Pokud se liší od uživatelského jména připojení"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2699
-#: rustconn/src/dialogs/connection/dialog.rs:3228
-#: rustconn/src/dialogs/connection/dialog.rs:3520
-#: rustconn/src/dialogs/connection/general_tab.rs:124
+#: rustconn/src/dialogs/connection/dialog.rs:2722
+#: rustconn/src/dialogs/connection/dialog.rs:3252
+#: rustconn/src/dialogs/connection/dialog.rs:3544
+#: rustconn/src/dialogs/connection/general_tab.rs:125
 #: rustconn/src/dialogs/connection/rdp.rs:342
 #: rustconn/src/dialogs/connection/ssh.rs:442
 #: rustconn/src/dialogs/connection/telnet.rs:36
-#: rustconn/src/dialogs/settings/mod.rs:296
+#: rustconn/src/dialogs/settings/mod.rs:298
 #: rustconn/src/dialogs/template.rs:676 rustconn/src/dialogs/wol.rs:65
 #: rustconn/src/dialogs/wol.rs:71
 msgid "Connection"
 msgstr "Připojení"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2702
-#: rustconn/src/dialogs/connection/dialog.rs:3231
-#: rustconn/src/dialogs/connection/dialog.rs:3523
+#: rustconn/src/dialogs/connection/dialog.rs:2725
+#: rustconn/src/dialogs/connection/dialog.rs:3255
+#: rustconn/src/dialogs/connection/dialog.rs:3547
 #: rustconn/src/dialogs/connection/rdp.rs:346
 #: rustconn/src/dialogs/connection/ssh.rs:446
-#: rustconn/src/dialogs/widgets.rs:53 rustconn/src/window/edit_dialogs.rs:1043
-#: rustconn/src/window/edit_dialogs.rs:2048
+#: rustconn/src/dialogs/widgets.rs:53 rustconn/src/window/edit_dialogs.rs:1066
+#: rustconn/src/window/edit_dialogs.rs:2071
 msgid "(None)"
 msgstr "(Žádný)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2713
-#: rustconn/src/dialogs/connection/dialog.rs:3242
-#: rustconn/src/dialogs/connection/dialog.rs:3534
+#: rustconn/src/dialogs/connection/dialog.rs:2736
+#: rustconn/src/dialogs/connection/dialog.rs:3266
+#: rustconn/src/dialogs/connection/dialog.rs:3558
 #: rustconn/src/dialogs/connection/rdp.rs:357
 #: rustconn/src/dialogs/connection/ssh.rs:457
-#: rustconn/src/window/edit_dialogs.rs:1089
+#: rustconn/src/window/edit_dialogs.rs:1112
 msgid "Jump Host"
 msgstr "Přestupní hostitel"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2714
+#: rustconn/src/dialogs/connection/dialog.rs:2737
 #: rustconn/src/dialogs/connection/rdp.rs:358
 msgid "Tunnel RDP through an SSH connection"
 msgstr "Tunelovat RDP přes SSH připojení"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2723
-#: rustconn/src/dialogs/connection/dialog.rs:3468
+#: rustconn/src/dialogs/connection/dialog.rs:2746
+#: rustconn/src/dialogs/connection/dialog.rs:3492
 #: rustconn/src/dialogs/connection/shared_folders.rs:29
 msgid "Shared Folders"
 msgstr "Sdílené složky"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2724
-#: rustconn/src/dialogs/connection/dialog.rs:3469
+#: rustconn/src/dialogs/connection/dialog.rs:2747
+#: rustconn/src/dialogs/connection/dialog.rs:3493
 #: rustconn/src/dialogs/connection/shared_folders.rs:30
 msgid "Local folders accessible from remote session"
 msgstr "Místní složky přístupné ze vzdálené relace"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2731
-#: rustconn/src/dialogs/connection/dialog.rs:3476
+#: rustconn/src/dialogs/connection/dialog.rs:2754
+#: rustconn/src/dialogs/connection/dialog.rs:3500
 #: rustconn/src/dialogs/connection/shared_folders.rs:37
 msgid "No shared folders"
 msgstr "Žádné sdílené složky"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2746
-#: rustconn/src/dialogs/connection/dialog.rs:3491
+#: rustconn/src/dialogs/connection/dialog.rs:2769
+#: rustconn/src/dialogs/connection/dialog.rs:3515
 #: rustconn/src/dialogs/connection/shared_folders.rs:52
 msgid "Add"
 msgstr "Přidat"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2750
-#: rustconn/src/dialogs/connection/dialog.rs:3495
+#: rustconn/src/dialogs/connection/dialog.rs:2773
+#: rustconn/src/dialogs/connection/dialog.rs:3519
 #: rustconn/src/dialogs/connection/shared_folders.rs:56
 #: rustconn/src/dialogs/flatpak_components.rs:308
 #: rustconn/src/dialogs/flatpak_components.rs:344
@@ -1113,222 +1124,223 @@ msgstr "Přidat"
 msgid "Remove"
 msgstr "Odebrat"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2780
+#: rustconn/src/dialogs/connection/dialog.rs:2803
 msgid "Auto (detect)"
 msgstr "Auto (detect)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2781
+#: rustconn/src/dialogs/connection/dialog.rs:2804
 msgid "US English"
 msgstr "US English"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2782
+#: rustconn/src/dialogs/connection/dialog.rs:2805
 msgid "German (de)"
 msgstr "German (de)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2783
+#: rustconn/src/dialogs/connection/dialog.rs:2806
 msgid "French (fr)"
 msgstr "French (fr)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2784
+#: rustconn/src/dialogs/connection/dialog.rs:2807
 msgid "Spanish (es)"
 msgstr "Spanish (es)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2785
+#: rustconn/src/dialogs/connection/dialog.rs:2808
 msgid "Italian (it)"
 msgstr "Italian (it)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2786
+#: rustconn/src/dialogs/connection/dialog.rs:2809
 msgid "Portuguese (pt)"
 msgstr "Portuguese (pt)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2787
+#: rustconn/src/dialogs/connection/dialog.rs:2810
 msgid "Portuguese - Brazil (br)"
 msgstr "Portugalština - Brazílie (br)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2788
+#: rustconn/src/dialogs/connection/dialog.rs:2811
 msgid "English - UK (gb)"
 msgstr "Angličtina - Velká Británie (gb)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2789
+#: rustconn/src/dialogs/connection/dialog.rs:2812
 msgid "German - Switzerland (ch)"
 msgstr "Němčina - Švýcarsko (ch)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2790
+#: rustconn/src/dialogs/connection/dialog.rs:2813
 msgid "German - Austria (at)"
 msgstr "Němčina - Rakousko (at)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2791
+#: rustconn/src/dialogs/connection/dialog.rs:2814
 msgid "French - Belgium (be)"
 msgstr "Francouzština - Belgie (be)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2792
+#: rustconn/src/dialogs/connection/dialog.rs:2815
 msgid "Dutch (nl)"
 msgstr "Dutch (nl)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2793
+#: rustconn/src/dialogs/connection/dialog.rs:2816
 msgid "Swedish (se)"
 msgstr "Swedish (se)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2794
+#: rustconn/src/dialogs/connection/dialog.rs:2817
 msgid "Norwegian (no)"
 msgstr "Norwegian (no)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2795
+#: rustconn/src/dialogs/connection/dialog.rs:2818
 msgid "Danish (dk)"
 msgstr "Danish (dk)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2796
+#: rustconn/src/dialogs/connection/dialog.rs:2819
 msgid "Finnish (fi)"
 msgstr "Finnish (fi)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2797
+#: rustconn/src/dialogs/connection/dialog.rs:2820
 msgid "Polish (pl)"
 msgstr "Polish (pl)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2798
+#: rustconn/src/dialogs/connection/dialog.rs:2821
 msgid "Czech (cz)"
 msgstr "Czech (cz)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2799
+#: rustconn/src/dialogs/connection/dialog.rs:2822
 msgid "Slovak (sk)"
 msgstr "Slovak (sk)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2800
+#: rustconn/src/dialogs/connection/dialog.rs:2823
 msgid "Hungarian (hu)"
 msgstr "Hungarian (hu)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2801
+#: rustconn/src/dialogs/connection/dialog.rs:2824
 msgid "Romanian (ro)"
 msgstr "Romanian (ro)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2802
+#: rustconn/src/dialogs/connection/dialog.rs:2825
 msgid "Croatian (hr)"
 msgstr "Croatian (hr)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2803
+#: rustconn/src/dialogs/connection/dialog.rs:2826
 msgid "Slovenian (si)"
 msgstr "Slovenian (si)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2804
+#: rustconn/src/dialogs/connection/dialog.rs:2827
 msgid "Serbian (rs)"
 msgstr "Serbian (rs)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2805
+#: rustconn/src/dialogs/connection/dialog.rs:2828
 msgid "Bulgarian (bg)"
 msgstr "Bulgarian (bg)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2806
+#: rustconn/src/dialogs/connection/dialog.rs:2829
 msgid "Russian (ru)"
 msgstr "Russian (ru)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2807
+#: rustconn/src/dialogs/connection/dialog.rs:2830
 msgid "Ukrainian (ua)"
 msgstr "Ukrainian (ua)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2808
+#: rustconn/src/dialogs/connection/dialog.rs:2831
 msgid "Turkish (tr)"
 msgstr "Turkish (tr)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2809
+#: rustconn/src/dialogs/connection/dialog.rs:2832
 msgid "Greek (gr)"
 msgstr "Greek (gr)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2810
+#: rustconn/src/dialogs/connection/dialog.rs:2833
 msgid "Japanese (jp)"
 msgstr "Japanese (jp)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2811
+#: rustconn/src/dialogs/connection/dialog.rs:2834
 msgid "Korean (kr)"
 msgstr "Korean (kr)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2820
+#: rustconn/src/dialogs/connection/dialog.rs:2843
 msgid "Keyboard Layout"
 msgstr "Rozložení klávesnice"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2821
+#: rustconn/src/dialogs/connection/dialog.rs:2844
 msgid "Layout sent to RDP server (Auto uses system setting)"
 msgstr "Rozložení odesílané na RDP server (Auto používá systémové nastavení)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2828
-#: rustconn/src/dialogs/connection/dialog.rs:3734
+#: rustconn/src/dialogs/connection/dialog.rs:2851
+#: rustconn/src/dialogs/connection/dialog.rs:3758
 #: rustconn/src/dialogs/connection/zerotrust.rs:277
 #: rustconn/src/dialogs/template.rs:935 rustconn/src/dialogs/template.rs:1465
 msgid "Additional command-line arguments"
 msgstr "Další argumenty příkazového řádku"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2833
-#: rustconn/src/dialogs/connection/dialog.rs:3218
-#: rustconn/src/dialogs/connection/dialog.rs:3739
+#: rustconn/src/dialogs/connection/dialog.rs:2856
+#: rustconn/src/dialogs/connection/dialog.rs:3242
+#: rustconn/src/dialogs/connection/dialog.rs:3763
 #: rustconn/src/dialogs/connection/zerotrust.rs:282
 #: rustconn/src/dialogs/template.rs:940 rustconn/src/dialogs/template.rs:1125
 #: rustconn/src/dialogs/template.rs:1470
 msgid "Custom Arguments"
 msgstr "Vlastní argumenty"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2834
+#: rustconn/src/dialogs/connection/dialog.rs:2857
 #: rustconn/src/dialogs/template.rs:941
 msgid "Extra FreeRDP command-line options"
 msgstr "Další možnosti příkazového řádku FreeRDP"
 
-#: rustconn/src/dialogs/connection/dialog.rs:2882
+#: rustconn/src/dialogs/connection/dialog.rs:2906
 #: rustconn/src/dialogs/connection/shared_folders.rs:90
 msgid "Select Folder to Share"
 msgstr "Vybrat složku ke sdílení"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3045
-#: rustconn/src/dialogs/connection/dialog.rs:3405
+#: rustconn/src/dialogs/connection/dialog.rs:3069
+#: rustconn/src/dialogs/connection/dialog.rs:3429
 #: rustconn/src/dialogs/connection/spice.rs:175
 #: rustconn/src/dialogs/template.rs:1267
 msgid "Auto"
 msgstr "Auto"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3060
+#: rustconn/src/dialogs/connection/dialog.rs:3084
 #: rustconn/src/dialogs/template.rs:1035 rustconn/src/dialogs/template.rs:1046
 msgid "Encoding"
 msgstr "Kódování"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3062
+#: rustconn/src/dialogs/connection/dialog.rs:3086
 msgid "Preferred encoding method (overrides Performance Mode)"
 msgstr "Preferovaná metoda kódování (přepisuje režim výkonu)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3098
-#: rustconn/src/dialogs/connection/dialog.rs:3127
+#: rustconn/src/dialogs/connection/dialog.rs:3122
+#: rustconn/src/dialogs/connection/dialog.rs:3151
 #: rustconn/src/dialogs/connection/vnc.rs:173
 msgid "Quality"
 msgstr "Kvalita"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3111
+#: rustconn/src/dialogs/connection/dialog.rs:3135
+#: rustconn/src/dialogs/connection/ssh.rs:546
 msgid "Compression"
 msgstr "Komprese"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3112
+#: rustconn/src/dialogs/connection/dialog.rs:3136
 msgid "0 (none) to 9 (maximum)"
 msgstr "0 (žádná) až 9 (maximální)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3128
+#: rustconn/src/dialogs/connection/dialog.rs:3152
 msgid "0 (lowest) to 9 (highest)"
 msgstr "0 (nejnižší) až 9 (nejvyšší)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3156
+#: rustconn/src/dialogs/connection/dialog.rs:3180
 msgid "View-Only Mode"
 msgstr "Režim pouze pro čtení"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3157
+#: rustconn/src/dialogs/connection/dialog.rs:3181
 #: rustconn/src/dialogs/template.rs:1095
 msgid "Disable keyboard and mouse input"
 msgstr "Zakázat vstup z klávesnice a myši"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3167
+#: rustconn/src/dialogs/connection/dialog.rs:3191
 #: rustconn/src/dialogs/template.rs:1024
 msgid "Scale Display"
 msgstr "Škálovat zobrazení"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3168
+#: rustconn/src/dialogs/connection/dialog.rs:3192
 msgid "Fit remote desktop to window size"
 msgstr "Přizpůsobit vzdálenou plochu velikosti okna"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3197
-#: rustconn/src/dialogs/connection/general_tab.rs:172
+#: rustconn/src/dialogs/connection/dialog.rs:3221
+#: rustconn/src/dialogs/connection/general_tab.rs:173
 #: rustconn/src/dialogs/connection/ssh.rs:188
 #: rustconn/src/dialogs/connection/vnc.rs:229
 #: rustconn/src/dialogs/settings/secrets_tab.rs:1099
@@ -1336,464 +1348,464 @@ msgstr "Přizpůsobit vzdálenou plochu velikosti okna"
 msgid "Authentication"
 msgstr "Ověření"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3198
+#: rustconn/src/dialogs/connection/dialog.rs:3222
 #: rustconn/src/dialogs/connection/vnc.rs:230
 msgid "VNC uses the connection password for authentication"
 msgstr "VNC používá heslo připojení pro ověření"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3213
+#: rustconn/src/dialogs/connection/dialog.rs:3237
 msgid "Additional arguments for external client"
 msgstr "Další argumenty pro externího klienta"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3219
+#: rustconn/src/dialogs/connection/dialog.rs:3243
 msgid "Extra command-line options for vncviewer"
 msgstr "Další možnosti příkazového řádku pro vncviewer"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3243
+#: rustconn/src/dialogs/connection/dialog.rs:3267
 msgid "Tunnel VNC through an SSH connection"
 msgstr "Tunelovat VNC přes SSH připojení"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3309
+#: rustconn/src/dialogs/connection/dialog.rs:3333
 #: rustconn/src/dialogs/connection/spice.rs:87
 #: rustconn/src/dialogs/template.rs:1181
 msgid "Security"
 msgstr "Zabezpečení"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3315
+#: rustconn/src/dialogs/connection/dialog.rs:3339
 #: rustconn/src/dialogs/template.rs:1187
 msgid "TLS Encryption"
 msgstr "Šifrování TLS"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3316
+#: rustconn/src/dialogs/connection/dialog.rs:3340
 msgid "Encrypt connection with TLS"
 msgstr "Šifrovat připojení pomocí TLS"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3327
+#: rustconn/src/dialogs/connection/dialog.rs:3351
 #: rustconn/src/dialogs/connection/spice.rs:101
 msgid "Path to CA certificate"
 msgstr "Cesta k certifikátu CA"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3331
+#: rustconn/src/dialogs/connection/dialog.rs:3355
 #: rustconn/src/dialogs/connection/spice.rs:105
 msgid "Browse for certificate"
 msgstr "Procházet certifikáty"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3334
+#: rustconn/src/dialogs/connection/dialog.rs:3358
 #: rustconn/src/dialogs/connection/spice.rs:108
 msgid "Browse for CA certificate file"
 msgstr "Vyhledat soubor certifikátu CA"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3340
+#: rustconn/src/dialogs/connection/dialog.rs:3364
 #: rustconn/src/dialogs/connection/spice.rs:114
 #: rustconn/src/dialogs/template.rs:1202
 msgid "CA Certificate"
 msgstr "Certifikát CA"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3341
+#: rustconn/src/dialogs/connection/dialog.rs:3365
 #: rustconn/src/dialogs/connection/spice.rs:115
 msgid "Certificate authority for TLS verification"
 msgstr "Certifikační autorita pro ověření TLS"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3360
+#: rustconn/src/dialogs/connection/dialog.rs:3384
 msgid "File not found"
 msgstr "Soubor nenalezen"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3368
+#: rustconn/src/dialogs/connection/dialog.rs:3392
 msgid "Skip Verification"
 msgstr "Přeskočit ověření"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3369
+#: rustconn/src/dialogs/connection/dialog.rs:3393
 msgid "Disable certificate verification (insecure)"
 msgstr "Zakázat ověření certifikátu (nebezpečné)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3385
+#: rustconn/src/dialogs/connection/dialog.rs:3409
 #: rustconn/src/dialogs/template.rs:1241
 msgid "USB Redirection"
 msgstr "Přesměrování USB"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3386
+#: rustconn/src/dialogs/connection/dialog.rs:3410
 msgid "Forward USB devices to remote"
 msgstr "Přesměrovat USB zařízení na vzdálený"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3418
+#: rustconn/src/dialogs/connection/dialog.rs:3442
 #: rustconn/src/dialogs/connection/spice.rs:181
 #: rustconn/src/dialogs/template.rs:1280
 msgid "Image Compression"
 msgstr "Komprese obrazu"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3419
+#: rustconn/src/dialogs/connection/dialog.rs:3443
 #: rustconn/src/dialogs/connection/spice.rs:182
 msgid "Algorithm for image data"
 msgstr "Algoritmus pro obrazová data"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3428
+#: rustconn/src/dialogs/connection/dialog.rs:3452
 #: rustconn/src/dialogs/connection/spice.rs:191
 msgid "http://proxy:3128"
 msgstr "http://proxy:3128"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3431
+#: rustconn/src/dialogs/connection/dialog.rs:3455
 #: rustconn/src/dialogs/connection/spice.rs:194
 msgid "SPICE Proxy"
 msgstr "SPICE proxy"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3433
+#: rustconn/src/dialogs/connection/dialog.rs:3457
 #: rustconn/src/dialogs/connection/spice.rs:196
 msgid "Proxy URL for tunnelled connections (e.g. Proxmox VE)"
 msgstr "URL proxy pro tunelovaná připojení (např. Proxmox VE)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3535
+#: rustconn/src/dialogs/connection/dialog.rs:3559
 msgid "Tunnel SPICE through an SSH connection"
 msgstr "Tunelovat SPICE přes SSH připojení"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3618
+#: rustconn/src/dialogs/connection/dialog.rs:3642
 #: rustconn/src/dialogs/connection/zerotrust.rs:239
 #: rustconn/src/dialogs/template.rs:1355
 msgid "Provider"
 msgstr "Poskytovatel"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3622
-#: rustconn/src/dialogs/connection/dialog.rs:3790
+#: rustconn/src/dialogs/connection/dialog.rs:3646
+#: rustconn/src/dialogs/connection/dialog.rs:3814
 #: rustconn/src/dialogs/connection/zerotrust.rs:243
 #: rustconn/src/dialogs/connection/zerotrust.rs:294
 #: rustconn/src/dialogs/template.rs:1520
 msgid "AWS Session Manager"
 msgstr "AWS Session Manager"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3623
-#: rustconn/src/dialogs/connection/dialog.rs:3813
+#: rustconn/src/dialogs/connection/dialog.rs:3647
+#: rustconn/src/dialogs/connection/dialog.rs:3837
 #: rustconn/src/dialogs/connection/zerotrust.rs:244
 #: rustconn/src/dialogs/connection/zerotrust.rs:319
 #: rustconn/src/dialogs/template.rs:1569
 msgid "GCP IAP Tunnel"
 msgstr "GCP IAP Tunnel"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3624
-#: rustconn/src/dialogs/connection/dialog.rs:3837
+#: rustconn/src/dialogs/connection/dialog.rs:3648
+#: rustconn/src/dialogs/connection/dialog.rs:3861
 #: rustconn/src/dialogs/connection/zerotrust.rs:245
 #: rustconn/src/dialogs/connection/zerotrust.rs:346
 #: rustconn/src/dialogs/template.rs:1617
 msgid "Azure Bastion"
 msgstr "Azure Bastion"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3625
-#: rustconn/src/dialogs/connection/dialog.rs:3863
+#: rustconn/src/dialogs/connection/dialog.rs:3649
+#: rustconn/src/dialogs/connection/dialog.rs:3887
 #: rustconn/src/dialogs/connection/zerotrust.rs:246
 #: rustconn/src/dialogs/connection/zerotrust.rs:375
 #: rustconn/src/dialogs/template.rs:1665
 msgid "Azure SSH (AAD)"
 msgstr "Azure SSH (AAD)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3626
-#: rustconn/src/dialogs/connection/dialog.rs:3891
+#: rustconn/src/dialogs/connection/dialog.rs:3650
+#: rustconn/src/dialogs/connection/dialog.rs:3915
 #: rustconn/src/dialogs/connection/zerotrust.rs:247
 #: rustconn/src/dialogs/connection/zerotrust.rs:405
 #: rustconn/src/dialogs/template.rs:1702
 msgid "OCI Bastion"
 msgstr "OCI Bastion"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3627
-#: rustconn/src/dialogs/connection/dialog.rs:3936
+#: rustconn/src/dialogs/connection/dialog.rs:3651
+#: rustconn/src/dialogs/connection/dialog.rs:3960
 #: rustconn/src/dialogs/connection/zerotrust.rs:248
 #: rustconn/src/dialogs/connection/zerotrust.rs:453
 #: rustconn/src/dialogs/template.rs:1750
 msgid "Cloudflare Access"
 msgstr "Cloudflare Access"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3628
-#: rustconn/src/dialogs/connection/dialog.rs:3952
+#: rustconn/src/dialogs/connection/dialog.rs:3652
+#: rustconn/src/dialogs/connection/dialog.rs:3976
 #: rustconn/src/dialogs/connection/zerotrust.rs:249
 #: rustconn/src/dialogs/connection/zerotrust.rs:470
 #: rustconn/src/dialogs/template.rs:1774
 msgid "Teleport"
 msgstr "Teleport"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3629
-#: rustconn/src/dialogs/connection/dialog.rs:3971
+#: rustconn/src/dialogs/connection/dialog.rs:3653
+#: rustconn/src/dialogs/connection/dialog.rs:3995
 #: rustconn/src/dialogs/connection/zerotrust.rs:250
 #: rustconn/src/dialogs/connection/zerotrust.rs:491
 #: rustconn/src/dialogs/template.rs:1810
 msgid "Tailscale SSH"
 msgstr "Tailscale SSH"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3630
-#: rustconn/src/dialogs/connection/dialog.rs:3989
+#: rustconn/src/dialogs/connection/dialog.rs:3654
+#: rustconn/src/dialogs/connection/dialog.rs:4013
 #: rustconn/src/dialogs/connection/zerotrust.rs:251
 #: rustconn/src/dialogs/connection/zerotrust.rs:510
 #: rustconn/src/dialogs/template.rs:1834
 msgid "HashiCorp Boundary"
 msgstr "HashiCorp Boundary"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3631
-#: rustconn/src/dialogs/connection/dialog.rs:4010
+#: rustconn/src/dialogs/connection/dialog.rs:3655
+#: rustconn/src/dialogs/connection/dialog.rs:4034
 #: rustconn/src/dialogs/connection/zerotrust.rs:252
 #: rustconn/src/dialogs/connection/zerotrust.rs:533
 #: rustconn/src/dialogs/template.rs:1870
 msgid "Hoop.dev"
 msgstr "Hoop.dev"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3632
-#: rustconn/src/dialogs/connection/dialog.rs:4034
+#: rustconn/src/dialogs/connection/dialog.rs:3656
+#: rustconn/src/dialogs/connection/dialog.rs:4058
 #: rustconn/src/dialogs/connection/zerotrust.rs:253
 #: rustconn/src/dialogs/connection/zerotrust.rs:563
 #: rustconn/src/dialogs/template.rs:1369 rustconn/src/dialogs/template.rs:1923
 msgid "Generic Command"
 msgstr "Vlastní příkaz"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3641
+#: rustconn/src/dialogs/connection/dialog.rs:3665
 #: rustconn/src/dialogs/connection/zerotrust.rs:260
 #: rustconn/src/dialogs/template.rs:1376
 msgid "Zero Trust Provider"
 msgstr "Poskytovatel Zero Trust"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3642
+#: rustconn/src/dialogs/connection/dialog.rs:3666
 #: rustconn/src/dialogs/connection/zerotrust.rs:261
 #: rustconn/src/dialogs/template.rs:1377
 msgid "Select your identity-aware proxy service"
 msgstr "Vyberte službu proxy s identifikací"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3740
+#: rustconn/src/dialogs/connection/dialog.rs:3764
 #: rustconn/src/dialogs/connection/zerotrust.rs:283
 msgid "Extra CLI options for the provider command"
 msgstr "Další možnosti CLI pro příkaz poskytovatele"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3791
+#: rustconn/src/dialogs/connection/dialog.rs:3815
 #: rustconn/src/dialogs/connection/zerotrust.rs:295
 msgid "Connect via AWS Systems Manager"
 msgstr "Připojení přes AWS Systems Manager"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3794
+#: rustconn/src/dialogs/connection/dialog.rs:3818
 #: rustconn/src/dialogs/connection/zerotrust.rs:298
 #: rustconn/src/dialogs/template.rs:1529
 msgid "Instance ID"
 msgstr "ID instance"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3797
+#: rustconn/src/dialogs/connection/dialog.rs:3821
 #: rustconn/src/dialogs/connection/zerotrust.rs:302
 #: rustconn/src/dialogs/template.rs:1542
 msgid "AWS Profile"
 msgstr "Profil AWS"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3801
+#: rustconn/src/dialogs/connection/dialog.rs:3825
 #: rustconn/src/dialogs/connection/zerotrust.rs:306
 #: rustconn/src/dialogs/template.rs:1554
 msgid "Region"
 msgstr "Region"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3814
+#: rustconn/src/dialogs/connection/dialog.rs:3838
 #: rustconn/src/dialogs/connection/zerotrust.rs:320
 msgid "Connect via Identity-Aware Proxy"
 msgstr "Připojení přes Identity-Aware Proxy"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3818
+#: rustconn/src/dialogs/connection/dialog.rs:3842
 #: rustconn/src/dialogs/connection/zerotrust.rs:324
 msgid "Instance Name"
 msgstr "Název instance"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3822
+#: rustconn/src/dialogs/connection/dialog.rs:3846
 #: rustconn/src/dialogs/connection/zerotrust.rs:329
 #: rustconn/src/dialogs/template.rs:1590
 msgid "Zone"
 msgstr "Zóna"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3825
+#: rustconn/src/dialogs/connection/dialog.rs:3849
 #: rustconn/src/dialogs/connection/zerotrust.rs:333
 #: rustconn/src/dialogs/template.rs:1602
 msgid "Project"
 msgstr "Projekt"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3838
+#: rustconn/src/dialogs/connection/dialog.rs:3862
 #: rustconn/src/dialogs/connection/zerotrust.rs:347
 msgid "Connect via Azure Bastion service"
 msgstr "Připojení přes službu Azure Bastion"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3842
+#: rustconn/src/dialogs/connection/dialog.rs:3866
 #: rustconn/src/dialogs/connection/zerotrust.rs:351
 #: rustconn/src/dialogs/template.rs:1626
 msgid "Target Resource ID"
 msgstr "ID cílového prostředku"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3847
 #: rustconn/src/dialogs/connection/dialog.rs:3871
+#: rustconn/src/dialogs/connection/dialog.rs:3895
 #: rustconn/src/dialogs/connection/zerotrust.rs:357
 #: rustconn/src/dialogs/connection/zerotrust.rs:384
 #: rustconn/src/dialogs/template.rs:1638 rustconn/src/dialogs/template.rs:1686
 msgid "Resource Group"
 msgstr "Skupina prostředků"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3851
+#: rustconn/src/dialogs/connection/dialog.rs:3875
 #: rustconn/src/dialogs/connection/zerotrust.rs:362
 #: rustconn/src/dialogs/template.rs:1650
 msgid "Bastion Name"
 msgstr "Název Bastion"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3864
+#: rustconn/src/dialogs/connection/dialog.rs:3888
 #: rustconn/src/dialogs/connection/zerotrust.rs:376
 msgid "Connect via Azure AD authentication"
 msgstr "Připojení přes ověření Azure AD"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3867
+#: rustconn/src/dialogs/connection/dialog.rs:3891
 #: rustconn/src/dialogs/connection/zerotrust.rs:379
 #: rustconn/src/dialogs/template.rs:1674
 msgid "VM Name"
 msgstr "Název VM"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3892
+#: rustconn/src/dialogs/connection/dialog.rs:3916
 #: rustconn/src/dialogs/connection/zerotrust.rs:406
 msgid "Connect via Oracle Cloud Bastion"
 msgstr "Připojení přes Oracle Cloud Bastion"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3895
+#: rustconn/src/dialogs/connection/dialog.rs:3919
 #: rustconn/src/dialogs/connection/zerotrust.rs:409
 #: rustconn/src/dialogs/template.rs:1711
 msgid "Bastion OCID"
 msgstr "OCID Bastion"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3898
+#: rustconn/src/dialogs/connection/dialog.rs:3922
 #: rustconn/src/dialogs/connection/zerotrust.rs:413
 #: rustconn/src/dialogs/template.rs:1723
 msgid "Target OCID"
 msgstr "OCID cíle"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3901
+#: rustconn/src/dialogs/connection/dialog.rs:3925
 #: rustconn/src/dialogs/connection/zerotrust.rs:417
 #: rustconn/src/dialogs/template.rs:1735
 msgid "Target IP"
 msgstr "IP cíle"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3906
+#: rustconn/src/dialogs/connection/dialog.rs:3930
 #: rustconn/src/dialogs/connection/zerotrust.rs:423
 msgid "SSH Public Key"
 msgstr "Veřejný klíč SSH"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3914
+#: rustconn/src/dialogs/connection/dialog.rs:3938
 #: rustconn/src/dialogs/connection/zerotrust.rs:431
 msgid "Session TTL"
 msgstr "TTL relace"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3915
+#: rustconn/src/dialogs/connection/dialog.rs:3939
 #: rustconn/src/dialogs/connection/zerotrust.rs:432
 msgid "Session duration in seconds (default: 1800)"
 msgstr "Doba trvání relace v sekundách (výchozí: 1800)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3937
+#: rustconn/src/dialogs/connection/dialog.rs:3961
 #: rustconn/src/dialogs/connection/zerotrust.rs:454
 msgid "Connect via Cloudflare Zero Trust"
 msgstr "Připojení přes Cloudflare Zero Trust"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3940
+#: rustconn/src/dialogs/connection/dialog.rs:3964
 #: rustconn/src/dialogs/connection/zerotrust.rs:457
 #: rustconn/src/dialogs/template.rs:1759 rustconn/src/monitoring.rs:360
 msgid "Hostname"
 msgstr "Název hostitele"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3953
+#: rustconn/src/dialogs/connection/dialog.rs:3977
 #: rustconn/src/dialogs/connection/zerotrust.rs:471
 msgid "Connect via Gravitational Teleport"
 msgstr "Připojení přes Gravitational Teleport"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3956
+#: rustconn/src/dialogs/connection/dialog.rs:3980
 #: rustconn/src/dialogs/connection/zerotrust.rs:474
 msgid "Node Name"
 msgstr "Název uzlu"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3959
+#: rustconn/src/dialogs/connection/dialog.rs:3983
 #: rustconn/src/dialogs/connection/zerotrust.rs:478
 #: rustconn/src/dialogs/template.rs:1795
 msgid "Cluster"
 msgstr "Cluster"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3972
+#: rustconn/src/dialogs/connection/dialog.rs:3996
 #: rustconn/src/dialogs/connection/zerotrust.rs:492
 msgid "Connect via Tailscale network"
 msgstr "Připojení přes síť Tailscale"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3976
+#: rustconn/src/dialogs/connection/dialog.rs:4000
 #: rustconn/src/dialogs/connection/zerotrust.rs:496
 #: rustconn/src/dialogs/template.rs:1819
 msgid "Tailscale Host"
 msgstr "Hostitel Tailscale"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3990
+#: rustconn/src/dialogs/connection/dialog.rs:4014
 #: rustconn/src/dialogs/connection/zerotrust.rs:511
 msgid "Connect via Boundary proxy"
 msgstr "Připojení přes proxy Boundary"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3993
+#: rustconn/src/dialogs/connection/dialog.rs:4017
 #: rustconn/src/dialogs/connection/zerotrust.rs:514
 #: rustconn/src/dialogs/template.rs:1843
 msgid "Target ID"
 msgstr "ID cíle"
 
-#: rustconn/src/dialogs/connection/dialog.rs:3997
+#: rustconn/src/dialogs/connection/dialog.rs:4021
 #: rustconn/src/dialogs/connection/zerotrust.rs:519
 msgid "Controller Address"
 msgstr "Adresa řadiče"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4011
+#: rustconn/src/dialogs/connection/dialog.rs:4035
 #: rustconn/src/dialogs/connection/zerotrust.rs:534
 msgid "Connect via Hoop.dev zero-trust gateway"
 msgstr "Připojení přes bránu Hoop.dev zero-trust"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4015
+#: rustconn/src/dialogs/connection/dialog.rs:4039
 #: rustconn/src/dialogs/connection/zerotrust.rs:538
 #: rustconn/src/dialogs/template.rs:1879
 msgid "Connection Name"
 msgstr "Název připojení"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4019
+#: rustconn/src/dialogs/connection/dialog.rs:4043
 #: rustconn/src/dialogs/connection/zerotrust.rs:544
 #: rustconn/src/dialogs/template.rs:1891
 msgid "Gateway URL"
 msgstr "URL brány"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4022
+#: rustconn/src/dialogs/connection/dialog.rs:4046
 #: rustconn/src/dialogs/connection/zerotrust.rs:549
 #: rustconn/src/dialogs/template.rs:1903
 msgid "gRPC URL"
 msgstr "URL gRPC"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4035
+#: rustconn/src/dialogs/connection/dialog.rs:4059
 #: rustconn/src/dialogs/connection/zerotrust.rs:564
 msgid "Custom command for unsupported providers"
 msgstr "Vlastní příkaz pro nepodporované poskytovatele"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4039
+#: rustconn/src/dialogs/connection/dialog.rs:4063
 #: rustconn/src/dialogs/connection/zerotrust.rs:568
 msgid "Command Template"
 msgstr "Šablona příkazu"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4065
-#: rustconn/src/dialogs/connection/dialog.rs:4823
+#: rustconn/src/dialogs/connection/dialog.rs:4089
+#: rustconn/src/dialogs/connection/dialog.rs:4847
 #: rustconn/src/dialogs/snippet.rs:296 rustconn/src/dialogs/variables.rs:198
 msgid "Name:"
 msgstr "Název:"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4070
+#: rustconn/src/dialogs/connection/dialog.rs:4094
 msgid "Property name (e.g., asset_tag, docs_url)"
 msgstr "Název vlastnosti (např. asset_tag, docs_url)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4076
-#: rustconn/src/dialogs/connection/dialog.rs:4079
+#: rustconn/src/dialogs/connection/dialog.rs:4100
+#: rustconn/src/dialogs/connection/dialog.rs:4103
 msgid "Delete property"
 msgstr "Smazat vlastnost"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4087
+#: rustconn/src/dialogs/connection/dialog.rs:4111
 msgid "Type:"
 msgstr "Typ:"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4090
+#: rustconn/src/dialogs/connection/dialog.rs:4114
 msgid "Text"
 msgstr "Text"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4090
+#: rustconn/src/dialogs/connection/dialog.rs:4114
 msgid "URL"
 msgstr "URL"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4090
+#: rustconn/src/dialogs/connection/dialog.rs:4114
 msgid "Protected"
 msgstr "Chráněný"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4094
+#: rustconn/src/dialogs/connection/dialog.rs:4118
 msgid ""
 "Text: Plain text\n"
 "URL: Clickable link\n"
@@ -1803,461 +1815,531 @@ msgstr ""
 "URL: Klikatelný odkaz\n"
 "Chráněný: Maskovaná/šifrovaná hodnota"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4102
-#: rustconn/src/dialogs/connection/dialog.rs:4857
+#: rustconn/src/dialogs/connection/dialog.rs:4126
+#: rustconn/src/dialogs/connection/dialog.rs:4881
 #: rustconn/src/dialogs/variables.rs:219
 msgid "Value:"
 msgstr "Hodnota:"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4107
+#: rustconn/src/dialogs/connection/dialog.rs:4131
 msgid "Property value"
 msgstr "Hodnota vlastnosti"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4113
+#: rustconn/src/dialogs/connection/dialog.rs:4137
 msgid "Protected value (masked)"
 msgstr "Chráněná hodnota (maskovaná)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4289
+#: rustconn/src/dialogs/connection/dialog.rs:4313
 msgid "Pattern:"
 msgstr "Vzor:"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4294
+#: rustconn/src/dialogs/connection/dialog.rs:4318
 msgid "Regex pattern (e.g., password:\\s*$)"
 msgstr "Regex vzor (např. password:\\s*$)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4295
+#: rustconn/src/dialogs/connection/dialog.rs:4319
 msgid "Regular expression to match against terminal output"
 msgstr "Regulární výraz pro porovnání s výstupem terminálu"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4302
+#: rustconn/src/dialogs/connection/dialog.rs:4326
 msgid "Move up (higher priority)"
 msgstr "Posunout nahoru (vyšší priorita)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4304
+#: rustconn/src/dialogs/connection/dialog.rs:4328
 msgid "Move rule up"
 msgstr "Přesunout pravidlo nahoru"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4308
+#: rustconn/src/dialogs/connection/dialog.rs:4332
 msgid "Move down (lower priority)"
 msgstr "Posunout dolů (nižší priorita)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4311
+#: rustconn/src/dialogs/connection/dialog.rs:4335
 msgid "Move rule down"
 msgstr "Přesunout pravidlo dolů"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4330
+#: rustconn/src/dialogs/connection/dialog.rs:4354
 msgid "Response:"
 msgstr "Odpověď:"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4335
+#: rustconn/src/dialogs/connection/dialog.rs:4359
 msgid "Text to send when pattern matches"
 msgstr "Text k odeslání při shodě vzoru"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4336
+#: rustconn/src/dialogs/connection/dialog.rs:4360
 msgid "Response to send (supports ${variable} syntax)"
 msgstr "Odpověď k odeslání (podporuje syntaxi ${variable})"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4344
+#: rustconn/src/dialogs/connection/dialog.rs:4368
 msgid "Priority:"
 msgstr "Priorita:"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4352
+#: rustconn/src/dialogs/connection/dialog.rs:4376
 msgid "Higher priority rules are checked first"
 msgstr "Pravidla s vyšší prioritou jsou kontrolována první"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4356
+#: rustconn/src/dialogs/connection/dialog.rs:4380
 msgid "Timeout (ms):"
 msgstr "Časový limit (ms):"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4364
+#: rustconn/src/dialogs/connection/dialog.rs:4388
 msgid "Timeout in milliseconds (0 = no timeout)"
 msgstr "Časový limit v milisekundách (0 = bez limitu)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4381
+#: rustconn/src/dialogs/connection/dialog.rs:4405
 #: rustconn/src/dialogs/settings/ui_tab.rs:219
 msgid "Enabled"
 msgstr "Zapnuto"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4386
+#: rustconn/src/dialogs/connection/dialog.rs:4410
 msgid "One-shot"
 msgstr "Jednorázové"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4388
+#: rustconn/src/dialogs/connection/dialog.rs:4412
 msgid "Fire only once, then remove the rule"
 msgstr "Spustit pouze jednou, poté pravidlo odebrat"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4752
+#: rustconn/src/dialogs/connection/dialog.rs:4776
 msgid "Enter text above to test patterns"
 msgstr "Zadejte text výše pro otestování vzorů"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4796
+#: rustconn/src/dialogs/connection/dialog.rs:4820
 msgid "No patterns matched"
 msgstr "Žádný vzor neodpovídá"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4840
+#: rustconn/src/dialogs/connection/dialog.rs:4864
 msgid "Remove override"
 msgstr "Odebrat přepsání"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4842
-#: rustconn/src/dialogs/connection/dialog.rs:4848
+#: rustconn/src/dialogs/connection/dialog.rs:4866
+#: rustconn/src/dialogs/connection/dialog.rs:4872
 #: rustconn/src/dialogs/variables.rs:208 rustconn/src/dialogs/variables.rs:211
 msgid "Delete variable"
 msgstr "Smazat proměnnou"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4846
+#: rustconn/src/dialogs/connection/dialog.rs:4870
 msgid "Remove variable override"
 msgstr "Odebrat přepsání proměnné"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4862
+#: rustconn/src/dialogs/connection/dialog.rs:4886
 #: rustconn/src/dialogs/variables.rs:225
 msgid "Variable value"
 msgstr "Hodnota proměnné"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4870
+#: rustconn/src/dialogs/connection/dialog.rs:4894
 msgid "Secret Value:"
 msgstr "Tajná hodnota:"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4876
+#: rustconn/src/dialogs/connection/dialog.rs:4900
 msgid "Secret value (masked)"
 msgstr "Tajná hodnota (maskovaná)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4886
+#: rustconn/src/dialogs/connection/dialog.rs:4910
 #: rustconn/src/dialogs/variables.rs:263
 msgid "Secret (mask value)"
 msgstr "Tajné (maskovat hodnotu)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4893
+#: rustconn/src/dialogs/connection/dialog.rs:4917
 #: rustconn/src/dialogs/snippet.rs:309 rustconn/src/dialogs/variables.rs:270
 msgid "Description:"
 msgstr "Popis:"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4898
+#: rustconn/src/dialogs/connection/dialog.rs:4922
 #: rustconn/src/dialogs/variables.rs:275
 msgid "Optional description"
 msgstr "Volitelný popis"
 
-#: rustconn/src/dialogs/connection/dialog.rs:4907
+#: rustconn/src/dialogs/connection/dialog.rs:4931
 msgid "(Inherited from global - override value below)"
 msgstr "(Zděděno z globálních — přepsat hodnotu níže)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:5038
-#: rustconn/src/window/edit_dialogs.rs:1010
+#: rustconn/src/dialogs/connection/dialog.rs:5062
+#: rustconn/src/window/edit_dialogs.rs:1033
 msgid "Select SSH Key"
 msgstr "Vybrat klíč SSH"
 
-#: rustconn/src/dialogs/connection/dialog.rs:5084
+#: rustconn/src/dialogs/connection/dialog.rs:5108
 msgid "Select CA Certificate"
 msgstr "Vybrat certifikát CA"
 
-#: rustconn/src/dialogs/connection/dialog.rs:5105
+#: rustconn/src/dialogs/connection/dialog.rs:5129
 msgid "Edit Connection"
 msgstr "Upravit připojení"
 
-#: rustconn/src/dialogs/connection/dialog.rs:5354
-#: rustconn/src/dialogs/connection/general_tab.rs:355
+#: rustconn/src/dialogs/connection/dialog.rs:5378
+#: rustconn/src/dialogs/connection/general_tab.rs:365
 #: rustconn/src/dialogs/widgets.rs:48
 msgid "(Root)"
 msgstr "(Kořen)"
 
-#: rustconn/src/dialogs/connection/dialog.rs:5956
+#: rustconn/src/dialogs/connection/dialog.rs:5980
 msgid "Inherited: {}"
 msgstr "Zděděno: {}"
 
-#: rustconn/src/dialogs/connection/dialog.rs:5960
-#: rustconn/src/dialogs/connection/dialog.rs:5964
+#: rustconn/src/dialogs/connection/dialog.rs:5984
+#: rustconn/src/dialogs/connection/dialog.rs:5988
 msgid "Inherited from parent group"
 msgstr "Zděděno z nadřazené skupiny"
 
-#: rustconn/src/dialogs/connection/dialog.rs:5969
+#: rustconn/src/dialogs/connection/dialog.rs:5993
 #: rustconn/src/dialogs/connection/ssh.rs:226
 msgid "Default tries ~/.ssh/id_rsa, id_ed25519, id_ecdsa automatically"
 msgstr "Výchozí zkouší ~/.ssh/id_rsa, id_ed25519, id_ecdsa automaticky"
 
-#: rustconn/src/dialogs/connection/dialog.rs:6518
-#: rustconn/src/dialogs/connection/dialog.rs:6767
+#: rustconn/src/dialogs/connection/dialog.rs:6544
+#: rustconn/src/dialogs/connection/dialog.rs:6793
 msgid "Cannot Load Password"
 msgstr "Nelze načíst heslo"
 
-#: rustconn/src/dialogs/connection/dialog.rs:6519
+#: rustconn/src/dialogs/connection/dialog.rs:6545
+#: rustconn/src/dialogs/connection/dialog.rs:6854
 msgid "Please enter a connection name or host first."
 msgstr "Nejprve zadejte název připojení nebo host."
 
-#: rustconn/src/dialogs/connection/dialog.rs:6636
-#: rustconn/src/dialogs/connection/dialog.rs:6738
-#: rustconn/src/dialogs/connection/dialog.rs:6746
+#: rustconn/src/dialogs/connection/dialog.rs:6662
+#: rustconn/src/dialogs/connection/dialog.rs:6764
+#: rustconn/src/dialogs/connection/dialog.rs:6772
 msgid "Password Not Found"
 msgstr "Heslo nenalezeno"
 
-#: rustconn/src/dialogs/connection/dialog.rs:6637
-#: rustconn/src/dialogs/connection/dialog.rs:6739
-#: rustconn/src/dialogs/connection/dialog.rs:6747
+#: rustconn/src/dialogs/connection/dialog.rs:6663
+#: rustconn/src/dialogs/connection/dialog.rs:6765
+#: rustconn/src/dialogs/connection/dialog.rs:6773
 msgid "No password found in vault for this connection."
 msgstr "Pro toto připojení nebylo v trezoru nalezeno heslo."
 
-#: rustconn/src/dialogs/connection/dialog.rs:6646
-#: rustconn/src/dialogs/connection/dialog.rs:6754
+#: rustconn/src/dialogs/connection/dialog.rs:6672
+#: rustconn/src/dialogs/connection/dialog.rs:6780
 msgid "Failed to Load Password"
 msgstr "Načtení hesla selhalo"
 
-#: rustconn/src/dialogs/connection/dialog.rs:6647
-#: rustconn/src/dialogs/connection/dialog.rs:6755
+#: rustconn/src/dialogs/connection/dialog.rs:6673
+#: rustconn/src/dialogs/connection/dialog.rs:6781
 msgid "Could not load password from vault."
 msgstr "Nelze načíst heslo z trezoru."
 
-#: rustconn/src/dialogs/connection/dialog.rs:6658
+#: rustconn/src/dialogs/connection/dialog.rs:6684
+#: rustconn/src/dialogs/connection/dialog.rs:6984
 msgid "Vault Not Configured"
 msgstr "Trezor není nakonfigurován"
 
-#: rustconn/src/dialogs/connection/dialog.rs:6659
+#: rustconn/src/dialogs/connection/dialog.rs:6685
+#: rustconn/src/dialogs/connection/dialog.rs:6985
 msgid "Please configure a secret backend in Settings → Secrets."
 msgstr "Nakonfigurujte backend tajemství v Nastavení → Tajemství."
 
-#: rustconn/src/dialogs/connection/dialog.rs:6768
+#: rustconn/src/dialogs/connection/dialog.rs:6794
 msgid "Password loading is only available for Vault source."
 msgstr "Načítání hesla je dostupné pouze pro zdroj Trezor."
 
-#: rustconn/src/dialogs/connection/dialog.rs:6912
+#: rustconn/src/dialogs/connection/dialog.rs:6834
+msgid "Test Not Available"
+msgstr ""
+
+#: rustconn/src/dialogs/connection/dialog.rs:6835
+msgid "Credential test is only available when Password Source is set to Vault."
+msgstr ""
+
+#: rustconn/src/dialogs/connection/dialog.rs:6853
+msgid "Cannot Test"
+msgstr ""
+
+#: rustconn/src/dialogs/connection/dialog.rs:6948
+#: rustconn/src/dialogs/connection/dialog.rs:7012
+msgid "Credential Test Passed"
+msgstr ""
+
+#: rustconn/src/dialogs/connection/dialog.rs:6950
+#: rustconn/src/dialogs/connection/dialog.rs:7014
+msgid ""
+"Password found in vault.\n"
+"Lookup key: {}"
+msgstr ""
+
+#: rustconn/src/dialogs/connection/dialog.rs:6958
+#: rustconn/src/dialogs/connection/dialog.rs:6969
+#: rustconn/src/dialogs/connection/dialog.rs:7021
+#: rustconn/src/dialogs/connection/dialog.rs:7032
+#: rustconn/src/dialogs/connection/dialog.rs:7043
+msgid "Credential Test Failed"
+msgstr ""
+
+#: rustconn/src/dialogs/connection/dialog.rs:6960
+msgid ""
+"No password found in vault.\n"
+"Lookup key: {}"
+msgstr ""
+
+#: rustconn/src/dialogs/connection/dialog.rs:6971
+msgid ""
+"Vault error. Check your KeePass configuration.\n"
+"Lookup key: {}"
+msgstr ""
+
+#: rustconn/src/dialogs/connection/dialog.rs:7023
+msgid ""
+"Entry found but contains no password.\n"
+"Lookup key: {}"
+msgstr ""
+
+#: rustconn/src/dialogs/connection/dialog.rs:7034
+msgid ""
+"No entry found in vault.\n"
+"Lookup key: {}"
+msgstr ""
+
+#: rustconn/src/dialogs/connection/dialog.rs:7045
+msgid ""
+"Backend error. Check your vault configuration.\n"
+"Lookup key: {}"
+msgstr ""
+
+#: rustconn/src/dialogs/connection/dialog.rs:7194
 msgid "Managed by cloud sync"
 msgstr "Spravováno cloudovou synchronizací"
 
-#: rustconn/src/dialogs/connection/dialog.rs:6956
+#: rustconn/src/dialogs/connection/dialog.rs:7238
 msgid "Edit Connection (Synced)"
 msgstr "Upravit připojení (synchronizované)"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:68
+#: rustconn/src/dialogs/connection/general_tab.rs:69
 msgid "Identity"
 msgstr "Identita"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:72
+#: rustconn/src/dialogs/connection/general_tab.rs:73
 msgid "Connection name"
 msgstr "Název připojení"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:83
+#: rustconn/src/dialogs/connection/general_tab.rs:84
 msgid "Emoji or icon name"
 msgstr "Emoji nebo název ikony"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:89
-#: rustconn/src/window/connection_dialogs.rs:256
-#: rustconn/src/window/edit_dialogs.rs:507
+#: rustconn/src/dialogs/connection/general_tab.rs:90
+#: rustconn/src/window/connection_dialogs.rs:268
+#: rustconn/src/window/edit_dialogs.rs:519
 msgid "Enter an emoji (e.g. 🇺🇦) or GTK icon name (e.g. starred-symbolic)"
 msgstr "Zadejte emoji (např. 🇺🇦) nebo název ikony GTK (např. starred-symbolic)"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:92
-#: rustconn/src/window/connection_dialogs.rs:252
-#: rustconn/src/window/edit_dialogs.rs:503
+#: rustconn/src/dialogs/connection/general_tab.rs:93
+#: rustconn/src/window/connection_dialogs.rs:264
+#: rustconn/src/window/edit_dialogs.rs:515
 msgid "Icon"
 msgstr "Ikona"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:93
+#: rustconn/src/dialogs/connection/general_tab.rs:94
 msgid "Optional"
 msgstr "Volitelné"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:104
+#: rustconn/src/dialogs/connection/general_tab.rs:105
 msgid "Zero Trust"
 msgstr "Zero Trust"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:127
-#: rustconn/src/dialogs/connection/general_tab.rs:135
+#: rustconn/src/dialogs/connection/general_tab.rs:128
+#: rustconn/src/dialogs/connection/general_tab.rs:136
 #: rustconn/src/dialogs/export.rs:382 rustconn/src/dialogs/template.rs:538
 #: rustconn/src/dialogs/template.rs:1783 rustconn/src/split_view/bridge.rs:1496
-#: rustconn/src/window/edit_dialogs.rs:2083
+#: rustconn/src/window/edit_dialogs.rs:2106
 msgid "Host"
 msgstr "Hostitel"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:129
+#: rustconn/src/dialogs/connection/general_tab.rs:130
 #: rustconn/src/dialogs/template.rs:1815
-#: rustconn/src/window/edit_dialogs.rs:2079
+#: rustconn/src/window/edit_dialogs.rs:2102
 msgid "hostname or IP"
 msgstr "název hostitele nebo IP adresa"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:139
-#: rustconn/src/dialogs/connection/general_tab.rs:155
+#: rustconn/src/dialogs/connection/general_tab.rs:140
+#: rustconn/src/dialogs/connection/general_tab.rs:156
 #: rustconn/src/dialogs/export.rs:388 rustconn/src/dialogs/template.rs:547
-#: rustconn/src/dialogs/wol.rs:93 rustconn/src/window/edit_dialogs.rs:2095
+#: rustconn/src/dialogs/wol.rs:93 rustconn/src/window/edit_dialogs.rs:2118
 msgid "Port"
 msgstr "Port"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:148
+#: rustconn/src/dialogs/connection/general_tab.rs:149
 msgid "SSH, Well-Known"
 msgstr "SSH, známé porty"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:179
-#: rustconn/src/dialogs/connection/general_tab.rs:183
-#: rustconn/src/dialogs/connection/general_tab.rs:200
+#: rustconn/src/dialogs/connection/general_tab.rs:180
+#: rustconn/src/dialogs/connection/general_tab.rs:184
+#: rustconn/src/dialogs/connection/general_tab.rs:201
 #: rustconn/src/dialogs/export.rs:400 rustconn/src/dialogs/template.rs:554
 #: rustconn/src/split_view/bridge.rs:1504
-#: rustconn/src/window/connection_dialogs.rs:317
-#: rustconn/src/window/edit_dialogs.rs:626
-#: rustconn/src/window/edit_dialogs.rs:2105
+#: rustconn/src/window/connection_dialogs.rs:329
+#: rustconn/src/window/edit_dialogs.rs:638
+#: rustconn/src/window/edit_dialogs.rs:2128
 msgid "Username"
 msgstr "Uživatel"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:193
-#: rustconn/src/dialogs/connection/general_tab.rs:216
+#: rustconn/src/dialogs/connection/general_tab.rs:194
+#: rustconn/src/dialogs/connection/general_tab.rs:217
 msgid "Load from selected group"
 msgstr "Načíst z vybrané skupiny"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:198
+#: rustconn/src/dialogs/connection/general_tab.rs:199
 msgid "Load username from selected group"
 msgstr "Načíst uživatelské jméno z vybrané skupiny"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:206
-#: rustconn/src/dialogs/connection/general_tab.rs:224
+#: rustconn/src/dialogs/connection/general_tab.rs:207
+#: rustconn/src/dialogs/connection/general_tab.rs:225
 #: rustconn/src/dialogs/template.rs:558
-#: rustconn/src/window/connection_dialogs.rs:608
-#: rustconn/src/window/edit_dialogs.rs:900
+#: rustconn/src/window/connection_dialogs.rs:620
+#: rustconn/src/window/edit_dialogs.rs:912
 msgid "Domain"
 msgstr "Doména"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:208
+#: rustconn/src/dialogs/connection/general_tab.rs:209
 msgid "Optional (e.g., WORKGROUP)"
 msgstr "Volitelné (např. WORKGROUP)"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:221
+#: rustconn/src/dialogs/connection/general_tab.rs:222
 msgid "Load domain from selected group"
 msgstr "Načíst doménu z vybrané skupiny"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:225
+#: rustconn/src/dialogs/connection/general_tab.rs:226
 msgid "Windows authentication"
 msgstr "Ověření systémem Windows"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:232
+#: rustconn/src/dialogs/connection/general_tab.rs:233
 #: rustconn/src/dialogs/connection/ssh.rs:193
 #: rustconn/src/dialogs/document.rs:126
 #: rustconn/src/dialogs/settings/secrets_tab.rs:1122
 #: rustconn/src/dialogs/template.rs:620
-#: rustconn/src/window/connection_dialogs.rs:336
-#: rustconn/src/window/edit_dialogs.rs:654
-#: rustconn/src/window/edit_dialogs.rs:965
-#: rustconn/src/window/edit_dialogs.rs:2116
+#: rustconn/src/window/connection_dialogs.rs:348
+#: rustconn/src/window/edit_dialogs.rs:666
+#: rustconn/src/window/edit_dialogs.rs:988
+#: rustconn/src/window/edit_dialogs.rs:2139
 msgid "Password"
 msgstr "Heslo"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:234
-#: rustconn/src/window/connection_dialogs.rs:322
-#: rustconn/src/window/edit_dialogs.rs:633
+#: rustconn/src/dialogs/connection/general_tab.rs:235
+#: rustconn/src/window/connection_dialogs.rs:334
+#: rustconn/src/window/edit_dialogs.rs:645
 msgid "Prompt"
 msgstr "Výzva"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:235
-#: rustconn/src/window/connection_dialogs.rs:323
-#: rustconn/src/window/edit_dialogs.rs:634
+#: rustconn/src/dialogs/connection/general_tab.rs:236
+#: rustconn/src/window/connection_dialogs.rs:335
+#: rustconn/src/window/edit_dialogs.rs:646
 msgid "Vault"
 msgstr "Trezor"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:236
-#: rustconn/src/dialogs/connection/general_tab.rs:300
-#: rustconn/src/window/connection_dialogs.rs:324
-#: rustconn/src/window/edit_dialogs.rs:635
-#: rustconn/src/window/edit_dialogs.rs:693
+#: rustconn/src/dialogs/connection/general_tab.rs:237
+#: rustconn/src/dialogs/connection/general_tab.rs:310
+#: rustconn/src/window/connection_dialogs.rs:336
+#: rustconn/src/window/edit_dialogs.rs:647
+#: rustconn/src/window/edit_dialogs.rs:705
 msgid "Variable"
 msgstr "Proměnná"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:237
-#: rustconn/src/window/connection_dialogs.rs:325
-#: rustconn/src/window/edit_dialogs.rs:636
+#: rustconn/src/dialogs/connection/general_tab.rs:238
+#: rustconn/src/window/connection_dialogs.rs:337
+#: rustconn/src/window/edit_dialogs.rs:648
 msgid "Inherit"
 msgstr "Zdědit"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:238
-#: rustconn/src/window/connection_dialogs.rs:326
-#: rustconn/src/window/edit_dialogs.rs:637
-#: rustconn/src/window/edit_dialogs.rs:964
+#: rustconn/src/dialogs/connection/general_tab.rs:239
+#: rustconn/src/window/connection_dialogs.rs:338
+#: rustconn/src/window/edit_dialogs.rs:649
+#: rustconn/src/window/edit_dialogs.rs:987
 msgid "None"
 msgstr "Žádný"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:239
-#: rustconn/src/window/edit_dialogs.rs:1252
+#: rustconn/src/dialogs/connection/general_tab.rs:240
+#: rustconn/src/window/edit_dialogs.rs:1275
 msgid "Script"
 msgstr "Skript"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:249
+#: rustconn/src/dialogs/connection/general_tab.rs:250
 msgid "Password Source"
 msgstr "Zdroj hesla"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:255
-#: rustconn/src/dialogs/connection/general_tab.rs:280
+#: rustconn/src/dialogs/connection/general_tab.rs:256
+#: rustconn/src/dialogs/connection/general_tab.rs:289
 #: rustconn/src/dialogs/variable_setup.rs:73
-#: rustconn/src/window/connection_dialogs.rs:363
-#: rustconn/src/window/edit_dialogs.rs:681
+#: rustconn/src/window/connection_dialogs.rs:375
+#: rustconn/src/window/edit_dialogs.rs:693
 msgid "Value"
 msgstr "Hodnota"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:257
+#: rustconn/src/dialogs/connection/general_tab.rs:258
 #: rustconn/src/dialogs/variables.rs:230
-#: rustconn/src/window/connection_dialogs.rs:342
-#: rustconn/src/window/edit_dialogs.rs:660
+#: rustconn/src/window/connection_dialogs.rs:354
+#: rustconn/src/window/edit_dialogs.rs:672
 msgid "Password value"
 msgstr "Hodnota hesla"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:266
+#: rustconn/src/dialogs/connection/general_tab.rs:267
 #: rustconn/src/dialogs/variables.rs:236
-#: rustconn/src/window/connection_dialogs.rs:348
-#: rustconn/src/window/edit_dialogs.rs:666
+#: rustconn/src/window/connection_dialogs.rs:360
+#: rustconn/src/window/edit_dialogs.rs:678
 msgid "Show/hide password"
 msgstr "Zobrazit/skrýt heslo"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:270
+#: rustconn/src/dialogs/connection/general_tab.rs:271
 #: rustconn/src/dialogs/variables.rs:239
-#: rustconn/src/window/connection_dialogs.rs:352
-#: rustconn/src/window/edit_dialogs.rs:670
+#: rustconn/src/window/connection_dialogs.rs:364
+#: rustconn/src/window/edit_dialogs.rs:682
 msgid "Toggle password visibility"
 msgstr "Přepnout viditelnost hesla"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:274
-#: rustconn/src/dialogs/connection/general_tab.rs:278
+#: rustconn/src/dialogs/connection/general_tab.rs:275
+#: rustconn/src/dialogs/connection/general_tab.rs:279
 #: rustconn/src/dialogs/variables.rs:244 rustconn/src/dialogs/variables.rs:247
-#: rustconn/src/window/connection_dialogs.rs:356
-#: rustconn/src/window/connection_dialogs.rs:360
-#: rustconn/src/window/edit_dialogs.rs:674
-#: rustconn/src/window/edit_dialogs.rs:678
+#: rustconn/src/window/connection_dialogs.rs:368
+#: rustconn/src/window/connection_dialogs.rs:372
+#: rustconn/src/window/edit_dialogs.rs:686
+#: rustconn/src/window/edit_dialogs.rs:690
 msgid "Load password from vault"
 msgstr "Načíst heslo z trezoru"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:313
+#: rustconn/src/dialogs/connection/general_tab.rs:283
+#: rustconn/src/dialogs/connection/general_tab.rs:287
+msgid "Test credential resolution"
+msgstr ""
+
+#: rustconn/src/dialogs/connection/general_tab.rs:323
 msgid "e.g. vault kv get -field=password secret/myapp"
 msgstr "např. vault kv get -field=password secret/myapp"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:321
+#: rustconn/src/dialogs/connection/general_tab.rs:331
 msgid "Test the script command"
 msgstr "Otestovat příkaz skriptu"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:340
+#: rustconn/src/dialogs/connection/general_tab.rs:350
 msgid "Organization"
 msgstr "Organizace"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:343
-#: rustconn/src/dialogs/connection/general_tab.rs:351
+#: rustconn/src/dialogs/connection/general_tab.rs:353
+#: rustconn/src/dialogs/connection/general_tab.rs:361
 #: rustconn/src/dialogs/export.rs:412 rustconn/src/dialogs/template.rs:562
 msgid "Tags"
 msgstr "Štítky"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:345
+#: rustconn/src/dialogs/connection/general_tab.rs:355
 msgid "tag1, tag2, ..."
 msgstr "tag1, tag2, ..."
 
-#: rustconn/src/dialogs/connection/general_tab.rs:362
+#: rustconn/src/dialogs/connection/general_tab.rs:372
 #: rustconn/src/dialogs/export.rs:288 rustconn/src/dialogs/export.rs:406
 #: rustconn/src/dialogs/import.rs:1531
 msgid "Group"
 msgstr "Skupina"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:383
+#: rustconn/src/dialogs/connection/general_tab.rs:393
 #: rustconn/src/dialogs/export.rs:418 rustconn/src/dialogs/template.rs:510
-#: rustconn/src/window/connection_dialogs.rs:615
-#: rustconn/src/window/edit_dialogs.rs:1315
+#: rustconn/src/window/connection_dialogs.rs:627
+#: rustconn/src/window/edit_dialogs.rs:1338
 msgid "Description"
 msgstr "Popis"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:505
+#: rustconn/src/dialogs/connection/general_tab.rs:516
 msgid "Well-Known"
 msgstr "Dobře známé"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:507
+#: rustconn/src/dialogs/connection/general_tab.rs:518
 msgid "Registered"
 msgstr "Registrované"
 
-#: rustconn/src/dialogs/connection/general_tab.rs:509
+#: rustconn/src/dialogs/connection/general_tab.rs:520
 msgid "Dynamic"
 msgstr "Dynamické"
 
@@ -2496,12 +2578,12 @@ msgid "Controls speculative local echo of keystrokes"
 msgstr "Řídí spekulativní lokální odezvu stisků kláves"
 
 #: rustconn/src/dialogs/connection/ssh.rs:194
-#: rustconn/src/dialogs/template.rs:621 rustconn/src/window/edit_dialogs.rs:966
+#: rustconn/src/dialogs/template.rs:621 rustconn/src/window/edit_dialogs.rs:989
 msgid "Public Key"
 msgstr "Veřejný klíč"
 
 #: rustconn/src/dialogs/connection/ssh.rs:195
-#: rustconn/src/dialogs/template.rs:622 rustconn/src/window/edit_dialogs.rs:968
+#: rustconn/src/dialogs/template.rs:622 rustconn/src/window/edit_dialogs.rs:991
 msgid "Keyboard Interactive"
 msgstr "Klávesnice interaktivní"
 
@@ -2537,7 +2619,7 @@ msgid "File"
 msgstr "Soubor"
 
 #: rustconn/src/dialogs/connection/ssh.rs:215
-#: rustconn/src/dialogs/template.rs:642 rustconn/src/window/edit_dialogs.rs:967
+#: rustconn/src/dialogs/template.rs:642 rustconn/src/window/edit_dialogs.rs:990
 msgid "Agent"
 msgstr "Agent"
 
@@ -2594,7 +2676,7 @@ msgid "Key file not found"
 msgstr "Soubor klíče nenalezen"
 
 #: rustconn/src/dialogs/connection/ssh.rs:458
-#: rustconn/src/window/edit_dialogs.rs:1090
+#: rustconn/src/window/edit_dialogs.rs:1113
 msgid "Connect via another SSH connection"
 msgstr "Připojení přes jiné SSH spojení"
 
@@ -2619,90 +2701,152 @@ msgstr "Odpojit po tomto počtu nezodpovězených paketů"
 msgid "Session"
 msgstr "Relace"
 
-#: rustconn/src/dialogs/connection/ssh.rs:572
-#: rustconn/src/window/edit_dialogs.rs:1107
+#: rustconn/src/dialogs/connection/ssh.rs:528
+#: rustconn/src/dialogs/template.rs:723
+msgid "Agent Forwarding"
+msgstr "Přesměrování agenta"
+
+#: rustconn/src/dialogs/connection/ssh.rs:529
+#: rustconn/src/dialogs/template.rs:724
+msgid "Forward SSH agent to remote host (-A)"
+msgstr "Přesměrovat SSH agenta na vzdálený hostitel (-A)"
+
+#: rustconn/src/dialogs/connection/ssh.rs:534
+msgid "Waypipe"
+msgstr ""
+
+#: rustconn/src/dialogs/connection/ssh.rs:535
+msgid "Wayland application forwarding via waypipe"
+msgstr ""
+
+#: rustconn/src/dialogs/connection/ssh.rs:540
+msgid "X11 Forwarding"
+msgstr ""
+
+#: rustconn/src/dialogs/connection/ssh.rs:541
+msgid "Forward X11 display to local host (-X)"
+msgstr ""
+
+#: rustconn/src/dialogs/connection/ssh.rs:547
+msgid "Enable compression for slow connections (-C)"
+msgstr ""
+
+#: rustconn/src/dialogs/connection/ssh.rs:552
+msgid "Verbose"
+msgstr ""
+
+#: rustconn/src/dialogs/connection/ssh.rs:553
+msgid "Show SSH debug output for troubleshooting (-v)"
+msgstr ""
+
+#: rustconn/src/dialogs/connection/ssh.rs:558
+#: rustconn/src/dialogs/template.rs:738
+msgid "Startup Command"
+msgstr "Spouštěcí příkaz"
+
+#: rustconn/src/dialogs/connection/ssh.rs:559
+#: rustconn/src/dialogs/template.rs:739
+msgid "Execute after connection established"
+msgstr "Spustit po navázání připojení"
+
+#: rustconn/src/dialogs/connection/ssh.rs:560
+#: rustconn/src/dialogs/template.rs:733
+msgid "Command to run on connect"
+msgstr "Příkaz ke spuštění při připojení"
+
+#: rustconn/src/dialogs/connection/ssh.rs:565
+#: rustconn/src/dialogs/template.rs:752
+msgid "Custom Options"
+msgstr "Vlastní možnosti"
+
+#: rustconn/src/dialogs/connection/ssh.rs:566
+msgid "Key=Value, comma-separated (-o flags)"
+msgstr ""
+
+#: rustconn/src/dialogs/connection/ssh.rs:573
+#: rustconn/src/window/edit_dialogs.rs:1130
 msgid "SSH Agent Socket"
 msgstr "Socket SSH agenta"
 
-#: rustconn/src/dialogs/connection/ssh.rs:575
+#: rustconn/src/dialogs/connection/ssh.rs:576
 msgid "Overrides global setting and auto-detected socket for this connection"
 msgstr ""
 "Přepíše globální nastavení a automaticky detekovaný soket pro toto "
 "připojeníPřepíše globální nastavení a automaticky detekovaný socket pro toto "
 "připojení"
 
-#: rustconn/src/dialogs/connection/ssh.rs:623
+#: rustconn/src/dialogs/connection/ssh.rs:624
 msgid "Port Forwarding"
 msgstr "Přesměrování portů"
 
-#: rustconn/src/dialogs/connection/ssh.rs:624
+#: rustconn/src/dialogs/connection/ssh.rs:625
 msgid "Forward ports through the SSH tunnel"
 msgstr "Přesměrovat porty přes SSH tunel"
 
-#: rustconn/src/dialogs/connection/ssh.rs:629
-#: rustconn/src/dialogs/tunnel.rs:1062
+#: rustconn/src/dialogs/connection/ssh.rs:630
+#: rustconn/src/dialogs/tunnel.rs:1074
 msgid "Local (-L)"
 msgstr "Local (-L)"
 
-#: rustconn/src/dialogs/connection/ssh.rs:630
-#: rustconn/src/dialogs/tunnel.rs:1063
+#: rustconn/src/dialogs/connection/ssh.rs:631
+#: rustconn/src/dialogs/tunnel.rs:1075
 msgid "Remote (-R)"
 msgstr "Remote (-R)"
 
-#: rustconn/src/dialogs/connection/ssh.rs:631
-#: rustconn/src/dialogs/tunnel.rs:1064
+#: rustconn/src/dialogs/connection/ssh.rs:632
+#: rustconn/src/dialogs/tunnel.rs:1076
 msgid "Dynamic (-D)"
 msgstr "Dynamic (-D)"
 
-#: rustconn/src/dialogs/connection/ssh.rs:639
+#: rustconn/src/dialogs/connection/ssh.rs:640
 msgid "Direction"
 msgstr "Směr"
 
-#: rustconn/src/dialogs/connection/ssh.rs:640
+#: rustconn/src/dialogs/connection/ssh.rs:641
 msgid "Type of port forwarding"
 msgstr "Typ přesměrování portů"
 
-#: rustconn/src/dialogs/connection/ssh.rs:653
-#: rustconn/src/dialogs/tunnel.rs:1099
+#: rustconn/src/dialogs/connection/ssh.rs:654
+#: rustconn/src/dialogs/tunnel.rs:1111
 msgid "Local Port"
 msgstr "Místní port"
 
-#: rustconn/src/dialogs/connection/ssh.rs:654
+#: rustconn/src/dialogs/connection/ssh.rs:655
 msgid "Port to bind locally"
 msgstr "Port pro místní navázání"
 
-#: rustconn/src/dialogs/connection/ssh.rs:665
-#: rustconn/src/dialogs/tunnel.rs:1107
+#: rustconn/src/dialogs/connection/ssh.rs:666
+#: rustconn/src/dialogs/tunnel.rs:1119
 msgid "Remote Host"
 msgstr "Vzdálený hostitel"
 
-#: rustconn/src/dialogs/connection/ssh.rs:666
+#: rustconn/src/dialogs/connection/ssh.rs:667
 msgid "Destination host on the remote side"
 msgstr "Cílový hostitel na vzdálené straně"
 
-#: rustconn/src/dialogs/connection/ssh.rs:679
-#: rustconn/src/dialogs/tunnel.rs:1113
+#: rustconn/src/dialogs/connection/ssh.rs:680
+#: rustconn/src/dialogs/tunnel.rs:1125
 msgid "Remote Port"
 msgstr "Vzdálený port"
 
-#: rustconn/src/dialogs/connection/ssh.rs:680
+#: rustconn/src/dialogs/connection/ssh.rs:681
 msgid "Destination port on the remote side"
 msgstr "Cílový port na vzdálené straně"
 
-#: rustconn/src/dialogs/connection/ssh.rs:696
-#: rustconn/src/dialogs/tunnel.rs:849
+#: rustconn/src/dialogs/connection/ssh.rs:697
+#: rustconn/src/dialogs/tunnel.rs:861
 msgid "Add Forward"
 msgstr "Přidat přesměrování"
 
-#: rustconn/src/dialogs/connection/ssh.rs:726
+#: rustconn/src/dialogs/connection/ssh.rs:727
 msgid "Port already in use"
 msgstr "Port je již používán"
 
-#: rustconn/src/dialogs/connection/ssh.rs:803
+#: rustconn/src/dialogs/connection/ssh.rs:804
 msgid "Remove this port forward"
 msgstr "Odebrat toto přesměrování portu"
 
-#: rustconn/src/dialogs/connection/ssh.rs:806
+#: rustconn/src/dialogs/connection/ssh.rs:807
 msgid "Remove port forward"
 msgstr "Odebrat přesměrování portu"
 
@@ -2849,7 +2993,7 @@ msgstr "Nové heslo"
 msgid "Use a strong password that you can remember."
 msgstr "Použijte silné heslo, které si zapamatujete."
 
-#: rustconn/src/dialogs/export.rs:86 rustconn/src/sidebar_ui.rs:507
+#: rustconn/src/dialogs/export.rs:86
 msgid "Export Connections"
 msgstr "Exportovat připojení"
 
@@ -2945,7 +3089,7 @@ msgstr "Popis umístění cíle"
 
 #: rustconn/src/dialogs/export.rs:329
 #: rustconn/src/dialogs/password_generator.rs:245
-#: rustconn/src/dialogs/tunnel.rs:869
+#: rustconn/src/dialogs/tunnel.rs:881
 msgid "Options"
 msgstr "Předvolby"
 
@@ -3005,7 +3149,7 @@ msgstr "Exportování…"
 msgid "Preparing export..."
 msgstr "Příprava exportu…"
 
-#: rustconn/src/dialogs/export.rs:482 rustconn/src/window/mod.rs:4985
+#: rustconn/src/dialogs/export.rs:482 rustconn/src/window/mod.rs:5008
 msgid "Export Complete"
 msgstr "Export dokončen"
 
@@ -3210,7 +3354,7 @@ msgstr "Není k dispozici ke stažení"
 msgid "Failed"
 msgstr "Nezdařilo se"
 
-#: rustconn/src/dialogs/history.rs:31 rustconn/src/sidebar_ui.rs:471
+#: rustconn/src/dialogs/history.rs:31 rustconn/src/sidebar_ui.rs:472
 msgid "Connection History"
 msgstr "Historie připojení"
 
@@ -3239,7 +3383,7 @@ msgid "All connection history entries will be permanently removed."
 msgstr "Všechny záznamy historie připojení budou trvale odstraněny."
 
 #: rustconn/src/dialogs/history.rs:188 rustconn/src/terminal/playback.rs:266
-#: rustconn/src/window/edit_dialogs.rs:948
+#: rustconn/src/window/edit_dialogs.rs:968
 msgid "Clear"
 msgstr "Vymazat"
 
@@ -3436,8 +3580,8 @@ msgstr ""
 
 #: rustconn/src/dialogs/import.rs:1516
 #: rustconn/src/dialogs/settings/cloud_sync_tab.rs:38
-#: rustconn/src/window/edit_dialogs.rs:1147
-#: rustconn/src/window/edit_dialogs.rs:1198
+#: rustconn/src/window/edit_dialogs.rs:1170
+#: rustconn/src/window/edit_dialogs.rs:1221
 msgid "Cloud Sync"
 msgstr "Cloudová synchronizace"
 
@@ -3454,7 +3598,7 @@ msgid "will be created in Import mode."
 msgstr "bude vytvořeno v režimu importu."
 
 #: rustconn/src/dialogs/import.rs:1547
-#: rustconn/src/window/connection_dialogs.rs:837
+#: rustconn/src/window/connection_dialogs.rs:849
 msgid "Import Failed"
 msgstr "Import se nezdařil"
 
@@ -3700,8 +3844,8 @@ msgid "Domain:"
 msgstr "Doména:"
 
 #: rustconn/src/dialogs/password.rs:162
-#: rustconn/src/window/edit_dialogs.rs:2101
-#: rustconn/src/window/edit_dialogs.rs:2112
+#: rustconn/src/window/edit_dialogs.rs:2124
+#: rustconn/src/window/edit_dialogs.rs:2135
 msgid "(optional)"
 msgstr "(volitelné)"
 
@@ -3791,7 +3935,7 @@ msgid "Enter a new display name for this recording."
 msgstr "Zadejte nový zobrazovaný název pro tuto nahrávku."
 
 #: rustconn/src/dialogs/recording.rs:436 rustconn/src/sidebar_ui.rs:106
-#: rustconn/src/sidebar_ui.rs:142 rustconn/src/window/edit_dialogs.rs:245
+#: rustconn/src/sidebar_ui.rs:142 rustconn/src/window/edit_dialogs.rs:257
 msgid "Rename"
 msgstr "Přejmenovat"
 
@@ -3807,9 +3951,9 @@ msgstr "Smazat nahrávku?"
 msgid "This will permanently remove the recording files from disk."
 msgstr "Toto trvale odstraní soubory nahrávky z disku."
 
-#: rustconn/src/dialogs/recording.rs:507 rustconn/src/dialogs/template.rs:3096
+#: rustconn/src/dialogs/recording.rs:507 rustconn/src/dialogs/template.rs:3097
 #: rustconn/src/dialogs/tunnel.rs:490 rustconn/src/sidebar_ui.rs:202
-#: rustconn/src/smart_folder_ui.rs:219 rustconn/src/window/clusters.rs:497
+#: rustconn/src/smart_folder_ui.rs:357 rustconn/src/window/clusters.rs:497
 #: rustconn/src/window/operations.rs:136 rustconn/src/window/snippets.rs:115
 #: rustconn/src/window/snippets.rs:224 rustconn/src/window/templates.rs:148
 msgid "Delete"
@@ -3855,10 +3999,10 @@ msgstr "Import selhal"
 #: rustconn/src/dialogs/settings/ssh_agent_tab.rs:304 rustconn/src/toast.rs:73
 #: rustconn/src/toast.rs:250 rustconn/src/toast.rs:279
 #: rustconn/src/window/clusters.rs:463
-#: rustconn/src/window/connection_dialogs.rs:790
-#: rustconn/src/window/edit_dialogs.rs:323
-#: rustconn/src/window/edit_dialogs.rs:418
-#: rustconn/src/window/edit_dialogs.rs:1597 rustconn/src/window/groups.rs:218
+#: rustconn/src/window/connection_dialogs.rs:802
+#: rustconn/src/window/edit_dialogs.rs:335
+#: rustconn/src/window/edit_dialogs.rs:430
+#: rustconn/src/window/edit_dialogs.rs:1620 rustconn/src/window/groups.rs:218
 msgid "Error"
 msgstr "Chyba"
 
@@ -3910,7 +4054,7 @@ msgid "Choose sync directory"
 msgstr "Vybrat adresář synchronizace"
 
 #: rustconn/src/dialogs/settings/cloud_sync_tab.rs:69
-#: rustconn/src/window/edit_dialogs.rs:1738
+#: rustconn/src/window/edit_dialogs.rs:1761
 msgid "Select Sync Directory"
 msgstr "Vybrat adresář synchronizace"
 
@@ -3955,7 +4099,7 @@ msgid "Available for import"
 msgstr "Dostupné pro import"
 
 #: rustconn/src/dialogs/settings/cloud_sync_tab.rs:158
-#: rustconn/src/window/edit_dialogs.rs:1145
+#: rustconn/src/window/edit_dialogs.rs:1168
 msgid "Import"
 msgstr "Importovat"
 
@@ -4080,72 +4224,72 @@ msgstr "Časová razítka"
 msgid "Prepend [HH:MM:SS] to each line in session logs"
 msgstr "Přidat [HH:MM:SS] na začátek každého řádku záznamů"
 
-#: rustconn/src/dialogs/settings/mod.rs:239
+#: rustconn/src/dialogs/settings/mod.rs:241
 msgid "Global regex-based text highlighting rules"
 msgstr "Globální pravidla zvýrazňování textu na základě regexu"
 
-#: rustconn/src/dialogs/settings/mod.rs:320
+#: rustconn/src/dialogs/settings/mod.rs:322
 msgid "Backup & Restore"
 msgstr "Záloha a obnovení"
 
-#: rustconn/src/dialogs/settings/mod.rs:321
+#: rustconn/src/dialogs/settings/mod.rs:323
 msgid "Export or import all settings as a ZIP archive"
 msgstr "Exportovat nebo importovat všechna nastavení jako ZIP archiv"
 
-#: rustconn/src/dialogs/settings/mod.rs:325
+#: rustconn/src/dialogs/settings/mod.rs:327
 msgid "Backup Settings…"
 msgstr "Zálohovat nastavení…"
 
-#: rustconn/src/dialogs/settings/mod.rs:326
+#: rustconn/src/dialogs/settings/mod.rs:328
 msgid "Save all configuration files to a ZIP archive"
 msgstr "Uložit všechny konfigurační soubory do ZIP archivu"
 
-#: rustconn/src/dialogs/settings/mod.rs:329
+#: rustconn/src/dialogs/settings/mod.rs:331
 msgid "Restore Settings…"
 msgstr "Obnovit nastavení…"
 
-#: rustconn/src/dialogs/settings/mod.rs:331
+#: rustconn/src/dialogs/settings/mod.rs:333
 msgid "Load configuration from a ZIP archive (restart required)"
 msgstr "Načíst konfiguraci ze ZIP archivu (vyžadován restart)"
 
-#: rustconn/src/dialogs/settings/mod.rs:359
+#: rustconn/src/dialogs/settings/mod.rs:361
 msgid "Save Backup"
 msgstr "Uložit zálohu"
 
-#: rustconn/src/dialogs/settings/mod.rs:377
+#: rustconn/src/dialogs/settings/mod.rs:379
 msgid "Backup saved ({} files)"
 msgstr "Záloha uložena ({} souborů)"
 
-#: rustconn/src/dialogs/settings/mod.rs:390
+#: rustconn/src/dialogs/settings/mod.rs:392
 msgid "Backup Error"
 msgstr "Chyba zálohy"
 
-#: rustconn/src/dialogs/settings/mod.rs:413
+#: rustconn/src/dialogs/settings/mod.rs:415
 msgid "Open Backup"
 msgstr "Otevřít zálohu"
 
-#: rustconn/src/dialogs/settings/mod.rs:429
+#: rustconn/src/dialogs/settings/mod.rs:431
 msgid "Restore Settings?"
 msgstr "Obnovit nastavení?"
 
-#: rustconn/src/dialogs/settings/mod.rs:431
+#: rustconn/src/dialogs/settings/mod.rs:433
 msgid ""
 "This will overwrite current settings. A restart is required to apply changes."
 msgstr "Toto přepíše aktuální nastavení. Pro použití změn je nutný restart."
 
-#: rustconn/src/dialogs/settings/mod.rs:435
+#: rustconn/src/dialogs/settings/mod.rs:437
 msgid "Restore"
 msgstr "Obnovit"
 
-#: rustconn/src/dialogs/settings/mod.rs:450
+#: rustconn/src/dialogs/settings/mod.rs:452
 msgid "Restored {} files. Restart to apply."
 msgstr "Obnoveno {} souborů. Restartujte pro použití."
 
-#: rustconn/src/dialogs/settings/mod.rs:463
+#: rustconn/src/dialogs/settings/mod.rs:465
 msgid "Restore Error"
 msgstr "Chyba obnovení"
 
-#: rustconn/src/dialogs/settings/mod.rs:737
+#: rustconn/src/dialogs/settings/mod.rs:740
 msgid "Failed to start"
 msgstr "Nepodařilo se spustit"
 
@@ -4879,246 +5023,254 @@ msgstr "Odebrat z agenta"
 msgid "Remove key from SSH agent"
 msgstr "Odebrat klíč z SSH agenta"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:36
+#: rustconn/src/dialogs/settings/terminal_tab.rs:37
 msgid "Terminal"
 msgstr "Terminál"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:41
+#: rustconn/src/dialogs/settings/terminal_tab.rs:42
 msgid "Font"
 msgstr "Písmo"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:49
+#: rustconn/src/dialogs/settings/terminal_tab.rs:50
 msgid "Family"
 msgstr "Rodina"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:62
+#: rustconn/src/dialogs/settings/terminal_tab.rs:63
 msgid "Size"
 msgstr "Velikost"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:71
-#: rustconn/src/dialogs/settings/terminal_tab.rs:669
+#: rustconn/src/dialogs/settings/terminal_tab.rs:72
+#: rustconn/src/dialogs/settings/terminal_tab.rs:690
 msgid "Colors"
 msgstr "Barvy"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:81
+#: rustconn/src/dialogs/settings/terminal_tab.rs:82
 #: rustconn/src/dialogs/settings/ui_tab.rs:87
 msgid "Theme"
 msgstr "Motiv vzhledu"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:95
-#: rustconn/src/dialogs/settings/terminal_tab.rs:98
+#: rustconn/src/dialogs/settings/terminal_tab.rs:96
+#: rustconn/src/dialogs/settings/terminal_tab.rs:99
 msgid "New custom theme"
 msgstr "Nový vlastní motiv"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:102
-#: rustconn/src/dialogs/settings/terminal_tab.rs:107
+#: rustconn/src/dialogs/settings/terminal_tab.rs:103
+#: rustconn/src/dialogs/settings/terminal_tab.rs:108
 msgid "Edit custom theme"
 msgstr "Upravit vlastní motiv"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:112
-#: rustconn/src/dialogs/settings/terminal_tab.rs:117
+#: rustconn/src/dialogs/settings/terminal_tab.rs:113
+#: rustconn/src/dialogs/settings/terminal_tab.rs:118
 msgid "Delete custom theme"
 msgstr "Smazat vlastní motiv"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:125
+#: rustconn/src/dialogs/settings/terminal_tab.rs:126
 msgid "Custom themes"
 msgstr "Vlastní motivy"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:205
-#: rustconn/src/dialogs/settings/terminal_tab.rs:666
+#: rustconn/src/dialogs/settings/terminal_tab.rs:206
+#: rustconn/src/dialogs/settings/terminal_tab.rs:687
 msgid "Cursor"
 msgstr "Kurzor"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:218
+#: rustconn/src/dialogs/settings/terminal_tab.rs:219
 msgid "Block"
 msgstr "Blok"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:223
+#: rustconn/src/dialogs/settings/terminal_tab.rs:224
 msgid "IBeam"
 msgstr "Čára"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:228
+#: rustconn/src/dialogs/settings/terminal_tab.rs:229
 msgid "Underline"
 msgstr "Podtržení"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:237
+#: rustconn/src/dialogs/settings/terminal_tab.rs:238
 msgid "Shape"
 msgstr "Tvar"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:251
+#: rustconn/src/dialogs/settings/terminal_tab.rs:252
 msgid "On"
 msgstr "Zapnuto"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:261
+#: rustconn/src/dialogs/settings/terminal_tab.rs:262
 #: rustconn/src/dialogs/settings/ui_tab.rs:49
 msgid "System"
 msgstr "Dle systému"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:270
+#: rustconn/src/dialogs/settings/terminal_tab.rs:271
 msgid "Blink"
 msgstr "Blikání"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:278
+#: rustconn/src/dialogs/settings/terminal_tab.rs:279
 msgid "Scrolling"
 msgstr "Posouvání"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:290
+#: rustconn/src/dialogs/settings/terminal_tab.rs:291
 msgid "History"
 msgstr "Historie"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:291
+#: rustconn/src/dialogs/settings/terminal_tab.rs:292
 msgid "Number of lines to keep in scrollback"
 msgstr "Počet řádků k uchování v historii"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:300
+#: rustconn/src/dialogs/settings/terminal_tab.rs:301
 msgid "On output"
 msgstr "Při výstupu"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:301
+#: rustconn/src/dialogs/settings/terminal_tab.rs:302
 msgid "Scroll to bottom when new output appears"
 msgstr "Posunout dolů při novém výstupu"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:313
+#: rustconn/src/dialogs/settings/terminal_tab.rs:314
 msgid "On keystroke"
 msgstr "Při stisku klávesy"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:314
+#: rustconn/src/dialogs/settings/terminal_tab.rs:315
 msgid "Scroll to bottom when typing"
 msgstr "Posunout dolů při psaní"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:326
+#: rustconn/src/dialogs/settings/terminal_tab.rs:327
 msgid "Scrollbar"
 msgstr "Posuvník"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:327
+#: rustconn/src/dialogs/settings/terminal_tab.rs:328
 msgid "Show a scrollbar next to the terminal"
 msgstr "Zobrazit posuvník vedle terminálu"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:337
+#: rustconn/src/dialogs/settings/terminal_tab.rs:338
 msgid "Behavior"
 msgstr "Chování"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:346
+#: rustconn/src/dialogs/settings/terminal_tab.rs:347
 msgid "Hyperlinks"
 msgstr "Hypertextové odkazy"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:347
+#: rustconn/src/dialogs/settings/terminal_tab.rs:348
 msgid "Allow clickable URLs in terminal"
 msgstr "Povolit klikatelné URL v terminálu"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:359
+#: rustconn/src/dialogs/settings/terminal_tab.rs:360
 msgid "Hide pointer"
 msgstr "Skrýt ukazatel"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:360
+#: rustconn/src/dialogs/settings/terminal_tab.rs:361
 msgid "Hide mouse cursor when typing"
 msgstr "Skrýt kurzor myši při psaní"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:369
+#: rustconn/src/dialogs/settings/terminal_tab.rs:370
 msgid "Bell"
 msgstr "Zvonění"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:370
+#: rustconn/src/dialogs/settings/terminal_tab.rs:371
 msgid "Play sound on terminal bell"
 msgstr "Přehrát zvuk při zvonění terminálu"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:379
+#: rustconn/src/dialogs/settings/terminal_tab.rs:380
 msgid "SFTP via mc"
 msgstr "SFTP přes mc"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:380
+#: rustconn/src/dialogs/settings/terminal_tab.rs:381
 msgid "Open SFTP in Midnight Commander (local shell tab)"
 msgstr "Otevřít SFTP v Midnight Commanderu (záložka místního shellu)"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:389
+#: rustconn/src/dialogs/settings/terminal_tab.rs:390
 msgid "Copy on select"
 msgstr "Kopírovat při výběru"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:390
+#: rustconn/src/dialogs/settings/terminal_tab.rs:391
 msgid "Automatically copy selected text to clipboard"
 msgstr "Automaticky kopírovat vybraný text do schránky"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:587
+#: rustconn/src/dialogs/settings/terminal_tab.rs:403
+msgid "Mouse passthrough"
+msgstr "Průchod myši"
+
+#: rustconn/src/dialogs/settings/terminal_tab.rs:405
+msgid "Forward mouse events to terminal apps (mc, vim, htop)"
+msgstr "Předávat události myši terminálovým aplikacím (mc, vim, htop)"
+
+#: rustconn/src/dialogs/settings/terminal_tab.rs:608
 msgid "New Custom Theme"
 msgstr "Nový vlastní motiv"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:588
+#: rustconn/src/dialogs/settings/terminal_tab.rs:609
 msgid "Enter a name for the new theme"
 msgstr "Zadejte název pro nový motiv"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:598
+#: rustconn/src/dialogs/settings/terminal_tab.rs:619
 msgid "Theme name"
 msgstr "Název motivu"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:635
+#: rustconn/src/dialogs/settings/terminal_tab.rs:656
 msgid "{} — Theme Editor"
 msgstr "{} — Editor motivů"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:677
+#: rustconn/src/dialogs/settings/terminal_tab.rs:698
 msgid "Palette"
 msgstr "Paleta"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:681
+#: rustconn/src/dialogs/settings/terminal_tab.rs:702
 msgid "Black"
 msgstr "Černá"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:682
+#: rustconn/src/dialogs/settings/terminal_tab.rs:703
 msgid "Red"
 msgstr "Červená"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:683
+#: rustconn/src/dialogs/settings/terminal_tab.rs:704
 msgid "Green"
 msgstr "Zelená"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:684
+#: rustconn/src/dialogs/settings/terminal_tab.rs:705
 msgid "Yellow"
 msgstr "Žlutá"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:685
+#: rustconn/src/dialogs/settings/terminal_tab.rs:706
 msgid "Blue"
 msgstr "Modrá"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:686
+#: rustconn/src/dialogs/settings/terminal_tab.rs:707
 msgid "Magenta"
 msgstr "Purpurová"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:687
+#: rustconn/src/dialogs/settings/terminal_tab.rs:708
 msgid "Cyan"
 msgstr "Azurová"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:688
+#: rustconn/src/dialogs/settings/terminal_tab.rs:709
 msgid "White"
 msgstr "Bílá"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:689
+#: rustconn/src/dialogs/settings/terminal_tab.rs:710
 msgid "Bright Black"
 msgstr "Jasně černá"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:690
+#: rustconn/src/dialogs/settings/terminal_tab.rs:711
 msgid "Bright Red"
 msgstr "Jasně červená"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:691
+#: rustconn/src/dialogs/settings/terminal_tab.rs:712
 msgid "Bright Green"
 msgstr "Jasně zelená"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:692
+#: rustconn/src/dialogs/settings/terminal_tab.rs:713
 msgid "Bright Yellow"
 msgstr "Jasně žlutá"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:693
+#: rustconn/src/dialogs/settings/terminal_tab.rs:714
 msgid "Bright Blue"
 msgstr "Jasně modrá"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:694
+#: rustconn/src/dialogs/settings/terminal_tab.rs:715
 msgid "Bright Magenta"
 msgstr "Jasně purpurová"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:695
+#: rustconn/src/dialogs/settings/terminal_tab.rs:716
 msgid "Bright Cyan"
 msgstr "Jasně azurová"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:696
+#: rustconn/src/dialogs/settings/terminal_tab.rs:717
 msgid "Bright White"
 msgstr "Jasně bílá"
 
@@ -5275,27 +5427,50 @@ msgstr "Hledat zkratky…"
 msgid "Edit Smart Folder"
 msgstr "Upravit chytrou složku"
 
-#: rustconn/src/dialogs/smart_folder.rs:61 rustconn/src/smart_folder_ui.rs:54
+#: rustconn/src/dialogs/smart_folder.rs:61 rustconn/src/sidebar_ui.rs:221
+#: rustconn/src/smart_folder_ui.rs:61
 msgid "New Smart Folder"
 msgstr "Nová chytrá složka"
 
-#: rustconn/src/dialogs/smart_folder.rs:114
+#: rustconn/src/dialogs/smart_folder.rs:118
 msgid "Smart Folder"
 msgstr "Chytrá složka"
 
-#: rustconn/src/dialogs/smart_folder.rs:126
+#: rustconn/src/dialogs/smart_folder.rs:130
 msgid "Filters"
 msgstr "Filtry"
 
-#: rustconn/src/dialogs/smart_folder.rs:127
+#: rustconn/src/dialogs/smart_folder.rs:131
 msgid "Connections must match ALL active filters"
 msgstr "Připojení musí odpovídat VŠEM aktivním filtrům"
 
-#: rustconn/src/dialogs/smart_folder.rs:230
+#: rustconn/src/dialogs/smart_folder.rs:135
+#: rustconn/src/dialogs/smart_folder.rs:174
+#: rustconn/src/dialogs/smart_folder.rs:237
 msgid "Any"
 msgstr "Jakýkoli"
 
-#: rustconn/src/dialogs/smart_folder.rs:275
+#: rustconn/src/dialogs/smart_folder.rs:152
+msgid "Filter by Protocol"
+msgstr "Filtrovat podle protokolu"
+
+#: rustconn/src/dialogs/smart_folder.rs:159
+msgid "Host Pattern"
+msgstr "Vzor hostitele"
+
+#: rustconn/src/dialogs/smart_folder.rs:166
+msgid "Filter by Tags"
+msgstr "Filtrovat podle štítků"
+
+#: rustconn/src/dialogs/smart_folder.rs:167
+msgid "Comma or semicolon separated"
+msgstr "Oddělené čárkou nebo středníkem"
+
+#: rustconn/src/dialogs/smart_folder.rs:175
+msgid "Filter by Group"
+msgstr "Filtrovat podle skupiny"
+
+#: rustconn/src/dialogs/smart_folder.rs:282
 msgid "Name is required"
 msgstr "Název je povinný"
 
@@ -5470,33 +5645,9 @@ msgstr "Multiplexování připojení"
 msgid "Reuse connections (ControlMaster)"
 msgstr "Znovu použít připojení (ControlMaster)"
 
-#: rustconn/src/dialogs/template.rs:723
-msgid "Agent Forwarding"
-msgstr "Přesměrování agenta"
-
-#: rustconn/src/dialogs/template.rs:724
-msgid "Forward SSH agent to remote host (-A)"
-msgstr "Přesměrovat SSH agenta na vzdálený hostitel (-A)"
-
-#: rustconn/src/dialogs/template.rs:733
-msgid "Command to run on connect"
-msgstr "Příkaz ke spuštění při připojení"
-
-#: rustconn/src/dialogs/template.rs:738
-msgid "Startup Command"
-msgstr "Spouštěcí příkaz"
-
-#: rustconn/src/dialogs/template.rs:739
-msgid "Execute after connection established"
-msgstr "Spustit po navázání připojení"
-
 #: rustconn/src/dialogs/template.rs:747
 msgid "Key=Value, Key2=Value2"
 msgstr "Key=Value, Key2=Value2"
-
-#: rustconn/src/dialogs/template.rs:752
-msgid "Custom Options"
-msgstr "Vlastní možnosti"
 
 #: rustconn/src/dialogs/template.rs:753
 msgid "Additional SSH options"
@@ -5686,61 +5837,61 @@ msgstr "Vlastní příkaz SSH s nastavením proxy"
 msgid "Template name is required"
 msgstr "Název šablony je povinný"
 
-#: rustconn/src/dialogs/template.rs:2715
+#: rustconn/src/dialogs/template.rs:2716
 msgid "Edit Template"
 msgstr "Upravit šablonu"
 
-#: rustconn/src/dialogs/template.rs:3024
+#: rustconn/src/dialogs/template.rs:3025
 msgid "Manage Templates"
 msgstr "Spravovat šablony"
 
-#: rustconn/src/dialogs/template.rs:3060
+#: rustconn/src/dialogs/template.rs:3061
 msgid "Filter by protocol:"
 msgstr "Filtrovat podle protokolu:"
 
-#: rustconn/src/dialogs/template.rs:3062
+#: rustconn/src/dialogs/template.rs:3063
 msgid "All"
 msgstr "Vše"
 
-#: rustconn/src/dialogs/template.rs:3063
+#: rustconn/src/dialogs/template.rs:3064
 msgid "SSH"
 msgstr "SSH"
 
-#: rustconn/src/dialogs/template.rs:3064
+#: rustconn/src/dialogs/template.rs:3065
 msgid "RDP"
 msgstr "RDP"
 
-#: rustconn/src/dialogs/template.rs:3065
+#: rustconn/src/dialogs/template.rs:3066
 msgid "VNC"
 msgstr "VNC"
 
-#: rustconn/src/dialogs/template.rs:3066
+#: rustconn/src/dialogs/template.rs:3067
 msgid "SPICE"
 msgstr "SPICE"
 
-#: rustconn/src/dialogs/template.rs:3092 rustconn/src/sidebar_ui.rs:116
-#: rustconn/src/sidebar_ui.rs:193 rustconn/src/smart_folder_ui.rs:205
+#: rustconn/src/dialogs/template.rs:3093 rustconn/src/sidebar_ui.rs:116
+#: rustconn/src/sidebar_ui.rs:193 rustconn/src/smart_folder_ui.rs:343
 #: rustconn/src/window/snippets.rs:111
 msgid "Edit"
 msgstr "Upravit"
 
-#: rustconn/src/dialogs/template.rs:3100
+#: rustconn/src/dialogs/template.rs:3101
 msgid "Create Template"
 msgstr "Vytvořit šablonu"
 
-#: rustconn/src/dialogs/template.rs:3272 rustconn/src/window/templates.rs:302
+#: rustconn/src/dialogs/template.rs:3273 rustconn/src/window/templates.rs:302
 msgid "SSH Templates"
 msgstr "Šablony SSH"
 
-#: rustconn/src/dialogs/template.rs:3279 rustconn/src/window/templates.rs:310
+#: rustconn/src/dialogs/template.rs:3280 rustconn/src/window/templates.rs:310
 msgid "RDP Templates"
 msgstr "Šablony RDP"
 
-#: rustconn/src/dialogs/template.rs:3286 rustconn/src/window/templates.rs:318
+#: rustconn/src/dialogs/template.rs:3287 rustconn/src/window/templates.rs:318
 msgid "VNC Templates"
 msgstr "Šablony VNC"
 
-#: rustconn/src/dialogs/template.rs:3293 rustconn/src/window/templates.rs:326
+#: rustconn/src/dialogs/template.rs:3294 rustconn/src/window/templates.rs:326
 msgid "SPICE Templates"
 msgstr "Šablony SPICE"
 
@@ -5906,49 +6057,49 @@ msgstr "Vytvořit nové SSH připojení"
 msgid "Create a new SSH connection for this tunnel"
 msgstr "Vytvořit nové SSH připojení pro tento tunel"
 
-#: rustconn/src/dialogs/tunnel.rs:824
-#: rustconn/src/window/connection_dialogs.rs:175
-#: rustconn/src/window/templates.rs:451
+#: rustconn/src/dialogs/tunnel.rs:836
+#: rustconn/src/window/connection_dialogs.rs:187
+#: rustconn/src/window/templates.rs:463
 msgid "Error Creating Connection"
 msgstr "Chyba při vytváření připojení"
 
-#: rustconn/src/dialogs/tunnel.rs:843
+#: rustconn/src/dialogs/tunnel.rs:855
 msgid "Port Forwards"
 msgstr "Přesměrování portů"
 
-#: rustconn/src/dialogs/tunnel.rs:853
+#: rustconn/src/dialogs/tunnel.rs:865
 msgid "Add a port forwarding rule"
 msgstr "Přidat pravidlo přesměrování portů"
 
-#: rustconn/src/dialogs/tunnel.rs:855
+#: rustconn/src/dialogs/tunnel.rs:867
 msgid "Add a new port forwarding rule"
 msgstr "Přidat nové pravidlo přesměrování portů"
 
-#: rustconn/src/dialogs/tunnel.rs:873
+#: rustconn/src/dialogs/tunnel.rs:885
 msgid "Auto-start on launch"
 msgstr "Automatické spuštění při startu"
 
-#: rustconn/src/dialogs/tunnel.rs:874
+#: rustconn/src/dialogs/tunnel.rs:886
 msgid "Start this tunnel when the application opens"
 msgstr "Spustit tento tunel při otevření aplikace"
 
-#: rustconn/src/dialogs/tunnel.rs:879
+#: rustconn/src/dialogs/tunnel.rs:891
 msgid "Auto-reconnect on failure"
 msgstr "Automatické opětovné připojení při selhání"
 
-#: rustconn/src/dialogs/tunnel.rs:880
+#: rustconn/src/dialogs/tunnel.rs:892
 msgid "Automatically restart if the tunnel disconnects"
 msgstr "Automaticky restartovat, pokud se tunel odpojí"
 
-#: rustconn/src/dialogs/tunnel.rs:1080
+#: rustconn/src/dialogs/tunnel.rs:1092
 msgid "New forward"
 msgstr "Nové pravidlo"
 
-#: rustconn/src/dialogs/tunnel.rs:1091
+#: rustconn/src/dialogs/tunnel.rs:1103
 msgid "Remove Forward"
 msgstr "Odebrat pravidlo"
 
-#: rustconn/src/dialogs/tunnel.rs:1093
+#: rustconn/src/dialogs/tunnel.rs:1105
 msgid "Remove this port forwarding rule"
 msgstr "Odebrat toto pravidlo přesměrování portů"
 
@@ -6075,7 +6226,7 @@ msgstr "RDP server nekompatibilní. Nainstalujte FreeRDP."
 
 #: rustconn/src/embedded_rdp/mod.rs:240 rustconn/src/embedded_spice.rs:244
 #: rustconn/src/embedded_trait.rs:202 rustconn/src/embedded_vnc.rs:161
-#: rustconn/src/terminal/config.rs:145
+#: rustconn/src/terminal/config.rs:150
 msgid "Copy"
 msgstr "Zkopírovat"
 
@@ -6085,7 +6236,7 @@ msgstr "Kopírovat vzdálenou schránku do místní (čekání na vzdálená dat
 
 #: rustconn/src/embedded_rdp/mod.rs:248 rustconn/src/embedded_spice.rs:249
 #: rustconn/src/embedded_trait.rs:210 rustconn/src/embedded_vnc.rs:166
-#: rustconn/src/terminal/config.rs:146
+#: rustconn/src/terminal/config.rs:151
 msgid "Paste"
 msgstr "Vložit"
 
@@ -6174,19 +6325,39 @@ msgstr "Připojení selhalo"
 msgid "Switch to the FreeRDP window to interact with the session"
 msgstr "Přepněte do okna FreeRDP pro interakci s relací"
 
-#: rustconn/src/embedded.rs:62 rustconn/src/embedded_spice.rs:468
+#: rustconn/src/embedded.rs:64 rustconn/src/embedded_spice.rs:468
 #: rustconn/src/embedded_trait.rs:314 rustconn/src/session/vnc.rs:293
 #: rustconn/src/session/vnc.rs:367 rustconn/src/session/vnc.rs:466
 msgid "Connecting..."
 msgstr "Připojování…"
 
-#: rustconn/src/embedded.rs:69 rustconn/src/embedded.rs:72
+#: rustconn/src/embedded.rs:71 rustconn/src/embedded.rs:74
 msgid "Toggle Fullscreen"
 msgstr "Přepnout celou obrazovku"
 
-#: rustconn/src/embedded.rs:77 rustconn/src/embedded.rs:81
+#: rustconn/src/embedded.rs:79 rustconn/src/embedded.rs:83
 msgid "Disconnect"
 msgstr "Odpojit"
+
+#: rustconn/src/embedded.rs:193
+msgid "Toggle fullscreen"
+msgstr ""
+
+#: rustconn/src/embedded.rs:194
+msgid "Release keyboard/mouse grab"
+msgstr ""
+
+#: rustconn/src/embedded.rs:195
+msgid "Toggle remote control (assistance)"
+msgstr ""
+
+#: rustconn/src/embedded.rs:196
+msgid "This tab will close automatically when the session ends"
+msgstr ""
+
+#: rustconn/src/embedded.rs:200
+msgid "Session running in separate window"
+msgstr ""
 
 #: rustconn/src/embedded_spice.rs:245 rustconn/src/embedded_trait.rs:203
 #: rustconn/src/embedded_vnc.rs:162
@@ -6277,39 +6448,39 @@ msgstr "Ověření selhalo. Zkontrolujte přihlašovací údaje."
 msgid "Filter by {} protocol"
 msgstr "Filtrovat podle protokolu {}"
 
-#: rustconn/src/sidebar/mod.rs:124
+#: rustconn/src/sidebar/mod.rs:132
 msgid "Search... (? for help)"
 msgstr "Hledat… (? pro nápovědu)"
 
-#: rustconn/src/sidebar/mod.rs:128
+#: rustconn/src/sidebar/mod.rs:136
 msgid "Search connections"
 msgstr "Hledat připojení"
 
-#: rustconn/src/sidebar/mod.rs:137 rustconn/src/sidebar/mod.rs:144
+#: rustconn/src/sidebar/mod.rs:145 rustconn/src/sidebar/mod.rs:152
 msgid "Search pending..."
 msgstr "Vyhledávání čeká…"
 
-#: rustconn/src/sidebar/mod.rs:151 rustconn/src/sidebar/mod.rs:154
+#: rustconn/src/sidebar/mod.rs:159 rustconn/src/sidebar/mod.rs:162
 msgid "Search syntax help"
 msgstr "Nápověda syntaxe vyhledávání"
 
-#: rustconn/src/sidebar/mod.rs:170 rustconn/src/sidebar/mod.rs:174
+#: rustconn/src/sidebar/mod.rs:178 rustconn/src/sidebar/mod.rs:182
 msgid "Toggle protocol filters"
 msgstr "Přepnout filtry protokolů"
 
-#: rustconn/src/sidebar/mod.rs:590
+#: rustconn/src/sidebar/mod.rs:598
 msgid "Connection list"
 msgstr "Seznam připojení"
 
-#: rustconn/src/sidebar/mod.rs:1573
+#: rustconn/src/sidebar/mod.rs:1604
 msgid "Open Password Vault (Active)"
 msgstr "Otevřít trezor hesel (Aktivní)"
 
-#: rustconn/src/sidebar/mod.rs:1578
+#: rustconn/src/sidebar/mod.rs:1609
 msgid "Password Vault Not Found"
 msgstr "Trezor hesel nenalezen"
 
-#: rustconn/src/sidebar/mod.rs:1581
+#: rustconn/src/sidebar/mod.rs:1612
 msgid "Password Vault Disabled"
 msgstr "Trezor hesel zakázán"
 
@@ -6333,7 +6504,7 @@ msgstr "Povolit cloudovou synchronizaci…"
 msgid "Refresh Dynamic Folder"
 msgstr "Obnovit dynamickou složku"
 
-#: rustconn/src/sidebar_ui.rs:138 rustconn/src/window/edit_dialogs.rs:2017
+#: rustconn/src/sidebar_ui.rs:138 rustconn/src/window/edit_dialogs.rs:2040
 msgid "Connect"
 msgstr "Připojit"
 
@@ -6378,112 +6549,108 @@ msgid "Start Recording"
 msgstr "Zahájit nahrávání"
 
 #: rustconn/src/sidebar_ui.rs:218 rustconn/src/split_view/bridge.rs:1731
-#: rustconn/src/window/edit_dialogs.rs:2002 rustconn/src/window/ui.rs:58
+#: rustconn/src/window/edit_dialogs.rs:2025 rustconn/src/window/ui.rs:58
 #: rustconn/src/window/ui.rs:153
 msgid "Quick Connect"
 msgstr "Rychlé připojení"
 
-#: rustconn/src/sidebar_ui.rs:220 rustconn/src/sidebar_ui.rs:392
-#: rustconn/src/window/connection_dialogs.rs:197 rustconn/src/window/ui.rs:79
+#: rustconn/src/sidebar_ui.rs:220 rustconn/src/sidebar_ui.rs:393
+#: rustconn/src/window/connection_dialogs.rs:209 rustconn/src/window/ui.rs:79
 #: rustconn/src/window/ui.rs:152
 msgid "New Group"
 msgstr "Nová skupina"
 
-#: rustconn/src/sidebar_ui.rs:222
+#: rustconn/src/sidebar_ui.rs:223
 msgid "Import..."
 msgstr "Importovat…"
 
-#: rustconn/src/sidebar_ui.rs:223
+#: rustconn/src/sidebar_ui.rs:224
 msgid "Export..."
 msgstr "Exportovat…"
 
-#: rustconn/src/sidebar_ui.rs:395
+#: rustconn/src/sidebar_ui.rs:396
 msgid "Create new group"
 msgstr "Vytvořit novou skupinu"
 
-#: rustconn/src/sidebar_ui.rs:401
+#: rustconn/src/sidebar_ui.rs:402
 msgid "Move to Group"
 msgstr "Přesunout do skupiny"
 
-#: rustconn/src/sidebar_ui.rs:404
+#: rustconn/src/sidebar_ui.rs:405
 msgid "Move selected connections to group"
 msgstr "Přesunout vybraná připojení do skupiny"
 
-#: rustconn/src/sidebar_ui.rs:411
+#: rustconn/src/sidebar_ui.rs:412
 msgid "Create Cluster"
 msgstr "Vytvořit cluster"
 
-#: rustconn/src/sidebar_ui.rs:414
+#: rustconn/src/sidebar_ui.rs:415
 msgid "Create cluster from selected connections"
 msgstr "Vytvořit cluster z vybraných připojení"
 
-#: rustconn/src/sidebar_ui.rs:424
+#: rustconn/src/sidebar_ui.rs:425
 msgid "Select all connections"
 msgstr "Vybrat všechna připojení"
 
-#: rustconn/src/sidebar_ui.rs:431
+#: rustconn/src/sidebar_ui.rs:432
 msgid "Clear Selection"
 msgstr "Zrušit výběr"
 
-#: rustconn/src/sidebar_ui.rs:433
+#: rustconn/src/sidebar_ui.rs:434
 msgid "Clear selection"
 msgstr "Zrušit výběr"
 
-#: rustconn/src/sidebar_ui.rs:440 rustconn/src/window/ui.rs:72
+#: rustconn/src/sidebar_ui.rs:441 rustconn/src/window/ui.rs:72
 msgid "Delete Selected"
 msgstr "Smazat vybrané"
 
-#: rustconn/src/sidebar_ui.rs:443
+#: rustconn/src/sidebar_ui.rs:444
 msgid "Delete selected connections"
 msgstr "Smazat vybraná připojení"
 
-#: rustconn/src/sidebar_ui.rs:462
+#: rustconn/src/sidebar_ui.rs:463
 msgid "Group Operations Mode"
 msgstr "Režim skupinových operací"
 
-#: rustconn/src/sidebar_ui.rs:465
+#: rustconn/src/sidebar_ui.rs:466
 msgid "Enable group operations mode for multi-select"
 msgstr "Povolit režim skupinových operací pro vícenásobný výběr"
 
-#: rustconn/src/sidebar_ui.rs:474
+#: rustconn/src/sidebar_ui.rs:475
 msgid "View connection history"
 msgstr "Zobrazit historii připojení"
 
-#: rustconn/src/sidebar_ui.rs:480
+#: rustconn/src/sidebar_ui.rs:481
 msgid "Sort Alphabetically"
 msgstr "Řadit abecedně"
 
-#: rustconn/src/sidebar_ui.rs:483
+#: rustconn/src/sidebar_ui.rs:484
 msgid "Sort connections alphabetically"
 msgstr "Seřadit připojení abecedně"
 
-#: rustconn/src/sidebar_ui.rs:489
+#: rustconn/src/sidebar_ui.rs:490
 msgid "Sort by Recent Usage"
 msgstr "Řadit podle posledního použití"
 
-#: rustconn/src/sidebar_ui.rs:492
+#: rustconn/src/sidebar_ui.rs:493
 msgid "Sort connections by recent usage"
 msgstr "Seřadit připojení podle posledního použití"
 
-#: rustconn/src/sidebar_ui.rs:498
-msgid "Import Connections (Ctrl+I)"
-msgstr "Importovat připojení (Ctrl+I)"
-
-#: rustconn/src/sidebar_ui.rs:501
-msgid "Import connections from external sources"
-msgstr "Importovat připojení z externích zdrojů"
-
-#: rustconn/src/sidebar_ui.rs:510
-msgid "Export connections to file"
-msgstr "Exportovat připojení do souboru"
-
-#: rustconn/src/sidebar_ui.rs:516
+#: rustconn/src/sidebar_ui.rs:499
 msgid "Open Password Vault"
 msgstr "Otevřít trezor hesel"
 
-#: rustconn/src/sidebar_ui.rs:520
+#: rustconn/src/sidebar_ui.rs:503
 msgid "Open password vault for credential management"
 msgstr "Otevřít trezor hesel pro správu přihlašovacích údajů"
+
+#: rustconn/src/sidebar_ui.rs:509
+msgid "Toggle Smart Folders"
+msgstr "Přepnout inteligentní složky"
+
+#: rustconn/src/sidebar_ui.rs:512
+msgid "Show or hide smart folders panel"
+msgstr "Zobrazit nebo skrýt panel inteligentních složek"
 
 #: rustconn/src/sidebar/view.rs:55
 msgid "Pinned"
@@ -6513,15 +6680,15 @@ msgstr "Dokument má neuložené změny"
 msgid "Unsaved changes"
 msgstr "Neuložené změny"
 
-#: rustconn/src/smart_folder_ui.rs:47
+#: rustconn/src/smart_folder_ui.rs:54
 msgid "Smart Folders"
 msgstr "Chytré složky"
 
-#: rustconn/src/smart_folder_ui.rs:57
+#: rustconn/src/smart_folder_ui.rs:64
 msgid "Create new smart folder"
 msgstr "Vytvořit novou chytrou složku"
 
-#: rustconn/src/smart_folder_ui.rs:111
+#: rustconn/src/smart_folder_ui.rs:119
 msgid "No smart folders"
 msgstr "Žádné chytré složky"
 
@@ -6682,7 +6849,7 @@ msgstr "Všechny záložky jsou už zobrazeny v tomto rozděleném zobrazení"
 msgid "Select a tab to display"
 msgstr "Vybrat záložku k zobrazení"
 
-#: rustconn/src/terminal/config.rs:156
+#: rustconn/src/terminal/config.rs:161
 msgid "Execute Snippet…"
 msgstr "Spustit úryvek…"
 
@@ -6900,84 +7067,84 @@ msgstr "Chyba při mazání clusteru"
 msgid "Failed to delete cluster: {}"
 msgstr "Nepodařilo se smazat cluster: {}"
 
-#: rustconn/src/window/connection_dialogs.rs:112
-#: rustconn/src/window/templates.rs:398
+#: rustconn/src/window/connection_dialogs.rs:124
+#: rustconn/src/window/templates.rs:410
 msgid "New Connection from Template"
 msgstr "Nové připojení ze šablony"
 
-#: rustconn/src/window/connection_dialogs.rs:243
-#: rustconn/src/window/edit_dialogs.rs:491
+#: rustconn/src/window/connection_dialogs.rs:255
+#: rustconn/src/window/edit_dialogs.rs:503
 msgid "Group Details"
 msgstr "Podrobnosti o skupině"
 
-#: rustconn/src/window/connection_dialogs.rs:278
-#: rustconn/src/window/edit_dialogs.rs:574
+#: rustconn/src/window/connection_dialogs.rs:290
+#: rustconn/src/window/edit_dialogs.rs:586
 msgid "(None - Root Level)"
 msgstr "(Žádný – kořenová úroveň)"
 
-#: rustconn/src/window/connection_dialogs.rs:303
-#: rustconn/src/window/edit_dialogs.rs:601
+#: rustconn/src/window/connection_dialogs.rs:315
+#: rustconn/src/window/edit_dialogs.rs:613
 msgid "Parent"
 msgstr "Nadřazený"
 
-#: rustconn/src/window/connection_dialogs.rs:304
+#: rustconn/src/window/connection_dialogs.rs:316
 msgid "Optional - leave empty for root level"
 msgstr "Volitelné – pokud má být kořenová úroveň, nevyplňujte"
 
-#: rustconn/src/window/connection_dialogs.rs:313
-#: rustconn/src/window/edit_dialogs.rs:614
+#: rustconn/src/window/connection_dialogs.rs:325
+#: rustconn/src/window/edit_dialogs.rs:626
 msgid "Default Credentials"
 msgstr "Výchozí přihlašovací údaje"
 
-#: rustconn/src/window/connection_dialogs.rs:314
-#: rustconn/src/window/edit_dialogs.rs:615
+#: rustconn/src/window/connection_dialogs.rs:326
+#: rustconn/src/window/edit_dialogs.rs:627
 msgid "Credentials inherited by connections in this group"
 msgstr "Přihlašovací údaje zděděné připojeními v této skupině"
 
-#: rustconn/src/window/connection_dialogs.rs:406
+#: rustconn/src/window/connection_dialogs.rs:418
 msgid "Enter group name first"
 msgstr "Nejprve zadejte název skupiny"
 
-#: rustconn/src/window/connection_dialogs.rs:434
+#: rustconn/src/window/connection_dialogs.rs:446
 msgid "Vault not configured"
 msgstr "Trezor není nastaven"
 
-#: rustconn/src/window/connection_dialogs.rs:466
-#: rustconn/src/window/connection_dialogs.rs:583
-#: rustconn/src/window/connection_dialogs.rs:590
-#: rustconn/src/window/edit_dialogs.rs:847
-#: rustconn/src/window/edit_dialogs.rs:879
-#: rustconn/src/window/edit_dialogs.rs:886
+#: rustconn/src/window/connection_dialogs.rs:478
+#: rustconn/src/window/connection_dialogs.rs:595
+#: rustconn/src/window/connection_dialogs.rs:602
+#: rustconn/src/window/edit_dialogs.rs:859
+#: rustconn/src/window/edit_dialogs.rs:891
+#: rustconn/src/window/edit_dialogs.rs:898
 msgid "No password found for this group"
 msgstr "Pro tuto skupinu nenalezeno heslo"
 
-#: rustconn/src/window/connection_dialogs.rs:472
-#: rustconn/src/window/connection_dialogs.rs:595
-#: rustconn/src/window/edit_dialogs.rs:853
-#: rustconn/src/window/edit_dialogs.rs:891
+#: rustconn/src/window/connection_dialogs.rs:484
+#: rustconn/src/window/connection_dialogs.rs:607
+#: rustconn/src/window/edit_dialogs.rs:865
+#: rustconn/src/window/edit_dialogs.rs:903
 msgid "Load Error"
 msgstr "Chyba načítání"
 
-#: rustconn/src/window/connection_dialogs.rs:604
-#: rustconn/src/window/edit_dialogs.rs:803
+#: rustconn/src/window/connection_dialogs.rs:616
+#: rustconn/src/window/edit_dialogs.rs:815
 msgid "Select Vault to load password"
 msgstr "Vyberte trezor pro načtení hesla"
 
-#: rustconn/src/window/connection_dialogs.rs:616
-#: rustconn/src/window/edit_dialogs.rs:1316
+#: rustconn/src/window/connection_dialogs.rs:628
+#: rustconn/src/window/edit_dialogs.rs:1339
 msgid "Notes, contacts, project info"
 msgstr "Poznámky, kontakty, info o projektu"
 
-#: rustconn/src/window/connection_dialogs.rs:656
-#: rustconn/src/window/edit_dialogs.rs:1379
+#: rustconn/src/window/connection_dialogs.rs:668
+#: rustconn/src/window/edit_dialogs.rs:1402
 msgid "Group name cannot be empty"
 msgstr "Název skupiny je třeba vyplnit"
 
-#: rustconn/src/window/connection_dialogs.rs:745
+#: rustconn/src/window/connection_dialogs.rs:757
 msgid "Error Updating Group"
 msgstr "Chyba při aktualizaci skupiny"
 
-#: rustconn/src/window/connection_dialogs.rs:833
+#: rustconn/src/window/connection_dialogs.rs:845
 msgid "Import Successful"
 msgstr "Import úspěšný"
 
@@ -7107,153 +7274,147 @@ msgstr "Otevírání mc SFTP..."
 msgid "Opening SFTP..."
 msgstr "Otevírání SFTP..."
 
-#: rustconn/src/window/edit_actions.rs:921 rustconn/src/window/mod.rs:2861
-#: rustconn/src/window/mod.rs:3046 rustconn/src/window/protocols.rs:157
-#: rustconn/src/window/protocols.rs:805 rustconn/src/window/protocols.rs:1007
-#: rustconn/src/window/protocols.rs:1873 rustconn/src/window/protocols.rs:2618
+#: rustconn/src/window/edit_actions.rs:921 rustconn/src/window/mod.rs:2881
+#: rustconn/src/window/mod.rs:3066 rustconn/src/window/protocols.rs:175
+#: rustconn/src/window/protocols.rs:874 rustconn/src/window/protocols.rs:1076
+#: rustconn/src/window/protocols.rs:1942 rustconn/src/window/protocols.rs:2696
 msgid "Connection failed. Host unreachable."
 msgstr "Připojení selhalo. Hostitel nedostupný."
 
-#: rustconn/src/window/edit_dialogs.rs:197
+#: rustconn/src/window/edit_dialogs.rs:209
 msgid "Error Updating Connection"
 msgstr "Chyba při aktualizaci připojení"
 
-#: rustconn/src/window/edit_dialogs.rs:230
+#: rustconn/src/window/edit_dialogs.rs:242
 msgid "Rename Group"
 msgstr "Přejmenovat skupinu"
 
-#: rustconn/src/window/edit_dialogs.rs:232
+#: rustconn/src/window/edit_dialogs.rs:244
 msgid "Rename Connection"
 msgstr "Přejmenovat připojení"
 
-#: rustconn/src/window/edit_dialogs.rs:286
+#: rustconn/src/window/edit_dialogs.rs:298
 msgid "Name cannot be empty"
 msgstr "Název je třeba vyplnit"
 
-#: rustconn/src/window/edit_dialogs.rs:302
-#: rustconn/src/window/edit_dialogs.rs:1431
+#: rustconn/src/window/edit_dialogs.rs:314
+#: rustconn/src/window/edit_dialogs.rs:1454
 msgid "Group with name '{}' already exists"
 msgstr "Skupina s názvem „{}“ už existuje"
 
-#: rustconn/src/window/edit_dialogs.rs:451
+#: rustconn/src/window/edit_dialogs.rs:463
 msgid "Edit Group"
 msgstr "Upravit skupinu"
 
-#: rustconn/src/window/edit_dialogs.rs:602
+#: rustconn/src/window/edit_dialogs.rs:614
 msgid "Moving a group moves all its content"
 msgstr "Přesunutí skupiny přesune veškerý její obsah"
 
-#: rustconn/src/window/edit_dialogs.rs:817
+#: rustconn/src/window/edit_dialogs.rs:829
 msgid "KeePass database not configured"
 msgstr "Databáze KeePass není nastavena"
 
-#: rustconn/src/window/edit_dialogs.rs:911
+#: rustconn/src/window/edit_dialogs.rs:923
 msgid "SSH Settings"
 msgstr "Nastavení SSH"
 
-#: rustconn/src/window/edit_dialogs.rs:912
+#: rustconn/src/window/edit_dialogs.rs:924
 msgid "SSH settings inherited by connections in this group"
 msgstr "Nastavení SSH děděná připojeními v této skupině"
 
-#: rustconn/src/window/edit_dialogs.rs:940
+#: rustconn/src/window/edit_dialogs.rs:960
 msgid "Clear SSH Settings?"
 msgstr "Vymazat nastavení SSH?"
 
-#: rustconn/src/window/edit_dialogs.rs:942
+#: rustconn/src/window/edit_dialogs.rs:962
 msgid ""
 "Disabling will clear all SSH settings for this group. This cannot be undone."
 msgstr ""
 "Zakázání vymaže všechna nastavení SSH pro tuto skupinu. Tuto akci nelze "
 "vrátit zpět."
 
-#: rustconn/src/window/edit_dialogs.rs:947
+#: rustconn/src/window/edit_dialogs.rs:967
 msgid "Keep"
 msgstr "Ponechat"
 
-#: rustconn/src/window/edit_dialogs.rs:969
+#: rustconn/src/window/edit_dialogs.rs:992
 msgid "Security Key"
 msgstr "Bezpečnostní klíč"
 
-#: rustconn/src/window/edit_dialogs.rs:972
+#: rustconn/src/window/edit_dialogs.rs:995
 msgid "SSH Authentication Method"
 msgstr "Metoda ověření SSH"
 
-#: rustconn/src/window/edit_dialogs.rs:988
+#: rustconn/src/window/edit_dialogs.rs:1011
 msgid "SSH Key Path"
 msgstr "Cesta ke klíči SSH"
 
-#: rustconn/src/window/edit_dialogs.rs:998
-#: rustconn/src/window/edit_dialogs.rs:1000
+#: rustconn/src/window/edit_dialogs.rs:1021
+#: rustconn/src/window/edit_dialogs.rs:1023
 msgid "Select SSH key file"
 msgstr "Vybrat soubor klíče SSH"
 
-#: rustconn/src/window/edit_dialogs.rs:1097
+#: rustconn/src/window/edit_dialogs.rs:1120
 msgid "SSH Proxy Jump"
 msgstr "SSH Proxy Jump"
 
-#: rustconn/src/window/edit_dialogs.rs:1101
+#: rustconn/src/window/edit_dialogs.rs:1124
 msgid "Manual ProxyJump (-J) — used when Jump Host is (None)"
 msgstr "Ruční ProxyJump (-J) — použito když Jump Host je (Žádný)"
 
-#: rustconn/src/window/edit_dialogs.rs:1145
+#: rustconn/src/window/edit_dialogs.rs:1168
 msgid "Not synced"
 msgstr "Nesynchronizováno"
 
-#: rustconn/src/window/edit_dialogs.rs:1145
+#: rustconn/src/window/edit_dialogs.rs:1168
 msgid "Master"
 msgstr "Hlavní"
 
-#: rustconn/src/window/edit_dialogs.rs:1214
+#: rustconn/src/window/edit_dialogs.rs:1237
 msgid "Sync File"
 msgstr "Soubor synchronizace"
 
-#: rustconn/src/window/edit_dialogs.rs:1222
+#: rustconn/src/window/edit_dialogs.rs:1245
 msgid "Last Synced"
 msgstr "Poslední synchronizace"
 
-#: rustconn/src/window/edit_dialogs.rs:1244
-#, fuzzy
+#: rustconn/src/window/edit_dialogs.rs:1267
 msgid "Dynamic Folder"
-msgstr "Dynamické"
+msgstr "Dynamická složka"
 
-#: rustconn/src/window/edit_dialogs.rs:1245
-#, fuzzy
+#: rustconn/src/window/edit_dialogs.rs:1268
 msgid "Generate connections from a script"
-msgstr "Importovat připojení ze souboru CSV"
+msgstr "Generovat připojení ze skriptu"
 
-#: rustconn/src/window/edit_dialogs.rs:1260
-#, fuzzy
+#: rustconn/src/window/edit_dialogs.rs:1283
 msgid "Shell command executed via sh -c"
-msgstr "Příkaz shellu (podporuje syntaxi ${variable})"
+msgstr "Příkaz shellu spuštěný přes sh -c"
 
-#: rustconn/src/window/edit_dialogs.rs:1264
-#, fuzzy
+#: rustconn/src/window/edit_dialogs.rs:1287
 msgid "Working Directory"
-msgstr "Adresář úložiště"
+msgstr "Pracovní adresář"
 
-#: rustconn/src/window/edit_dialogs.rs:1276
-#, fuzzy
+#: rustconn/src/window/edit_dialogs.rs:1299
 msgid "Timeout (seconds)"
-msgstr "Časový limit (ms)"
+msgstr "Časový limit (sekundy)"
 
-#: rustconn/src/window/edit_dialogs.rs:1292
+#: rustconn/src/window/edit_dialogs.rs:1315
 msgid "Refresh Interval (seconds)"
 msgstr "Interval obnovení (sekundy)"
 
-#: rustconn/src/window/edit_dialogs.rs:1293
+#: rustconn/src/window/edit_dialogs.rs:1316
 msgid "0 = manual only"
 msgstr "0 = pouze ručně"
 
-#: rustconn/src/window/edit_dialogs.rs:1410
+#: rustconn/src/window/edit_dialogs.rs:1433
 msgid "Please select a variable"
 msgstr "Vyberte prosím proměnnou"
 
-#: rustconn/src/window/edit_dialogs.rs:1555
-#, fuzzy
+#: rustconn/src/window/edit_dialogs.rs:1578
 msgid "Dynamic Folder script cannot be empty"
-msgstr "Název je třeba vyplnit"
+msgstr "Skript dynamické složky nesmí být prázdný"
 
-#: rustconn/src/window/edit_dialogs.rs:1666
+#: rustconn/src/window/edit_dialogs.rs:1689
 msgid ""
 "This group will be exported to {}. Other team members with read access can "
 "import it."
@@ -7261,23 +7422,23 @@ msgstr ""
 "Tato skupina bude exportována do {}. Ostatní členové týmu s přístupem ke "
 "čtení ji mohou importovat."
 
-#: rustconn/src/window/edit_dialogs.rs:1670
+#: rustconn/src/window/edit_dialogs.rs:1693
 msgid "Enable Cloud Sync?"
 msgstr "Povolit cloudovou synchronizaci?"
 
-#: rustconn/src/window/edit_dialogs.rs:1672
+#: rustconn/src/window/edit_dialogs.rs:1695
 msgid "Enable"
 msgstr "Povolit"
 
-#: rustconn/src/window/edit_dialogs.rs:1703
+#: rustconn/src/window/edit_dialogs.rs:1726
 msgid "Choose Directory"
 msgstr "Vybrat adresář"
 
-#: rustconn/src/window/edit_dialogs.rs:1710
+#: rustconn/src/window/edit_dialogs.rs:1733
 msgid "Set Up Cloud Sync"
 msgstr "Nastavit cloudovou synchronizaci"
 
-#: rustconn/src/window/edit_dialogs.rs:1712
+#: rustconn/src/window/edit_dialogs.rs:1735
 msgid ""
 "Choose a directory synced with your cloud service (Google Drive, Nextcloud, "
 "Syncthing, etc.)"
@@ -7285,11 +7446,11 @@ msgstr ""
 "Vyberte adresář synchronizovaný s vaší cloudovou službou (Google Drive, "
 "Nextcloud, Syncthing atd.)"
 
-#: rustconn/src/window/edit_dialogs.rs:2037
+#: rustconn/src/window/edit_dialogs.rs:2060
 msgid "⚠ This connection will not be saved"
 msgstr "⚠ Toto připojení nebude uloženo"
 
-#: rustconn/src/window/edit_dialogs.rs:2059
+#: rustconn/src/window/edit_dialogs.rs:2082
 msgid "Template"
 msgstr "Šablona"
 
@@ -7314,11 +7475,11 @@ msgstr "(Bez skupiny)"
 msgid "Error Moving Item"
 msgstr "Chyba při přesunu položky"
 
-#: rustconn/src/window/mod.rs:679
+#: rustconn/src/window/mod.rs:682
 msgid "Synced '{}': +{} connections, ~{} updated, -{} removed"
 msgstr "Synchronizováno '{}': +{} připojení, ~{} aktualizováno, -{} odebráno"
 
-#: rustconn/src/window/mod.rs:698
+#: rustconn/src/window/mod.rs:701
 msgid ""
 "Sync directory is not configured. In Flatpak, grant filesystem access first: "
 "flatpak override --user --filesystem=/path/to/sync io.github.totoshko88."
@@ -7328,7 +7489,7 @@ msgstr ""
 "souborovému systému: flatpak override --user --filesystem=/cesta/k/sync io."
 "github.totoshko88.RustConn"
 
-#: rustconn/src/window/mod.rs:704
+#: rustconn/src/window/mod.rs:707
 msgid ""
 "Sync directory is not accessible from Flatpak sandbox. Run: flatpak override "
 "--user --filesystem={} io.github.totoshko88.RustConn"
@@ -7336,53 +7497,55 @@ msgstr ""
 "Adresář synchronizace není přístupný z Flatpak sandboxu. Spusťte: flatpak "
 "override --user --filesystem={} io.github.totoshko88.RustConn"
 
-#: rustconn/src/window/mod.rs:708
+#: rustconn/src/window/mod.rs:711
 msgid "Sync failed: {}"
 msgstr "Synchronizace selhala: {}"
 
-#: rustconn/src/window/mod.rs:715
+#: rustconn/src/window/mod.rs:718
 msgid "Sync failed: state is busy"
 msgstr "Synchronizace selhala: stav je zaneprázdněn"
 
-#: rustconn/src/window/mod.rs:768 rustconn/src/window/mod.rs:846
-#, fuzzy
+#: rustconn/src/window/mod.rs:771 rustconn/src/window/mod.rs:849
 msgid "Dynamic folder '{}' failed: {}"
-msgstr "Synchronizace selhala: {}"
+msgstr "Dynamická složka '{}' selhala: {}"
 
-#: rustconn/src/window/mod.rs:825
-#, fuzzy
+#: rustconn/src/window/mod.rs:828
 msgid "Refreshed '{}': {} connections generated"
-msgstr "Znovu použít připojení (ControlMaster)"
+msgstr "'{}' obnoveno: {} připojení vygenerováno"
 
-#: rustconn/src/window/mod.rs:3248
+#: rustconn/src/window/mod.rs:2695
+msgid "Vault entry not found for '{}'. You will be prompted for a password."
+msgstr ""
+
+#: rustconn/src/window/mod.rs:3268
 msgid "Connection to \\u{2018}{}\\u{2019} failed"
 msgstr "Připojení k \\u{2018}{}\\u{2019} selhalo"
 
-#: rustconn/src/window/mod.rs:3402 rustconn/src/window/mod.rs:3416
+#: rustconn/src/window/mod.rs:3422 rustconn/src/window/mod.rs:3436
 msgid "Pre-connect task failed. Connection aborted."
 msgstr "Úloha před připojením selhala. Připojení přerušeno."
 
-#: rustconn/src/window/mod.rs:3783
+#: rustconn/src/window/mod.rs:3803
 msgid "Activity detected: {}"
 msgstr "Zjištěna aktivita: {}"
 
-#: rustconn/src/window/mod.rs:3787
+#: rustconn/src/window/mod.rs:3807
 msgid "Silence detected: {}"
 msgstr "Zjištěno ticho: {}"
 
-#: rustconn/src/window/mod.rs:4647
+#: rustconn/src/window/mod.rs:4670
 msgid "Startup connection not found"
 msgstr "Připojení pro spuštění nenalezeno"
 
-#: rustconn/src/window/mod.rs:4683
+#: rustconn/src/window/mod.rs:4706
 msgid "Failed to open .rdp file"
 msgstr "Nepodařilo se otevřít soubor .rdp"
 
-#: rustconn/src/window/mod.rs:4719
+#: rustconn/src/window/mod.rs:4742
 msgid "Failed to open .vv file"
 msgstr "Nepodařilo se otevřít soubor .vv"
 
-#: rustconn/src/window/mod.rs:4987
+#: rustconn/src/window/mod.rs:5010
 msgid "Successfully exported {} connection(s). {} skipped."
 msgstr "Úspěšně exportováno {} připojení. {} přeskočeno."
 
@@ -7550,19 +7713,19 @@ msgstr "Přesunuto {} položek."
 msgid "Failed to move {} item(s):"
 msgstr "Nepodařilo se přesunout {} položek:"
 
-#: rustconn/src/window/protocols.rs:2247
+#: rustconn/src/window/protocols.rs:2319
 msgid "Install picocom for Serial connections"
 msgstr "Nainstalujte picocom pro sériová připojení"
 
-#: rustconn/src/window/protocols.rs:2408
+#: rustconn/src/window/protocols.rs:2483
 msgid "Install kubectl for Kubernetes connections"
 msgstr "Nainstalujte kubectl pro připojení Kubernetes"
 
-#: rustconn/src/window/protocols.rs:2426
+#: rustconn/src/window/protocols.rs:2501
 msgid "Configure pod and container for Kubernetes"
 msgstr "Nakonfigurujte pod a kontejner pro Kubernetes"
 
-#: rustconn/src/window/protocols.rs:2665
+#: rustconn/src/window/protocols.rs:2743
 msgid "Install mosh for MOSH connections"
 msgstr "Nainstalujte mosh pro připojení MOSH"
 
@@ -7570,7 +7733,7 @@ msgstr "Nainstalujte mosh pro připojení MOSH"
 msgid "SSH tunnel failed: {}"
 msgstr "SSH tunel selhal: {}"
 
-#: rustconn/src/window/rdp_vnc.rs:558
+#: rustconn/src/window/rdp_vnc.rs:561
 msgid "RDP connection failed. Check that the remote host is reachable."
 msgstr ""
 "RDP připojení selhalo. Zkontrolujte, zda je vzdálený hostitel dostupný.RDP "
@@ -7627,6 +7790,10 @@ msgstr "Text k odeslání…"
 #: rustconn/src/window/sessions.rs:355
 msgid "Append newline (press Enter)"
 msgstr "Přidat nový řádek (Enter)"
+
+#: rustconn/src/window/smart_folders.rs:146
+msgid "Smart folder '{}' deleted"
+msgstr "Inteligentní složka '{}' smazána"
 
 #: rustconn/src/window/snippets.rs:37
 msgid "Snippet has been saved successfully."
@@ -7860,6 +8027,15 @@ msgid ""
 msgstr ""
 "ssh;rdp;vnc;spice;mosh;telnet;zerotrust;connection;terminal;remote;"
 "kubernetes;k8s;serial;sftp;"
+
+#~ msgid "Import Connections (Ctrl+I)"
+#~ msgstr "Importovat připojení (Ctrl+I)"
+
+#~ msgid "Import connections from external sources"
+#~ msgstr "Importovat připojení z externích zdrojů"
+
+#~ msgid "Export connections to file"
+#~ msgstr "Exportovat připojení do souboru"
 
 #~ msgid "SSH Handshake"
 #~ msgstr "SSH handshake"

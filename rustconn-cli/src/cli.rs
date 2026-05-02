@@ -201,6 +201,22 @@ pub enum Commands {
         /// (sets jump_host_id for SSH/RDP/VNC/SPICE/SFTP connections)
         #[arg(long, value_name = "NAME|UUID")]
         jump_host: Option<String>,
+
+        /// SSH keep-alive interval in seconds (ServerAliveInterval)
+        #[arg(long, value_name = "SECONDS")]
+        keep_alive_interval: Option<u32>,
+
+        /// SSH keep-alive count max (ServerAliveCountMax)
+        #[arg(long, value_name = "COUNT")]
+        keep_alive_count: Option<u32>,
+
+        /// Enable SSH verbose/debug output (-v flag)
+        #[arg(long)]
+        ssh_verbose: bool,
+
+        /// Accept any RDP server certificate (skip TOFU verification)
+        #[arg(long)]
+        ignore_certificate: bool,
     },
 
     /// Export connections to external format
@@ -383,6 +399,22 @@ pub enum Commands {
         /// (sets jump_host_id for SSH/RDP/VNC/SPICE/SFTP connections)
         #[arg(long, value_name = "NAME|UUID")]
         jump_host: Option<String>,
+
+        /// SSH keep-alive interval in seconds (ServerAliveInterval)
+        #[arg(long, value_name = "SECONDS")]
+        keep_alive_interval: Option<u32>,
+
+        /// SSH keep-alive count max (ServerAliveCountMax)
+        #[arg(long, value_name = "COUNT")]
+        keep_alive_count: Option<u32>,
+
+        /// Enable SSH verbose/debug output (-v flag)
+        #[arg(long)]
+        ssh_verbose: bool,
+
+        /// Accept any RDP server certificate (skip TOFU verification)
+        #[arg(long)]
+        ignore_certificate: bool,
     },
 
     /// Send Wake-on-LAN magic packet
@@ -620,6 +652,33 @@ pub enum SnippetCommands {
         tags: Option<String>,
     },
 
+    /// Edit an existing snippet
+    #[command(about = "Edit an existing command snippet")]
+    Edit {
+        /// Snippet name or ID
+        name: String,
+
+        /// New name
+        #[arg(long)]
+        new_name: Option<String>,
+
+        /// New command template (use ${var} for variables)
+        #[arg(short, long)]
+        command: Option<String>,
+
+        /// New description
+        #[arg(short, long)]
+        description: Option<String>,
+
+        /// New category
+        #[arg(long)]
+        category: Option<String>,
+
+        /// New tags (comma-separated, replaces existing)
+        #[arg(short, long)]
+        tags: Option<String>,
+    },
+
     /// Delete a snippet
     #[command(about = "Delete a command snippet")]
     Delete {
@@ -804,6 +863,33 @@ pub enum TemplateCommands {
         description: Option<String>,
     },
 
+    /// Edit an existing template
+    #[command(about = "Edit an existing connection template")]
+    Edit {
+        /// Template name or ID
+        name: String,
+
+        /// New name
+        #[arg(long)]
+        new_name: Option<String>,
+
+        /// New default host
+        #[arg(short = 'H', long)]
+        host: Option<String>,
+
+        /// New default port
+        #[arg(short, long)]
+        port: Option<u16>,
+
+        /// New default username
+        #[arg(short, long)]
+        user: Option<String>,
+
+        /// New description
+        #[arg(short, long)]
+        description: Option<String>,
+    },
+
     /// Delete a template
     #[command(about = "Delete a connection template")]
     Delete {
@@ -867,6 +953,21 @@ pub enum ClusterCommands {
         /// Enable broadcast mode by default
         #[arg(short, long)]
         broadcast: bool,
+    },
+
+    /// Edit a cluster (rename or toggle broadcast)
+    #[command(about = "Edit a cluster's name or broadcast setting")]
+    Edit {
+        /// Cluster name or ID
+        name: String,
+
+        /// New name
+        #[arg(long)]
+        new_name: Option<String>,
+
+        /// Enable or disable broadcast mode (true/false)
+        #[arg(short, long)]
+        broadcast: Option<bool>,
     },
 
     /// Delete a cluster
@@ -1043,6 +1144,29 @@ pub enum SmartFolderCommands {
         host_pattern: Option<String>,
 
         /// Filter by tags (comma-separated)
+        #[arg(short, long)]
+        tags: Option<String>,
+    },
+
+    /// Edit an existing smart folder
+    #[command(about = "Edit a smart folder's filters")]
+    Edit {
+        /// Smart folder name or ID
+        name: String,
+
+        /// New name
+        #[arg(long)]
+        new_name: Option<String>,
+
+        /// New protocol filter (ssh, rdp, vnc, etc.; use "none" to clear)
+        #[arg(short, long)]
+        protocol: Option<String>,
+
+        /// New host glob pattern (use "none" to clear)
+        #[arg(short = 'H', long)]
+        host_pattern: Option<String>,
+
+        /// New tags (comma-separated, replaces existing; use "none" to clear)
         #[arg(short, long)]
         tags: Option<String>,
     },

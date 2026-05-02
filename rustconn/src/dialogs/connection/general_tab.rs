@@ -39,6 +39,7 @@ pub(super) struct BasicTabWidgets {
     pub password_entry_label: Label,
     pub password_visibility_button: Button,
     pub password_load_button: Button,
+    pub vault_test_button: Button,
     pub password_row: GtkBox,
     pub variable_dropdown: DropDown,
     pub variable_row: GtkBox,
@@ -277,10 +278,19 @@ pub(super) fn create_basic_tab() -> BasicTabWidgets {
     password_load_button.update_property(&[gtk4::accessible::Property::Label(&i18n(
         "Load password from vault",
     ))]);
+    let vault_test_button = Button::builder()
+        .icon_name("emblem-ok-symbolic")
+        .tooltip_text(i18n("Test credential resolution"))
+        .valign(gtk4::Align::Center)
+        .build();
+    vault_test_button.update_property(&[gtk4::accessible::Property::Label(&i18n(
+        "Test credential resolution",
+    ))]);
     let password_value_row = adw::ActionRow::builder().title(i18n("Value")).build();
     password_value_row.add_suffix(&password_entry);
     password_value_row.add_suffix(&password_visibility_button);
     password_value_row.add_suffix(&password_load_button);
+    password_value_row.add_suffix(&vault_test_button);
     auth_group.add(&password_value_row);
 
     // Password row visibility controller (hidden GtkBox for bind_property)
@@ -461,6 +471,7 @@ pub(super) fn create_basic_tab() -> BasicTabWidgets {
         password_entry_label,
         password_visibility_button,
         password_load_button,
+        vault_test_button,
         password_row,
         variable_dropdown,
         variable_row,

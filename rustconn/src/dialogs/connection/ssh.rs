@@ -524,45 +524,46 @@ fn create_session_group() -> (
         .build();
 
     // Agent Forwarding switch
-    let (agent_forwarding_row, agent_forwarding) = CheckboxRowBuilder::new("Agent Forwarding")
-        .subtitle("Forward SSH agent to remote host (-A)")
-        .build();
+    let (agent_forwarding_row, agent_forwarding) =
+        CheckboxRowBuilder::new(i18n("Agent Forwarding"))
+            .subtitle(i18n("Forward SSH agent to remote host (-A)"))
+            .build();
     session_group.add(&agent_forwarding_row);
 
     // Waypipe (Wayland application forwarding)
-    let (waypipe_row, waypipe) = CheckboxRowBuilder::new("Waypipe")
-        .subtitle("Wayland application forwarding via waypipe")
+    let (waypipe_row, waypipe) = CheckboxRowBuilder::new(i18n("Waypipe"))
+        .subtitle(i18n("Wayland application forwarding via waypipe"))
         .build();
     session_group.add(&waypipe_row);
 
     // X11 Forwarding switch
-    let (x11_forwarding_row, x11_forwarding) = CheckboxRowBuilder::new("X11 Forwarding")
-        .subtitle("Forward X11 display to local host (-X)")
+    let (x11_forwarding_row, x11_forwarding) = CheckboxRowBuilder::new(i18n("X11 Forwarding"))
+        .subtitle(i18n("Forward X11 display to local host (-X)"))
         .build();
     session_group.add(&x11_forwarding_row);
 
     // Compression switch
-    let (compression_row, compression) = CheckboxRowBuilder::new("Compression")
-        .subtitle("Enable compression for slow connections (-C)")
+    let (compression_row, compression) = CheckboxRowBuilder::new(i18n("Compression"))
+        .subtitle(i18n("Enable compression for slow connections (-C)"))
         .build();
     session_group.add(&compression_row);
 
     // Verbose/debug switch
-    let (verbose_row, verbose) = CheckboxRowBuilder::new("Verbose")
-        .subtitle("Show SSH debug output for troubleshooting (-v)")
+    let (verbose_row, verbose) = CheckboxRowBuilder::new(i18n("Verbose"))
+        .subtitle(i18n("Show SSH debug output for troubleshooting (-v)"))
         .build();
     session_group.add(&verbose_row);
 
     // Startup command entry
-    let (startup_row, startup_entry) = EntryRowBuilder::new("Startup Command")
-        .subtitle("Execute after connection established")
-        .placeholder("Command to run on connect")
+    let (startup_row, startup_entry) = EntryRowBuilder::new(i18n("Startup Command"))
+        .subtitle(i18n("Execute after connection established"))
+        .placeholder(i18n("Command to run on connect"))
         .build();
     session_group.add(&startup_row);
 
     // Custom options entry
-    let (options_row, options_entry) = EntryRowBuilder::new("Custom Options")
-        .subtitle("Key=Value, comma-separated (-o flags)")
+    let (options_row, options_entry) = EntryRowBuilder::new(i18n("Custom Options"))
+        .subtitle(i18n("Key=Value, comma-separated (-o flags)"))
         .placeholder("StrictHostKeyChecking=no, ServerAliveInterval=60")
         .build();
     session_group.add(&options_row);

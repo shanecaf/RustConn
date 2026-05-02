@@ -40,6 +40,11 @@ pub fn configure_terminal_with_settings(terminal: &Terminal, settings: &Terminal
     terminal.set_allow_hyperlink(settings.allow_hyperlinks);
     terminal.set_mouse_autohide(settings.mouse_autohide);
 
+    // Mouse passthrough: when enabled, disable fallback scrolling so that
+    // scroll wheel events are forwarded to programs using mouse tracking
+    // (mc, htop, vim) instead of being converted to arrow key presses.
+    terminal.set_enable_fallback_scrolling(!settings.mouse_passthrough);
+
     // Bell
     terminal.set_audible_bell(settings.audible_bell);
 

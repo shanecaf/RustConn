@@ -313,7 +313,9 @@ impl TerminalPane {
         click.connect_pressed(move |gesture, _, _, _| {
             tracing::debug!("Pane click handler: clicked on pane {}", pane_id);
             on_click(pane_id);
-            gesture.set_state(gtk4::EventSequenceState::None);
+            // Deny the gesture so VTE receives the raw button-press event
+            // for mouse tracking (mc, vim, htop).
+            gesture.set_state(gtk4::EventSequenceState::Denied);
         });
         self.container.add_controller(click);
     }

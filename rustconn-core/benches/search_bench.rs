@@ -56,6 +56,8 @@ fn create_test_groups(count: usize) -> Vec<ConnectionGroup> {
             dynamic_folder: None,
             sync_file: None,
             last_synced_at: None,
+            expect_rules: Vec::new(),
+            post_login_scripts: Vec::new(),
         })
         .collect()
 }

@@ -74,9 +74,13 @@ impl SmartFolderDialog {
         window.set_size_request(320, 280);
 
         // Header bar
-        let action_label = if is_edit { "Save" } else { "Create" };
+        let action_label = if is_edit {
+            i18n("Save")
+        } else {
+            i18n("Create")
+        };
         let (header, close_btn, save_btn) =
-            crate::dialogs::widgets::dialog_header("Cancel", action_label);
+            crate::dialogs::widgets::dialog_header(&i18n("Cancel"), &action_label);
 
         let window_clone = window.clone();
         close_btn.connect_clicked(move |_| {
@@ -114,7 +118,7 @@ impl SmartFolderDialog {
             .title(i18n("Smart Folder"))
             .build();
 
-        let (name_row, name_entry) = EntryRowBuilder::new("Name")
+        let (name_row, name_entry) = EntryRowBuilder::new(&i18n("Name"))
             .placeholder("Prod SSH Servers")
             .build();
         name_row.set_activatable_widget(Some(&name_entry));
@@ -128,7 +132,8 @@ impl SmartFolderDialog {
             .build();
 
         // Protocol dropdown: "Any" + all protocol types
-        let protocol_labels: Vec<&str> = std::iter::once("Any")
+        let any_label = i18n("Any");
+        let protocol_labels: Vec<&str> = std::iter::once(any_label.as_str())
             .chain(PROTOCOL_VARIANTS.iter().map(|p| match p {
                 ProtocolType::Ssh => "SSH",
                 ProtocolType::Rdp => "RDP",
@@ -143,30 +148,32 @@ impl SmartFolderDialog {
             }))
             .collect();
 
-        let (protocol_row, protocol_dropdown) = DropdownRowBuilder::new("Filter by Protocol")
-            .items(&protocol_labels)
-            .selected(0)
-            .build();
+        let (protocol_row, protocol_dropdown) =
+            DropdownRowBuilder::new(&i18n("Filter by Protocol"))
+                .items(&protocol_labels)
+                .selected(0)
+                .build();
         filter_group.add(&protocol_row);
 
         // Host pattern
-        let (host_row, host_pattern_entry) = EntryRowBuilder::new("Host Pattern")
+        let (host_row, host_pattern_entry) = EntryRowBuilder::new(&i18n("Host Pattern"))
             .placeholder("*.example.com")
             .build();
         host_row.set_activatable_widget(Some(&host_pattern_entry));
         filter_group.add(&host_row);
 
         // Tags
-        let (tags_row, tags_entry) = EntryRowBuilder::new("Filter by Tags")
-            .subtitle("Comma or semicolon separated")
+        let (tags_row, tags_entry) = EntryRowBuilder::new(&i18n("Filter by Tags"))
+            .subtitle(&i18n("Comma or semicolon separated"))
             .placeholder("web, production")
             .build();
         tags_row.set_activatable_widget(Some(&tags_entry));
         filter_group.add(&tags_row);
 
         // Group picker — starts with just "Any", populated later via set_groups()
-        let (group_row, group_dropdown) = DropdownRowBuilder::new("Filter by Group")
-            .items(&["Any"])
+        let any_group_label = i18n("Any");
+        let (group_row, group_dropdown) = DropdownRowBuilder::new(&i18n("Filter by Group"))
+            .items(&[any_group_label.as_str()])
             .selected(0)
             .build();
         filter_group.add(&group_row);

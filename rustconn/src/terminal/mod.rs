@@ -1665,61 +1665,16 @@ impl TerminalNotebook {
         // including mouse support, causing raw escape sequences to appear
         // as text artifacts. VTE doesn't auto-add TERM when envv is provided.
         //
-        // In Flatpak, use `rustconn-256color` — a custom terminfo entry
-        // identical to `xterm-256color` but without the `XM` extended
-        // capability. `XM` tells ncurses/slang to negotiate SGR mouse
-        // mode (1006) with VTE, but mc cannot parse SGR-encoded mouse
-        // events, causing raw escape fragments like `7;6M7;6m` on clicks.
-        // The custom entry is compiled into /app/share/terminfo/ during
-        // the Flatpak build.
-        //
-        // IMPORTANT: Only use rustconn-256color for LOCAL shells. For SSH
-        // and other remote connections, the remote host won't have this
-        // terminfo entry, causing "Unknown terminal" errors in htop, mc, etc.
-        // We detect this by checking if the command is ssh/mosh/telnet.
-        // For remote commands in Flatpak, force xterm-256color because the
-        // sandbox may inherit TERM=dumb which breaks clear/htop/mc (#25).
-        let is_remote_command = argv
-            .first()
-            .map(|cmd| {
-                let base = std::path::Path::new(cmd)
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                    .unwrap_or(cmd);
-                matches!(
-                    base,
-                    "ssh"
-                        | "mosh"
-                        | "telnet"
-                        | "kubectl"
-                        | "aws"
-                        | "gcloud"
-                        | "az"
-                        | "oci"
-                        | "cloudflared"
-                        | "tsh"
-                        | "tailscale"
-                        | "boundary"
-                )
-            })
-            .unwrap_or(false);
-
-        if rustconn_core::flatpak::is_flatpak() && !is_remote_command {
-            env_vec.retain(|e| !e.starts_with("TERM="));
-            env_vec.push(glib::GString::from("TERM=rustconn-256color"));
-            // Prepend /app/share/terminfo so ncurses/slang finds the
-            // custom entry; trailing colon preserves system defaults.
-            if !env_vec.iter().any(|e| e.starts_with("TERMINFO_DIRS=")) {
-                env_vec.push(glib::GString::from("TERMINFO_DIRS=/app/share/terminfo:"));
-            }
-        } else if rustconn_core::flatpak::is_flatpak() && is_remote_command {
-            // Remote hosts don't have the custom rustconn-256color terminfo,
-            // and the Flatpak sandbox may inherit TERM=dumb which breaks
-            // ncurses programs (clear, htop, mc, tmux). Force xterm-256color
-            // which is universally available on remote systems. (#25)
-            env_vec.retain(|e| !e.starts_with("TERM="));
+        // Always use xterm-256color for VTE child processes.
+        // In Flatpak the sandbox may inherit TERM=dumb; outside Flatpak
+        // GUI apps typically don't have TERM set at all. xterm-256color
+        // is universally available and provides full color + mouse support.
+        // MC is launched with `-g` (--oldmouse) to force X10 mouse mode
+        // regardless of the XM terminfo capability.
+        if !env_vec.iter().any(|e| e.starts_with("TERM=")) {
             env_vec.push(glib::GString::from("TERM=xterm-256color"));
-        } else if !env_vec.iter().any(|e| e.starts_with("TERM=")) {
+        } else if rustconn_core::flatpak::is_flatpak() || env_vec.iter().any(|e| e == "TERM=dumb") {
+            env_vec.retain(|e| !e.starts_with("TERM="));
             env_vec.push(glib::GString::from("TERM=xterm-256color"));
         }
 

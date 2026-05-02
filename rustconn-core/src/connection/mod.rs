@@ -14,6 +14,7 @@
 //! The `retry` submodule provides `RetryConfig` and `RetryState` for handling
 //! transient connection failures with exponential backoff.
 
+pub mod automation_inheritance;
 pub mod fallback;
 mod interning;
 mod lazy_loader;

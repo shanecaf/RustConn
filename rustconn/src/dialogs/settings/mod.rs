@@ -88,6 +88,7 @@ pub struct SettingsDialog {
     sftp_use_mc_check: CheckButton,
     copy_on_select_check: CheckButton,
     show_scrollbar_check: CheckButton,
+    mouse_passthrough_check: CheckButton,
     // Logging settings
     logging_enabled_row: adw::SwitchRow,
     log_dir_entry: Entry,
@@ -172,6 +173,7 @@ impl SettingsDialog {
             sftp_use_mc_check,
             copy_on_select_check,
             show_scrollbar_check,
+            mouse_passthrough_check,
         ) = create_terminal_page();
 
         let (
@@ -492,6 +494,7 @@ impl SettingsDialog {
             sftp_use_mc_check,
             copy_on_select_check,
             show_scrollbar_check,
+            mouse_passthrough_check,
             logging_enabled_row,
             log_dir_entry,
             retention_spin,
@@ -787,6 +790,7 @@ impl SettingsDialog {
             &self.sftp_use_mc_check,
             &self.copy_on_select_check,
             &self.show_scrollbar_check,
+            &self.mouse_passthrough_check,
             &settings.terminal,
         );
 
@@ -902,6 +906,7 @@ impl SettingsDialog {
         let sftp_use_mc_check_clone = self.sftp_use_mc_check.clone();
         let copy_on_select_check_clone = self.copy_on_select_check.clone();
         let show_scrollbar_check_clone = self.show_scrollbar_check.clone();
+        let mouse_passthrough_check_clone = self.mouse_passthrough_check.clone();
 
         // Logging controls
         let logging_enabled_row_clone = self.logging_enabled_row.clone();
@@ -985,6 +990,7 @@ impl SettingsDialog {
                 &sftp_use_mc_check_clone,
                 &copy_on_select_check_clone,
                 &show_scrollbar_check_clone,
+                &mouse_passthrough_check_clone,
                 log_timestamps_check_clone.is_active(),
             );
 
@@ -1057,7 +1063,7 @@ impl SettingsDialog {
             // Collect UI settings
             let conn_list = connections_clone.borrow();
             let conn_refs: Vec<&Connection> = conn_list.iter().collect();
-            let ui = collect_ui_settings(
+            let mut ui = collect_ui_settings(
                 &color_scheme_box_clone,
                 &language_dropdown_clone,
                 &remember_geometry_clone,
@@ -1072,6 +1078,8 @@ impl SettingsDialog {
                 &sidebar_width_row_clone,
                 &conn_refs,
             );
+            // Preserve smart folders visibility (managed by toolbar toggle, not settings dialog)
+            ui.show_smart_folders = settings_clone.borrow().ui.show_smart_folders;
             drop(conn_refs);
             drop(conn_list);
 

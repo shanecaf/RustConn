@@ -137,6 +137,18 @@ pub fn edit_selected_connection(
                     .as_ref()
                     .map(|p| p.expose_secret().to_string()),
                 settings.secrets.kdbx_key_file.clone(),
+                groups.clone(),
+                settings.secrets.clone(),
+            );
+            dialog.connect_vault_test_button(
+                settings.secrets.kdbx_enabled,
+                settings.secrets.kdbx_path.clone(),
+                settings
+                    .secrets
+                    .kdbx_password
+                    .as_ref()
+                    .map(|p| p.expose_secret().to_string()),
+                settings.secrets.kdbx_key_file.clone(),
                 groups,
                 settings.secrets.clone(),
             );
@@ -925,9 +937,17 @@ pub fn show_edit_group_dialog(
     {
         let expander = ssh_expander.clone();
         let window_for_confirm = group_window.clone();
+        // Guard flag to prevent recursive signal triggering when we
+        // programmatically set_enable_expansion(false) from the response handler.
+        let clearing_in_progress = Rc::new(std::cell::Cell::new(false));
+        let clearing_flag = clearing_in_progress.clone();
         ssh_expander.connect_enable_expansion_notify(move |row| {
             if row.enables_expansion() {
                 return; // Enabling — no confirmation needed
+            }
+            // Skip if we're programmatically clearing from the confirmation handler
+            if clearing_in_progress.get() {
+                return;
             }
             // Check if any SSH field has a value
             let has_data = row.first_child().is_some(); // rows exist
@@ -949,10 +969,13 @@ pub fn show_edit_group_dialog(
             confirm.set_response_appearance("clear", adw::ResponseAppearance::Destructive);
 
             let expander_c = expander.clone();
+            let flag = clearing_flag.clone();
             confirm.connect_response(None, move |_, response| {
                 if response == "clear" {
+                    flag.set(true);
                     expander_c.set_enable_expansion(false);
                     expander_c.set_expanded(false);
+                    flag.set(false);
                 }
             });
             confirm.present(Some(&window_for_confirm));

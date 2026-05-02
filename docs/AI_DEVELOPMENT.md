@@ -1,6 +1,6 @@
 # AI-Assisted Development Architecture
 
-**Version 0.12.9** | Last updated: May 2026
+**Version 0.13.0** | Last updated: May 2026
 
 This document describes the Kiro AI agent infrastructure used to automate
 development workflows, enforce architectural constraints, and streamline the
@@ -275,7 +275,7 @@ Read-only audit, never auto-applies changes:
 2. `cargo audit` — security advisories (if installed)
 3. CLI version check — pinned versions in `rustconn-core/src/cli_download.rs`
    vs latest available (kubectl, tailscale, cloudflared, boundary, teleport,
-   bitwarden-cli, 1password-cli, passbolt-cli)
+   bitwarden-cli, 1password-cli, hoop, tigervnc)
 4. Summary with recommended actions
 
 Note: A weekly GitHub Action (`check-cli-versions.yml`) also monitors CLI

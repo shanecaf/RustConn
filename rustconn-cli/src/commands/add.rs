@@ -47,10 +47,14 @@ pub struct AddParams<'a> {
     pub boundary_addr: Option<&'a str>,
     pub custom_command: Option<&'a str>,
     pub jump_host: Option<&'a str>,
+    pub keep_alive_interval: Option<u32>,
+    pub keep_alive_count: Option<u32>,
+    pub ssh_verbose: bool,
+    pub ignore_certificate: bool,
 }
 
 /// Add connection command handler
-#[allow(clippy::needless_pass_by_value)]
+#[allow(clippy::needless_pass_by_value, clippy::too_many_lines)]
 pub fn cmd_add(config_path: Option<&Path>, params: AddParams<'_>) -> Result<(), CliError> {
     let (protocol_type, default_port) = parse_protocol(params.protocol)?;
     let port = params.port.unwrap_or(default_port);
@@ -106,6 +110,57 @@ pub fn cmd_add(config_path: Option<&Path>, params: AddParams<'_>) -> Result<(), 
             _ => {
                 tracing::warn!("--ssh-agent-socket is only applicable to SSH/SFTP connections");
             }
+        }
+    }
+
+    // Apply SSH keep-alive and verbose settings
+    if params.keep_alive_interval.is_some()
+        || params.keep_alive_count.is_some()
+        || params.ssh_verbose
+    {
+        match connection.protocol_config {
+            rustconn_core::models::ProtocolConfig::Ssh(ref mut cfg) => {
+                if let Some(interval) = params.keep_alive_interval {
+                    cfg.keep_alive_interval = Some(interval);
+                }
+                if let Some(count) = params.keep_alive_count {
+                    cfg.keep_alive_count_max = Some(count);
+                }
+                if params.ssh_verbose {
+                    cfg.verbose = true;
+                }
+            }
+            rustconn_core::models::ProtocolConfig::Sftp(ref mut cfg) => {
+                if let Some(interval) = params.keep_alive_interval {
+                    cfg.keep_alive_interval = Some(interval);
+                }
+                if let Some(count) = params.keep_alive_count {
+                    cfg.keep_alive_count_max = Some(count);
+                }
+                if params.ssh_verbose {
+                    cfg.verbose = true;
+                }
+            }
+            _ => {
+                if params.keep_alive_interval.is_some() || params.keep_alive_count.is_some() {
+                    tracing::warn!(
+                        "--keep-alive-interval/--keep-alive-count are only applicable to SSH/SFTP connections"
+                    );
+                }
+                if params.ssh_verbose {
+                    tracing::warn!("--ssh-verbose is only applicable to SSH/SFTP connections");
+                }
+            }
+        }
+    }
+
+    // Apply RDP ignore-certificate setting
+    if params.ignore_certificate {
+        if let rustconn_core::models::ProtocolConfig::Rdp(ref mut cfg) = connection.protocol_config
+        {
+            cfg.ignore_certificate = true;
+        } else {
+            tracing::warn!("--ignore-certificate is only applicable to RDP connections");
         }
     }
 

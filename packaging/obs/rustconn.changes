@@ -1,4 +1,25 @@
 -------------------------------------------------------------------
+Sat May 02 2026 Anton Isaiev <totoshko88@gmail.com> - 0.13.0
+
+- Update to version 0.13.0
+- [Fixed] External RDP tab shows only toolbar, content area empty —
+  added force_external parameter for external sessions
+- [Fixed] Group edit: SSH settings toggle reopens confirmation dialog
+  in a loop — added guard flag to prevent re-entry
+- [Fixed] Incomplete translations for Dynamic Folder strings
+- [Fixed] Bulk actions: Move to Group icon missing — replaced with
+  folder-drag-accept-symbolic
+- [Fixed] External RDP (FreeRDP) fails on changed server certificate —
+  added ignore_certificate field and Accept Certificate checkbox (#112)
+- [Added] Smart Folders in sidebar — dynamically groups connections
+  based on tag, protocol, host pattern, and group filters (#111)
+- [Added] Group-level Expect rules and post-login scripts inheritance (#110)
+- [Improved] Vault entry missing toast notification (#114)
+- [Improved] Test credential resolution button in connection dialog (#114)
+- [Improved] Multi-language SSH password prompt detection (#114)
+- [Improved] GNOME HIG: sidebar toolbar decluttered
+
+-------------------------------------------------------------------
 Thu May 01 2026 Anton Isaiev <totoshko88@gmail.com> - 0.12.9
 
 - Update to version 0.12.9

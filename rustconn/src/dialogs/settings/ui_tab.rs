@@ -456,5 +456,6 @@ pub fn collect_ui_settings(
         startup_action,
         color_tabs_by_protocol: color_tabs_by_protocol.is_active(),
         show_protocol_filters: show_protocol_filters.is_active(),
+        show_smart_folders: false, // Preserved via toggle button, not settings dialog
     }
 }

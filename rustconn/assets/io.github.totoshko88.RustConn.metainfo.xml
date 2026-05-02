@@ -55,12 +55,8 @@
   </branding>
   <screenshots>
     <screenshot type="default">
-      <caption>Connection sidebar with protocol filters in dark mode</caption>
-      <image type="source" width="3668" height="2378">https://raw.githubusercontent.com/totoshko88/RustConn/main/rustconn/assets/screenshots/main_dark.png</image>
-    </screenshot>
-    <screenshot>
-      <caption>Connection sidebar in light mode</caption>
-      <image type="source" width="3668" height="2378">https://raw.githubusercontent.com/totoshko88/RustConn/main/rustconn/assets/screenshots/main_light.png</image>
+      <caption>Active SSH session with sidebar and terminal</caption>
+      <image type="source" width="3668" height="2378">https://raw.githubusercontent.com/totoshko88/RustConn/main/rustconn/assets/screenshots/active_session_light.png</image>
     </screenshot>
     <screenshot>
       <caption>Embedded RDP session with toolbar</caption>
@@ -69,6 +65,10 @@
     <screenshot>
       <caption>Split terminal view with multiple SSH sessions</caption>
       <image type="source" width="3668" height="2378">https://raw.githubusercontent.com/totoshko88/RustConn/main/rustconn/assets/screenshots/split_view_dark.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Smart Folders with dynamic connection grouping</caption>
+      <image type="source" width="3668" height="2378">https://raw.githubusercontent.com/totoshko88/RustConn/main/rustconn/assets/screenshots/smart_folder_dark.png</image>
     </screenshot>
     <screenshot>
       <caption>Tab Overview grid for navigating open sessions</caption>
@@ -83,6 +83,10 @@
       <image type="source" width="3668" height="2378">https://raw.githubusercontent.com/totoshko88/RustConn/main/rustconn/assets/screenshots/tab_groups_dark.png</image>
     </screenshot>
     <screenshot>
+      <caption>SSH connection dialog with protocol options</caption>
+      <image type="source" width="3668" height="2378">https://raw.githubusercontent.com/totoshko88/RustConn/main/rustconn/assets/screenshots/ssh_connection_dialog.png</image>
+    </screenshot>
+    <screenshot>
       <caption>Protocol filter bar in dark mode</caption>
       <image type="source" width="3668" height="2378">https://raw.githubusercontent.com/totoshko88/RustConn/main/rustconn/assets/screenshots/filters_dark.png</image>
     </screenshot>
@@ -95,6 +99,10 @@
       <image type="source" width="3668" height="2378">https://raw.githubusercontent.com/totoshko88/RustConn/main/rustconn/assets/screenshots/sftp_mc_light.png</image>
     </screenshot>
     <screenshot>
+      <caption>Cloud Sync settings for shared directories</caption>
+      <image type="source" width="3668" height="2378">https://raw.githubusercontent.com/totoshko88/RustConn/main/rustconn/assets/screenshots/cloud_sync_light.png</image>
+    </screenshot>
+    <screenshot>
       <caption>Settings dialog with terminal and credential options</caption>
       <image type="source" width="3668" height="2378">https://raw.githubusercontent.com/totoshko88/RustConn/main/rustconn/assets/screenshots/settings_dark.png</image>
     </screenshot>
@@ -105,6 +113,10 @@
     <screenshot>
       <caption>Welcome screen with quick actions</caption>
       <image type="source" width="3668" height="2378">https://raw.githubusercontent.com/totoshko88/RustConn/main/rustconn/assets/screenshots/welcome_light.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Welcome screen in dark mode</caption>
+      <image type="source" width="3668" height="2378">https://raw.githubusercontent.com/totoshko88/RustConn/main/rustconn/assets/screenshots/welcome_dark.png</image>
     </screenshot>
     <screenshot>
       <caption>Flatpak components manager for external CLI tools</caption>
@@ -132,6 +144,22 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.13.0" date="2026-05-03">
+      <description>
+        <p>Version 0.13.0 — Smart Folders, mouse passthrough, group automation, CLI completeness, and FreeRDP certificate handling:</p>
+        <ul>
+          <li>Smart Folders in sidebar — dynamically groups connections based on tag, protocol, host pattern, and group filters using AND logic; match count badge per folder</li>
+          <li>Mouse passthrough option — forward mouse clicks and scroll to terminal apps (mc, vim, htop); toggle in Settings → Terminal → Behavior</li>
+          <li>Group-level Expect rules and post-login scripts inheritance — set automation once on a group and all child connections inherit automatically</li>
+          <li>External RDP (FreeRDP) certificate handling — new Accept Certificate option removes stored certificates and passes /cert:ignore; fixes silent rejection on changed server certificates</li>
+          <li>CLI: SSH keep-alive, verbose, and RDP ignore-certificate flags for add/update commands</li>
+          <li>CLI: edit subcommands for snippets, templates, clusters, and smart folders — full CRUD without GUI</li>
+          <li>Fixed mouse not working in Midnight Commander — gesture handlers now release events to VTE for mouse tracking; TERM unified to xterm-256color</li>
+          <li>Multi-language SSH password prompt detection — supports 14 languages for auto-fill</li>
+          <li>Test credential resolution button in connection dialog — verify vault configuration before connecting</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.12.9" date="2026-05-01">
       <description>
         <p>Version 0.12.9 — Export fix, snippet variables, and dynamic folders:</p>

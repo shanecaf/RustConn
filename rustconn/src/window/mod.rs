@@ -13,6 +13,7 @@ mod operations;
 mod protocols;
 mod rdp_vnc;
 mod sessions;
+mod smart_folders;
 mod snippets;
 mod sorting;
 mod split_view_actions;
@@ -228,6 +229,7 @@ impl MainWindow {
             terminal_notebook
                 .set_color_tabs_by_protocol(state_ref.settings().ui.color_tabs_by_protocol);
             sidebar.set_filter_visible(state_ref.settings().ui.show_protocol_filters);
+            sidebar.set_smart_folders_visible(state_ref.settings().ui.show_smart_folders);
         }
 
         // Set up callback for when SSH tabs are closed via TabView
@@ -523,6 +525,7 @@ impl MainWindow {
         self.setup_variables_actions(window, &state);
         self.setup_history_actions(window, &state);
         self.setup_misc_actions(window, &state, &sidebar, &terminal_notebook);
+        Self::setup_smart_folder_actions(window, &state, &sidebar);
     }
 
     /// Sets up connection-related actions (new, import, settings)
@@ -2505,6 +2508,59 @@ impl MainWindow {
             (protocol_type, cached)
         };
 
+        // SFTP via mc uses SSH key in agent — skip vault credential
+        // resolution entirely to avoid ~12s of sequential Bitwarden
+        // CLI calls that mc never uses.
+        if protocol_type == rustconn_core::models::ProtocolType::Sftp {
+            drop(busy_guard);
+            Self::handle_sftp_connect(
+                &state,
+                &notebook,
+                Some(&sidebar),
+                Some(&split_view),
+                connection_id,
+            );
+            return;
+        }
+
+        // Skip async credential resolution for connections that don't use
+        // vault passwords (None = SSH key / no password, Prompt = ask user).
+        // This avoids ~12s of sequential Bitwarden CLI calls for connections
+        // that never need vault credentials.
+        let needs_vault_resolution = {
+            let Ok(state_ref) = state.try_borrow() else {
+                drop(busy_guard);
+                return;
+            };
+            state_ref
+                .get_connection(connection_id)
+                .map(|c| {
+                    !matches!(
+                        c.password_source,
+                        rustconn_core::models::PasswordSource::None
+                            | rustconn_core::models::PasswordSource::Prompt
+                    )
+                })
+                .unwrap_or(false)
+        };
+
+        if !needs_vault_resolution {
+            drop(busy_guard);
+            Self::handle_resolved_credentials(
+                state,
+                notebook,
+                split_view,
+                sidebar,
+                monitoring,
+                connection_id,
+                protocol_type,
+                None,
+                None,
+                activity,
+            );
+            return;
+        }
+
         // If we have cached credentials, use them immediately (no async needed)
         if let Some((username, password, domain)) = cached_credentials {
             Self::handle_resolved_credentials(
@@ -2675,9 +2731,26 @@ impl MainWindow {
                             );
                         }
                     }
-                    CredentialResolutionResult::VaultEntryMissing { .. } => {
-                        // Vault entry not found — proceed without credentials,
-                        // protocol handler will prompt for password
+                    CredentialResolutionResult::VaultEntryMissing { connection_name, lookup_key } => {
+                        // Vault entry not found — show informational toast and proceed
+                        // without credentials; protocol handler will prompt for password
+                        tracing::info!(
+                            %connection_name,
+                            %lookup_key,
+                            "Vault entry not found — user will be prompted for password"
+                        );
+                        if let Some(root) = notebook_clone.widget().root()
+                            && let Some(window) = root.downcast_ref::<gtk4::Window>()
+                        {
+                            crate::toast::show_toast_on_window(
+                                window,
+                                &crate::i18n::i18n_f(
+                                    "Vault entry not found for '{}'. You will be prompted for a password.",
+                                    &[&connection_name],
+                                ),
+                                crate::toast::ToastType::Warning,
+                            );
+                        }
                         Self::handle_resolved_credentials(
                             state_clone,
                             notebook_clone,
@@ -4411,6 +4484,9 @@ impl MainWindow {
 
                 // Apply protocol filter visibility setting
                 sidebar.set_filter_visible(settings.ui.show_protocol_filters);
+
+                // Apply smart folders visibility setting
+                sidebar.set_smart_folders_visible(settings.ui.show_smart_folders);
 
                 // Apply sidebar width setting
                 if let Some(w) = settings.ui.sidebar_width {

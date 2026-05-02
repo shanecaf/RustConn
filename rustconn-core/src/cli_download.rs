@@ -593,8 +593,8 @@ pub static DOWNLOADABLE_COMPONENTS: &[DownloadableComponent] = &[
         description: "For Tailscale SSH",
         category: ComponentCategory::ZeroTrust,
         install_method: InstallMethod::Download,
-        download_url: Some("https://pkgs.tailscale.com/stable/tailscale_1.96.5_amd64.tgz"),
-        aarch64_url: Some("https://pkgs.tailscale.com/stable/tailscale_1.96.5_arm64.tgz"),
+        download_url: Some("https://pkgs.tailscale.com/stable/tailscale_1.96.4_amd64.tgz"),
+        aarch64_url: Some("https://pkgs.tailscale.com/stable/tailscale_1.96.4_arm64.tgz"),
         // Tailscale publishes platform-specific patches (e.g. macOS-only),
         // so a pinned version may not exist for Linux. Use SkipLatest to
         // avoid 404 errors when the pinned version is macOS-only (#81).
@@ -603,7 +603,7 @@ pub static DOWNLOADABLE_COMPONENTS: &[DownloadableComponent] = &[
         size_hint: "~25 MB",
         binary_name: "tailscale",
         install_subdir: "tailscale",
-        pinned_version: Some("1.96.5"),
+        pinned_version: Some("1.96.4"),
         works_in_sandbox: true,
     },
     DownloadableComponent {
@@ -635,21 +635,21 @@ pub static DOWNLOADABLE_COMPONENTS: &[DownloadableComponent] = &[
         category: ComponentCategory::ZeroTrust,
         install_method: InstallMethod::Download,
         download_url: Some(
-            "https://releases.hashicorp.com/boundary/0.21.2/\
-             boundary_0.21.2_linux_amd64.zip",
+            "https://releases.hashicorp.com/boundary/0.21.3/\
+             boundary_0.21.3_linux_amd64.zip",
         ),
         aarch64_url: Some(
-            "https://releases.hashicorp.com/boundary/0.21.2/\
-             boundary_0.21.2_linux_arm64.zip",
+            "https://releases.hashicorp.com/boundary/0.21.3/\
+             boundary_0.21.3_linux_arm64.zip",
         ),
         checksum: ChecksumPolicy::Static(
-            "a52aaa65de6de280ae3bbcb24a567766236b3b5e5736aa6556dd77c594e8b18d",
+            "1a948c143b849cedba91127aa11155c6006d84051282a0d93f3d89525b460d12",
         ),
         pip_package: None,
         size_hint: "~50 MB",
         binary_name: "boundary",
         install_subdir: "boundary",
-        pinned_version: Some("0.21.2"),
+        pinned_version: Some("0.21.3"),
         works_in_sandbox: true,
     },
     DownloadableComponent {
@@ -659,17 +659,17 @@ pub static DOWNLOADABLE_COMPONENTS: &[DownloadableComponent] = &[
         category: ComponentCategory::ZeroTrust,
         install_method: InstallMethod::Download,
         download_url: Some(
-            "https://releases.hoop.dev/release/1.59.3/hoop_1.59.3_Linux_x86_64.tar.gz",
+            "https://releases.hoop.dev/release/1.62.0/hoop_1.62.0_Linux_x86_64.tar.gz",
         ),
         aarch64_url: Some(
-            "https://releases.hoop.dev/release/1.59.3/hoop_1.59.3_Linux_arm64.tar.gz",
+            "https://releases.hoop.dev/release/1.62.0/hoop_1.62.0_Linux_arm64.tar.gz",
         ),
         checksum: ChecksumPolicy::SkipLatest,
         pip_package: None,
         size_hint: "~30 MB",
         binary_name: "hoop",
         install_subdir: "hoop",
-        pinned_version: Some("1.59.3"),
+        pinned_version: Some("1.62.0"),
         works_in_sandbox: true,
     },
     // Password manager CLIs

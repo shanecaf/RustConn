@@ -39,6 +39,22 @@ pub fn cmd_snippet(config_path: Option<&Path>, subcmd: SnippetCommands) -> Resul
             category,
             tags,
         ),
+        SnippetCommands::Edit {
+            name,
+            new_name,
+            command,
+            description,
+            category,
+            tags,
+        } => cmd_snippet_edit(
+            config_path,
+            &name,
+            new_name.as_deref(),
+            command.as_deref(),
+            description.as_deref(),
+            category.as_deref(),
+            tags.as_deref(),
+        ),
         SnippetCommands::Delete { name } => cmd_snippet_delete(config_path, &name),
         SnippetCommands::Run { name, var, execute } => {
             cmd_snippet_run(config_path, &name, &var, execute)
@@ -221,6 +237,54 @@ fn cmd_snippet_add(
     if !vars.is_empty() {
         println!("Variables: {}", vars.join(", "));
     }
+
+    Ok(())
+}
+
+fn cmd_snippet_edit(
+    config_path: Option<&Path>,
+    name: &str,
+    new_name: Option<&str>,
+    command: Option<&str>,
+    description: Option<&str>,
+    category: Option<&str>,
+    tags: Option<&str>,
+) -> Result<(), CliError> {
+    let config_manager = create_config_manager(config_path)?;
+
+    let mut snippet_manager = SnippetManager::new(config_manager)
+        .map_err(|e| CliError::Snippet(format!("Failed to load snippets: {e}")))?;
+
+    let snippet = find_snippet(&snippet_manager, name)?;
+    let id = snippet.id;
+
+    let mut updated = snippet.clone();
+
+    if let Some(n) = new_name {
+        updated.name = n.to_string();
+    }
+    if let Some(cmd) = command {
+        updated.command = cmd.to_string();
+        let variables = SnippetManager::extract_variable_objects(cmd);
+        updated.variables = variables;
+    }
+    if let Some(desc) = description {
+        updated.description = Some(desc.to_string());
+    }
+    if let Some(cat) = category {
+        updated.category = Some(cat.to_string());
+    }
+    if let Some(tags_str) = tags {
+        updated.tags = tags_str.split(',').map(|s| s.trim().to_string()).collect();
+    }
+
+    updated.updated_at = chrono::Utc::now();
+
+    snippet_manager
+        .update_snippet(id, updated)
+        .map_err(|e| CliError::Snippet(format!("Failed to update snippet: {e}")))?;
+
+    println!("Updated snippet '{name}' (ID: {id})");
 
     Ok(())
 }

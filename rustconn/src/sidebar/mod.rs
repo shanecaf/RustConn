@@ -27,6 +27,7 @@ pub mod view;
 
 use crate::i18n::i18n;
 use crate::sidebar_ui;
+use crate::smart_folder_ui::SmartFoldersSidebar;
 
 use gtk4::prelude::*;
 use gtk4::subclass::prelude::ObjectSubclassIsExt;
@@ -38,6 +39,7 @@ use gtk4::{
 use libadwaita as adw;
 use rustconn_core::Debouncer;
 use rustconn_core::connection::{LazyGroupLoader, SelectionState as CoreSelectionState};
+use rustconn_core::models::{Connection, SmartFolder};
 use std::cell::RefCell;
 use std::collections::HashSet;
 use std::rc::Rc;
@@ -98,6 +100,12 @@ pub struct ConnectionSidebar {
     filter_revealer: gtk4::Revealer,
     /// Inner filter box (child of revealer, holds protocol buttons)
     filter_box: GtkBox,
+    /// Smart Folders sidebar section (dynamic tag-based grouping)
+    smart_folders_sidebar: SmartFoldersSidebar,
+    /// Revealer for Smart Folders section (toggled via toolbar button)
+    smart_folders_revealer: gtk4::Revealer,
+    /// Toolbar view containing the connection tree (for vexpand toggling)
+    toolbar_view: adw::ToolbarView,
 }
 
 impl ConnectionSidebar {
@@ -822,6 +830,26 @@ impl ConnectionSidebar {
         toolbar_view.set_vexpand(true);
         container.append(&toolbar_view);
 
+        // Smart Folders section — wrapped in Revealer (hidden by default, toggled via toolbar)
+        let smart_folders_sidebar = SmartFoldersSidebar::new();
+        // Wrap smart folders in a ScrolledWindow so expanded folders can scroll
+        let smart_folders_scrolled = gtk4::ScrolledWindow::builder()
+            .hscrollbar_policy(PolicyType::Never)
+            .vscrollbar_policy(PolicyType::Automatic)
+            .vexpand(true)
+            .child(smart_folders_sidebar.widget())
+            .build();
+
+        let smart_folders_revealer = gtk4::Revealer::builder()
+            .transition_type(gtk4::RevealerTransitionType::SlideUp)
+            .transition_duration(200)
+            .reveal_child(false)
+            .child(&smart_folders_scrolled)
+            .build();
+        // When revealed, smart folders expand to fill available sidebar space
+        smart_folders_revealer.set_vexpand(false);
+        container.append(&smart_folders_revealer);
+
         // Create debouncer for search with 100ms delay
         let search_debouncer = Rc::new(Debouncer::for_search());
 
@@ -852,6 +880,9 @@ impl ConnectionSidebar {
             recording_checker,
             filter_revealer,
             filter_box,
+            smart_folders_sidebar,
+            smart_folders_revealer,
+            toolbar_view,
         }
     }
 
@@ -1607,6 +1638,40 @@ impl ConnectionSidebar {
     #[must_use]
     pub fn is_filter_visible(&self) -> bool {
         self.filter_revealer.reveals_child()
+    }
+
+    /// Refreshes the Smart Folders section with current data.
+    ///
+    /// Evaluates each smart folder's filters against the provided connections
+    /// and updates the sidebar widget with match counts.
+    pub fn refresh_smart_folders(&self, folders: &[SmartFolder], connections: &[Connection]) {
+        self.smart_folders_sidebar.update(folders, connections);
+    }
+
+    /// Returns a reference to the Smart Folders sidebar widget for signal wiring.
+    #[must_use]
+    pub const fn smart_folders_sidebar(&self) -> &SmartFoldersSidebar {
+        &self.smart_folders_sidebar
+    }
+
+    /// Sets the visibility of the Smart Folders section.
+    ///
+    /// When shown, smart folders expand to fill available sidebar height
+    /// and the connection tree collapses (only bottom toolbar remains visible).
+    /// When hidden, the tree is restored to full height.
+    pub fn set_smart_folders_visible(&self, visible: bool) {
+        self.smart_folders_revealer.set_reveal_child(visible);
+        self.smart_folders_revealer.set_vexpand(visible);
+        // Hide the scrolled window (connection tree) but keep toolbar_view
+        // visible so the bottom toolbar with action icons remains accessible
+        self.scrolled_window.set_visible(!visible);
+        self.toolbar_view.set_vexpand(!visible);
+    }
+
+    /// Returns whether the Smart Folders section is currently visible.
+    #[must_use]
+    pub fn is_smart_folders_visible(&self) -> bool {
+        self.smart_folders_revealer.reveals_child()
     }
 }
 

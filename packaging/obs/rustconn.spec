@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.12.9
+Version:        0.13.0
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -238,6 +238,20 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Sat May 02 2026 Anton Isaiev <totoshko88@gmail.com> - 0.13.0-1
+- Update to version 0.13.0
+- [Fixed] External RDP tab shows only toolbar, content area empty
+- [Fixed] Group edit: SSH settings toggle reopens confirmation dialog in a loop
+- [Fixed] Incomplete translations for Dynamic Folder strings
+- [Fixed] Bulk actions: Move to Group icon missing
+- [Fixed] External RDP (FreeRDP) fails on changed server certificate (#112)
+- [Added] Smart Folders in sidebar (#111)
+- [Added] Group-level Expect rules and post-login scripts inheritance (#110)
+- [Improved] Vault entry missing toast notification (#114)
+- [Improved] Test credential resolution button in connection dialog (#114)
+- [Improved] Multi-language SSH password prompt detection (#114)
+- [Improved] GNOME HIG: sidebar toolbar decluttered
+
 * Thu May 01 2026 Anton Isaiev <totoshko88@gmail.com> - 0.12.9-1
 - [Fixed] Export group exports entire tree instead of selected subtree —
   when exporting a specific group via the Export dialog's group filter,
