@@ -5,7 +5,7 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.13.1] - 2026-05-03
+## [0.13.1] - 2026-05-04
 
 ### Fixed
 - **Crash when typing in sidebar search field** — `SearchEngine::find_case_insensitive` used raw byte-position iteration (`0..=len`) and direct byte slicing (`haystack[i..i+n]`) which panics when connection names or hosts contain multi-byte UTF-8 characters (Cyrillic, CJK, emoji, etc.); the same byte-boundary bug existed in `fuzzy_score_case_insensitive` and `fuzzy_score_optimized` prefix checks; fixed by iterating only over valid `char_indices()` boundaries and using `str::get()` for safe slicing with `is_char_boundary()` guards ([#116](https://github.com/totoshko88/RustConn/issues/116))
@@ -58,6 +58,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Boundary CLI 0.21.2 → 0.21.3 (security: CVE fixes in pgx/v5 and go-ntlmssp)
 - Hoop.dev CLI 1.59.3 → 1.62.0
 - Tailscale CLI 1.96.5 → 1.96.4 (1.96.5 was platform-specific, not available for Linux)
+- rpassword 7.5.1 → 7.5.2
+- zvariant 5.10.1 → 5.11.0
 
 ## [0.12.9] - 2026-05-02
 
