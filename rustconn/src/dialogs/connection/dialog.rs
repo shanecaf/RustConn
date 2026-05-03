@@ -4296,30 +4296,16 @@ impl ConnectionDialog {
     /// Creates an expect rule row widget
     #[allow(clippy::too_many_lines)]
     fn create_expect_rule_row(rule: Option<&ExpectRule>) -> ExpectRuleRow {
-        let main_box = GtkBox::new(Orientation::Vertical, 8);
+        let main_box = GtkBox::new(Orientation::Vertical, 6);
         main_box.set_margin_top(8);
         main_box.set_margin_bottom(8);
         main_box.set_margin_start(8);
         main_box.set_margin_end(8);
 
-        let grid = Grid::builder()
-            .row_spacing(6)
-            .column_spacing(8)
-            .hexpand(true)
-            .build();
+        // Row 0: Action buttons (delete, move up/down) — top-right for visibility
+        let action_box = GtkBox::new(Orientation::Horizontal, 4);
+        action_box.set_halign(gtk4::Align::End);
 
-        // Row 0: Pattern and action buttons
-        let pattern_label = Label::builder()
-            .label(i18n("Pattern:"))
-            .halign(gtk4::Align::End)
-            .build();
-        let pattern_entry = Entry::builder()
-            .hexpand(true)
-            .placeholder_text(i18n("Regex pattern (e.g., password:\\s*$)"))
-            .tooltip_text(i18n("Regular expression to match against terminal output"))
-            .build();
-
-        let button_box = GtkBox::new(Orientation::Horizontal, 4);
         let move_up_button = Button::builder()
             .icon_name("go-up-symbolic")
             .css_classes(["flat"])
@@ -4335,72 +4321,166 @@ impl ConnectionDialog {
             .update_property(&[gtk4::accessible::Property::Label(&i18n("Move rule down"))]);
         let delete_button = Button::builder()
             .icon_name("user-trash-symbolic")
-            .css_classes(["destructive-action", "flat"])
+            .css_classes(["flat"])
             .tooltip_text(i18n("Delete rule"))
             .build();
-        delete_button.update_property(&[gtk4::accessible::Property::Label(&i18n(
-            "Delete highlight rule",
-        ))]);
-        button_box.append(&move_up_button);
-        button_box.append(&move_down_button);
-        button_box.append(&delete_button);
+        delete_button.update_property(&[gtk4::accessible::Property::Label(&i18n("Delete rule"))]);
+        action_box.append(&move_up_button);
+        action_box.append(&move_down_button);
+        action_box.append(&delete_button);
+        main_box.append(&action_box);
 
-        grid.attach(&pattern_label, 0, 0, 1, 1);
-        grid.attach(&pattern_entry, 1, 0, 1, 1);
-        grid.attach(&button_box, 2, 0, 1, 1);
+        // Row 1: Pattern entry (full width)
+        let pattern_box = GtkBox::new(Orientation::Horizontal, 6);
+        let pattern_label = Label::builder()
+            .label(i18n("Pattern:"))
+            .halign(gtk4::Align::End)
+            .width_chars(10)
+            .build();
+        let pattern_entry = Entry::builder()
+            .hexpand(true)
+            .placeholder_text(i18n("Regex pattern (e.g., password:\\s*$)"))
+            .tooltip_text(i18n("Regular expression to match against terminal output"))
+            .build();
+        pattern_box.append(&pattern_label);
+        pattern_box.append(&pattern_entry);
+        main_box.append(&pattern_box);
 
-        // Row 1: Response
+        // Row 2: Response entry + "Insert Variable" button
+        let response_box = GtkBox::new(Orientation::Horizontal, 6);
         let response_label = Label::builder()
             .label(i18n("Response:"))
             .halign(gtk4::Align::End)
+            .width_chars(10)
             .build();
         let response_entry = Entry::builder()
             .hexpand(true)
-            .placeholder_text(i18n("Text to send when pattern matches"))
-            .tooltip_text(i18n("Response to send (supports ${variable} syntax)"))
+            .placeholder_text(i18n("Text to send (e.g., ${password}\\n)"))
+            .tooltip_text(i18n(
+                "Response to send when pattern matches. Use ${password}, ${username}, or ${VAR_NAME} for variables.",
+            ))
             .build();
 
-        grid.attach(&response_label, 0, 1, 1, 1);
-        grid.attach(&response_entry, 1, 1, 2, 1);
+        // "Insert Variable" button with popover
+        let var_menu_button = gtk4::MenuButton::builder()
+            .icon_name("list-add-symbolic")
+            .css_classes(["flat"])
+            .tooltip_text(i18n("Insert a variable placeholder"))
+            .build();
+        var_menu_button
+            .update_property(&[gtk4::accessible::Property::Label(&i18n("Insert variable"))]);
 
-        // Row 2: Priority and Timeout
+        let var_popover = gtk4::Popover::new();
+        var_popover.set_size_request(220, -1);
+        let var_list = GtkBox::new(Orientation::Vertical, 2);
+        var_list.set_margin_top(6);
+        var_list.set_margin_bottom(6);
+        var_list.set_margin_start(6);
+        var_list.set_margin_end(6);
+
+        let builtin_header = Label::builder()
+            .label(i18n("Built-in"))
+            .halign(gtk4::Align::Start)
+            .css_classes(["dim-label", "caption"])
+            .build();
+        var_list.append(&builtin_header);
+
+        for (var_name, var_desc) in [
+            ("${password}", i18n("Connection password")),
+            ("${username}", i18n("Connection username")),
+            ("${host}", i18n("Connection host")),
+            ("${port}", i18n("Connection port")),
+        ] {
+            let btn = Button::builder()
+                .label(var_name)
+                .css_classes(["flat"])
+                .tooltip_text(&var_desc)
+                .build();
+            let entry_clone = response_entry.clone();
+            let var = var_name.to_string();
+            btn.connect_clicked(move |btn| {
+                let pos = entry_clone.position();
+                entry_clone.insert_text(&var, &mut pos.clone());
+                #[allow(clippy::cast_possible_wrap)]
+                entry_clone.set_position(pos + var.len() as i32);
+                if let Some(popover) = btn
+                    .ancestor(gtk4::Popover::static_type())
+                    .and_then(|w| w.downcast::<gtk4::Popover>().ok())
+                {
+                    popover.popdown();
+                }
+            });
+            var_list.append(&btn);
+        }
+
+        let special_header = Label::builder()
+            .label(i18n("Special"))
+            .halign(gtk4::Align::Start)
+            .css_classes(["dim-label", "caption"])
+            .margin_top(4)
+            .build();
+        var_list.append(&special_header);
+
+        let newline_btn = Button::builder()
+            .label("\\n")
+            .css_classes(["flat"])
+            .tooltip_text(i18n("Newline (Enter key)"))
+            .build();
+        {
+            let entry_clone = response_entry.clone();
+            newline_btn.connect_clicked(move |btn| {
+                let pos = entry_clone.position();
+                entry_clone.insert_text("\\n", &mut pos.clone());
+                #[allow(clippy::cast_possible_wrap)]
+                entry_clone.set_position(pos + 2);
+                if let Some(popover) = btn
+                    .ancestor(gtk4::Popover::static_type())
+                    .and_then(|w| w.downcast::<gtk4::Popover>().ok())
+                {
+                    popover.popdown();
+                }
+            });
+        }
+        var_list.append(&newline_btn);
+
+        var_popover.set_child(Some(&var_list));
+        var_menu_button.set_popover(Some(&var_popover));
+
+        response_box.append(&response_label);
+        response_box.append(&response_entry);
+        response_box.append(&var_menu_button);
+        main_box.append(&response_box);
+
+        // Row 3: Priority, Timeout, Enabled, One-shot — compact horizontal row
+        let settings_box = GtkBox::new(Orientation::Horizontal, 8);
+        settings_box.set_halign(gtk4::Align::Start);
+
         let priority_label = Label::builder()
             .label(i18n("Priority:"))
-            .halign(gtk4::Align::End)
+            .css_classes(["dim-label", "caption"])
             .build();
         let priority_adj = gtk4::Adjustment::new(0.0, -1000.0, 1000.0, 1.0, 10.0, 0.0);
         let priority_spin = SpinButton::builder()
             .adjustment(&priority_adj)
             .climb_rate(1.0)
             .digits(0)
+            .width_chars(5)
             .tooltip_text(i18n("Higher priority rules are checked first"))
             .build();
 
         let timeout_label = Label::builder()
-            .label(i18n("Timeout (ms):"))
-            .halign(gtk4::Align::End)
+            .label(i18n("Timeout:"))
+            .css_classes(["dim-label", "caption"])
             .build();
         let timeout_adj = gtk4::Adjustment::new(0.0, 0.0, 60000.0, 100.0, 1000.0, 0.0);
         let timeout_spin = SpinButton::builder()
             .adjustment(&timeout_adj)
             .climb_rate(1.0)
             .digits(0)
+            .width_chars(6)
             .tooltip_text(i18n("Timeout in milliseconds (0 = no timeout)"))
             .build();
 
-        let settings_box = GtkBox::new(Orientation::Horizontal, 12);
-        let priority_box = GtkBox::new(Orientation::Horizontal, 4);
-        priority_box.append(&priority_label);
-        priority_box.append(&priority_spin);
-        let timeout_box = GtkBox::new(Orientation::Horizontal, 4);
-        timeout_box.append(&timeout_label);
-        timeout_box.append(&timeout_spin);
-        settings_box.append(&priority_box);
-        settings_box.append(&timeout_box);
-
-        grid.attach(&settings_box, 1, 2, 2, 1);
-
-        // Row 3: Enabled and One-shot checkboxes
         let enabled_check = CheckButton::builder()
             .label(i18n("Enabled"))
             .active(true)
@@ -4412,11 +4492,13 @@ impl ConnectionDialog {
             .tooltip_text(i18n("Fire only once, then remove the rule"))
             .build();
 
-        let checks_box = GtkBox::new(Orientation::Horizontal, 12);
-        checks_box.append(&enabled_check);
-        checks_box.append(&one_shot_check);
-
-        grid.attach(&checks_box, 1, 3, 2, 1);
+        settings_box.append(&priority_label);
+        settings_box.append(&priority_spin);
+        settings_box.append(&timeout_label);
+        settings_box.append(&timeout_spin);
+        settings_box.append(&enabled_check);
+        settings_box.append(&one_shot_check);
+        main_box.append(&settings_box);
 
         // Row 4: Regex validation label
         let validation_label = Label::builder()
@@ -4424,9 +4506,7 @@ impl ConnectionDialog {
             .css_classes(["error"])
             .visible(false)
             .build();
-        grid.attach(&validation_label, 1, 4, 2, 1);
-
-        main_box.append(&grid);
+        main_box.append(&validation_label);
 
         // Wire regex validation on pattern entry
         let validation_label_clone = validation_label.clone();

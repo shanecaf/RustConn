@@ -46,6 +46,10 @@ pub fn cmd_group(config_path: Option<&Path>, subcmd: GroupCommands) -> Result<()
             ssh_auth_method,
             ssh_proxy_jump,
             ssh_agent_socket,
+            add_expect_rule,
+            clear_expect_rules,
+            add_post_login_script,
+            clear_post_login_scripts,
         } => cmd_group_edit(
             config_path,
             &name,
@@ -57,6 +61,10 @@ pub fn cmd_group(config_path: Option<&Path>, subcmd: GroupCommands) -> Result<()
             ssh_auth_method.as_deref(),
             ssh_proxy_jump.as_deref(),
             ssh_agent_socket.as_deref(),
+            &add_expect_rule,
+            clear_expect_rules,
+            &add_post_login_script,
+            clear_post_login_scripts,
         ),
     }
 }
@@ -179,6 +187,28 @@ fn cmd_group_show(config_path: Option<&Path>, name: &str) -> Result<(), CliError
     }
     if let Some(ref agent_socket) = group.ssh_agent_socket {
         println!("  SSH Agent Socket: {agent_socket}");
+    }
+
+    // Automation fields
+    if !group.expect_rules.is_empty() {
+        println!("\nExpect Rules ({}):", group.expect_rules.len());
+        for rule in &group.expect_rules {
+            let status = if rule.enabled { "✓" } else { "✗" };
+            let one_shot = if rule.one_shot { " (one-shot)" } else { "" };
+            let timeout = rule
+                .timeout_ms
+                .map_or(String::new(), |t| format!(" timeout={t}ms"));
+            println!(
+                "  [{status}] pattern='{}' → response='{}' priority={}{timeout}{one_shot}",
+                rule.pattern, rule.response, rule.priority
+            );
+        }
+    }
+    if !group.post_login_scripts.is_empty() {
+        println!("\nPost-login Scripts ({}):", group.post_login_scripts.len());
+        for script in &group.post_login_scripts {
+            println!("  - {script}");
+        }
     }
 
     let group_connections: Vec<_> = connections
@@ -368,7 +398,7 @@ fn cmd_group_remove_connection(
     Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, clippy::too_many_lines)]
 fn cmd_group_edit(
     config_path: Option<&Path>,
     name: &str,
@@ -380,6 +410,10 @@ fn cmd_group_edit(
     ssh_auth_method: Option<&str>,
     ssh_proxy_jump: Option<&str>,
     ssh_agent_socket: Option<&str>,
+    add_expect_rules: &[String],
+    clear_expect_rules: bool,
+    add_post_login_scripts: &[String],
+    clear_post_login_scripts: bool,
 ) -> Result<(), CliError> {
     if new_name.is_none()
         && parent.is_none()
@@ -389,10 +423,16 @@ fn cmd_group_edit(
         && ssh_auth_method.is_none()
         && ssh_proxy_jump.is_none()
         && ssh_agent_socket.is_none()
+        && add_expect_rules.is_empty()
+        && !clear_expect_rules
+        && add_post_login_scripts.is_empty()
+        && !clear_post_login_scripts
     {
         return Err(CliError::Group(
             "No fields to update. Use --new-name, --parent, --description, --icon, \
-             --ssh-key-path, --ssh-auth-method, --ssh-proxy-jump, or --ssh-agent-socket"
+             --ssh-key-path, --ssh-auth-method, --ssh-proxy-jump, --ssh-agent-socket, \
+             --add-expect-rule, --clear-expect-rules, --add-post-login-script, \
+             or --clear-post-login-scripts"
                 .to_string(),
         ));
     }
@@ -448,6 +488,40 @@ fn cmd_group_edit(
     if let Some(socket) = ssh_agent_socket {
         group.ssh_agent_socket = Some(socket.to_string());
         updated.push(format!("ssh_agent_socket = {socket}"));
+    }
+
+    // Handle expect rules
+    if clear_expect_rules {
+        group.expect_rules.clear();
+        updated.push("expect_rules cleared".to_string());
+    }
+    for rule_json in add_expect_rules {
+        let rule: rustconn_core::automation::ExpectRule =
+            serde_json::from_str(rule_json).map_err(|e| {
+                CliError::Group(format!(
+                    "Invalid expect rule JSON: {e}. Expected format: \
+                     {{\"pattern\":\"...\",\"response\":\"...\",\"priority\":0,\"timeout_ms\":0,\"one_shot\":true}}"
+                ))
+            })?;
+        if let Err(e) = rule.validate_pattern() {
+            return Err(CliError::Group(format!(
+                "Invalid regex pattern in expect rule: {e}"
+            )));
+        }
+        group.expect_rules.push(rule);
+        updated.push("expect_rule added".to_string());
+    }
+
+    // Handle post-login scripts
+    if clear_post_login_scripts {
+        group.post_login_scripts.clear();
+        updated.push("post_login_scripts cleared".to_string());
+    }
+    for script in add_post_login_scripts {
+        if !script.trim().is_empty() {
+            group.post_login_scripts.push(script.clone());
+            updated.push(format!("post_login_script added: {script}"));
+        }
     }
 
     // Handle parent change separately (needs to resolve parent name to UUID)

@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.13.0
+Version:        0.13.1
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -238,6 +238,20 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Sat May 03 2026 Anton Isaiev <totoshko88@gmail.com> - 0.13.1-1
+- [Fixed] Crash when typing in sidebar search field —
+  SearchEngine byte-position iteration panics on multi-byte UTF-8
+  characters; fixed by iterating over valid char_indices() boundaries
+  and using str::get() for safe slicing (#116)
+- [Fixed] Export/re-import loses folder hierarchy, icons, SSH settings,
+  and smart folders — topological sort for groups, copy all fields via
+  update_group, smart folders in NativeExport format v3, group ID
+  remapping during import; CLI updated (#118)
+- [Added] Automation section in group edit dialog — Expect Rules and
+  Post-login Scripts in Edit Group dialog; CLI support (#117)
+- [Improved] Connection dialog Automation tab unified with group dialog (#117)
+- [Documentation] Remmina Flatpak import troubleshooting (#120)
+
 * Sat May 02 2026 Anton Isaiev <totoshko88@gmail.com> - 0.13.0-1
 - Update to version 0.13.0
 - [Fixed] External RDP tab shows only toolbar, content area empty

@@ -1,6 +1,6 @@
 # RustConn User Guide
 
-**Version 0.13.0** | GTK4/libadwaita Connection Manager for Linux
+**Version 0.13.1** | GTK4/libadwaita Connection Manager for Linux
 
 RustConn is a modern connection manager designed for Linux with Wayland-first approach. It supports SSH, RDP, VNC, SPICE, MOSH, SFTP, Telnet, Serial, Kubernetes protocols and Zero Trust integrations through a native GTK4/libadwaita interface.
 
@@ -33,6 +33,7 @@ RustConn is a modern connection manager designed for Linux with Wayland-first ap
    - [Per-connection Terminal Theming](#per-connection-terminal-theming)
 6. [Organization](#organization)
    - [Groups](#groups)
+   - [Group Automation](#group-automation-expect-rules--post-login-scripts)
    - [Favorites](#favorites)
    - [Smart Folders](#smart-folders)
    - [Dynamic Folders](#dynamic-folders)
@@ -195,6 +196,8 @@ Expect rules automate interactive prompts during connection. Each rule matches a
 3. Enter pattern (text or regex) and response
 4. Set priority (lower number = higher priority)
 5. Use the **Test** button to verify pattern matching
+
+> **Tip:** You can also configure Expect Rules at the group level (Edit Group → Automation). Connections with empty automation config automatically inherit rules from their parent group chain. See [Group Automation](#group-automation-expect-rules--post-login-scripts) for details.
 
 **Examples:**
 | Pattern | Response | Use Case |
@@ -1096,6 +1099,80 @@ RustConn/
         └── Local/
 ```
 
+#### Group Automation (Expect Rules & Post-login Scripts)
+
+Groups can define Expect Rules and Post-login Scripts that are automatically inherited by all connections in the group (and subgroups). This lets you configure automation once for hundreds of connections.
+
+**Configure Group Automation (GUI):**
+1. Right-click a group → **Edit Group**
+2. Expand the **Automation** section (toggle the switch to enable)
+3. **Expect Rules** — add rules that auto-respond to terminal patterns:
+   - Click **Add Rule** to create a blank rule
+   - Or click **From Template** to pick a preset — SSH-specific templates are marked with "(SSH)":
+     - Sudo Password (SSH) — auto-respond to `[sudo] password for ...:`
+     - SSH Host Key Confirmation (SSH) — auto-accept host key fingerprint
+     - Login Prompt — auto-fill username and password at login prompts
+     - Press Enter to Continue — auto-dismiss "Press Enter" prompts
+     - MOTD Pager — auto-dismiss `--More--` pager prompts
+   - Each rule has: Pattern (regex), Response, Priority, Timeout, Enabled/One-shot toggles
+   - Each rule has ↑ ↓ 🗑️ buttons at the top-right to reorder or delete individual rules
+   - Use the **➕** button next to Response to insert variable placeholders (`${password}`, `${username}`, `${host}`, `${port}`, `\n`) without typing them manually
+   - Invalid regex patterns are highlighted in red with an error message
+   - Click **Clear All** to remove all rules at once
+4. **Pattern Tester** (collapsible) — type text to test against your rules in real time; shows which rule matches and what response would be sent
+5. **Post-login Scripts** — add individual commands to run after login:
+   - Click **Add Script** to add a new command entry
+   - Each script has its own row with a delete button
+   - Example commands: `cd /app`, `source .env`, `export TERM=xterm-256color`
+6. Click **Save**
+
+> **Note:** Disabling the Automation switch shows a confirmation dialog — all rules and scripts will be cleared.
+
+> **Tip:** Responses support `${password}`, `${username}`, `${host}`, `${port}`, and `${VARIABLE_NAME}` placeholders that are resolved at connection time. `${password}` is automatically filled from the connection's configured secret backend (Vault, Variable, etc.). Use the ➕ button next to the Response field to insert these without typing.
+
+**Configure Group Automation (CLI):**
+
+```bash
+# Add a sudo password expect rule
+rustconn-cli group edit "Production" \
+  --add-expect-rule '{"pattern":"\\[sudo\\] password for \\w+:","response":"${password}\\n","priority":10,"timeout_ms":30000,"one_shot":true}'
+
+# Add multiple rules at once
+rustconn-cli group edit "Production" \
+  --add-expect-rule '{"pattern":"password:\\s*$","response":"${password}\\n"}' \
+  --add-expect-rule '{"pattern":"yes/no","response":"yes\\n"}'
+
+# Clear all rules and start fresh
+rustconn-cli group edit "Production" --clear-expect-rules \
+  --add-expect-rule '{"pattern":"login:","response":"${username}\\n"}'
+
+# Add post-login scripts
+rustconn-cli group edit "Production" \
+  --add-post-login-script "cd /app" \
+  --add-post-login-script "source .env"
+
+# Clear and replace post-login scripts
+rustconn-cli group edit "Production" --clear-post-login-scripts \
+  --add-post-login-script "export TERM=xterm-256color"
+
+# View group automation config
+rustconn-cli group show "Production"
+```
+
+**Inheritance Rules:**
+- Connections with **empty** automation config automatically inherit from their parent group
+- If a connection has its own Expect Rules, group rules are **not** merged — the connection's rules take precedence
+- Expect rules and post-login scripts are inherited independently — rules may come from one group and scripts from another
+- Inheritance walks up the group hierarchy: child group → parent group → grandparent group
+- To override group automation for a specific connection, add at least one rule in the connection's Automation tab
+
+**Example — Sudo password for all servers in a group:**
+1. Edit the "Production Servers" group
+2. Enable Automation → click **From Template** → select **Sudo Password (SSH)**
+3. The template adds a rule: pattern `\[sudo\] password for \w+:` → response `${password}\n`
+4. Save the group
+5. All SSH connections in "Production Servers" now auto-respond to sudo prompts using their vault password
+
 #### Sorting
 
 - Alphabetical by default (case-insensitive, by full path)
@@ -1823,6 +1900,8 @@ xdg-mime default io.github.totoshko88.RustConn.desktop application/x-rdp
 2. Review import preview → choose merge strategy → Import
 3. Re-enter passwords and verify SSH key paths after import
 
+> **Flatpak ↔ Flatpak:** If both RustConn and Remmina are installed as Flatpaks, the Remmina import button may show "Not Found" because Remmina stores its `.remmina` files inside its own sandbox (`~/.var/app/org.remmina.Remmina/data/remmina/`), which RustConn cannot access by default. See [Flatpak Sandbox Overrides → Remmina Import](#flatpak-sandbox-overrides) below for the fix.
+
 #### From MobaXterm
 
 1. Export sessions from MobaXterm → copy `.mxtsessions` file to Linux
@@ -2277,6 +2356,26 @@ flatpak override --user --filesystem=home/.1password:ro io.github.totoshko88.Rus
 ```bash
 flatpak override --user --filesystem=home/.hoop:ro io.github.totoshko88.RustConn
 ```
+
+**Remmina Import (Flatpak ↔ Flatpak):**
+
+When Remmina is also installed as a Flatpak, its connection files live inside its own sandbox at `~/.var/app/org.remmina.Remmina/data/remmina/` instead of the standard `~/.local/share/remmina/`. RustConn cannot see this directory by default, so the import button shows "Not Found."
+
+*Option A — Grant read access (recommended):*
+```bash
+flatpak override --user --filesystem=home/.var/app/org.remmina.Remmina/data/remmina:ro io.github.totoshko88.RustConn
+```
+
+*Option B — Flatseal (GUI):*
+1. Open [Flatseal](https://flathub.org/apps/com.github.tchx84.Flatseal) → select **RustConn**
+2. Scroll to **Filesystem → Other files** → add `~/.var/app/org.remmina.Remmina/data/remmina:ro`
+
+*Option C — Symlink (no permission changes):*
+```bash
+ln -s ~/.var/app/org.remmina.Remmina/data/remmina ~/.local/share/remmina
+```
+
+Restart RustConn after any of the above. The Remmina import should now detect connection files.
 
 **RDP Shared Folders:**
 ```bash

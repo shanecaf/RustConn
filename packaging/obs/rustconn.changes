@@ -1,4 +1,29 @@
 -------------------------------------------------------------------
+Sat May 03 2026 Anton Isaiev <totoshko88@gmail.com> - 0.13.1
+
+- Update to version 0.13.1
+- [Fixed] Crash when typing in sidebar search field —
+  SearchEngine::find_case_insensitive used raw byte-position iteration
+  and direct byte slicing which panics on multi-byte UTF-8 characters
+  (Cyrillic, CJK, emoji); same bug in fuzzy_score_case_insensitive and
+  fuzzy_score_optimized prefix checks; fixed by iterating over valid
+  char_indices() boundaries and using str::get() for safe slicing (#116)
+- [Fixed] Export/re-import loses folder hierarchy, icons, SSH settings,
+  and smart folders — native .rcn export/import had four data-loss bugs:
+  hierarchy flattened (replaced with topological sort), folder fields
+  dropped (now copies all fields via update_group), smart folders not
+  exported (added to NativeExport format v3), smart folder group
+  references not remapped (now remapped during import); CLI updated (#118)
+- [Added] Automation section in group edit dialog — Expect Rules and
+  Post-login Scripts configurable directly in Edit Group dialog; full
+  rule editor with Insert Variable popover, From Template menu, Pattern
+  Tester; CLI: group edit --add-expect-rule, --clear-expect-rules (#117)
+- [Improved] Connection dialog Automation tab unified with group dialog —
+  same vertical layout, Insert Variable popover, template picker (#117)
+- [Documentation] Remmina Flatpak import troubleshooting — added
+  instructions to User Guide (#120)
+
+-------------------------------------------------------------------
 Sat May 02 2026 Anton Isaiev <totoshko88@gmail.com> - 0.13.0
 
 - Update to version 0.13.0

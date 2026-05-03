@@ -55,6 +55,14 @@
   </branding>
   <screenshots>
     <screenshot type="default">
+      <caption>Welcome screen with quick actions</caption>
+      <image type="source" width="3668" height="2378">https://raw.githubusercontent.com/totoshko88/RustConn/main/rustconn/assets/screenshots/welcome_light.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Welcome screen in dark mode</caption>
+      <image type="source" width="3668" height="2378">https://raw.githubusercontent.com/totoshko88/RustConn/main/rustconn/assets/screenshots/welcome_dark.png</image>
+    </screenshot>
+    <screenshot>
       <caption>Active SSH session with sidebar and terminal</caption>
       <image type="source" width="3668" height="2378">https://raw.githubusercontent.com/totoshko88/RustConn/main/rustconn/assets/screenshots/active_session_light.png</image>
     </screenshot>
@@ -111,14 +119,6 @@
       <image type="source" width="3668" height="2378">https://raw.githubusercontent.com/totoshko88/RustConn/main/rustconn/assets/screenshots/history_light.png</image>
     </screenshot>
     <screenshot>
-      <caption>Welcome screen with quick actions</caption>
-      <image type="source" width="3668" height="2378">https://raw.githubusercontent.com/totoshko88/RustConn/main/rustconn/assets/screenshots/welcome_light.png</image>
-    </screenshot>
-    <screenshot>
-      <caption>Welcome screen in dark mode</caption>
-      <image type="source" width="3668" height="2378">https://raw.githubusercontent.com/totoshko88/RustConn/main/rustconn/assets/screenshots/welcome_dark.png</image>
-    </screenshot>
-    <screenshot>
       <caption>Flatpak components manager for external CLI tools</caption>
       <image type="source" width="3668" height="2378">https://raw.githubusercontent.com/totoshko88/RustConn/main/rustconn/assets/screenshots/flatpak_components_light.png</image>
     </screenshot>
@@ -144,6 +144,17 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.13.1" date="2026-05-03">
+      <description>
+        <p>Version 0.13.1 — Bug fixes, group automation dialog, and export improvements:</p>
+        <ul>
+          <li>Fixed crash when typing in sidebar search field — byte-position iteration and direct byte slicing panicked on multi-byte UTF-8 characters (Cyrillic, CJK, emoji); fixed by iterating over valid char_indices() boundaries and using str::get() for safe slicing (#116)</li>
+          <li>Fixed: Export/re-import loses folder hierarchy, icons, SSH settings, and smart folders (4 data-loss bugs fixed)</li>
+          <li>Added: Automation section in group edit dialog with Expect Rules and Post-login Scripts (CLI support included)</li>
+          <li>Improved: Connection dialog Automation tab unified with group dialog layout</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.13.0" date="2026-05-03">
       <description>
         <p>Version 0.13.0 — Smart Folders, mouse passthrough, group automation, CLI completeness, and FreeRDP certificate handling:</p>

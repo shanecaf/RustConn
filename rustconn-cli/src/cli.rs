@@ -810,6 +810,23 @@ pub enum GroupCommands {
         /// SSH agent socket override for inheritance (local-only)
         #[arg(long)]
         ssh_agent_socket: Option<String>,
+
+        /// Add an expect rule (JSON: {"pattern":"...","response":"...","priority":0,"timeout_ms":0,"one_shot":true})
+        /// Can be specified multiple times
+        #[arg(long, value_name = "JSON")]
+        add_expect_rule: Vec<String>,
+
+        /// Remove all existing expect rules before adding new ones
+        #[arg(long)]
+        clear_expect_rules: bool,
+
+        /// Add a post-login script command. Can be specified multiple times
+        #[arg(long, value_name = "COMMAND")]
+        add_post_login_script: Vec<String>,
+
+        /// Remove all existing post-login scripts before adding new ones
+        #[arg(long)]
+        clear_post_login_scripts: bool,
     },
 }
 

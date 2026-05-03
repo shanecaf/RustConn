@@ -1454,6 +1454,7 @@ impl ImportDialog {
                                     errors: Vec::new(),
                                     credentials: std::collections::HashMap::new(),
                                     snippets: native_export.snippets,
+                                    smart_folders: native_export.smart_folders,
                                     warnings: Vec::new(),
                                 };
 
@@ -1507,6 +1508,7 @@ impl ImportDialog {
                                             errors: Vec::new(),
                                             credentials: std::collections::HashMap::new(),
                                             snippets: Vec::new(),
+                                            smart_folders: Vec::new(),
                                             warnings: vec![i18n(
                                                 "Imported as Cloud Sync group (Import mode). Use Sync Now to keep it updated.",
                                             )],

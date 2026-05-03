@@ -18,7 +18,7 @@ use rustconn_core::export::{
     ExportOptions, ExportResult, ExportTarget, MobaXtermExporter, NativeExport, RemminaExporter,
     RoyalTsExporter, SshConfigExporter,
 };
-use rustconn_core::models::{Connection, ConnectionGroup, Snippet};
+use rustconn_core::models::{Connection, ConnectionGroup, SmartFolder, Snippet};
 use std::cell::RefCell;
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -72,6 +72,7 @@ pub struct ExportDialog {
     connections: Rc<RefCell<Vec<Connection>>>,
     groups: Rc<RefCell<Vec<ConnectionGroup>>>,
     snippets: Rc<RefCell<Vec<Snippet>>>,
+    smart_folders: Rc<RefCell<Vec<SmartFolder>>>,
     result: Rc<RefCell<Option<ExportResult>>>,
     on_complete: ExportCallback,
     parent: Option<gtk4::Window>,
@@ -199,6 +200,7 @@ impl ExportDialog {
             connections: Rc::new(RefCell::new(Vec::new())),
             groups: Rc::new(RefCell::new(Vec::new())),
             snippets: Rc::new(RefCell::new(Vec::new())),
+            smart_folders: Rc::new(RefCell::new(Vec::new())),
             result: Rc::new(RefCell::new(None)),
             on_complete,
             parent: parent.cloned(),
@@ -595,6 +597,11 @@ impl ExportDialog {
         *self.snippets.borrow_mut() = snippets;
     }
 
+    /// Sets the smart folders to include in native export
+    pub fn set_smart_folders(&self, smart_folders: Vec<SmartFolder>) {
+        *self.smart_folders.borrow_mut() = smart_folders;
+    }
+
     /// Maps a format dropdown index to an `ExportFormat`
     fn format_from_index(index: u32) -> ExportFormat {
         match index {
@@ -615,6 +622,7 @@ impl ExportDialog {
         connections: &[Connection],
         groups: &[ConnectionGroup],
         snippets: &[Snippet],
+        smart_folders: &[SmartFolder],
         options: &ExportOptions,
         csv_options: Option<&CsvExportOptions>,
     ) -> Result<ExportResult, String> {
@@ -645,7 +653,7 @@ impl ExportDialog {
             }
             ExportFormat::Native => {
                 // Native export includes all data types
-                let export = NativeExport::with_data(
+                let mut export = NativeExport::with_data(
                     connections.to_vec(),
                     groups.to_vec(),
                     Vec::new(), // Templates would need to be passed in
@@ -653,6 +661,7 @@ impl ExportDialog {
                     Vec::new(), // Variables would need to be passed in
                     snippets.to_vec(),
                 );
+                export.smart_folders = smart_folders.to_vec();
                 export
                     .to_file(&options.output_path)
                     .map_err(|e| e.to_string())?;
@@ -910,6 +919,7 @@ impl ExportDialog {
         let connections = self.connections.clone();
         let groups = self.groups.clone();
         let snippets = self.snippets.clone();
+        let smart_folders = self.smart_folders.clone();
         let result_cell = self.result.clone();
         let on_complete = self.on_complete.clone();
         let csv_delimiter_dropdown = self.csv_delimiter_dropdown.clone();
@@ -1006,6 +1016,7 @@ impl ExportDialog {
             let all_conns = connections.borrow().clone();
             let all_grps = groups.borrow().clone();
             let snips = snippets.borrow().clone();
+            let smart_fldrs = smart_folders.borrow().clone();
 
             // Filter connections and groups by selected group (and its descendants)
             let (conns, grps) = {
@@ -1068,6 +1079,7 @@ impl ExportDialog {
                         &conns,
                         &grps,
                         &snips,
+                        &smart_fldrs,
                         &options_clone,
                         csv_opts_clone.as_ref(),
                     )

@@ -24,6 +24,11 @@ pub fn cmd_export(
         .load_groups()
         .map_err(|e| CliError::Config(format!("Failed to load groups: {e}")))?;
 
+    let smart_folders = config_manager
+        .load_settings()
+        .map(|s| s.smart_folders)
+        .unwrap_or_default();
+
     let export_format = match format {
         ExportFormatArg::Ansible => rustconn_core::export::ExportFormat::Ansible,
         ExportFormatArg::SshConfig => rustconn_core::export::ExportFormat::SshConfig,
@@ -37,7 +42,7 @@ pub fn cmd_export(
 
     let options = rustconn_core::export::ExportOptions::new(export_format, output.to_path_buf());
 
-    let result = export_connections(&connections, &groups, &options)?;
+    let result = export_connections(&connections, &groups, &smart_folders, &options)?;
 
     println!(
         "Export complete: {} connections exported, {} skipped",
@@ -64,6 +69,7 @@ pub fn cmd_export(
 fn export_connections(
     connections: &[Connection],
     groups: &[ConnectionGroup],
+    smart_folders: &[rustconn_core::models::SmartFolder],
     options: &rustconn_core::export::ExportOptions,
 ) -> Result<rustconn_core::export::ExportResult, CliError> {
     use rustconn_core::export::{
@@ -97,7 +103,7 @@ fn export_connections(
                 .map_err(|e| CliError::Export(e.to_string()))?
         }
         ExportFormat::Native => {
-            let native_export = NativeExport::with_data(
+            let mut native_export = NativeExport::with_data(
                 connections.to_vec(),
                 groups.to_vec(),
                 Vec::new(),
@@ -105,6 +111,7 @@ fn export_connections(
                 Vec::new(),
                 Vec::new(),
             );
+            native_export.smart_folders = smart_folders.to_vec();
 
             native_export
                 .to_file(&options.output_path)
@@ -303,6 +310,7 @@ fn import_connections(
                 errors: Vec::new(),
                 credentials: std::collections::HashMap::new(),
                 snippets: native.snippets,
+                smart_folders: native.smart_folders,
                 warnings: Vec::new(),
             }
         }

@@ -5038,12 +5038,14 @@ impl MainWindow {
             .map(|g| (*g).clone())
             .collect();
         let snippets: Vec<_> = state_ref.list_snippets().into_iter().cloned().collect();
+        let smart_folders = state_ref.settings().smart_folders.clone();
         drop(state_ref);
 
         // Set data for export
         dialog.set_connections(connections);
         dialog.set_groups(groups);
         dialog.set_snippets(snippets);
+        dialog.set_smart_folders(smart_folders);
 
         let window_clone = window.clone();
         dialog.run(move |result| {

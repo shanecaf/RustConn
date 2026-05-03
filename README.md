@@ -64,7 +64,7 @@ flatpak install flathub io.github.totoshko88.RustConn
 | **Snap** | `sudo snap install rustconn` ([permissions](docs/SNAP.md)) |
 | **Debian 13 / Ubuntu 24.04 / Ubuntu 26.04** | OBS apt repository ([setup](docs/INSTALL.md#debian--ubuntu-obs-repository)) |
 | **openSUSE** (Tumbleweed, Slowroll, Leap 16.0) | OBS zypper repository ([setup](docs/INSTALL.md#opensuse-obs)) |
-| **Fedora 44** | OBS dnf repository ([setup](docs/INSTALL.md#fedora-obs)) |
+| **Fedora 43 / 44** | OBS dnf repository ([setup](docs/INSTALL.md#fedora-obs)) |
 | **Arch Linux** | `yay -S rustconn` ([AUR](https://aur.archlinux.org/packages/rustconn), community) |
 | **FreeBSD** | `pkg install rustconn` ([ports](https://www.freshports.org/net/rustconn/), community) |
 | **AppImage** | [GitHub Releases](https://github.com/totoshko88/RustConn/releases) |

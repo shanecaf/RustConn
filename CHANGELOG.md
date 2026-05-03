@@ -5,6 +5,21 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.1] - 2026-05-03
+
+### Fixed
+- **Crash when typing in sidebar search field** — `SearchEngine::find_case_insensitive` used raw byte-position iteration (`0..=len`) and direct byte slicing (`haystack[i..i+n]`) which panics when connection names or hosts contain multi-byte UTF-8 characters (Cyrillic, CJK, emoji, etc.); the same byte-boundary bug existed in `fuzzy_score_case_insensitive` and `fuzzy_score_optimized` prefix checks; fixed by iterating only over valid `char_indices()` boundaries and using `str::get()` for safe slicing with `is_char_boundary()` guards ([#116](https://github.com/totoshko88/RustConn/issues/116))
+- **Export/re-import loses folder hierarchy, icons, SSH settings, and smart folders** — native `.rcn` export/import had four data-loss bugs: (1) group hierarchy flattened because binary root-vs-child sort didn't guarantee parents were created before children — replaced with topological sort; (2) folder icons (emoji), description, SSH auth settings (`ssh_auth_method`, `ssh_key_path`, `ssh_proxy_jump`, `ssh_agent_socket`), login defaults (`username`, `domain`, `password_source`), automation (`expect_rules`, `post_login_scripts`), and `dynamic_folder` config were silently dropped because `create_group_with_parent` only sets name+parent — now copies all fields via `update_group` after creation; (3) smart folders were not included in the export format at all — added `smart_folders` field to `NativeExport` (format version 3, backward-compatible via `#[serde(default)]`); (4) smart folder `filter_group_id` references were not remapped to new group UUIDs — now remapped during import; CLI export/import updated accordingly ([#118](https://github.com/totoshko88/RustConn/issues/118))
+
+### Documentation
+- **Remmina Flatpak import troubleshooting** — added instructions to User Guide for importing Remmina connections when both apps are Flatpaks; covers `flatpak override`, Flatseal, and symlink workarounds ([#120](https://github.com/totoshko88/RustConn/issues/120))
+
+### Added
+- **Automation section in group edit dialog** — Expect Rules and Post-login Scripts can now be configured directly in the group edit dialog (Edit Group → Automation); full rule editor with pattern/response fields, priority/timeout controls, enabled/one-shot checkboxes, ↑↓🗑️ action buttons per rule, "Insert Variable" (➕) popover for `${password}`, `${username}`, `${host}`, `${port}`, `\n` insertion, "From Template" menu with 5 built-in presets marked with protocol hints (e.g., "Sudo Password (SSH)"), "Clear All" button, collapsible Pattern Tester for real-time rule matching, post-login scripts as individual entries with per-row delete, confirmation dialog on automation disable, stable window width via `set_size_request` + `tightening_threshold` matching Clamp, overlay scrolling to prevent layout shifts; CLI: `group edit --add-expect-rule` (JSON), `--clear-expect-rules`, `--add-post-login-script`, `--clear-post-login-scripts`; `group show` now displays automation config ([#117](https://github.com/totoshko88/RustConn/issues/117))
+
+### Improved
+- **Connection dialog Automation tab unified with group dialog** — expect rule editor now uses the same vertical layout as the group dialog: ↑↓🗑️ action buttons at top-right of each rule, "Insert Variable" (➕) popover on Response field, template picker with "(SSH)" protocol hints, variable substitution info banner, removed inner ScrolledWindow (scroll-in-scroll anti-pattern per GNOME HIG), overlay scrolling and `tightening_threshold` matching Clamp to prevent layout width shifts ([#117](https://github.com/totoshko88/RustConn/issues/117))
+
 ## [0.13.0] - 2026-05-03
 
 ### Fixed
