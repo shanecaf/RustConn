@@ -4994,16 +4994,9 @@ impl MainWindow {
             // The "can't set process group" / "no job control" warnings
             // are an inherent limitation of flatpak-spawn --host (bash is
             // not a session leader). They are cosmetic — the shell works.
-            let spawn_cmd = format!(
-                "flatpak-spawn --host --env=TERM=xterm-256color -- {host_shell} -l"
-            );
-            notebook.spawn_command(
-                session_id,
-                &["/bin/sh", "-c", &spawn_cmd],
-                None,
-                None,
-                None,
-            );
+            let spawn_cmd =
+                format!("flatpak-spawn --host --env=TERM=xterm-256color -- {host_shell} -l");
+            notebook.spawn_command(session_id, &["/bin/sh", "-c", &spawn_cmd], None, None, None);
         } else {
             notebook.spawn_command(session_id, &[&shell], None, None, None);
         }
