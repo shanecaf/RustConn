@@ -1,3 +1,16 @@
+rustconn (0.13.2-1) unstable; urgency=medium
+
+  * [Fixed] Mouse scroll not working in terminal sessions —
+    set_enable_fallback_scrolling was incorrectly disabled by Mouse passthrough
+    setting; VTE handles mouse forwarding natively; now always enabled (#121)
+  * [Fixed] Flatpak local shell provides only a sandboxed minimal shell —
+    Local Shell now spawns host shell via flatpak-spawn --host (#122)
+  * [Removed] Mouse passthrough setting from Terminal preferences —
+    VTE handles mouse event forwarding automatically
+  * [Added] Per-connection monitoring toggle in connection dialog (#106)
+
+ -- Anton Isaiev <totoshko88@gmail.com>  Sun, 04 May 2026 12:00:00 +0200
+
 rustconn (0.13.1-1) unstable; urgency=medium
 
   * [Fixed] Crash when typing in sidebar search field —

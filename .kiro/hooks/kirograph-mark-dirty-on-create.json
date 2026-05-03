@@ -1,0 +1,13 @@
+{
+  "name": "KiroGraph: Mark dirty on create",
+  "version": "1.0.0",
+  "description": "Marks the KiroGraph index as dirty when a new source file is created",
+  "when": {
+    "type": "fileCreated",
+    "patterns": ["*.rs"]
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "kirograph mark-dirty"
+  }
+}

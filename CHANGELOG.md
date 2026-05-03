@@ -5,6 +5,18 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.2] - 2026-05-04
+
+### Fixed
+- **Mouse scroll not working in terminal sessions** — `set_enable_fallback_scrolling(false)` was incorrectly tied to the "Mouse passthrough" setting, which disabled VTE's scrollback scrolling for normal shell sessions (bash, zsh); VTE natively forwards scroll events to programs that request mouse tracking regardless of this flag — disabling it only broke scrollback for programs without mouse tracking; now always enabled ([#121](https://github.com/totoshko88/RustConn/issues/121))
+- **Flatpak local shell provides only a sandboxed minimal shell** — "Local Shell" in Flatpak now spawns the user's host shell via `flatpak-spawn --host` with `--login`, giving full access to system tools, dotfiles, and home directory; added `--talk-name=org.freedesktop.Flatpak` permission to both Flatpak manifests ([#122](https://github.com/totoshko88/RustConn/issues/122))
+
+### Removed
+- **"Mouse passthrough" setting removed from Terminal preferences** — the toggle was based on a misunderstanding of VTE's `enable_fallback_scrolling` API; VTE handles mouse event forwarding to terminal apps (mc, vim, htop) automatically via escape sequences — no user-facing setting is needed; removed field from `TerminalSettings`, checkbox from UI, and obsoleted translations in all 16 languages
+
+### Added
+- **Per-connection monitoring toggle in connection dialog** — Advanced tab now has a "Remote Monitoring" section with an "Enable Monitoring" switch; when disabled, the monitoring collector does not open a separate SSH session to the remote host, preventing IP bans on devices with concurrent session limits (e.g. network routers); uses the existing `MonitoringConfig` backend — the toggle was already supported in `rustconn-core` but had no GUI ([#106](https://github.com/totoshko88/RustConn/issues/106))
+
 ## [0.13.1] - 2026-05-04
 
 ### Fixed

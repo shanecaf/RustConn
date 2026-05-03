@@ -51,6 +51,8 @@ finish-args:
   - --talk-name=org.kde.StatusNotifierWatcher
   # Device access (serial ports for picocom require --device=all; no granular option exists)
   - --device=all
+  # Host shell access: flatpak-spawn --host needs to talk to the Flatpak session helper
+  - --talk-name=org.freedesktop.Flatpak
   # Downloads directory for SFTP file transfers via mc
   - --filesystem=xdg-download:create
   # Strip host-exported bash function mc() that sources /usr/share/mc/mc-wrapper.sh
@@ -302,7 +304,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/totoshko88/RustConn.git
-        tag: v0.13.1
+        tag: v0.13.2
         x-checker-data:
           type: git
           tag-pattern: ^v([\d.]+)$

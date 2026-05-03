@@ -4964,7 +4964,26 @@ impl MainWindow {
 
         // Get user's default shell
         let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/bash".to_string());
-        notebook.spawn_command(session_id, &[&shell], None, None, None);
+
+        // In Flatpak, spawn the shell on the host via flatpak-spawn so the
+        // user gets their full system shell with all tools and dotfiles (#122).
+        if rustconn_core::flatpak::is_flatpak() {
+            notebook.spawn_command(
+                session_id,
+                &[
+                    "flatpak-spawn",
+                    "--host",
+                    "--env=TERM=xterm-256color",
+                    &shell,
+                    "--login",
+                ],
+                None,
+                None,
+                None,
+            );
+        } else {
+            notebook.spawn_command(session_id, &[&shell], None, None, None);
+        }
 
         // Per spec (Requirement 1): New connections ALWAYS create independent Root_Tabs
         // Register session for potential drag-and-drop, but don't show in split pane

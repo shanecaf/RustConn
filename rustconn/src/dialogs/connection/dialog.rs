@@ -324,6 +324,8 @@ pub struct ConnectionDialog {
     theme_cursor_button: ColorDialogButton,
     theme_reset_button: Button,
     theme_preview: DrawingArea,
+    // Remote monitoring override field
+    monitoring_toggle: adw::SwitchRow,
     // Session recording field
     recording_toggle: adw::SwitchRow,
     // Highlight rules fields
@@ -719,6 +721,7 @@ impl ConnectionDialog {
             theme_cursor_button,
             theme_reset_button,
             theme_preview,
+            monitoring_toggle,
             recording_toggle,
             highlight_rules_list,
             add_highlight_rule_button,
@@ -945,6 +948,7 @@ impl ConnectionDialog {
             &theme_cursor_button,
             &connections_data,
             &script_command_entry,
+            &monitoring_toggle,
             &recording_toggle,
             &highlight_rules,
             &activity_mode_combo,
@@ -1137,6 +1141,7 @@ impl ConnectionDialog {
             theme_cursor_button,
             theme_reset_button,
             theme_preview,
+            monitoring_toggle,
             recording_toggle,
             highlight_rules_list,
             highlight_rules,
@@ -2007,6 +2012,7 @@ impl ConnectionDialog {
         theme_cursor_button: &ColorDialogButton,
         connections_data: &Rc<RefCell<Vec<(Option<Uuid>, String)>>>,
         script_command_entry: &Entry,
+        monitoring_toggle: &adw::SwitchRow,
         recording_toggle: &adw::SwitchRow,
         highlight_rules: &Rc<RefCell<Vec<HighlightRule>>>,
         activity_mode_combo: &adw::ComboRow,
@@ -2179,6 +2185,7 @@ impl ConnectionDialog {
         let editing_id = editing_id.clone();
         let connections_data = connections_data.clone();
         let script_command_entry = script_command_entry.clone();
+        let monitoring_toggle = monitoring_toggle.clone();
         let recording_toggle = recording_toggle.clone();
         let highlight_rules = highlight_rules.clone();
         let activity_mode_combo = activity_mode_combo.clone();
@@ -2356,6 +2363,7 @@ impl ConnectionDialog {
                 vnc_performance_mode_dropdown: &vnc_performance_mode_dropdown,
                 editing_id: &editing_id,
                 script_command_entry: &script_command_entry,
+                monitoring_toggle: &monitoring_toggle,
                 recording_toggle: &recording_toggle,
                 highlight_rules: &collected_highlight_rules,
                 activity_mode_combo: &activity_mode_combo,
@@ -5400,6 +5408,16 @@ impl ConnectionDialog {
             self.theme_preview.queue_draw();
         }
 
+        // Set remote monitoring toggle
+        // If monitoring_config has enabled=Some(false), toggle is OFF.
+        // Otherwise (None or enabled=Some(true)), toggle is ON.
+        let mon_enabled = conn
+            .monitoring_config
+            .as_ref()
+            .and_then(|mc| mc.enabled)
+            .unwrap_or(true);
+        self.monitoring_toggle.set_active(mon_enabled);
+
         // Set session recording toggle
         self.recording_toggle
             .set_active(conn.session_recording_enabled);
@@ -7480,6 +7498,8 @@ struct ConnectionDialogData<'a> {
     connections_data: &'a Rc<RefCell<Vec<(Option<Uuid>, String)>>>,
     // Script credential fields
     script_command_entry: &'a Entry,
+    // Remote monitoring override field
+    monitoring_toggle: &'a adw::SwitchRow,
     // Session recording field
     recording_toggle: &'a adw::SwitchRow,
     // Highlight rules
@@ -7717,6 +7737,18 @@ impl ConnectionDialogData<'_> {
                 }
             }
         }
+
+        // Set remote monitoring override
+        // When toggle is ON (default), no override needed — global settings apply.
+        // When toggle is OFF, store explicit disabled override.
+        conn.monitoring_config = if self.monitoring_toggle.is_active() {
+            None
+        } else {
+            Some(rustconn_core::monitoring::MonitoringConfig {
+                enabled: Some(false),
+                interval_secs: None,
+            })
+        };
 
         // Set session recording
         conn.session_recording_enabled = self.recording_toggle.is_active();
