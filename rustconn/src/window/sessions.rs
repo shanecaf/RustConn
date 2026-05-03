@@ -35,7 +35,7 @@ pub fn show_sessions_manager(
         .transient_for(window)
         .modal(true)
         .default_width(500)
-        .default_height(400)
+        .default_height(500)
         .build();
 
     manager_window.set_size_request(320, 280);
@@ -86,6 +86,13 @@ pub fn show_sessions_manager(
         .selection_mode(gtk4::SelectionMode::Single)
         .css_classes(["boxed-list"])
         .build();
+    sessions_list.set_placeholder(Some(
+        &adw::StatusPage::builder()
+            .icon_name("system-run-symbolic")
+            .title(i18n("No Active Sessions"))
+            .description(i18n("Open a connection to start a session"))
+            .build(),
+    ));
     scrolled.set_child(Some(&sessions_list));
     content.append(&scrolled);
 
@@ -245,8 +252,9 @@ pub fn populate_sessions_list(
     let state_session_count = active_sessions.len();
     drop(state_ref);
 
-    count_label.set_text(&format!(
-        "{session_count} UI session(s), {state_session_count} tracked session(s)"
+    count_label.set_text(&crate::i18n::i18n_f(
+        "{} UI session(s), {} tracked session(s)",
+        &[&session_count.to_string(), &state_session_count.to_string()],
     ));
 
     for session_id in session_ids {

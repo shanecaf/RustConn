@@ -243,6 +243,7 @@ impl SnippetDialog {
 
         let button_box = GtkBox::new(Orientation::Horizontal, 8);
         button_box.set_halign(gtk4::Align::End);
+        button_box.set_margin_top(8);
 
         let add_var_button = Button::builder().label(i18n("Add Variable")).build();
         button_box.append(&add_var_button);

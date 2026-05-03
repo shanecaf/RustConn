@@ -27,7 +27,7 @@ pub use ui_tab::*;
 
 use adw::prelude::*;
 use gtk4::prelude::*;
-use gtk4::{Box as GtkBox, Button, CheckButton, DropDown, Entry, Label, PasswordEntry, SpinButton};
+use gtk4::{Box as GtkBox, Button, CheckButton, DropDown, Entry, Label, SpinButton};
 use libadwaita as adw;
 use rustconn_core::config::AppSettings;
 use rustconn_core::models::Connection;
@@ -938,6 +938,25 @@ impl SettingsDialog {
             self.secrets_widgets.bitwarden_client_id_entry.clone();
         let bitwarden_client_secret_entry_clone =
             self.secrets_widgets.bitwarden_client_secret_entry.clone();
+        // Passbolt, 1Password, Pass, KeePassXC keyring — раніше використовувались dummy-віджети
+        let passbolt_passphrase_entry_clone =
+            self.secrets_widgets.passbolt_passphrase_entry.clone();
+        let passbolt_save_password_check_clone =
+            self.secrets_widgets.passbolt_save_password_check.clone();
+        let passbolt_save_to_keyring_check_clone =
+            self.secrets_widgets.passbolt_save_to_keyring_check.clone();
+        let passbolt_server_url_entry_clone =
+            self.secrets_widgets.passbolt_server_url_entry.clone();
+        let kdbx_save_to_keyring_check_clone =
+            self.secrets_widgets.kdbx_save_to_keyring_check.clone();
+        let onepassword_token_entry_clone = self.secrets_widgets.onepassword_token_entry.clone();
+        let onepassword_save_password_check_clone =
+            self.secrets_widgets.onepassword_save_password_check.clone();
+        let onepassword_save_to_keyring_check_clone = self
+            .secrets_widgets
+            .onepassword_save_to_keyring_check
+            .clone();
+        let pass_store_dir_entry_clone = self.secrets_widgets.pass_store_dir_entry.clone();
 
         // UI controls
         let color_scheme_box_clone = self.color_scheme_box.clone();
@@ -1043,20 +1062,20 @@ impl SettingsDialog {
                 onepassword_cmd: Rc::new(RefCell::new(String::new())), // dummy, not used in collect
                 passbolt_group: adw::PreferencesGroup::new(),        // dummy
                 passbolt_status_label: Label::new(None),             // dummy
-                passbolt_server_url_entry: Entry::new(),             // dummy
-                passbolt_open_vault_button: Button::new(),           // dummy
-                passbolt_passphrase_entry: PasswordEntry::new(),     // dummy
-                passbolt_save_password_check: CheckButton::new(),    // dummy
-                passbolt_save_to_keyring_check: CheckButton::new(),  // dummy
-                kdbx_save_to_keyring_check: CheckButton::new(),      // dummy
-                onepassword_token_entry: PasswordEntry::new(),       // dummy
-                onepassword_save_password_check: CheckButton::new(), // dummy
-                onepassword_save_to_keyring_check: CheckButton::new(), // dummy
-                secret_tool_available: Rc::new(RefCell::new(None)),  // dummy
-                pass_group: adw::PreferencesGroup::new(),            // dummy
-                pass_store_dir_entry: Entry::new(),                  // dummy
-                pass_store_dir_browse_button: Button::new(),         // dummy
-                pass_status_label: Label::new(None),                 // dummy
+                passbolt_server_url_entry: passbolt_server_url_entry_clone.clone(),
+                passbolt_open_vault_button: Button::new(), // dummy, не використовується при збиранні
+                passbolt_passphrase_entry: passbolt_passphrase_entry_clone.clone(),
+                passbolt_save_password_check: passbolt_save_password_check_clone.clone(),
+                passbolt_save_to_keyring_check: passbolt_save_to_keyring_check_clone.clone(),
+                kdbx_save_to_keyring_check: kdbx_save_to_keyring_check_clone.clone(),
+                onepassword_token_entry: onepassword_token_entry_clone.clone(),
+                onepassword_save_password_check: onepassword_save_password_check_clone.clone(),
+                onepassword_save_to_keyring_check: onepassword_save_to_keyring_check_clone.clone(),
+                secret_tool_available: Rc::new(RefCell::new(None)), // dummy, не використовується при збиранні
+                pass_group: adw::PreferencesGroup::new(), // dummy, не використовується при збиранні
+                pass_store_dir_entry: pass_store_dir_entry_clone.clone(),
+                pass_store_dir_browse_button: Button::new(), // dummy, не використовується при збиранні
+                pass_status_label: Label::new(None), // dummy, не використовується при збиранні
             };
             let secrets = collect_secret_settings(&secrets_widgets_for_collect, &settings_clone);
 

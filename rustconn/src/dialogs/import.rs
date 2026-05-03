@@ -450,26 +450,26 @@ impl ImportDialog {
 
     /// Gets the display name for a source ID
     #[must_use]
-    pub fn get_source_display_name(source_id: &str) -> &'static str {
+    pub fn get_source_display_name(source_id: &str) -> String {
         match source_id {
-            "ssh_config" => "SSH Config",
-            "ssh_config_file" => "SSH Config File",
-            "asbru" => "Asbru-CM",
-            "asbru_file" => "Asbru-CM File",
-            "remmina" => "Remmina",
-            "ansible" => "Ansible",
-            "ansible_file" => "Ansible File",
-            "native_file" => "RustConn Native",
-            "royalts_file" => "Royal TS",
-            "rdm_file" => "Remote Desktop Manager",
-            "mobaxterm_file" => "MobaXterm",
-            "vv_file" => "Virt-Viewer",
-            "libvirt" => "Libvirt / GNOME Boxes",
-            "libvirt_file" => "Libvirt XML",
-            "libvirt_daemon" => "Libvirt Daemon",
-            "rdp_file" => "RDP File",
-            "csv_file" => "CSV",
-            _ => "Unknown",
+            "ssh_config" => i18n("SSH Config"),
+            "ssh_config_file" => i18n("SSH Config File"),
+            "asbru" => i18n("Asbru-CM"),
+            "asbru_file" => i18n("Asbru-CM File"),
+            "remmina" => i18n("Remmina"),
+            "ansible" => i18n("Ansible"),
+            "ansible_file" => i18n("Ansible File"),
+            "native_file" => i18n("RustConn Native"),
+            "royalts_file" => i18n("Royal TS"),
+            "rdm_file" => i18n("Remote Desktop Manager"),
+            "mobaxterm_file" => i18n("MobaXterm"),
+            "vv_file" => i18n("Virt-Viewer"),
+            "libvirt" => i18n("Libvirt / GNOME Boxes"),
+            "libvirt_file" => i18n("Libvirt XML"),
+            "libvirt_daemon" => i18n("Libvirt Daemon"),
+            "rdp_file" => i18n("RDP File"),
+            "csv_file" => i18n("CSV"),
+            _ => i18n("Unknown"),
         }
     }
 
@@ -538,13 +538,21 @@ impl ImportDialog {
     ///
     /// Displays a summary including the source name if provided.
     pub fn show_results_with_source(&self, result: &ImportResult, source_name: Option<&str>) {
-        let conn_count = result.connections.len();
-        let group_count = result.groups.len();
+        let conn_count = result.connections.len().to_string();
+        let group_count = result.groups.len().to_string();
         let summary = source_name.map_or_else(
-            || format!("Successfully imported {conn_count} connection(s) and {group_count} group(s)."),
-            |name| format!(
-                "Successfully imported {conn_count} connection(s) and {group_count} group(s).\nConnections will be added to '{name} Import' group."
-            ),
+            || {
+                i18n_f(
+                    "Successfully imported {} connection(s) and {} group(s).",
+                    &[&conn_count, &group_count],
+                )
+            },
+            |name| {
+                i18n_f(
+                    "Successfully imported {} connection(s) and {} group(s).\nConnections will be added to '{} Import' group.",
+                    &[&conn_count, &group_count, name],
+                )
+            },
         );
         self.result_label.set_text(&summary);
 
@@ -560,7 +568,8 @@ impl ImportDialog {
 
         // List imported connections
         if !result.connections.is_empty() {
-            details.push_str("Imported connections:\n");
+            details.push_str(&i18n("Imported connections:"));
+            details.push('\n');
             for conn in &result.connections {
                 let _ = writeln!(details, "  • {} ({}:{})", conn.name, conn.host, conn.port);
             }
@@ -569,7 +578,11 @@ impl ImportDialog {
 
         // List skipped entries (Requirement 5.2)
         if !result.skipped.is_empty() {
-            let _ = writeln!(details, "Skipped {} entries:", result.skipped.len());
+            let _ = writeln!(
+                details,
+                "{}",
+                i18n_f("Skipped {} entries:", &[&result.skipped.len().to_string()])
+            );
             for skipped in &result.skipped {
                 let _ = writeln!(details, "  • {}: {}", skipped.identifier, skipped.reason);
             }
@@ -578,14 +591,18 @@ impl ImportDialog {
 
         // List errors (Requirement 5.3)
         if !result.errors.is_empty() {
-            let _ = writeln!(details, "Errors ({}):", result.errors.len());
+            let _ = writeln!(
+                details,
+                "{}",
+                i18n_f("Errors ({}):", &[&result.errors.len().to_string()])
+            );
             for error in &result.errors {
                 let _ = writeln!(details, "  • {error}");
             }
         }
 
         if details.is_empty() {
-            details = "No connections found in the selected source.".to_string();
+            details = i18n("No connections found in the selected source.");
         }
 
         details
@@ -642,7 +659,7 @@ impl ImportDialog {
                 progress_bar.set_fraction(0.0);
 
                 let display_name = Self::get_source_display_name(&source_id);
-                progress_label.set_text(&format!("Importing from {display_name}..."));
+                progress_label.set_text(&i18n_f("Importing from {}...", &[&display_name]));
 
                 // Perform import with progress reporting (Requirements 3.1, 3.6)
                 let result =
@@ -652,10 +669,12 @@ impl ImportDialog {
                 progress_label.set_text(&i18n("Import complete"));
 
                 // Show results using show_results() pattern (Requirements 5.2, 5.3)
-                let summary = format!(
+                let summary = i18n_f(
                     "Successfully imported {} connection(s) and {} group(s).",
-                    result.connections.len(),
-                    result.groups.len()
+                    &[
+                        &result.connections.len().to_string(),
+                        &result.groups.len().to_string(),
+                    ],
                 );
                 result_label.set_text(&summary);
 
@@ -730,7 +749,7 @@ impl ImportDialog {
                 progress_bar.set_fraction(0.0);
 
                 let display_name = Self::get_source_display_name(&source_id);
-                progress_label.set_text(&format!("Importing from {display_name}..."));
+                progress_label.set_text(&i18n_f("Importing from {}...", &[&display_name]));
 
                 // Handle special case for file-based import
                 if source_id == "ssh_config_file" {
@@ -906,7 +925,7 @@ impl ImportDialog {
                 );
 
                 // Store source name
-                *source_name_cell.borrow_mut() = display_name.to_string();
+                *source_name_cell.borrow_mut() = display_name.clone();
 
                 progress_bar.set_fraction(1.0);
                 progress_label.set_text(&i18n("Import complete"));
@@ -914,8 +933,9 @@ impl ImportDialog {
                 // Show results using show_results_with_source() pattern (Requirements 5.2, 5.3)
                 let conn_count = result.connections.len();
                 let group_count = result.groups.len();
-                let summary = format!(
-                    "Successfully imported {conn_count} connection(s) and {group_count} group(s).\nConnections will be added to '{display_name} Import' group."
+                let summary = i18n_f(
+                    "Successfully imported {} connection(s) and {} group(s).\nConnections will be added to '{} Import' group.",
+                    &[&conn_count.to_string(), &group_count.to_string(), &display_name],
                 );
                 result_label.set_text(&summary);
 
@@ -1005,7 +1025,7 @@ impl ImportDialog {
                         btn_clone.set_sensitive(false);
                         progress_bar_clone.set_fraction(0.5);
                         progress_label_clone
-                            .set_text(&format!("Importing from {}...", path.display()));
+                            .set_text(&i18n_f("Importing from {}...", &[&path.display().to_string()]));
 
                         // Parse SSH config file using import_from_path (Requirement 1.2, 1.3)
                         let importer = SshConfigImporter::new();
@@ -1016,7 +1036,7 @@ impl ImportDialog {
 
                         // Extract filename for display
                         let filename = path
-                            .file_name().map_or_else(|| "SSH Config File".to_string(), |n| n.to_string_lossy().to_string());
+                            .file_name().map_or_else(|| i18n("SSH Config File"), |n| n.to_string_lossy().to_string());
 
                         source_name_cell_clone.borrow_mut().clone_from(&filename);
 
@@ -1025,8 +1045,9 @@ impl ImportDialog {
                         // Show results with preview including connection count (Requirement 1.5)
                         let conn_count = result.connections.len();
                         let group_count = result.groups.len();
-                        let summary = format!(
-                            "Successfully imported {conn_count} connection(s) and {group_count} group(s).\nConnections will be added to '{filename} Import' group."
+                        let summary = i18n_f(
+                            "Successfully imported {} connection(s) and {} group(s).\nConnections will be added to '{} Import' group.",
+                            &[&conn_count.to_string(), &group_count.to_string(), &filename],
                         );
                         result_label_clone.set_text(&summary);
 
@@ -1094,7 +1115,7 @@ impl ImportDialog {
                         btn_clone.set_sensitive(false);
                         progress_bar_clone.set_fraction(0.5);
                         progress_label_clone
-                            .set_text(&format!("Importing from {}...", path.display()));
+                            .set_text(&i18n_f("Importing from {}...", &[&path.display().to_string()]));
 
                         let importer = AsbruImporter::new();
                         let result = Self::import_or_error(
@@ -1104,7 +1125,7 @@ impl ImportDialog {
 
                         // Extract filename for display
                         let filename = path
-                            .file_name().map_or_else(|| "Asbru-CM File".to_string(), |n| n.to_string_lossy().to_string());
+                            .file_name().map_or_else(|| i18n("Asbru-CM File"), |n| n.to_string_lossy().to_string());
 
                         source_name_cell_clone.borrow_mut().clone_from(&filename);
 
@@ -1113,8 +1134,9 @@ impl ImportDialog {
                         // Show results using format_import_details() (Requirements 5.2, 5.3)
                         let conn_count = result.connections.len();
                         let group_count = result.groups.len();
-                        let summary = format!(
-                            "Successfully imported {conn_count} connection(s) and {group_count} group(s).\nConnections will be added to '{filename} Import' group."
+                        let summary = i18n_f(
+                            "Successfully imported {} connection(s) and {} group(s).\nConnections will be added to '{} Import' group.",
+                            &[&conn_count.to_string(), &group_count.to_string(), &filename],
                         );
                         result_label_clone.set_text(&summary);
 
@@ -1186,7 +1208,7 @@ impl ImportDialog {
                         btn_clone.set_sensitive(false);
                         progress_bar_clone.set_fraction(0.5);
                         progress_label_clone
-                            .set_text(&format!("Importing from {}...", path.display()));
+                            .set_text(&i18n_f("Importing from {}...", &[&path.display().to_string()]));
 
                         let importer = AnsibleInventoryImporter::new();
                         let result = Self::import_or_error(
@@ -1196,7 +1218,7 @@ impl ImportDialog {
 
                         // Extract filename for display
                         let filename = path
-                            .file_name().map_or_else(|| "Ansible Inventory".to_string(), |n| n.to_string_lossy().to_string());
+                            .file_name().map_or_else(|| i18n("Ansible Inventory"), |n| n.to_string_lossy().to_string());
 
                         source_name_cell_clone.borrow_mut().clone_from(&filename);
 
@@ -1205,8 +1227,9 @@ impl ImportDialog {
                         // Show results using format_import_details() (Requirements 5.2, 5.3)
                         let conn_count = result.connections.len();
                         let group_count = result.groups.len();
-                        let summary = format!(
-                            "Successfully imported {conn_count} connection(s) and {group_count} group(s).\nConnections will be added to '{filename} Import' group."
+                        let summary = i18n_f(
+                            "Successfully imported {} connection(s) and {} group(s).\nConnections will be added to '{} Import' group.",
+                            &[&conn_count.to_string(), &group_count.to_string(), &filename],
                         );
                         result_label_clone.set_text(&summary);
 
@@ -1299,7 +1322,7 @@ impl ImportDialog {
         let reporter = Self::create_progress_reporter(progress_bar, progress_label, cancelled);
 
         // Report start of import
-        reporter.report(0, 1, &format!("Starting import from {source_id}..."));
+        reporter.report(0, 1, &i18n_f("Starting import from {}...", &[source_id]));
 
         let result = match source_id {
             "ssh_config" => {
@@ -1308,7 +1331,11 @@ impl ImportDialog {
                 let total = paths.len().max(1);
 
                 for (i, path) in paths.iter().enumerate() {
-                    reporter.report(i, total, &format!("Importing from {}...", path.display()));
+                    reporter.report(
+                        i,
+                        total,
+                        &i18n_f("Importing from {}...", &[&path.display().to_string()]),
+                    );
                     if reporter.is_cancelled() {
                         return ImportResult::default();
                     }
@@ -1322,7 +1349,11 @@ impl ImportDialog {
                 let total = paths.len().max(1);
 
                 for (i, path) in paths.iter().enumerate() {
-                    reporter.report(i, total, &format!("Importing from {}...", path.display()));
+                    reporter.report(
+                        i,
+                        total,
+                        &i18n_f("Importing from {}...", &[&path.display().to_string()]),
+                    );
                     if reporter.is_cancelled() {
                         return ImportResult::default();
                     }
@@ -1336,7 +1367,11 @@ impl ImportDialog {
                 let total = paths.len().max(1);
 
                 for (i, path) in paths.iter().enumerate() {
-                    reporter.report(i, total, &format!("Importing from {}...", path.display()));
+                    reporter.report(
+                        i,
+                        total,
+                        &i18n_f("Importing from {}...", &[&path.display().to_string()]),
+                    );
                     if reporter.is_cancelled() {
                         return ImportResult::default();
                     }
@@ -1350,7 +1385,11 @@ impl ImportDialog {
                 let total = paths.len().max(1);
 
                 for (i, path) in paths.iter().enumerate() {
-                    reporter.report(i, total, &format!("Importing from {}...", path.display()));
+                    reporter.report(
+                        i,
+                        total,
+                        &i18n_f("Importing from {}...", &[&path.display().to_string()]),
+                    );
                     if reporter.is_cancelled() {
                         return ImportResult::default();
                     }
@@ -1364,7 +1403,11 @@ impl ImportDialog {
                 let total = paths.len().max(1);
 
                 for (i, path) in paths.iter().enumerate() {
-                    reporter.report(i, total, &format!("Importing from {}...", path.display()));
+                    reporter.report(
+                        i,
+                        total,
+                        &i18n_f("Importing from {}...", &[&path.display().to_string()]),
+                    );
                     if reporter.is_cancelled() {
                         return ImportResult::default();
                     }
@@ -1373,7 +1416,7 @@ impl ImportDialog {
                 Self::import_or_error(importer.import(), "Libvirt")
             }
             "libvirt_daemon" => {
-                reporter.report(0, 1, "Querying libvirt daemon...");
+                reporter.report(0, 1, &i18n("Querying libvirt daemon..."));
                 if reporter.is_cancelled() {
                     return ImportResult::default();
                 }
@@ -1385,7 +1428,7 @@ impl ImportDialog {
         };
 
         // Report completion
-        reporter.report(1, 1, "Import complete");
+        reporter.report(1, 1, &i18n("Import complete"));
         result
     }
 
@@ -1441,8 +1484,7 @@ impl ImportDialog {
                         btn_clone.set_sensitive(false);
                         progress_bar_clone.set_fraction(0.5);
                         progress_label_clone
-                            .set_text(&format!("Importing from {}...", path.display()));
-
+                            .set_text(&i18n_f("Importing from {}...", &[&path.display().to_string()]));
                         // Parse native file — try NativeExport first, then GroupSyncExport
                         match NativeExport::from_file(&path) {
                             Ok(native_export) => {
@@ -1471,8 +1513,9 @@ impl ImportDialog {
                                 // Show results
                                 let conn_count = result.connections.len();
                                 let group_count = result.groups.len();
-                                let summary = format!(
-                                    "Successfully imported {conn_count} connection(s) and {group_count} group(s).\nConnections will be added to '{filename} Import' group."
+                                let summary = i18n_f(
+                                    "Successfully imported {} connection(s) and {} group(s).\nConnections will be added to '{} Import' group.",
+                                    &[&conn_count.to_string(), &group_count.to_string(), &filename],
                                 );
                                 result_label_clone.set_text(&summary);
 
@@ -1525,14 +1568,9 @@ impl ImportDialog {
                                         progress_bar_clone.set_fraction(1.0);
 
                                         let conn_count = result.connections.len();
-                                        let summary = format!(
-                                            "{} {conn_count} {} '{}'\n{} '{}' {}",
-                                            i18n("Imported"),
-                                            i18n("connection(s) from Cloud Sync file"),
-                                            filename,
-                                            i18n("Group"),
-                                            sync_export.root_group.name,
-                                            i18n("will be created in Import mode."),
+                                        let summary = i18n_f(
+                                            "Imported {} connection(s) from Cloud Sync file '{}'\nGroup '{}' will be created in Import mode.",
+                                            &[&conn_count.to_string(), &filename, &sync_export.root_group.name],
                                         );
                                         result_label_clone.set_text(&summary);
 
@@ -1547,7 +1585,7 @@ impl ImportDialog {
                                     Err(sync_err) => {
                                         progress_bar_clone.set_fraction(1.0);
                                         result_label_clone.set_text(&i18n("Import Failed"));
-                                        result_details_clone.set_text(&format!("Error: {sync_err}"));
+                                        result_details_clone.set_text(&i18n_f("Error: {}", &[&sync_err.to_string()]));
 
                                         stack_clone.set_visible_child_name("result");
                                         btn_clone.set_label(&i18n("Close"));
@@ -1611,7 +1649,7 @@ impl ImportDialog {
                         btn_clone.set_sensitive(false);
                         progress_bar_clone.set_fraction(0.5);
                         progress_label_clone
-                            .set_text(&format!("Importing from {}...", path.display()));
+                            .set_text(&i18n_f("Importing from {}...", &[&path.display().to_string()]));
 
                         let importer = RoyalTsImporter::new();
                         let result = Self::import_or_error(
@@ -1620,7 +1658,7 @@ impl ImportDialog {
                         );
 
                         let filename = path.file_name().map_or_else(
-                            || "Royal TS".to_string(),
+                            || i18n("Royal TS"),
                             |n| n.to_string_lossy().to_string(),
                         );
 
@@ -1630,8 +1668,9 @@ impl ImportDialog {
 
                         let conn_count = result.connections.len();
                         let group_count = result.groups.len();
-                        let summary = format!(
-                            "Successfully imported {conn_count} connection(s) and {group_count} group(s).\nConnections will be added to '{filename} Import' group."
+                        let summary = i18n_f(
+                            "Successfully imported {} connection(s) and {} group(s).\nConnections will be added to '{} Import' group.",
+                            &[&conn_count.to_string(), &group_count.to_string(), &filename],
                         );
                         result_label_clone.set_text(&summary);
 
@@ -1696,7 +1735,7 @@ impl ImportDialog {
                         btn_clone.set_sensitive(false);
                         progress_bar_clone.set_fraction(0.5);
                         progress_label_clone
-                            .set_text(&format!("Importing from {}...", path.display()));
+                            .set_text(&i18n_f("Importing from {}...", &[&path.display().to_string()]));
 
                         let importer = RdmImporter::new();
                         let result = Self::import_or_error(
@@ -1706,7 +1745,7 @@ impl ImportDialog {
 
                         // Extract filename for display
                         let filename = path.file_name().map_or_else(
-                            || "RDM JSON".to_string(),
+                            || i18n("RDM JSON"),
                             |n| n.to_string_lossy().to_string(),
                         );
 
@@ -1717,8 +1756,9 @@ impl ImportDialog {
                         // Show results
                         let conn_count = result.connections.len();
                         let group_count = result.groups.len();
-                        let summary = format!(
-                            "Successfully imported {conn_count} connection(s) and {group_count} group(s).\nConnections will be added to '{filename} Import' group."
+                        let summary = i18n_f(
+                            "Successfully imported {} connection(s) and {} group(s).\nConnections will be added to '{} Import' group.",
+                            &[&conn_count.to_string(), &group_count.to_string(), &filename],
                         );
                         result_label_clone.set_text(&summary);
 
@@ -1783,7 +1823,7 @@ impl ImportDialog {
                         btn_clone.set_sensitive(false);
                         progress_bar_clone.set_fraction(0.5);
                         progress_label_clone
-                            .set_text(&format!("Importing from {}...", path.display()));
+                            .set_text(&i18n_f("Importing from {}...", &[&path.display().to_string()]));
 
                         let importer = MobaXtermImporter::with_path(path.clone());
                         let result = Self::import_or_error(
@@ -1793,7 +1833,7 @@ impl ImportDialog {
 
                         // Extract filename for display
                         let filename = path.file_name().map_or_else(
-                            || "MobaXterm".to_string(),
+                            || i18n("MobaXterm"),
                             |n| n.to_string_lossy().to_string(),
                         );
 
@@ -1804,8 +1844,9 @@ impl ImportDialog {
                         // Show results
                         let conn_count = result.connections.len();
                         let group_count = result.groups.len();
-                        let summary = format!(
-                            "Successfully imported {conn_count} connection(s) and {group_count} group(s).\nConnections will be added to '{filename} Import' group."
+                        let summary = i18n_f(
+                            "Successfully imported {} connection(s) and {} group(s).\nConnections will be added to '{} Import' group.",
+                            &[&conn_count.to_string(), &group_count.to_string(), &filename],
                         );
                         result_label_clone.set_text(&summary);
 
@@ -1874,14 +1915,14 @@ impl ImportDialog {
                         btn_clone.set_sensitive(false);
                         progress_bar_clone.set_fraction(0.5);
                         progress_label_clone
-                            .set_text(&format!("Importing from {}...", path.display()));
+                            .set_text(&i18n_f("Importing from {}...", &[&path.display().to_string()]));
 
                         let importer = LibvirtXmlImporter::new();
                         let result =
                             Self::import_or_error(importer.import_from_path(&path), "Libvirt XML");
 
                         let filename = path.file_name().map_or_else(
-                            || "Libvirt XML".to_string(),
+                            || i18n("Libvirt XML"),
                             |n| n.to_string_lossy().to_string(),
                         );
 
@@ -1891,11 +1932,9 @@ impl ImportDialog {
 
                         let conn_count = result.connections.len();
                         let group_count = result.groups.len();
-                        let summary = format!(
-                            "Successfully imported {conn_count} connection(s) \
-                             and {group_count} group(s).\n\
-                             Connections will be added to \
-                             '{filename} Import' group."
+                        let summary = i18n_f(
+                            "Successfully imported {} connection(s) and {} group(s).\nConnections will be added to '{} Import' group.",
+                            &[&conn_count.to_string(), &group_count.to_string(), &filename],
                         );
                         result_label_clone.set_text(&summary);
 
@@ -1968,7 +2007,7 @@ impl ImportDialog {
                             Self::import_or_error(importer.import_from_path(&path), "Virt-Viewer");
 
                         let filename = path.file_name().map_or_else(
-                            || "Virt-Viewer".to_string(),
+                            || i18n("Virt-Viewer"),
                             |n| n.to_string_lossy().to_string(),
                         );
 
@@ -1978,11 +2017,9 @@ impl ImportDialog {
 
                         let conn_count = result.connections.len();
                         let group_count = result.groups.len();
-                        let summary = format!(
-                            "Successfully imported {conn_count} connection(s) \
-                             and {group_count} group(s).\n\
-                             Connections will be added to \
-                             '{filename} Import' group."
+                        let summary = i18n_f(
+                            "Successfully imported {} connection(s) and {} group(s).\nConnections will be added to '{} Import' group.",
+                            &[&conn_count.to_string(), &group_count.to_string(), &filename],
                         );
                         result_label_clone.set_text(&summary);
 
@@ -2046,14 +2083,14 @@ impl ImportDialog {
                         btn_clone.set_sensitive(false);
                         progress_bar_clone.set_fraction(0.5);
                         progress_label_clone
-                            .set_text(&format!("Importing from {}...", path.display()));
+                            .set_text(&i18n_f("Importing from {}...", &[&path.display().to_string()]));
 
                         let importer = RdpFileImporter::new();
                         let result =
                             Self::import_or_error(importer.import_from_path(&path), "RDP File");
 
                         let filename = path.file_name().map_or_else(
-                            || "RDP File".to_string(),
+                            || i18n("RDP File"),
                             |n| n.to_string_lossy().to_string(),
                         );
 
@@ -2063,11 +2100,9 @@ impl ImportDialog {
 
                         let conn_count = result.connections.len();
                         let group_count = result.groups.len();
-                        let summary = format!(
-                            "Successfully imported {conn_count} connection(s) \
-                             and {group_count} group(s).\n\
-                             Connections will be added to \
-                             '{filename} Import' group."
+                        let summary = i18n_f(
+                            "Successfully imported {} connection(s) and {} group(s).\nConnections will be added to '{} Import' group.",
+                            &[&conn_count.to_string(), &group_count.to_string(), &filename],
                         );
                         result_label_clone.set_text(&summary);
 
@@ -2138,7 +2173,7 @@ impl ImportDialog {
                         btn_clone.set_sensitive(false);
                         progress_bar_clone.set_fraction(0.5);
                         progress_label_clone
-                            .set_text(&format!("Importing from {}...", path.display()));
+                            .set_text(&i18n_f("Importing from {}...", &[&path.display().to_string()]));
 
                         // Auto-detect delimiter from file extension and content
                         let delimiter = if path
@@ -2180,11 +2215,9 @@ impl ImportDialog {
 
                         let conn_count = result.connections.len();
                         let group_count = result.groups.len();
-                        let summary = format!(
-                            "Successfully imported {conn_count} connection(s) \
-                             and {group_count} group(s).\n\
-                             Connections will be added to \
-                             '{filename} Import' group."
+                        let summary = i18n_f(
+                            "Successfully imported {} connection(s) and {} group(s).\nConnections will be added to '{} Import' group.",
+                            &[&conn_count.to_string(), &group_count.to_string(), &filename],
                         );
                         result_label_clone.set_text(&summary);
 

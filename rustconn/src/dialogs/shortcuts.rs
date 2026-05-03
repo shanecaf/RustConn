@@ -542,3 +542,58 @@ pub use native::ShortcutsDialog;
 
 #[cfg(not(feature = "adw-1-8"))]
 pub use legacy::ShortcutsDialog;
+
+/// Marker function for xgettext to discover shortcut descriptions and categories.
+/// These strings are defined as static `&str` in the `SHORTCUTS` array and wrapped
+/// in `i18n()` when building the UI, but xgettext cannot trace this indirection.
+#[allow(dead_code)]
+fn _i18n_markers() {
+    use crate::i18n::i18n;
+    // Categories
+    i18n("Connections");
+    i18n("Terminal");
+    i18n("Split View");
+    i18n("Navigation");
+    i18n("Application");
+    // Shortcut descriptions
+    i18n("New connection");
+    i18n("New group");
+    i18n("Quick connect");
+    i18n("Import connections");
+    i18n("Export connections");
+    i18n("Edit selected connection (sidebar)");
+    i18n("Delete selected connection/group (sidebar)");
+    i18n("Rename selected item");
+    i18n("Duplicate connection (sidebar)");
+    i18n("Copy connection");
+    i18n("Paste connection");
+    i18n("Move to group (sidebar)");
+    i18n("Connect to selected");
+    i18n("Copy from terminal");
+    i18n("Paste to terminal");
+    i18n("Search in terminal");
+    i18n("Close current tab");
+    i18n("Next tab");
+    i18n("Previous tab");
+    i18n("Tab overview");
+    i18n("Switch to open tab");
+    i18n("Open local shell");
+    i18n("Split horizontal");
+    i18n("Split vertical");
+    i18n("Close pane");
+    i18n("Focus next pane");
+    i18n("Search");
+    i18n("Focus sidebar");
+    i18n("Focus terminal");
+    i18n("Command palette");
+    i18n("Command palette (commands)");
+    i18n("Open settings");
+    i18n("Quit application");
+    i18n("Keyboard shortcuts");
+    i18n("Toggle fullscreen");
+    i18n("Toggle sidebar");
+    i18n("Connection history");
+    i18n("Statistics");
+    i18n("Password generator");
+    i18n("Wake On LAN");
+}

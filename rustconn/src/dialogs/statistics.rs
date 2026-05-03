@@ -78,14 +78,36 @@ impl StatisticsDialog {
 
         let on_clear: Rc<RefCell<Option<Box<dyn Fn() + 'static>>>> = Rc::new(RefCell::new(None));
 
-        // Reset button handler
+        // Reset button handler — confirmation dialog before destructive action
         let on_clear_clone = on_clear.clone();
-        let window_clone = window.clone();
+        let dialog_weak = window.downgrade();
         reset_btn.connect_clicked(move |_| {
-            if let Some(ref callback) = *on_clear_clone.borrow() {
-                callback();
-            }
-            window_clone.close();
+            let Some(win) = dialog_weak.upgrade() else {
+                return;
+            };
+            let alert = adw::AlertDialog::builder()
+                .heading(i18n("Reset Statistics?"))
+                .body(i18n(
+                    "All connection statistics will be permanently cleared.",
+                ))
+                .build();
+            alert.add_response("cancel", &i18n("Cancel"));
+            alert.add_response("reset", &i18n("Reset"));
+            alert.set_response_appearance("reset", adw::ResponseAppearance::Destructive);
+            alert.set_default_response(Some("cancel"));
+            alert.set_close_response("cancel");
+
+            let on_clear = on_clear_clone.clone();
+            let win_close = win.clone();
+            alert.connect_response(None, move |_, response| {
+                if response == "reset" {
+                    if let Some(ref callback) = *on_clear.borrow() {
+                        callback();
+                    }
+                    win_close.close();
+                }
+            });
+            alert.present(Some(&win));
         });
 
         Self {
@@ -108,6 +130,18 @@ impl StatisticsDialog {
         // Clear existing content
         while let Some(child) = self.content_box.first_child() {
             self.content_box.remove(&child);
+        }
+
+        // Empty state — no connections recorded yet
+        if stats.total_connections == 0 {
+            let status_page = adw::StatusPage::builder()
+                .icon_name("chart-line-symbolic")
+                .title(i18n("No Statistics Yet"))
+                .description(i18n("Statistics will appear after your first connection."))
+                .vexpand(true)
+                .build();
+            self.content_box.append(&status_page);
+            return;
         }
 
         // Connection name header in PreferencesGroup

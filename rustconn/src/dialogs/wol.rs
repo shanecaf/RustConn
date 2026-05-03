@@ -29,23 +29,17 @@ impl WolDialog {
             .title(i18n("Wake On LAN"))
             .modal(true)
             .default_width(500)
-            .default_height(400)
+            .default_height(-1)
             .build();
 
         if let Some(p) = parent {
             window.set_transient_for(Some(p));
         }
 
-        window.set_size_request(320, 280);
+        window.set_size_request(320, -1);
 
         let (header, cancel_btn, send_btn) =
             crate::dialogs::widgets::dialog_header("Cancel", "Send");
-
-        // Cancel button handler
-        let window_clone = window.clone();
-        cancel_btn.connect_clicked(move |_| {
-            window_clone.close();
-        });
 
         let clamp = adw::Clamp::builder()
             .maximum_size(600)

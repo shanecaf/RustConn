@@ -631,10 +631,29 @@ impl ClusterListDialog {
             });
 
             let on_delete_clone = self.on_delete.clone();
+            let window_weak = self.window.downgrade();
             cluster_row.delete_button.connect_clicked(move |_| {
-                if let Some(ref cb) = *on_delete_clone.borrow() {
-                    cb(cluster_id);
-                }
+                let Some(win) = window_weak.upgrade() else {
+                    return;
+                };
+                let alert = adw::AlertDialog::builder()
+                    .heading(i18n("Delete Cluster?"))
+                    .body(i18n("This cluster will be permanently removed."))
+                    .build();
+                alert.add_response("cancel", &i18n("Cancel"));
+                alert.add_response("delete", &i18n("Delete"));
+                alert.set_response_appearance("delete", adw::ResponseAppearance::Destructive);
+                alert.set_default_response(Some("cancel"));
+                alert.set_close_response("cancel");
+                let on_delete_inner = on_delete_clone.clone();
+                alert.connect_response(None, move |_, response| {
+                    if response == "delete"
+                        && let Some(ref cb) = *on_delete_inner.borrow()
+                    {
+                        cb(cluster_id);
+                    }
+                });
+                alert.present(Some(&win));
             });
 
             self.clusters_list.append(&cluster_row.row);

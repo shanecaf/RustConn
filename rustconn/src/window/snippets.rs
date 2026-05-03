@@ -63,6 +63,8 @@ pub fn show_snippets_manager(
 
     // Create header bar with Close/Create buttons (GNOME HIG)
     let header = adw::HeaderBar::new();
+    header.set_show_end_title_buttons(false);
+    header.set_show_start_title_buttons(false);
     let close_btn = Button::builder().label(&i18n("Close")).build();
     let new_btn = Button::builder()
         .label(&i18n("Create"))

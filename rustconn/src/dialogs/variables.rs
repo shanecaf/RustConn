@@ -170,7 +170,7 @@ impl VariablesDialog {
 
         let add_button = Button::builder()
             .label(i18n("Add Variable"))
-            .css_classes(["suggested-action"])
+            .css_classes(["flat"])
             .build();
         button_box.append(&add_button);
 

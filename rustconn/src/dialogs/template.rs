@@ -3035,7 +3035,7 @@ impl TemplateManagerDialog {
         window.set_size_request(320, 280);
 
         let (header, close_btn, create_conn_btn) =
-            crate::dialogs::widgets::dialog_header("Close", "Create");
+            crate::dialogs::widgets::dialog_header("Close", "Use Template");
         create_conn_btn.set_sensitive(false);
 
         // Close button handler
@@ -3160,13 +3160,31 @@ impl TemplateManagerDialog {
 
         let on_delete_clone = on_delete.clone();
         let templates_list_delete = templates_list.clone();
+        let window_weak_delete = window.downgrade();
         delete_btn.connect_clicked(move |_| {
             if let Some(row) = templates_list_delete.selected_row()
                 && let Some(id_str) = row.widget_name().as_str().strip_prefix("template-")
                 && let Ok(id) = Uuid::parse_str(id_str)
-                && let Some(ref cb) = *on_delete_clone.borrow()
+                && let Some(win) = window_weak_delete.upgrade()
             {
-                cb(id);
+                let alert = adw::AlertDialog::builder()
+                    .heading(i18n("Delete Template?"))
+                    .body(i18n("This template will be permanently removed."))
+                    .build();
+                alert.add_response("cancel", &i18n("Cancel"));
+                alert.add_response("delete", &i18n("Delete"));
+                alert.set_response_appearance("delete", adw::ResponseAppearance::Destructive);
+                alert.set_default_response(Some("cancel"));
+                alert.set_close_response("cancel");
+                let on_delete_inner = on_delete_clone.clone();
+                alert.connect_response(None, move |_, response| {
+                    if response == "delete"
+                        && let Some(ref cb) = *on_delete_inner.borrow()
+                    {
+                        cb(id);
+                    }
+                });
+                alert.present(Some(&win));
             }
         });
 
@@ -3217,6 +3235,24 @@ impl TemplateManagerDialog {
         });
         templates_list.add_controller(gesture);
 
+        // Connect filter dropdown to refresh the list when protocol filter changes
+        let templates_list_filter = templates_list.clone();
+        let state_templates_filter = state_templates.clone();
+        filter_dropdown.connect_selected_notify(move |dropdown| {
+            let protocol_filter = match dropdown.selected() {
+                1 => Some(ProtocolType::Ssh),
+                2 => Some(ProtocolType::Rdp),
+                3 => Some(ProtocolType::Vnc),
+                4 => Some(ProtocolType::Spice),
+                _ => None, // 0 = "All"
+            };
+            refresh_templates_list(
+                &templates_list_filter,
+                &state_templates_filter.borrow(),
+                protocol_filter,
+            );
+        });
+
         Self {
             window,
             templates_list,
@@ -3236,132 +3272,11 @@ impl TemplateManagerDialog {
 
     /// Refreshes the templates list with optional protocol filter
     pub fn refresh_list(&self, protocol_filter: Option<ProtocolType>) {
-        while let Some(row) = self.templates_list.row_at_index(0) {
-            self.templates_list.remove(&row);
-        }
-
-        let templates = self.state_templates.borrow();
-
-        let mut ssh_templates: Vec<&ConnectionTemplate> = Vec::new();
-        let mut rdp_templates: Vec<&ConnectionTemplate> = Vec::new();
-        let mut vnc_templates: Vec<&ConnectionTemplate> = Vec::new();
-        let mut spice_templates: Vec<&ConnectionTemplate> = Vec::new();
-
-        for template in templates.iter() {
-            if let Some(filter) = protocol_filter
-                && template.protocol != filter
-            {
-                continue;
-            }
-            match template.protocol {
-                ProtocolType::Ssh | ProtocolType::ZeroTrust | ProtocolType::Telnet => {
-                    ssh_templates.push(template);
-                }
-                ProtocolType::Rdp => rdp_templates.push(template),
-                ProtocolType::Vnc => vnc_templates.push(template),
-                ProtocolType::Spice => spice_templates.push(template),
-                ProtocolType::Serial | ProtocolType::Sftp => {
-                    ssh_templates.push(template);
-                }
-                ProtocolType::Kubernetes | ProtocolType::Mosh => {
-                    ssh_templates.push(template);
-                }
-            }
-        }
-
-        if !ssh_templates.is_empty() && protocol_filter.is_none() {
-            self.add_section_header(&i18n("SSH Templates"));
-        }
-        for template in ssh_templates {
-            self.add_template_row(template);
-        }
-
-        if !rdp_templates.is_empty() && protocol_filter.is_none() {
-            self.add_section_header(&i18n("RDP Templates"));
-        }
-        for template in rdp_templates {
-            self.add_template_row(template);
-        }
-
-        if !vnc_templates.is_empty() && protocol_filter.is_none() {
-            self.add_section_header(&i18n("VNC Templates"));
-        }
-        for template in vnc_templates {
-            self.add_template_row(template);
-        }
-
-        if !spice_templates.is_empty() && protocol_filter.is_none() {
-            self.add_section_header(&i18n("SPICE Templates"));
-        }
-        for template in spice_templates {
-            self.add_template_row(template);
-        }
-    }
-
-    fn add_section_header(&self, title: &str) {
-        let label = Label::builder()
-            .label(title)
-            .halign(gtk4::Align::Start)
-            .css_classes(["heading"])
-            .margin_top(8)
-            .margin_bottom(4)
-            .margin_start(8)
-            .build();
-        let row = ListBoxRow::builder()
-            .child(&label)
-            .selectable(false)
-            .activatable(false)
-            .build();
-        self.templates_list.append(&row);
-    }
-
-    fn add_template_row(&self, template: &ConnectionTemplate) {
-        let hbox = GtkBox::new(Orientation::Horizontal, 8);
-        hbox.set_margin_top(8);
-        hbox.set_margin_bottom(8);
-        hbox.set_margin_start(8);
-        hbox.set_margin_end(8);
-
-        let icon_name = rustconn_core::get_protocol_icon(template.protocol);
-        let icon = gtk4::Image::from_icon_name(icon_name);
-        hbox.append(&icon);
-
-        let info_box = GtkBox::new(Orientation::Vertical, 2);
-        info_box.set_hexpand(true);
-
-        let name_label = Label::builder()
-            .label(&template.name)
-            .halign(gtk4::Align::Start)
-            .css_classes(["heading"])
-            .build();
-        info_box.append(&name_label);
-
-        let details = if let Some(ref desc) = template.description {
-            desc.clone()
-        } else {
-            let mut parts = Vec::new();
-            if !template.host.is_empty() {
-                parts.push(format!("Host: {}", template.host));
-            }
-            parts.push(format!("Port: {}", template.port));
-            if let Some(ref user) = template.username {
-                parts.push(format!("User: {user}"));
-            }
-            parts.join(" | ")
-        };
-
-        let details_label = Label::builder()
-            .label(&details)
-            .halign(gtk4::Align::Start)
-            .css_classes(["dim-label"])
-            .build();
-        info_box.append(&details_label);
-
-        hbox.append(&info_box);
-
-        let row = ListBoxRow::builder().child(&hbox).build();
-        row.set_widget_name(&format!("template-{}", template.id));
-        self.templates_list.append(&row);
+        refresh_templates_list(
+            &self.templates_list,
+            &self.state_templates.borrow(),
+            protocol_filter,
+        );
     }
 
     /// Gets the currently selected template
@@ -3419,4 +3334,141 @@ impl TemplateManagerDialog {
     pub fn set_on_template_selected<F: Fn(Option<ConnectionTemplate>) + 'static>(&self, cb: F) {
         *self.on_template_selected.borrow_mut() = Some(Box::new(cb));
     }
+}
+
+/// Refreshes the templates list widget with optional protocol filter.
+///
+/// Extracted as a free function so both `TemplateManagerDialog::refresh_list`
+/// and the filter dropdown closure can reuse the same logic.
+fn refresh_templates_list(
+    list: &ListBox,
+    templates: &[ConnectionTemplate],
+    protocol_filter: Option<ProtocolType>,
+) {
+    while let Some(row) = list.row_at_index(0) {
+        list.remove(&row);
+    }
+
+    let mut ssh_templates: Vec<&ConnectionTemplate> = Vec::new();
+    let mut rdp_templates: Vec<&ConnectionTemplate> = Vec::new();
+    let mut vnc_templates: Vec<&ConnectionTemplate> = Vec::new();
+    let mut spice_templates: Vec<&ConnectionTemplate> = Vec::new();
+
+    for template in templates {
+        if let Some(filter) = protocol_filter
+            && template.protocol != filter
+        {
+            continue;
+        }
+        match template.protocol {
+            ProtocolType::Ssh | ProtocolType::ZeroTrust | ProtocolType::Telnet => {
+                ssh_templates.push(template);
+            }
+            ProtocolType::Rdp => rdp_templates.push(template),
+            ProtocolType::Vnc => vnc_templates.push(template),
+            ProtocolType::Spice => spice_templates.push(template),
+            ProtocolType::Serial | ProtocolType::Sftp => {
+                ssh_templates.push(template);
+            }
+            ProtocolType::Kubernetes | ProtocolType::Mosh => {
+                ssh_templates.push(template);
+            }
+        }
+    }
+
+    if !ssh_templates.is_empty() && protocol_filter.is_none() {
+        append_section_header(list, &i18n("SSH Templates"));
+    }
+    for template in ssh_templates {
+        append_template_row(list, template);
+    }
+
+    if !rdp_templates.is_empty() && protocol_filter.is_none() {
+        append_section_header(list, &i18n("RDP Templates"));
+    }
+    for template in rdp_templates {
+        append_template_row(list, template);
+    }
+
+    if !vnc_templates.is_empty() && protocol_filter.is_none() {
+        append_section_header(list, &i18n("VNC Templates"));
+    }
+    for template in vnc_templates {
+        append_template_row(list, template);
+    }
+
+    if !spice_templates.is_empty() && protocol_filter.is_none() {
+        append_section_header(list, &i18n("SPICE Templates"));
+    }
+    for template in spice_templates {
+        append_template_row(list, template);
+    }
+}
+
+/// Appends a section header row to the templates list.
+fn append_section_header(list: &ListBox, title: &str) {
+    let label = Label::builder()
+        .label(title)
+        .halign(gtk4::Align::Start)
+        .css_classes(["heading"])
+        .margin_top(8)
+        .margin_bottom(4)
+        .margin_start(8)
+        .build();
+    let row = ListBoxRow::builder()
+        .child(&label)
+        .selectable(false)
+        .activatable(false)
+        .build();
+    list.append(&row);
+}
+
+/// Appends a template row to the templates list.
+fn append_template_row(list: &ListBox, template: &ConnectionTemplate) {
+    let hbox = GtkBox::new(Orientation::Horizontal, 8);
+    hbox.set_margin_top(8);
+    hbox.set_margin_bottom(8);
+    hbox.set_margin_start(8);
+    hbox.set_margin_end(8);
+
+    let icon_name = rustconn_core::get_protocol_icon(template.protocol);
+    let icon = gtk4::Image::from_icon_name(icon_name);
+    hbox.append(&icon);
+
+    let info_box = GtkBox::new(Orientation::Vertical, 2);
+    info_box.set_hexpand(true);
+
+    let name_label = Label::builder()
+        .label(&template.name)
+        .halign(gtk4::Align::Start)
+        .css_classes(["heading"])
+        .build();
+    info_box.append(&name_label);
+
+    let details = if let Some(ref desc) = template.description {
+        desc.clone()
+    } else {
+        let mut parts = Vec::new();
+        if !template.host.is_empty() {
+            parts.push(format!("Host: {}", template.host));
+        }
+        parts.push(format!("Port: {}", template.port));
+        if let Some(ref user) = template.username {
+            parts.push(format!("User: {user}"));
+        }
+        parts.join(" | ")
+    };
+
+    let details_label = Label::builder()
+        .label(&details)
+        .halign(gtk4::Align::Start)
+        .css_classes(["dim-label"])
+        .build();
+    info_box.append(&details_label);
+
+    hbox.append(&info_box);
+
+    let row = ListBoxRow::builder().child(&hbox).build();
+    row.set_widget_name(&format!("template-{}", template.id));
+    list.append(&row);
 }

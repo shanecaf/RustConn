@@ -94,7 +94,7 @@ impl ExportDialog {
             .title(i18n("Export Connections"))
             .modal(true)
             .default_width(600)
-            .default_height(500)
+            .default_height(650)
             .build();
 
         if let Some(p) = parent {
