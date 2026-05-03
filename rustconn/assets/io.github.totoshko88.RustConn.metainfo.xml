@@ -144,6 +144,17 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.13.2" date="2026-05-04">
+      <description>
+        <p>Version 0.13.2 — Terminal scroll fix, Flatpak host shell, monitoring toggle:</p>
+        <ul>
+          <li>Fixed mouse scroll not working in terminal sessions — VTE fallback scrolling now always enabled (#121)</li>
+          <li>Fixed Flatpak local shell providing only sandboxed shell — now spawns host shell via flatpak-spawn --host (#122)</li>
+          <li>Removed Mouse passthrough setting — VTE handles mouse forwarding automatically</li>
+          <li>Added per-connection monitoring toggle in connection dialog (#106)</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.13.1" date="2026-05-03">
       <description>
         <p>Version 0.13.1 — Bug fixes, group automation dialog, and export improvements:</p>

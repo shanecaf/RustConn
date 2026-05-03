@@ -40,10 +40,12 @@ pub fn configure_terminal_with_settings(terminal: &Terminal, settings: &Terminal
     terminal.set_allow_hyperlink(settings.allow_hyperlinks);
     terminal.set_mouse_autohide(settings.mouse_autohide);
 
-    // Mouse passthrough: when enabled, disable fallback scrolling so that
-    // scroll wheel events are forwarded to programs using mouse tracking
-    // (mc, htop, vim) instead of being converted to arrow key presses.
-    terminal.set_enable_fallback_scrolling(!settings.mouse_passthrough);
+    // Fallback scrolling lets VTE scroll the scrollback buffer with the
+    // mouse wheel when the running program has NOT requested mouse tracking.
+    // Programs that *do* request mouse tracking (mc, htop, vim) receive
+    // scroll events directly from VTE regardless of this setting.
+    // Always enable so that normal shell sessions can scroll (#121).
+    terminal.set_enable_fallback_scrolling(true);
 
     // Bell
     terminal.set_audible_bell(settings.audible_bell);

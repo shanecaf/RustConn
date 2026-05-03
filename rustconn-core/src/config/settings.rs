@@ -117,14 +117,6 @@ pub struct TerminalSettings {
     /// Show a scrollbar next to the terminal
     #[serde(default = "default_show_scrollbar")]
     pub show_scrollbar: bool,
-    /// Pass mouse events to terminal applications (mc, htop, vim)
-    ///
-    /// When enabled, mouse clicks and scroll wheel events are forwarded to
-    /// programs that request mouse tracking (e.g. Midnight Commander buttons,
-    /// vim visual selection). When disabled, the mouse is used exclusively
-    /// for text selection and scrollback.
-    #[serde(default = "default_mouse_passthrough")]
-    pub mouse_passthrough: bool,
 }
 
 fn default_font_family() -> String {
@@ -184,10 +176,6 @@ const fn default_show_scrollbar() -> bool {
     true
 }
 
-const fn default_mouse_passthrough() -> bool {
-    true
-}
-
 impl Default for TerminalSettings {
     fn default() -> Self {
         Self {
@@ -206,7 +194,6 @@ impl Default for TerminalSettings {
             sftp_use_mc: default_sftp_use_mc(),
             copy_on_select: false,
             show_scrollbar: default_show_scrollbar(),
-            mouse_passthrough: default_mouse_passthrough(),
         }
     }
 }

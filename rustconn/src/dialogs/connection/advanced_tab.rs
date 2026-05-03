@@ -32,6 +32,7 @@ pub(super) fn create_advanced_tab() -> (
     Button,
     DrawingArea,
     adw::SwitchRow,
+    adw::SwitchRow,
     ListBox,
     Button,
     DropDown,
@@ -315,6 +316,23 @@ pub(super) fn create_advanced_tab() -> (
 
     content.append(&theme_group);
 
+    // === Remote Monitoring Section ===
+    let monitoring_group = adw::PreferencesGroup::builder()
+        .title(i18n("Remote Monitoring"))
+        .description(i18n(
+            "Override global monitoring settings for this connection",
+        ))
+        .build();
+
+    let monitoring_toggle = adw::SwitchRow::builder()
+        .title(i18n("Enable Monitoring"))
+        .subtitle(i18n("Collect CPU, RAM, disk and network metrics via SSH"))
+        .active(true)
+        .build();
+    monitoring_group.add(&monitoring_toggle);
+
+    content.append(&monitoring_group);
+
     // === Session Recording Section ===
     let recording_group = adw::PreferencesGroup::builder()
         .title(i18n("Session Recording"))
@@ -557,6 +575,7 @@ pub(super) fn create_advanced_tab() -> (
         theme_cursor_button,
         theme_reset_button,
         theme_preview,
+        monitoring_toggle,
         recording_toggle,
         highlight_rules_list,
         add_highlight_rule_button,
