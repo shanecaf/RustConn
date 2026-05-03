@@ -4967,16 +4967,39 @@ impl MainWindow {
 
         // In Flatpak, spawn the shell on the host via flatpak-spawn so the
         // user gets their full system shell with all tools and dotfiles (#122).
+        //
+        // VTE allocates a PTY for the child process. We need the host shell
+        // to inherit this PTY. `flatpak-spawn --host` with the Development
+        // interface forwards stdin/stdout/stderr (including the PTY fd) to
+        // the host process, but the shell must be told it's a login shell.
+        //
+        // $SHELL inside the sandbox is /bin/sh, not the user's host shell.
+        // Query the host $SHELL first, then exec into it.
         if rustconn_core::flatpak::is_flatpak() {
+            let host_shell = std::process::Command::new("flatpak-spawn")
+                .args(["--host", "sh", "-c", "echo $SHELL"])
+                .output()
+                .ok()
+                .and_then(|out| {
+                    if out.status.success() {
+                        let s = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                        if s.is_empty() { None } else { Some(s) }
+                    } else {
+                        None
+                    }
+                })
+                .unwrap_or_else(|| "/bin/bash".to_string());
+
+            // Run the host shell directly via flatpak-spawn.
+            // The "can't set process group" / "no job control" warnings
+            // are an inherent limitation of flatpak-spawn --host (bash is
+            // not a session leader). They are cosmetic — the shell works.
+            let spawn_cmd = format!(
+                "flatpak-spawn --host --env=TERM=xterm-256color -- {host_shell} -l"
+            );
             notebook.spawn_command(
                 session_id,
-                &[
-                    "flatpak-spawn",
-                    "--host",
-                    "--env=TERM=xterm-256color",
-                    &shell,
-                    "--login",
-                ],
+                &["/bin/sh", "-c", &spawn_cmd],
                 None,
                 None,
                 None,

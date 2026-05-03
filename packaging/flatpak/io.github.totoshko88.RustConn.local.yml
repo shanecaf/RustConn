@@ -36,6 +36,8 @@ finish-args:
   - --talk-name=org.kde.StatusNotifierWatcher
   # Serial device access for picocom
   - --device=all
+  # Host shell access: flatpak-spawn --host needs to talk to the Flatpak session helper
+  - --talk-name=org.freedesktop.Flatpak
   # Downloads directory for SFTP file transfers via mc
   - --filesystem=xdg-download:create
   # Strip host-exported bash function mc() that sources /usr/share/mc/mc-wrapper.sh
