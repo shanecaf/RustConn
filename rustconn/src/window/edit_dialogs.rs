@@ -463,7 +463,7 @@ pub fn show_edit_group_dialog(
         .title(i18n("Edit Group"))
         .modal(true)
         .default_width(600)
-        .default_height(850)
+        .default_height(750)
         .resizable(true)
         .build();
     // Fix minimum width to prevent the window from resizing when content

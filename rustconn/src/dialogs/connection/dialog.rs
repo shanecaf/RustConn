@@ -693,25 +693,13 @@ impl ConnectionDialog {
             .set_icon_name(Some("document-save-symbolic"));
 
         // === Automation Tab (Expect Rules + Tasks) ===
-        let (
-            automation_tab,
-            expect_rules_list,
-            add_expect_rule_button,
-            template_list_box,
-            expect_pattern_test_entry,
-            expect_test_result_label,
-            pre_connect_enabled_check,
-            pre_connect_command_entry,
-            pre_connect_timeout_spin,
-            pre_connect_abort_check,
-            pre_connect_first_only_check,
-            post_disconnect_enabled_check,
-            post_disconnect_command_entry,
-            post_disconnect_timeout_spin,
-            post_disconnect_last_only_check,
-        ) = super::automation_tab::create_automation_combined_tab();
+        let automation_widgets = super::automation_tab::create_automation_combined_tab();
         view_stack
-            .add_titled(&automation_tab, Some("automation"), &i18n("Automation"))
+            .add_titled(
+                &automation_widgets.container,
+                Some("automation"),
+                &i18n("Automation"),
+            )
             .set_icon_name(Some("system-run-symbolic"));
 
         let expect_rules: Rc<RefCell<Vec<ExpectRule>>> = Rc::new(RefCell::new(Vec::new()));
@@ -750,18 +738,22 @@ impl ConnectionDialog {
 
         // Wire up add expect rule button
         Self::wire_add_expect_rule_button(
-            &add_expect_rule_button,
-            &expect_rules_list,
+            &automation_widgets.add_expect_rule_button,
+            &automation_widgets.expect_rules_list,
             &expect_rules,
         );
 
         // Wire up template picker buttons
-        Self::wire_template_buttons(&template_list_box, &expect_rules_list, &expect_rules);
+        Self::wire_template_buttons(
+            &automation_widgets.template_list_box,
+            &automation_widgets.expect_rules_list,
+            &expect_rules,
+        );
 
         // Wire up pattern tester
         Self::wire_pattern_tester(
-            &expect_pattern_test_entry,
-            &expect_test_result_label,
+            &automation_widgets.expect_pattern_test_entry,
+            &automation_widgets.expect_test_result_label,
             &expect_rules,
         );
 
@@ -931,15 +923,15 @@ impl ConnectionDialog {
             &variables_rows,
             &logging_tab_struct,
             &expect_rules,
-            &pre_connect_enabled_check,
-            &pre_connect_command_entry,
-            &pre_connect_timeout_spin,
-            &pre_connect_abort_check,
-            &pre_connect_first_only_check,
-            &post_disconnect_enabled_check,
-            &post_disconnect_command_entry,
-            &post_disconnect_timeout_spin,
-            &post_disconnect_last_only_check,
+            &automation_widgets.pre_connect_enabled_check,
+            &automation_widgets.pre_connect_command_entry,
+            &automation_widgets.pre_connect_timeout_spin,
+            &automation_widgets.pre_connect_abort_check,
+            &automation_widgets.pre_connect_first_only_check,
+            &automation_widgets.post_disconnect_enabled_check,
+            &automation_widgets.post_disconnect_command_entry,
+            &automation_widgets.post_disconnect_timeout_spin,
+            &automation_widgets.post_disconnect_last_only_check,
             &window_mode_dropdown,
             &remember_position_check,
             &custom_properties,
@@ -1116,20 +1108,20 @@ impl ConnectionDialog {
             mosh_port_range_entry,
             mosh_predict_dropdown,
             mosh_server_binary_entry,
-            expect_rules_list,
+            expect_rules_list: automation_widgets.expect_rules_list,
             expect_rules,
-            add_expect_rule_button,
-            expect_pattern_test_entry,
-            expect_test_result_label,
-            pre_connect_enabled_check,
-            pre_connect_command_entry,
-            pre_connect_timeout_spin,
-            pre_connect_abort_check,
-            pre_connect_first_only_check,
-            post_disconnect_enabled_check,
-            post_disconnect_command_entry,
-            post_disconnect_timeout_spin,
-            post_disconnect_last_only_check,
+            add_expect_rule_button: automation_widgets.add_expect_rule_button,
+            expect_pattern_test_entry: automation_widgets.expect_pattern_test_entry,
+            expect_test_result_label: automation_widgets.expect_test_result_label,
+            pre_connect_enabled_check: automation_widgets.pre_connect_enabled_check,
+            pre_connect_command_entry: automation_widgets.pre_connect_command_entry,
+            pre_connect_timeout_spin: automation_widgets.pre_connect_timeout_spin,
+            pre_connect_abort_check: automation_widgets.pre_connect_abort_check,
+            pre_connect_first_only_check: automation_widgets.pre_connect_first_only_check,
+            post_disconnect_enabled_check: automation_widgets.post_disconnect_enabled_check,
+            post_disconnect_command_entry: automation_widgets.post_disconnect_command_entry,
+            post_disconnect_timeout_spin: automation_widgets.post_disconnect_timeout_spin,
+            post_disconnect_last_only_check: automation_widgets.post_disconnect_last_only_check,
             window_mode_dropdown,
             remember_position_check,
             custom_properties_list,

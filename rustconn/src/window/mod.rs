@@ -5039,6 +5039,9 @@ impl MainWindow {
             .collect();
         let snippets: Vec<_> = state_ref.list_snippets().into_iter().cloned().collect();
         let smart_folders = state_ref.settings().smart_folders.clone();
+        let templates = state_ref.get_all_templates();
+        let clusters: Vec<_> = state_ref.get_all_clusters().into_iter().cloned().collect();
+        let variables = state_ref.settings().global_variables.clone();
         drop(state_ref);
 
         // Set data for export
@@ -5046,6 +5049,9 @@ impl MainWindow {
         dialog.set_groups(groups);
         dialog.set_snippets(snippets);
         dialog.set_smart_folders(smart_folders);
+        dialog.set_templates(templates);
+        dialog.set_clusters(clusters);
+        dialog.set_variables(variables);
 
         let window_clone = window.clone();
         dialog.run(move |result| {
