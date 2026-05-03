@@ -374,13 +374,23 @@ jobs:
           
           ## Installation
 
-          ### Debian/Ubuntu
+          ### Flatpak (Recommended)
+          \`\`\`bash
+          flatpak install flathub io.github.totoshko88.RustConn
+          \`\`\`
+
+          ### Snap
+          \`\`\`bash
+          sudo snap install rustconn
+          \`\`\`
+
+          ### Debian/Ubuntu (.deb from this release)
           \`\`\`bash
           sudo dpkg -i rustconn_${VERSION}_amd64.deb
           sudo apt-get install -f  # Install dependencies if needed
           \`\`\`
 
-          ### Fedora
+          ### Fedora (.rpm from this release)
           \`\`\`bash
           sudo dnf install rustconn-${VERSION}-1.fc44.x86_64.rpm
           \`\`\`
@@ -391,23 +401,59 @@ jobs:
           ./RustConn-${VERSION}-x86_64.AppImage
           \`\`\`
 
-          ### openSUSE / Debian / Ubuntu (OBS)
+          ### OBS Repositories
           Packages available at: https://build.opensuse.org/package/show/home:totoshko88:rustconn/rustconn
 
           \`\`\`bash
+          # Debian 13 (Trixie)
+          echo 'deb http://download.opensuse.org/repositories/home:/totoshko88:/rustconn/Debian_13/ /' \\
+            | sudo tee /etc/apt/sources.list.d/rustconn.list
+          curl -fsSL https://download.opensuse.org/repositories/home:/totoshko88:/rustconn/Debian_13/Release.key \\
+            | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/rustconn.gpg > /dev/null
+          sudo apt update && sudo apt install rustconn
+
+          # Ubuntu 24.04 LTS (Noble)
+          echo 'deb http://download.opensuse.org/repositories/home:/totoshko88:/rustconn/xUbuntu_24.04/ /' \\
+            | sudo tee /etc/apt/sources.list.d/rustconn.list
+          curl -fsSL https://download.opensuse.org/repositories/home:/totoshko88:/rustconn/xUbuntu_24.04/Release.key \\
+            | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/rustconn.gpg > /dev/null
+          sudo apt update && sudo apt install rustconn
+
+          # Ubuntu 26.04 LTS (Resolute)
+          echo 'deb http://download.opensuse.org/repositories/home:/totoshko88:/rustconn/xUbuntu_26.04/ /' \\
+            | sudo tee /etc/apt/sources.list.d/rustconn.list
+          curl -fsSL https://download.opensuse.org/repositories/home:/totoshko88:/rustconn/xUbuntu_26.04/Release.key \\
+            | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/rustconn.gpg > /dev/null
+          sudo apt update && sudo apt install rustconn
+
+          # Fedora 44
+          sudo dnf config-manager addrepo --from-repofile=https://download.opensuse.org/repositories/home:/totoshko88:/rustconn/Fedora_44/home:totoshko88:rustconn.repo
+          sudo dnf install rustconn
+
+          # Fedora 43
+          sudo dnf config-manager addrepo --from-repofile=https://download.opensuse.org/repositories/home:/totoshko88:/rustconn/Fedora_43/home:totoshko88:rustconn.repo
+          sudo dnf install rustconn
+
           # openSUSE Tumbleweed
           sudo zypper ar https://download.opensuse.org/repositories/home:/totoshko88:/rustconn/openSUSE_Tumbleweed/ rustconn
-          sudo zypper ref
-          sudo zypper in rustconn
+          sudo zypper ref && sudo zypper in rustconn
 
           # openSUSE Leap 16.0
-          sudo zypper ar https://download.opensuse.org/repositories/home:/totoshko88:/rustconn/16.0/ rustconn
-          sudo zypper ref
-          sudo zypper in rustconn
-
-          # Debian 13 (Trixie) / Ubuntu 24.04 / Ubuntu 26.04
-          # See docs/INSTALL.md for apt repository setup
+          sudo zypper ar https://download.opensuse.org/repositories/home:/totoshko88:/rustconn/openSUSE_Leap_16.0/ rustconn
+          sudo zypper ref && sudo zypper in rustconn
           \`\`\`
+
+          ### Arch Linux (AUR)
+          \`\`\`bash
+          yay -S rustconn
+          \`\`\`
+
+          ### FreeBSD (Ports)
+          \`\`\`bash
+          pkg install rustconn
+          \`\`\`
+
+          Full installation guide: https://github.com/totoshko88/RustConn/blob/main/docs/INSTALL.md
           EOF
 
       - name: List artifacts

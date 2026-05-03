@@ -1719,18 +1719,36 @@ impl AppState {
         let imported_group_ids: std::collections::HashSet<Uuid> =
             result.groups.iter().map(|g| g.id).collect();
 
-        // Sort groups by hierarchy level (root groups first, then children)
-        let mut sorted_groups: Vec<&ConnectionGroup> = result.groups.iter().collect();
-        sorted_groups.sort_by(|a, b| {
-            let a_is_root = a.parent_id.is_none()
-                || !imported_group_ids.contains(&a.parent_id.unwrap_or(Uuid::nil()));
-            let b_is_root = b.parent_id.is_none()
-                || !imported_group_ids.contains(&b.parent_id.unwrap_or(Uuid::nil()));
-            b_is_root.cmp(&a_is_root) // Root groups first
-        });
+        // Topological sort: process groups level by level so parents are always
+        // created before their children. This prevents hierarchy flattening.
+        let mut sorted_groups: Vec<&ConnectionGroup> = Vec::with_capacity(result.groups.len());
+        let mut remaining: Vec<&ConnectionGroup> = result.groups.iter().collect();
+        while !remaining.is_empty() {
+            let before_len = remaining.len();
+            remaining.retain(|g| {
+                let ready = if let Some(pid) = g.parent_id {
+                    // Parent not in import → root-level, ready immediately
+                    // Parent in import → ready only when parent already sorted
+                    !imported_group_ids.contains(&pid) || group_uuid_map.contains_key(&pid)
+                } else {
+                    true
+                };
+                if ready {
+                    sorted_groups.push(g);
+                    false // remove from remaining
+                } else {
+                    true // keep in remaining
+                }
+            });
+            // Safety: break if no progress (circular parent references)
+            if remaining.len() == before_len {
+                // Append remaining groups as root-level to avoid infinite loop
+                sorted_groups.append(&mut remaining);
+            }
+        }
 
-        // Create groups preserving hierarchy
-        for group in sorted_groups {
+        // Create groups preserving hierarchy and all fields
+        for group in &sorted_groups {
             // Determine the actual parent for this group
             let actual_parent_id = if let Some(orig_parent_id) = group.parent_id {
                 // Check if original parent is in the import
@@ -1768,6 +1786,27 @@ impl AppState {
             };
 
             if let Some(new_id) = new_group_id {
+                // Copy all fields from the imported group to the newly created one
+                if let Some(existing) = self.connection_manager.get_group(new_id) {
+                    let mut updated = existing.clone();
+                    updated.icon = group.icon.clone();
+                    updated.description = group.description.clone();
+                    updated.username = group.username.clone();
+                    updated.domain = group.domain.clone();
+                    updated.password_source = group.password_source.clone();
+                    updated.ssh_auth_method = group.ssh_auth_method.clone();
+                    updated.ssh_key_path = group.ssh_key_path.clone();
+                    updated.ssh_proxy_jump = group.ssh_proxy_jump.clone();
+                    updated.ssh_agent_socket = group.ssh_agent_socket.clone();
+                    updated.sort_order = group.sort_order;
+                    updated.expect_rules = group.expect_rules.clone();
+                    updated.post_login_scripts = group.post_login_scripts.clone();
+                    updated.dynamic_folder = group.dynamic_folder.clone();
+                    if let Err(e) = self.connection_manager.update_group(new_id, updated) {
+                        tracing::warn!(group = %group.name, %e, "Failed to update imported group fields");
+                    }
+                }
+
                 // Map old group UUID to new group UUID
                 group_uuid_map.insert(group.id, new_id);
                 subgroup_map.insert(group.name.clone(), new_id);
@@ -1879,6 +1918,26 @@ impl AppState {
             } else {
                 tracing::warn!("Stored {stored}/{total} imported credential(s)");
             }
+        }
+
+        // Import smart folders with remapped group IDs
+        if !result.smart_folders.is_empty() {
+            let mut settings = self.settings().clone();
+            for sf in &result.smart_folders {
+                let mut folder = sf.clone();
+                // Generate new ID to avoid collisions
+                folder.id = Uuid::new_v4();
+                // Remap filter_group_id to the new group UUID
+                if let Some(old_gid) = folder.filter_group_id {
+                    folder.filter_group_id = group_uuid_map.get(&old_gid).copied();
+                }
+                // Skip duplicates by name
+                if !settings.smart_folders.iter().any(|f| f.name == folder.name) {
+                    settings.smart_folders.push(folder);
+                }
+            }
+            let _ = self.update_settings(settings);
+            tracing::info!(count = result.smart_folders.len(), "Imported smart folders");
         }
 
         Ok(imported)

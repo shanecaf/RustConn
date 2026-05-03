@@ -391,6 +391,11 @@ pub fn show_password_generator_dialog(parent: Option<&impl IsA<gtk4::Window>>) {
         if !text.is_empty() {
             let display = gtk4::prelude::WidgetExt::display(&window_clone);
             display.clipboard().set_text(&text);
+            crate::toast::show_toast_on_window(
+                &window_clone,
+                &i18n("Password copied to clipboard"),
+                crate::toast::ToastType::Info,
+            );
         }
     });
 

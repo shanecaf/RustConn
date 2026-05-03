@@ -80,11 +80,10 @@ impl HistoryDialog {
             .build();
 
         list_box.set_placeholder(Some(
-            &Label::builder()
-                .label(i18n("No connection history"))
-                .css_classes(["dim-label"])
-                .margin_top(24)
-                .margin_bottom(24)
+            &adw::StatusPage::builder()
+                .icon_name("document-open-recent-symbolic")
+                .title(i18n("No Connection History"))
+                .description(i18n("Connections you open will appear here"))
                 .build(),
         ));
 
@@ -249,6 +248,12 @@ impl HistoryDialog {
             "dialog-error-symbolic"
         };
         let status = gtk4::Image::from_icon_name(status_icon);
+        let status_a11y = if entry.successful {
+            i18n("Successful connection")
+        } else {
+            i18n("Failed connection")
+        };
+        status.update_property(&[gtk4::accessible::Property::Label(&status_a11y)]);
         if entry.successful {
             status.add_css_class("success");
         } else {

@@ -462,9 +462,14 @@ pub fn show_edit_group_dialog(
     let group_window = adw::Window::builder()
         .title(i18n("Edit Group"))
         .modal(true)
-        .default_width(450)
-        .resizable(false)
+        .default_width(600)
+        .default_height(750)
+        .resizable(true)
         .build();
+    // Fix minimum width to prevent the window from resizing when content
+    // changes (e.g., adding/removing expect rules). The minimum matches
+    // the Clamp maximum_size so the layout is always stable.
+    group_window.set_size_request(600, -1);
     group_window.set_transient_for(Some(window));
 
     let header = adw::HeaderBar::new();
@@ -481,7 +486,7 @@ pub fn show_edit_group_dialog(
     // Scrollable content with clamp
     let clamp = adw::Clamp::builder()
         .maximum_size(600)
-        .tightening_threshold(400)
+        .tightening_threshold(600)
         .build();
 
     let content = gtk4::Box::new(gtk4::Orientation::Vertical, 12);
@@ -492,10 +497,21 @@ pub fn show_edit_group_dialog(
 
     clamp.set_child(Some(&content));
 
+    let scrolled = gtk4::ScrolledWindow::builder()
+        .hscrollbar_policy(gtk4::PolicyType::Never)
+        .vscrollbar_policy(gtk4::PolicyType::Automatic)
+        .vexpand(true)
+        .child(&clamp)
+        .build();
+    // Overlay scrolling draws the scrollbar on top of content instead of
+    // beside it, preventing layout width shifts when the scrollbar appears
+    // or disappears as content height changes.
+    scrolled.set_overlay_scrolling(true);
+
     // Use ToolbarView for proper adw::Window layout
     let toolbar_view = adw::ToolbarView::new();
     toolbar_view.add_top_bar(&header);
-    toolbar_view.set_content(Some(&clamp));
+    toolbar_view.set_content(Some(&scrolled));
     group_window.set_content(Some(&toolbar_view));
 
     // === Group Details ===
@@ -1333,6 +1349,351 @@ pub fn show_edit_group_dialog(
     dynamic_group.add(&dynamic_expander);
     content.append(&dynamic_group);
 
+    // === Automation Section (Expect Rules + Post-login Scripts) ===
+    let has_automation = !group.expect_rules.is_empty() || !group.post_login_scripts.is_empty();
+
+    let automation_expander = adw::ExpanderRow::builder()
+        .title(i18n("Automation"))
+        .subtitle(i18n(
+            "Expect rules and post-login scripts inherited by connections",
+        ))
+        .show_enable_switch(true)
+        .expanded(has_automation)
+        .enable_expansion(has_automation)
+        .build();
+
+    let automation_group = adw::PreferencesGroup::new();
+    automation_group.add(&automation_expander);
+    content.append(&automation_group);
+
+    // Confirm before clearing automation when the enable switch is toggled off
+    {
+        let expander = automation_expander.clone();
+        let window_for_confirm = group_window.clone();
+        let clearing_in_progress = Rc::new(std::cell::Cell::new(false));
+        let clearing_flag = clearing_in_progress.clone();
+        automation_expander.connect_enable_expansion_notify(move |row| {
+            if row.enables_expansion() {
+                return;
+            }
+            if clearing_in_progress.get() {
+                return;
+            }
+            row.set_enable_expansion(true);
+            let confirm = adw::AlertDialog::builder()
+                .heading(i18n("Clear Automation?"))
+                .body(i18n(
+                    "Disabling will clear all expect rules and post-login scripts for this group. This cannot be undone.",
+                ))
+                .close_response("cancel")
+                .default_response("cancel")
+                .build();
+            confirm.add_response("cancel", &i18n("Keep"));
+            confirm.add_response("clear", &i18n("Clear"));
+            confirm.set_response_appearance("clear", adw::ResponseAppearance::Destructive);
+
+            let expander_c = expander.clone();
+            let flag = clearing_flag.clone();
+            confirm.connect_response(None, move |_, response| {
+                if response == "clear" {
+                    flag.set(true);
+                    expander_c.set_enable_expansion(false);
+                    expander_c.set_expanded(false);
+                    flag.set(false);
+                }
+            });
+            confirm.present(Some(&window_for_confirm));
+        });
+    }
+
+    // --- Expect Rules section (outside ExpanderRow to avoid click-swallowing) ---
+    let expect_rules_group = adw::PreferencesGroup::builder()
+        .title(i18n("Expect Rules"))
+        .description(i18n("Auto-respond to terminal patterns (priority order)"))
+        .build();
+
+    // Info banner about variable substitution
+    let variables_info = Label::builder()
+        .label(&i18n(
+            "Responses support ${password}, ${username}, and ${VARIABLE_NAME} placeholders resolved at connection time",
+        ))
+        .wrap(true)
+        .halign(gtk4::Align::Start)
+        .css_classes(["dim-label", "caption"])
+        .build();
+    variables_info.set_margin_bottom(4);
+    expect_rules_group.add(&variables_info);
+
+    let expect_rules_list = gtk4::ListBox::builder()
+        .selection_mode(gtk4::SelectionMode::None)
+        .css_classes(["boxed-list"])
+        .build();
+    expect_rules_list.set_placeholder(Some(&Label::new(Some(&i18n("No expect rules")))));
+
+    // No inner ScrolledWindow — the dialog's own scrolled window handles scrolling.
+    // This avoids the scroll-in-scroll anti-pattern (GNOME HIG).
+    expect_rules_group.add(&expect_rules_list);
+
+    // Shared state for expect rules (start empty — populated below)
+    let group_expect_rules: Rc<RefCell<Vec<rustconn_core::automation::ExpectRule>>> =
+        Rc::new(RefCell::new(Vec::new()));
+
+    // Button row outside PreferencesGroup to avoid ListBoxRow click-swallowing
+    let expect_button_box = gtk4::Box::new(Orientation::Horizontal, 8);
+    expect_button_box.set_halign(gtk4::Align::End);
+    expect_button_box.set_margin_top(8);
+
+    let template_menu_button = gtk4::MenuButton::builder()
+        .label(&i18n("From Template"))
+        .tooltip_text(i18n("Add rules from a built-in template"))
+        .build();
+
+    let template_popover = gtk4::Popover::new();
+    // Fixed width prevents the dialog from resizing when different templates are selected
+    template_popover.set_size_request(280, -1);
+    let template_list_box = gtk4::Box::new(Orientation::Vertical, 4);
+    template_list_box.set_margin_top(8);
+    template_list_box.set_margin_bottom(8);
+    template_list_box.set_margin_start(8);
+    template_list_box.set_margin_end(8);
+
+    for template in rustconn_core::automation::builtin_templates() {
+        // Add protocol hint to SSH-specific templates
+        let label = if template.protocol_hint.is_empty() {
+            template.name.to_string()
+        } else {
+            format!(
+                "{} ({})",
+                template.name,
+                template.protocol_hint.to_uppercase()
+            )
+        };
+        let btn = Button::builder()
+            .label(&label)
+            .css_classes(["flat"])
+            .tooltip_text(template.description)
+            .build();
+        template_list_box.append(&btn);
+    }
+    template_popover.set_child(Some(&template_list_box));
+    template_menu_button.set_popover(Some(&template_popover));
+
+    // Wire template buttons after popover is fully built
+    {
+        let templates = rustconn_core::automation::builtin_templates();
+        let mut child = template_list_box.first_child();
+        let mut idx = 0;
+        while let Some(widget) = child {
+            let next = widget.next_sibling();
+            if let Some(btn) = widget.downcast_ref::<Button>()
+                && idx < templates.len()
+            {
+                let rules_clone = group_expect_rules.clone();
+                let list_clone = expect_rules_list.clone();
+                let template_idx = idx;
+                btn.connect_clicked(move |btn| {
+                    let templates = rustconn_core::automation::builtin_templates();
+                    if template_idx >= templates.len() {
+                        return;
+                    }
+                    let new_rules = templates[template_idx].rules();
+                    for rule in &new_rules {
+                        add_group_expect_rule_row(&list_clone, &rules_clone, Some(rule));
+                    }
+                    if let Some(popover) = btn
+                        .ancestor(gtk4::Popover::static_type())
+                        .and_then(|w| w.downcast::<gtk4::Popover>().ok())
+                    {
+                        popover.popdown();
+                    }
+                });
+                idx += 1;
+            }
+            child = next;
+        }
+    }
+
+    let add_rule_button = Button::builder()
+        .label(&i18n("Add Rule"))
+        .css_classes(["suggested-action"])
+        .build();
+    {
+        let rules_clone = group_expect_rules.clone();
+        let list_clone = expect_rules_list.clone();
+        add_rule_button.connect_clicked(move |_| {
+            add_group_expect_rule_row(&list_clone, &rules_clone, None);
+        });
+    }
+
+    let clear_rules_button = Button::builder()
+        .label(&i18n("Clear All"))
+        .css_classes(["flat"])
+        .tooltip_text(i18n("Remove all expect rules"))
+        .build();
+    {
+        let rules_clone = group_expect_rules.clone();
+        let list_clone = expect_rules_list.clone();
+        clear_rules_button.connect_clicked(move |_| {
+            rules_clone.borrow_mut().clear();
+            while let Some(row) = list_clone.row_at_index(0) {
+                list_clone.remove(&row);
+            }
+        });
+    }
+
+    expect_button_box.append(&clear_rules_button);
+    expect_button_box.append(&template_menu_button);
+    expect_button_box.append(&add_rule_button);
+
+    // Populate existing expect rules
+    for rule in &group.expect_rules {
+        add_group_expect_rule_row(&expect_rules_list, &group_expect_rules, Some(rule));
+    }
+
+    expect_rules_group.set_visible(has_automation);
+    content.append(&expect_rules_group);
+    // Button box is a plain gtk4::Box appended directly to content (not inside
+    // PreferencesGroup) so that MenuButton popover and Button clicks work
+    // without being swallowed by ListBoxRow selection handling.
+    expect_button_box.set_visible(has_automation);
+    content.append(&expect_button_box);
+
+    // --- Pattern Tester (collapsible) ---
+    let tester_expander = adw::ExpanderRow::builder()
+        .title(i18n("Pattern Tester"))
+        .subtitle(i18n("Test text against your expect rules"))
+        .show_enable_switch(false)
+        .expanded(false)
+        .build();
+
+    let test_entry = gtk4::Entry::builder()
+        .hexpand(true)
+        .placeholder_text(i18n("Enter text to test against patterns"))
+        .build();
+    let test_result_label = Label::builder()
+        .label(&i18n("Enter text to test"))
+        .halign(gtk4::Align::Start)
+        .wrap(true)
+        .css_classes(["dim-label"])
+        .build();
+
+    let test_input_row = adw::ActionRow::builder().title(i18n("Test Input")).build();
+    test_input_row.add_suffix(&test_entry);
+    tester_expander.add_row(&test_input_row);
+
+    let test_result_row = adw::ActionRow::builder().title(i18n("Result")).build();
+    test_result_row.add_suffix(&test_result_label);
+    tester_expander.add_row(&test_result_row);
+
+    // Wire pattern tester
+    {
+        let rules_for_test = group_expect_rules.clone();
+        let result_label = test_result_label;
+        test_entry.connect_changed(move |entry| {
+            let text = entry.text().to_string();
+            if text.is_empty() {
+                result_label.set_label(&i18n("Enter text to test"));
+                result_label.remove_css_class("success");
+                result_label.remove_css_class("error");
+                result_label.add_css_class("dim-label");
+                return;
+            }
+            let rules = rules_for_test.borrow();
+            let mut matched = false;
+            for rule in rules.iter().filter(|r| r.enabled && !r.pattern.is_empty()) {
+                if let Ok(re) = regex::Regex::new(&rule.pattern)
+                    && re.is_match(&text)
+                {
+                    let msg = i18n_f(
+                        "Match: pattern '{}' → response '{}'",
+                        &[&rule.pattern, &rule.response],
+                    );
+                    result_label.set_label(&msg);
+                    result_label.remove_css_class("dim-label");
+                    result_label.remove_css_class("error");
+                    result_label.add_css_class("success");
+                    matched = true;
+                    break;
+                }
+            }
+            if !matched {
+                result_label.set_label(&i18n("No match"));
+                result_label.remove_css_class("dim-label");
+                result_label.remove_css_class("success");
+                result_label.add_css_class("error");
+            }
+        });
+    }
+
+    let tester_group = adw::PreferencesGroup::new();
+    tester_group.add(&tester_expander);
+    tester_group.set_visible(has_automation);
+    content.append(&tester_group);
+
+    // --- Post-login Scripts (list with Add/Delete) ---
+    let scripts_group = adw::PreferencesGroup::builder()
+        .title(i18n("Post-login Scripts"))
+        .description(i18n(
+            "Commands executed after login (inherited by connections)",
+        ))
+        .build();
+
+    let scripts_list = gtk4::ListBox::builder()
+        .selection_mode(gtk4::SelectionMode::None)
+        .css_classes(["boxed-list"])
+        .build();
+    scripts_list.set_placeholder(Some(&Label::new(Some(&i18n("No post-login scripts")))));
+
+    // No inner ScrolledWindow — the dialog's own scrolled window handles scrolling.
+    scripts_group.add(&scripts_list);
+
+    // Shared state for post-login scripts
+    let group_post_login_scripts: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(Vec::new()));
+
+    let add_script_button = Button::builder()
+        .label(&i18n("Add Script"))
+        .css_classes(["suggested-action"])
+        .build();
+    {
+        let scripts_clone = group_post_login_scripts.clone();
+        let list_clone = scripts_list.clone();
+        add_script_button.connect_clicked(move |_| {
+            add_post_login_script_row(&list_clone, &scripts_clone, None);
+        });
+    }
+
+    let scripts_button_box = gtk4::Box::new(Orientation::Horizontal, 8);
+    scripts_button_box.set_halign(gtk4::Align::End);
+    scripts_button_box.set_margin_top(8);
+    scripts_button_box.append(&add_script_button);
+
+    // Populate existing post-login scripts
+    for script in &group.post_login_scripts {
+        add_post_login_script_row(&scripts_list, &group_post_login_scripts, Some(script));
+    }
+
+    scripts_group.set_visible(has_automation);
+    content.append(&scripts_group);
+    scripts_button_box.set_visible(has_automation);
+    content.append(&scripts_button_box);
+
+    // Show/hide all automation sub-sections based on automation expander state
+    {
+        let expect_group = expect_rules_group.clone();
+        let expect_buttons = expect_button_box.clone();
+        let tester = tester_group.clone();
+        let scripts = scripts_group.clone();
+        let scripts_buttons = scripts_button_box.clone();
+        automation_expander.connect_enable_expansion_notify(move |row| {
+            let visible = row.enables_expansion();
+            expect_group.set_visible(visible);
+            expect_buttons.set_visible(visible);
+            tester.set_visible(visible);
+            scripts.set_visible(visible);
+            scripts_buttons.set_visible(visible);
+        });
+    }
+
     // === Description Section ===
     let description_group = adw::PreferencesGroup::builder()
         .title(i18n("Description"))
@@ -1394,6 +1755,9 @@ pub fn show_edit_group_dialog(
     let dynamic_workdir_row_clone = dynamic_workdir_row;
     let dynamic_timeout_row_clone = dynamic_timeout_row;
     let dynamic_refresh_row_clone = dynamic_refresh_row;
+    let automation_expander_clone = automation_expander;
+    let group_expect_rules_clone = group_expect_rules;
+    let group_post_login_scripts_clone = group_post_login_scripts;
     let old_name = group.name;
 
     save_btn.connect_clicked(move |_| {
@@ -1601,6 +1965,28 @@ pub fn show_edit_group_dialog(
                     updated.dynamic_folder = Some(config);
                 } else {
                     updated.dynamic_folder = None;
+                }
+
+                // Update Automation (Expect Rules + Post-login Scripts)
+                if automation_expander_clone.enables_expansion() {
+                    // Collect expect rules, filtering out empty patterns
+                    updated.expect_rules = group_expect_rules_clone
+                        .borrow()
+                        .iter()
+                        .filter(|r| !r.pattern.is_empty())
+                        .cloned()
+                        .collect();
+
+                    // Collect post-login scripts from shared state, filtering empty
+                    updated.post_login_scripts = group_post_login_scripts_clone
+                        .borrow()
+                        .iter()
+                        .filter(|s| !s.trim().is_empty())
+                        .cloned()
+                        .collect();
+                } else {
+                    updated.expect_rules = Vec::new();
+                    updated.post_login_scripts = Vec::new();
                 }
 
                 // Capture old groups snapshot before update for vault migration
@@ -2280,4 +2666,468 @@ pub fn show_quick_connect_dialog_with_state(
     });
 
     quick_window.present();
+}
+
+/// Adds an expect rule row to the group edit dialog's expect rules list.
+///
+/// Creates a compact rule editor with pattern, response, priority, timeout,
+/// enabled/one-shot checkboxes, and delete/move buttons. Layout uses vertical
+/// stacking to ensure all controls are visible without horizontal overflow.
+fn add_group_expect_rule_row(
+    list: &gtk4::ListBox,
+    rules: &Rc<RefCell<Vec<rustconn_core::automation::ExpectRule>>>,
+    rule: Option<&rustconn_core::automation::ExpectRule>,
+) {
+    use rustconn_core::automation::ExpectRule;
+
+    let main_box = gtk4::Box::new(Orientation::Vertical, 6);
+    main_box.set_margin_top(8);
+    main_box.set_margin_bottom(8);
+    main_box.set_margin_start(8);
+    main_box.set_margin_end(8);
+
+    // Row 0: Action buttons (delete, move up/down) — top-right for visibility
+    let action_box = gtk4::Box::new(Orientation::Horizontal, 4);
+    action_box.set_halign(gtk4::Align::End);
+
+    let move_up_button = Button::builder()
+        .icon_name("go-up-symbolic")
+        .css_classes(["flat"])
+        .tooltip_text(i18n("Move up (higher priority)"))
+        .build();
+    move_up_button.update_property(&[gtk4::accessible::Property::Label(&i18n("Move rule up"))]);
+    let move_down_button = Button::builder()
+        .icon_name("go-down-symbolic")
+        .css_classes(["flat"])
+        .tooltip_text(i18n("Move down (lower priority)"))
+        .build();
+    move_down_button.update_property(&[gtk4::accessible::Property::Label(&i18n("Move rule down"))]);
+    let delete_button = Button::builder()
+        .icon_name("user-trash-symbolic")
+        .css_classes(["flat"])
+        .tooltip_text(i18n("Delete rule"))
+        .build();
+    delete_button.update_property(&[gtk4::accessible::Property::Label(&i18n("Delete rule"))]);
+    action_box.append(&move_up_button);
+    action_box.append(&move_down_button);
+    action_box.append(&delete_button);
+    main_box.append(&action_box);
+
+    // Row 1: Pattern entry (full width)
+    let pattern_box = gtk4::Box::new(Orientation::Horizontal, 6);
+    let pattern_label = Label::builder()
+        .label(&i18n("Pattern:"))
+        .halign(gtk4::Align::End)
+        .width_chars(10)
+        .build();
+    let pattern_entry = gtk4::Entry::builder()
+        .hexpand(true)
+        .placeholder_text(i18n("Regex pattern (e.g., password:\\s*$)"))
+        .tooltip_text(i18n("Regular expression to match against terminal output"))
+        .build();
+    pattern_box.append(&pattern_label);
+    pattern_box.append(&pattern_entry);
+    main_box.append(&pattern_box);
+
+    // Row 2: Response entry + "Insert Variable" button
+    let response_box = gtk4::Box::new(Orientation::Horizontal, 6);
+    let response_label = Label::builder()
+        .label(&i18n("Response:"))
+        .halign(gtk4::Align::End)
+        .width_chars(10)
+        .build();
+    let response_entry = gtk4::Entry::builder()
+        .hexpand(true)
+        .placeholder_text(i18n("Text to send (e.g., ${password}\\n)"))
+        .tooltip_text(i18n(
+            "Response to send when pattern matches. Use ${password}, ${username}, or ${VAR_NAME} for variables.",
+        ))
+        .build();
+
+    // "Insert Variable" button with popover listing available variables
+    let var_menu_button = gtk4::MenuButton::builder()
+        .icon_name("list-add-symbolic")
+        .css_classes(["flat"])
+        .tooltip_text(i18n("Insert a variable placeholder"))
+        .build();
+    var_menu_button.update_property(&[gtk4::accessible::Property::Label(&i18n("Insert variable"))]);
+
+    let var_popover = gtk4::Popover::new();
+    var_popover.set_size_request(220, -1);
+    let var_list = gtk4::Box::new(Orientation::Vertical, 2);
+    var_list.set_margin_top(6);
+    var_list.set_margin_bottom(6);
+    var_list.set_margin_start(6);
+    var_list.set_margin_end(6);
+
+    // Built-in variables
+    let builtin_header = Label::builder()
+        .label(&i18n("Built-in"))
+        .halign(gtk4::Align::Start)
+        .css_classes(["dim-label", "caption"])
+        .build();
+    var_list.append(&builtin_header);
+
+    for (var_name, var_desc) in [
+        ("${password}", i18n("Connection password")),
+        ("${username}", i18n("Connection username")),
+        ("${host}", i18n("Connection host")),
+        ("${port}", i18n("Connection port")),
+    ] {
+        let btn = Button::builder()
+            .label(var_name)
+            .css_classes(["flat"])
+            .tooltip_text(&var_desc)
+            .build();
+        let entry_clone = response_entry.clone();
+        let var = var_name.to_string();
+        btn.connect_clicked(move |btn| {
+            // Insert variable at cursor position
+            let pos = entry_clone.position();
+            entry_clone.insert_text(&var, &mut pos.clone());
+            #[allow(clippy::cast_possible_wrap)]
+            entry_clone.set_position(pos + var.len() as i32);
+            if let Some(popover) = btn
+                .ancestor(gtk4::Popover::static_type())
+                .and_then(|w| w.downcast::<gtk4::Popover>().ok())
+            {
+                popover.popdown();
+            }
+        });
+        var_list.append(&btn);
+    }
+
+    // Newline helper
+    let special_header = Label::builder()
+        .label(&i18n("Special"))
+        .halign(gtk4::Align::Start)
+        .css_classes(["dim-label", "caption"])
+        .margin_top(4)
+        .build();
+    var_list.append(&special_header);
+
+    let newline_btn = Button::builder()
+        .label("\\n")
+        .css_classes(["flat"])
+        .tooltip_text(i18n("Newline (Enter key)"))
+        .build();
+    {
+        let entry_clone = response_entry.clone();
+        newline_btn.connect_clicked(move |btn| {
+            let pos = entry_clone.position();
+            entry_clone.insert_text("\\n", &mut pos.clone());
+            #[allow(clippy::cast_possible_wrap)]
+            entry_clone.set_position(pos + 2);
+            if let Some(popover) = btn
+                .ancestor(gtk4::Popover::static_type())
+                .and_then(|w| w.downcast::<gtk4::Popover>().ok())
+            {
+                popover.popdown();
+            }
+        });
+    }
+    var_list.append(&newline_btn);
+
+    var_popover.set_child(Some(&var_list));
+    var_menu_button.set_popover(Some(&var_popover));
+
+    response_box.append(&response_label);
+    response_box.append(&response_entry);
+    response_box.append(&var_menu_button);
+    main_box.append(&response_box);
+
+    // Row 3: Priority, Timeout, Enabled, One-shot — compact horizontal row
+    let settings_box = gtk4::Box::new(Orientation::Horizontal, 8);
+    settings_box.set_halign(gtk4::Align::Start);
+
+    let priority_label = Label::builder()
+        .label(&i18n("Priority:"))
+        .css_classes(["dim-label", "caption"])
+        .build();
+    let priority_adj = gtk4::Adjustment::new(0.0, -1000.0, 1000.0, 1.0, 10.0, 0.0);
+    let priority_spin = gtk4::SpinButton::builder()
+        .adjustment(&priority_adj)
+        .climb_rate(1.0)
+        .digits(0)
+        .width_chars(5)
+        .tooltip_text(i18n("Higher priority rules are checked first"))
+        .build();
+
+    let timeout_label = Label::builder()
+        .label(&i18n("Timeout:"))
+        .css_classes(["dim-label", "caption"])
+        .build();
+    let timeout_adj = gtk4::Adjustment::new(0.0, 0.0, 60000.0, 100.0, 1000.0, 0.0);
+    let timeout_spin = gtk4::SpinButton::builder()
+        .adjustment(&timeout_adj)
+        .climb_rate(1.0)
+        .digits(0)
+        .width_chars(6)
+        .tooltip_text(i18n("Timeout in milliseconds (0 = no timeout)"))
+        .build();
+
+    let enabled_check = gtk4::CheckButton::builder()
+        .label(i18n("Enabled"))
+        .active(true)
+        .build();
+    let one_shot_check = gtk4::CheckButton::builder()
+        .label(i18n("One-shot"))
+        .active(true)
+        .tooltip_text(i18n("Fire only once, then remove the rule"))
+        .build();
+
+    settings_box.append(&priority_label);
+    settings_box.append(&priority_spin);
+    settings_box.append(&timeout_label);
+    settings_box.append(&timeout_spin);
+    settings_box.append(&enabled_check);
+    settings_box.append(&one_shot_check);
+    main_box.append(&settings_box);
+
+    // Row 4: Regex validation label
+    let validation_label = Label::builder()
+        .halign(gtk4::Align::Start)
+        .css_classes(["error"])
+        .visible(false)
+        .build();
+    main_box.append(&validation_label);
+
+    // Wire regex validation on pattern entry
+    let validation_clone = validation_label;
+    pattern_entry.connect_changed(move |entry| {
+        let text = entry.text().to_string();
+        if text.is_empty() {
+            validation_clone.set_visible(false);
+            entry.remove_css_class("error");
+        } else {
+            match regex::Regex::new(&text) {
+                Ok(_) => {
+                    validation_clone.set_visible(false);
+                    entry.remove_css_class("error");
+                }
+                Err(e) => {
+                    validation_clone.set_text(&e.to_string());
+                    validation_clone.set_visible(true);
+                    entry.add_css_class("error");
+                }
+            }
+        }
+    });
+
+    // Populate from existing rule if provided
+    let rule_id = rule.map_or_else(Uuid::new_v4, |r| {
+        pattern_entry.set_text(&r.pattern);
+        response_entry.set_text(&r.response);
+        priority_spin.set_value(f64::from(r.priority));
+        timeout_spin.set_value(f64::from(r.timeout_ms.unwrap_or(0)));
+        enabled_check.set_active(r.enabled);
+        one_shot_check.set_active(r.one_shot);
+        r.id
+    });
+
+    let row = gtk4::ListBoxRow::builder().child(&main_box).build();
+
+    // Add rule to shared state
+    let new_rule = rule
+        .cloned()
+        .unwrap_or_else(|| ExpectRule::with_id(rule_id, "", ""));
+    rules.borrow_mut().push(new_rule);
+
+    // Connect delete button
+    let list_for_delete = list.clone();
+    let rules_for_delete = rules.clone();
+    let row_for_delete = row.clone();
+    delete_button.connect_clicked(move |_| {
+        list_for_delete.remove(&row_for_delete);
+        rules_for_delete.borrow_mut().retain(|r| r.id != rule_id);
+    });
+
+    // Connect move up button
+    let list_for_up = list.clone();
+    let rules_for_up = rules.clone();
+    let row_for_up = row.clone();
+    move_up_button.connect_clicked(move |_| {
+        let index = row_for_up.index();
+        if index <= 0 {
+            return;
+        }
+        list_for_up.remove(&row_for_up);
+        list_for_up.insert(&row_for_up, index - 1);
+        #[allow(clippy::cast_sign_loss)]
+        let idx = index as usize;
+        let mut rules_vec = rules_for_up.borrow_mut();
+        if idx < rules_vec.len() {
+            rules_vec.swap(idx, idx - 1);
+        }
+    });
+
+    // Connect move down button
+    let list_for_down = list.clone();
+    let rules_for_down = rules.clone();
+    let row_for_down = row.clone();
+    move_down_button.connect_clicked(move |_| {
+        let index = row_for_down.index();
+        let rules_len = rules_for_down.borrow().len();
+        #[allow(clippy::cast_possible_wrap, clippy::cast_possible_truncation)]
+        if index < 0 || index >= (rules_len as i32 - 1) {
+            return;
+        }
+        list_for_down.remove(&row_for_down);
+        list_for_down.insert(&row_for_down, index + 1);
+        #[allow(clippy::cast_sign_loss)]
+        let idx = index as usize;
+        let mut rules_vec = rules_for_down.borrow_mut();
+        if idx + 1 < rules_vec.len() {
+            rules_vec.swap(idx, idx + 1);
+        }
+    });
+
+    // Connect entry changes to update the rule in shared state
+    let rules_for_pattern = rules.clone();
+    pattern_entry.connect_changed(move |entry| {
+        let text = entry.text().to_string();
+        if let Some(r) = rules_for_pattern
+            .borrow_mut()
+            .iter_mut()
+            .find(|r| r.id == rule_id)
+        {
+            r.pattern = text;
+        }
+    });
+
+    let rules_for_response = rules.clone();
+    response_entry.connect_changed(move |entry| {
+        let text = entry.text().to_string();
+        if let Some(r) = rules_for_response
+            .borrow_mut()
+            .iter_mut()
+            .find(|r| r.id == rule_id)
+        {
+            r.response = text;
+        }
+    });
+
+    let rules_for_priority = rules.clone();
+    priority_spin.connect_value_changed(move |spin| {
+        #[allow(clippy::cast_possible_truncation)]
+        let value = spin.value() as i32;
+        if let Some(r) = rules_for_priority
+            .borrow_mut()
+            .iter_mut()
+            .find(|r| r.id == rule_id)
+        {
+            r.priority = value;
+        }
+    });
+
+    let rules_for_timeout = rules.clone();
+    timeout_spin.connect_value_changed(move |spin| {
+        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        let value = spin.value() as u32;
+        if let Some(r) = rules_for_timeout
+            .borrow_mut()
+            .iter_mut()
+            .find(|r| r.id == rule_id)
+        {
+            r.timeout_ms = if value == 0 { None } else { Some(value) };
+        }
+    });
+
+    let rules_for_enabled = rules.clone();
+    enabled_check.connect_toggled(move |check| {
+        if let Some(r) = rules_for_enabled
+            .borrow_mut()
+            .iter_mut()
+            .find(|r| r.id == rule_id)
+        {
+            r.enabled = check.is_active();
+        }
+    });
+
+    let rules_for_one_shot = rules.clone();
+    one_shot_check.connect_toggled(move |check| {
+        if let Some(r) = rules_for_one_shot
+            .borrow_mut()
+            .iter_mut()
+            .find(|r| r.id == rule_id)
+        {
+            r.one_shot = check.is_active();
+        }
+    });
+
+    list.append(&row);
+}
+
+/// Adds a post-login script row to the group edit dialog's scripts list.
+///
+/// Creates a simple row with a command entry and delete button.
+fn add_post_login_script_row(
+    list: &gtk4::ListBox,
+    scripts: &Rc<RefCell<Vec<String>>>,
+    script: Option<&str>,
+) {
+    use crate::i18n::i18n;
+
+    let row_box = gtk4::Box::new(Orientation::Horizontal, 8);
+    row_box.set_margin_top(8);
+    row_box.set_margin_bottom(8);
+    row_box.set_margin_start(8);
+    row_box.set_margin_end(8);
+
+    let command_entry = gtk4::Entry::builder()
+        .hexpand(true)
+        .placeholder_text(i18n("Shell command (e.g., export TERM=xterm-256color)"))
+        .tooltip_text(i18n("Command to execute after login"))
+        .build();
+
+    if let Some(s) = script {
+        command_entry.set_text(s);
+    }
+
+    let delete_button = Button::builder()
+        .icon_name("user-trash-symbolic")
+        .css_classes(["flat"])
+        .tooltip_text(i18n("Delete script"))
+        .valign(gtk4::Align::Center)
+        .build();
+    delete_button.update_property(&[gtk4::accessible::Property::Label(&i18n("Delete script"))]);
+    delete_button.set_hexpand(false);
+
+    row_box.append(&command_entry);
+    row_box.append(&delete_button);
+
+    let row = gtk4::ListBoxRow::builder().child(&row_box).build();
+
+    // Track index for this script in shared state
+    let script_idx = scripts.borrow().len();
+    scripts.borrow_mut().push(script.unwrap_or("").to_string());
+
+    // Connect delete button
+    let list_for_delete = list.clone();
+    let scripts_for_delete = scripts.clone();
+    let row_for_delete = row.clone();
+    delete_button.connect_clicked(move |_| {
+        let idx = row_for_delete.index();
+        list_for_delete.remove(&row_for_delete);
+        #[allow(clippy::cast_sign_loss)]
+        if idx >= 0 {
+            let idx = idx as usize;
+            let mut vec = scripts_for_delete.borrow_mut();
+            if idx < vec.len() {
+                vec.remove(idx);
+            }
+        }
+    });
+
+    // Connect entry changes to update the script in shared state
+    let scripts_for_change = scripts.clone();
+    command_entry.connect_changed(move |entry| {
+        let text = entry.text().to_string();
+        let mut vec = scripts_for_change.borrow_mut();
+        if script_idx < vec.len() {
+            vec[script_idx] = text;
+        }
+    });
+
+    list.append(&row);
 }

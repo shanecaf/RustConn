@@ -344,9 +344,13 @@ impl SearchEngine {
         }
 
         // Prefix match optimization (very common in search)
+        // Guard with is_char_boundary to avoid panicking on multi-byte UTF-8.
         let query_len = query.len();
         let target_len = target.len();
-        if target_len >= query_len && target[..query_len].eq_ignore_ascii_case(query) {
+        if target_len >= query_len
+            && target.is_char_boundary(query_len)
+            && target[..query_len].eq_ignore_ascii_case(query)
+        {
             let ratio = query_len as f32 / target_len as f32;
             return ratio.mul_add(0.4, 0.6).min(0.99);
         }
@@ -367,6 +371,9 @@ impl SearchEngine {
     }
 
     /// Finds substring position using case-insensitive comparison without allocation
+    ///
+    /// Iterates over valid UTF-8 char boundaries so this is safe for
+    /// multi-byte characters (Cyrillic, CJK, emoji, etc.).
     #[allow(clippy::unused_self)]
     fn find_case_insensitive(&self, needle: &str, haystack: &str) -> Option<usize> {
         let needle_len = needle.len();
@@ -376,8 +383,17 @@ impl SearchEngine {
             return None;
         }
 
-        (0..=(haystack_len - needle_len))
-            .find(|&i| haystack[i..i + needle_len].eq_ignore_ascii_case(needle))
+        // Only attempt slicing at valid UTF-8 char boundaries to avoid
+        // panicking on multi-byte characters.
+        haystack
+            .char_indices()
+            .map(|(i, _)| i)
+            .take_while(|&i| i + needle_len <= haystack_len)
+            .find(|&i| {
+                haystack
+                    .get(i..i + needle_len)
+                    .is_some_and(|slice| slice.eq_ignore_ascii_case(needle))
+            })
     }
 
     /// Searches connections and returns ranked results
@@ -644,7 +660,11 @@ impl SearchEngine {
             }
 
             // Check for prefix match (very common in search)
-            if target_len >= query_len && target[..query_len].eq_ignore_ascii_case(query) {
+            // Guard with is_char_boundary to avoid panicking on multi-byte UTF-8.
+            if target_len >= query_len
+                && target.is_char_boundary(query_len)
+                && target[..query_len].eq_ignore_ascii_case(query)
+            {
                 let ratio = query_len as f32 / target_len as f32;
                 return ratio.mul_add(0.4, 0.6).min(0.99);
             }
@@ -1481,6 +1501,68 @@ mod tests {
         );
 
         // Should find the matching connection
+        assert!(!results.is_empty());
+    }
+
+    // ========== Tests for UTF-8 safety (issue #116) ==========
+
+    #[test]
+    fn test_fuzzy_score_multibyte_target_does_not_panic() {
+        let engine = SearchEngine::new();
+        // Cyrillic target with ASCII query — previously panicked on byte-level slicing
+        let score = engine.fuzzy_score("ser", "сервер");
+        // No panic is the main assertion; score may be 0 (different scripts)
+        assert!(score >= 0.0);
+    }
+
+    #[test]
+    fn test_fuzzy_score_multibyte_query_does_not_panic() {
+        let engine = SearchEngine::new();
+        let score = engine.fuzzy_score("сер", "server");
+        assert!(score >= 0.0);
+    }
+
+    #[test]
+    fn test_fuzzy_score_both_multibyte() {
+        let engine = SearchEngine::new();
+        let score = engine.fuzzy_score("сервер", "сервер");
+        assert!((score - 1.0).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn test_fuzzy_score_optimized_multibyte_does_not_panic() {
+        let engine = SearchEngine::new();
+        assert!(engine.fuzzy_score_optimized("s", "сервер") >= 0.0);
+        assert!(engine.fuzzy_score_optimized("ser", "сервер-01") >= 0.0);
+        assert!(engine.fuzzy_score_optimized("сер", "server") >= 0.0);
+    }
+
+    #[test]
+    fn test_find_case_insensitive_multibyte() {
+        let engine = SearchEngine::new();
+        // ASCII needle inside a mixed UTF-8 haystack
+        let result = engine.find_case_insensitive("host", "мій-host-сервер");
+        assert!(result.is_some());
+
+        // Needle not present
+        let result = engine.find_case_insensitive("xyz", "сервер");
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_search_with_unicode_connection_names() {
+        let engine = SearchEngine::new();
+        let connections = vec![
+            create_test_connection("Продакшн сервер", "10.0.0.1", ProtocolType::Ssh),
+            create_test_connection("Тестовий сервер", "10.0.0.2", ProtocolType::Rdp),
+            create_test_connection("web-server", "10.0.0.3", ProtocolType::Ssh),
+        ];
+        let groups = vec![];
+
+        // ASCII query against Unicode names — must not panic
+        let query = SearchQuery::with_text("ser");
+        let results = engine.search(&query, &connections, &groups);
+        // Should at least find "web-server"
         assert!(!results.is_empty());
     }
 }

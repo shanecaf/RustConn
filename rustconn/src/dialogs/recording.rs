@@ -10,6 +10,7 @@ use gtk4::glib;
 use gtk4::prelude::*;
 use gtk4::{
     Box as GtkBox, Button, FileDialog, Label, ListBox, ListBoxRow, Orientation, ScrolledWindow,
+    SearchEntry,
 };
 use libadwaita as adw;
 use rustconn_core::session::recording::{RecordingEntry, RecordingManager, default_recordings_dir};
@@ -35,6 +36,22 @@ struct RecordingListRow {
     rename_button: Button,
     export_button: Button,
     delete_button: Button,
+}
+
+// ---------------------------------------------------------------------------
+// RecordingListContext — shared refs for static row creation / refresh
+// ---------------------------------------------------------------------------
+
+/// Bundles the shared references needed to create and manage recording rows
+/// from both `&self` methods and static (closure) contexts.
+#[derive(Clone)]
+struct RecordingListContext {
+    window: adw::Window,
+    recordings_list: ListBox,
+    recording_rows: Rc<RefCell<Vec<RecordingListRow>>>,
+    on_play: Rc<RefCell<Option<Box<dyn Fn(RecordingEntry)>>>>,
+    on_delete: Rc<RefCell<Option<Box<dyn Fn(PathBuf)>>>>,
+    on_rename: Rc<RefCell<Option<Box<dyn Fn(PathBuf, String)>>>>,
 }
 
 // ---------------------------------------------------------------------------
@@ -93,6 +110,21 @@ impl RecordingsDialog {
             window_clone.close();
         });
 
+        // Main content box
+        let content = GtkBox::new(Orientation::Vertical, 0);
+
+        // Search entry for filtering recordings
+        let search_entry = SearchEntry::builder()
+            .placeholder_text(i18n("Search recordings…"))
+            .hexpand(true)
+            .margin_top(12)
+            .margin_start(12)
+            .margin_end(12)
+            .margin_bottom(6)
+            .build();
+        search_entry.set_tooltip_text(Some(&i18n("Filter recordings by name")));
+        content.append(&search_entry);
+
         // Scrollable content
         let scrolled = ScrolledWindow::builder()
             .hscrollbar_policy(gtk4::PolicyType::Never)
@@ -108,7 +140,7 @@ impl RecordingsDialog {
         let recordings_list = ListBox::builder()
             .selection_mode(gtk4::SelectionMode::None)
             .css_classes(["boxed-list"])
-            .margin_top(12)
+            .margin_top(6)
             .margin_bottom(12)
             .margin_start(12)
             .margin_end(12)
@@ -126,10 +158,11 @@ impl RecordingsDialog {
 
         clamp.set_child(Some(&recordings_list));
         scrolled.set_child(Some(&clamp));
+        content.append(&scrolled);
 
         let toolbar_view = adw::ToolbarView::new();
         toolbar_view.add_top_bar(&header);
-        toolbar_view.set_content(Some(&scrolled));
+        toolbar_view.set_content(Some(&content));
         window.set_content(Some(&toolbar_view));
 
         // Callbacks
@@ -140,16 +173,47 @@ impl RecordingsDialog {
         let on_import: Rc<RefCell<Option<Box<dyn Fn()>>>> = Rc::new(RefCell::new(None));
         let recording_rows: Rc<RefCell<Vec<RecordingListRow>>> = Rc::new(RefCell::new(Vec::new()));
 
+        // Build the shared context for import refresh
+        let list_ctx = RecordingListContext {
+            window: window.clone(),
+            recordings_list: recordings_list.clone(),
+            recording_rows: recording_rows.clone(),
+            on_play: on_play.clone(),
+            on_delete: on_delete.clone(),
+            on_rename: on_rename.clone(),
+        };
+
         // Import button handler
-        let window_weak = window.downgrade();
         let on_import_clone = on_import.clone();
+        let import_ctx = list_ctx.clone();
         import_btn.connect_clicked(move |_| {
-            let Some(win) = window_weak.upgrade() else {
-                return;
-            };
-            Self::handle_import(&win);
+            Self::handle_import(&import_ctx);
             if let Some(ref cb) = *on_import_clone.borrow() {
                 cb();
+            }
+        });
+
+        // Search filtering
+        let rows_search = recording_rows.clone();
+        search_entry.connect_search_changed(move |entry| {
+            let query = entry.text().to_string().to_lowercase();
+            let rows_ref = rows_search.borrow();
+            for rr in rows_ref.iter() {
+                let display = rr
+                    .entry
+                    .metadata
+                    .display_name
+                    .as_deref()
+                    .unwrap_or(&rr.entry.metadata.connection_name);
+                let visible = query.is_empty()
+                    || display.to_lowercase().contains(&query)
+                    || rr
+                        .entry
+                        .metadata
+                        .connection_name
+                        .to_lowercase()
+                        .contains(&query);
+                rr.row.set_visible(visible);
             }
         });
 
@@ -167,32 +231,21 @@ impl RecordingsDialog {
         dialog
     }
 
+    /// Returns a `RecordingListContext` from `&self` fields.
+    fn list_ctx(&self) -> RecordingListContext {
+        RecordingListContext {
+            window: self.window.clone(),
+            recordings_list: self.recordings_list.clone(),
+            recording_rows: self.recording_rows.clone(),
+            on_play: self.on_play.clone(),
+            on_delete: self.on_delete.clone(),
+            on_rename: self.on_rename.clone(),
+        }
+    }
+
     /// Refreshes the recordings list from disk via `RecordingManager`.
     pub fn refresh_list(&self) {
-        // Clear existing rows
-        while let Some(row) = self.recordings_list.row_at_index(0) {
-            self.recordings_list.remove(&row);
-        }
-        self.recording_rows.borrow_mut().clear();
-
-        let Some(dir) = default_recordings_dir() else {
-            return;
-        };
-
-        let mgr = RecordingManager::new(dir);
-        let entries = match mgr.list() {
-            Ok(e) => e,
-            Err(e) => {
-                tracing::warn!("Failed to list recordings: {e}");
-                return;
-            }
-        };
-
-        for entry in entries {
-            let list_row = self.create_recording_row(&entry);
-            self.recordings_list.append(&list_row.row);
-            self.recording_rows.borrow_mut().push(list_row);
-        }
+        Self::refresh_list_with_ctx(&self.list_ctx());
     }
 
     /// Shows the dialog.
@@ -226,8 +279,39 @@ impl RecordingsDialog {
         *self.on_import.borrow_mut() = Some(Box::new(cb));
     }
 
+    /// Refreshes the recordings list using a `RecordingListContext`.
+    fn refresh_list_with_ctx(ctx: &RecordingListContext) {
+        // Clear existing rows
+        while let Some(row) = ctx.recordings_list.row_at_index(0) {
+            ctx.recordings_list.remove(&row);
+        }
+        ctx.recording_rows.borrow_mut().clear();
+
+        let Some(dir) = default_recordings_dir() else {
+            return;
+        };
+
+        let mgr = RecordingManager::new(dir);
+        let entries = match mgr.list() {
+            Ok(e) => e,
+            Err(e) => {
+                tracing::warn!("Failed to list recordings: {e}");
+                return;
+            }
+        };
+
+        for entry in entries {
+            let list_row = Self::create_recording_row(ctx, &entry);
+            ctx.recordings_list.append(&list_row.row);
+            ctx.recording_rows.borrow_mut().push(list_row);
+        }
+    }
+
     /// Creates a list row widget for a single recording entry.
-    fn create_recording_row(&self, entry: &RecordingEntry) -> RecordingListRow {
+    fn create_recording_row(
+        ctx: &RecordingListContext,
+        entry: &RecordingEntry,
+    ) -> RecordingListRow {
         let hbox = GtkBox::new(Orientation::Horizontal, 8);
         hbox.set_margin_top(8);
         hbox.set_margin_bottom(8);
@@ -341,7 +425,7 @@ impl RecordingsDialog {
 
         // Wire up Play
         let entry_clone = entry.clone();
-        let on_play = self.on_play.clone();
+        let on_play = ctx.on_play.clone();
         play_button.connect_clicked(move |_| {
             if let Some(ref cb) = *on_play.borrow() {
                 cb(entry_clone.clone());
@@ -350,8 +434,8 @@ impl RecordingsDialog {
 
         // Wire up Rename
         let data_path = entry.data_path.clone();
-        let window_weak = self.window.downgrade();
-        let on_rename = self.on_rename.clone();
+        let window_weak = ctx.window.downgrade();
+        let on_rename = ctx.on_rename.clone();
         let name_label_clone = name_label.clone();
         let current_name = display.to_string();
         rename_button.connect_clicked(move |_| {
@@ -369,10 +453,10 @@ impl RecordingsDialog {
 
         // Wire up Delete
         let data_path_del = entry.data_path.clone();
-        let window_weak_del = self.window.downgrade();
-        let on_delete = self.on_delete.clone();
-        let recordings_list_ref = self.recordings_list.clone();
-        let recording_rows_ref = self.recording_rows.clone();
+        let window_weak_del = ctx.window.downgrade();
+        let on_delete = ctx.on_delete.clone();
+        let recordings_list_ref = ctx.recordings_list.clone();
+        let recording_rows_ref = ctx.recording_rows.clone();
         let row_weak = row.downgrade();
         let entry_name = display.to_string();
         delete_button.connect_clicked(move |_| {
@@ -392,7 +476,7 @@ impl RecordingsDialog {
 
         // Wire up Export
         let data_path_exp = entry.data_path.clone();
-        let window_weak_exp = self.window.downgrade();
+        let window_weak_exp = ctx.window.downgrade();
         export_button.connect_clicked(move |_| {
             let Some(win) = window_weak_exp.upgrade() else {
                 return;
@@ -546,11 +630,10 @@ impl RecordingsDialog {
     }
 
     // -----------------------------------------------------------------------
-    // Import handler
+    // Export handler
     // -----------------------------------------------------------------------
 
-    /// Opens file chooser dialogs for data + timing files, validates, and
-    /// imports the recording.
+    /// Opens a folder chooser and exports the recording.
     fn handle_export(win: &adw::Window, data_path: &std::path::Path) {
         let dialog = FileDialog::builder()
             .title(i18n("Export Recording"))
@@ -590,7 +673,13 @@ impl RecordingsDialog {
         });
     }
 
-    fn handle_import(win: &adw::Window) {
+    // -----------------------------------------------------------------------
+    // Import handler
+    // -----------------------------------------------------------------------
+
+    /// Opens file chooser dialogs for data + timing files, validates, and
+    /// imports the recording. Refreshes the list on success.
+    fn handle_import(ctx: &RecordingListContext) {
         // Step 1: Choose the data file
         let data_filter = gtk4::FileFilter::new();
         data_filter.set_name(Some(&i18n("Data files")));
@@ -606,54 +695,62 @@ impl RecordingsDialog {
             .filters(&filters)
             .build();
 
-        let win_clone = win.clone();
+        let ctx_clone = ctx.clone();
 
-        data_dialog.open(Some(win), gtk4::gio::Cancellable::NONE, move |result| {
-            let Ok(data_file) = result else {
-                return; // User cancelled
-            };
-            let Some(data_path) = data_file.path() else {
-                return;
-            };
+        data_dialog.open(
+            Some(&ctx.window),
+            gtk4::gio::Cancellable::NONE,
+            move |result| {
+                let Ok(data_file) = result else {
+                    return; // User cancelled
+                };
+                let Some(data_path) = data_file.path() else {
+                    return;
+                };
 
-            // Step 2: Choose the timing file
-            let timing_filter = gtk4::FileFilter::new();
-            timing_filter.set_name(Some(&i18n("Timing files")));
-            timing_filter.add_pattern("*.timing");
-            timing_filter.add_pattern("*");
+                // Step 2: Choose the timing file
+                let timing_filter = gtk4::FileFilter::new();
+                timing_filter.set_name(Some(&i18n("Timing files")));
+                timing_filter.add_pattern("*.timing");
+                timing_filter.add_pattern("*");
 
-            let timing_filters = gtk4::gio::ListStore::new::<gtk4::FileFilter>();
-            timing_filters.append(&timing_filter);
+                let timing_filters = gtk4::gio::ListStore::new::<gtk4::FileFilter>();
+                timing_filters.append(&timing_filter);
 
-            let timing_dialog = FileDialog::builder()
-                .title(i18n("Select Timing File"))
-                .modal(true)
-                .filters(&timing_filters)
-                .build();
+                let timing_dialog = FileDialog::builder()
+                    .title(i18n("Select Timing File"))
+                    .modal(true)
+                    .filters(&timing_filters)
+                    .build();
 
-            let win_inner = win_clone.clone();
+                let ctx_inner = ctx_clone.clone();
 
-            timing_dialog.open(
-                Some(&win_clone),
-                gtk4::gio::Cancellable::NONE,
-                move |result| {
-                    let Ok(timing_file) = result else {
-                        return;
-                    };
-                    let Some(timing_path) = timing_file.path() else {
-                        return;
-                    };
+                timing_dialog.open(
+                    Some(&ctx_clone.window),
+                    gtk4::gio::Cancellable::NONE,
+                    move |result| {
+                        let Ok(timing_file) = result else {
+                            return;
+                        };
+                        let Some(timing_path) = timing_file.path() else {
+                            return;
+                        };
 
-                    Self::do_import(&win_inner, &data_path, &timing_path);
-                },
-            );
-        });
+                        Self::do_import(&ctx_inner, &data_path, &timing_path);
+                    },
+                );
+            },
+        );
     }
 
     /// Performs the actual import after both files have been selected.
-    fn do_import(win: &adw::Window, data_path: &std::path::Path, timing_path: &std::path::Path) {
+    fn do_import(
+        ctx: &RecordingListContext,
+        data_path: &std::path::Path,
+        timing_path: &std::path::Path,
+    ) {
         let Some(dir) = default_recordings_dir() else {
-            Self::show_error(win, &i18n("Cannot determine recordings directory."));
+            Self::show_error(&ctx.window, &i18n("Cannot determine recordings directory."));
             return;
         };
 
@@ -661,14 +758,16 @@ impl RecordingsDialog {
         match mgr.import(data_path, timing_path) {
             Ok(_entry) => {
                 crate::toast::show_toast_on_window(
-                    win,
+                    &ctx.window,
                     &i18n("Recording imported successfully"),
                     crate::toast::ToastType::Info,
                 );
+                // Refresh the list so the imported recording appears immediately
+                Self::refresh_list_with_ctx(ctx);
             }
             Err(e) => {
                 let msg = format!("{}: {e}", i18n("Import failed"));
-                Self::show_error(win, &msg);
+                Self::show_error(&ctx.window, &msg);
             }
         }
     }

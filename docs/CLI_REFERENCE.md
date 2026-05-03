@@ -471,7 +471,7 @@ The `run` subcommand without `--execute` only prints the expanded command (safe 
 | `group list` | List all groups (`--format`) |
 | `group show <name>` | Show group details and connections |
 | `group create` | Create a group (`--name`, `--parent`, `--description`, `--icon`) |
-| `group edit <name>` | Edit group properties (`--new-name`, `--parent`, `--description`, `--icon`, `--ssh-key-path`, `--ssh-auth-method`, `--ssh-proxy-jump`, `--ssh-agent-socket`) |
+| `group edit <name>` | Edit group properties (`--new-name`, `--parent`, `--description`, `--icon`, `--ssh-key-path`, `--ssh-auth-method`, `--ssh-proxy-jump`, `--ssh-agent-socket`, `--add-expect-rule`, `--clear-expect-rules`, `--add-post-login-script`, `--clear-post-login-scripts`) |
 | `group delete <name>` | Delete a group |
 | `group add-connection` | Add connection to group (`-g group -c connection`) |
 | `group remove-connection` | Remove connection from group (`-g group -c connection`) |
@@ -482,6 +482,9 @@ rustconn-cli group create --name "Staging"
 rustconn-cli group create --name "EU" --parent "Production" --icon "🇪🇺"
 rustconn-cli group edit "Staging" --new-name "Staging EU" --icon "🇪🇺" --parent "Production"
 rustconn-cli group edit "Production" --ssh-auth-method publickey --ssh-key-path ~/.ssh/id_ed25519
+rustconn-cli group edit "Production" --add-expect-rule '{"pattern":"\\[sudo\\] password for \\w+:","response":"${password}\\n","priority":10}'
+rustconn-cli group edit "Production" --add-post-login-script "cd /app" --add-post-login-script "source .env"
+rustconn-cli group edit "Production" --clear-expect-rules --clear-post-login-scripts
 rustconn-cli group add-connection -g "Production" -c "Web-01"
 rustconn-cli group remove-connection -g "Production" -c "Web-01"
 rustconn-cli group delete "Old Group"

@@ -13,34 +13,53 @@ use gtk4::{
 use libadwaita as adw;
 use rustconn_core::automation::builtin_templates;
 
+/// All widgets created by [`create_automation_combined_tab`].
+pub(super) struct AutomationTabWidgets {
+    /// The outer container added to the view stack.
+    pub(super) container: GtkBox,
+    /// Expect rules list box.
+    pub(super) expect_rules_list: ListBox,
+    /// Button to add a new expect rule.
+    pub(super) add_expect_rule_button: Button,
+    /// Container holding template picker buttons.
+    pub(super) template_list_box: GtkBox,
+    /// Entry for the pattern tester.
+    pub(super) expect_pattern_test_entry: Entry,
+    /// Label showing pattern test results.
+    pub(super) expect_test_result_label: Label,
+    /// Pre-connect task enabled checkbox.
+    pub(super) pre_connect_enabled_check: CheckButton,
+    /// Pre-connect command entry.
+    pub(super) pre_connect_command_entry: Entry,
+    /// Pre-connect timeout spin button.
+    pub(super) pre_connect_timeout_spin: SpinButton,
+    /// Pre-connect abort on failure checkbox.
+    pub(super) pre_connect_abort_check: CheckButton,
+    /// Pre-connect first-connection-only checkbox.
+    pub(super) pre_connect_first_only_check: CheckButton,
+    /// Post-disconnect task enabled checkbox.
+    pub(super) post_disconnect_enabled_check: CheckButton,
+    /// Post-disconnect command entry.
+    pub(super) post_disconnect_command_entry: Entry,
+    /// Post-disconnect timeout spin button.
+    pub(super) post_disconnect_timeout_spin: SpinButton,
+    /// Post-disconnect last-connection-only checkbox.
+    pub(super) post_disconnect_last_only_check: CheckButton,
+}
+
 /// Creates the combined Automation tab (Expect Rules + Tasks).
-#[allow(clippy::type_complexity, clippy::too_many_lines)]
-pub(super) fn create_automation_combined_tab() -> (
-    GtkBox,
-    ListBox,
-    Button,
-    GtkBox,
-    Entry,
-    Label,
-    CheckButton,
-    Entry,
-    SpinButton,
-    CheckButton,
-    CheckButton,
-    CheckButton,
-    Entry,
-    SpinButton,
-    CheckButton,
-) {
+#[allow(clippy::too_many_lines)]
+pub(super) fn create_automation_combined_tab() -> AutomationTabWidgets {
     let scrolled = ScrolledWindow::builder()
         .hscrollbar_policy(gtk4::PolicyType::Never)
         .vscrollbar_policy(gtk4::PolicyType::Automatic)
         .vexpand(true)
         .build();
+    scrolled.set_overlay_scrolling(true);
 
     let clamp = adw::Clamp::builder()
         .maximum_size(600)
-        .tightening_threshold(400)
+        .tightening_threshold(600)
         .build();
 
     let content = GtkBox::new(Orientation::Vertical, 12);
@@ -55,20 +74,27 @@ pub(super) fn create_automation_combined_tab() -> (
         .description(i18n("Auto-respond to terminal patterns (priority order)"))
         .build();
 
-    let rules_scrolled = ScrolledWindow::builder()
-        .hscrollbar_policy(gtk4::PolicyType::Never)
-        .vscrollbar_policy(gtk4::PolicyType::Automatic)
-        .min_content_height(120)
+    // Info banner about variable substitution (consistent with group dialog)
+    let variables_info = Label::builder()
+        .label(&i18n(
+            "Responses support ${password}, ${username}, and ${VARIABLE_NAME} placeholders resolved at connection time",
+        ))
+        .wrap(true)
+        .halign(gtk4::Align::Start)
+        .css_classes(["dim-label", "caption"])
         .build();
+    variables_info.set_margin_bottom(4);
+    rules_group.add(&variables_info);
 
     let expect_rules_list = ListBox::builder()
         .selection_mode(gtk4::SelectionMode::None)
         .css_classes(["boxed-list"])
         .build();
     expect_rules_list.set_placeholder(Some(&Label::new(Some(&i18n("No expect rules")))));
-    rules_scrolled.set_child(Some(&expect_rules_list));
 
-    rules_group.add(&rules_scrolled);
+    // No inner ScrolledWindow — the tab's own scrolled window handles scrolling.
+    // This avoids the scroll-in-scroll anti-pattern (GNOME HIG).
+    rules_group.add(&expect_rules_list);
 
     let rules_button_box = GtkBox::new(Orientation::Horizontal, 8);
     rules_button_box.set_halign(gtk4::Align::End);
@@ -87,14 +113,26 @@ pub(super) fn create_automation_combined_tab() -> (
     template_list_box.set_margin_end(8);
 
     for template in builtin_templates() {
+        // Add protocol hint to SSH-specific templates for consistency with group dialog
+        let label = if template.protocol_hint.is_empty() {
+            template.name.to_string()
+        } else {
+            format!(
+                "{} ({})",
+                template.name,
+                template.protocol_hint.to_uppercase()
+            )
+        };
         let btn = Button::builder()
-            .label(template.name)
+            .label(&label)
             .css_classes(["flat"])
             .tooltip_text(template.description)
             .build();
         template_list_box.append(&btn);
     }
     template_popover.set_child(Some(&template_list_box));
+    // Fixed width prevents layout shifts when different templates are selected
+    template_popover.set_size_request(280, -1);
     template_menu_button.set_popover(Some(&template_popover));
 
     let add_rule_button = Button::builder()
@@ -163,13 +201,13 @@ pub(super) fn create_automation_combined_tab() -> (
     let vbox = GtkBox::new(Orientation::Vertical, 0);
     vbox.append(&scrolled);
 
-    (
-        vbox,
+    AutomationTabWidgets {
+        container: vbox,
         expect_rules_list,
-        add_rule_button,
+        add_expect_rule_button: add_rule_button,
         template_list_box,
-        test_entry,
-        result_label,
+        expect_pattern_test_entry: test_entry,
+        expect_test_result_label: result_label,
         pre_connect_enabled_check,
         pre_connect_command_entry,
         pre_connect_timeout_spin,
@@ -179,7 +217,7 @@ pub(super) fn create_automation_combined_tab() -> (
         post_disconnect_command_entry,
         post_disconnect_timeout_spin,
         post_disconnect_last_only_check,
-    )
+    }
 }
 
 /// Creates a task section (pre-connect or post-disconnect).

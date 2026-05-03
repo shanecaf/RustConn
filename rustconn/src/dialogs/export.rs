@@ -13,12 +13,16 @@ use gtk4::{
     ScrolledWindow, Separator, Stack, StringList,
 };
 use libadwaita as adw;
+use rustconn_core::cluster::Cluster;
 use rustconn_core::export::{
     AnsibleExporter, AsbruExporter, CsvExportField, CsvExportOptions, CsvExporter, ExportFormat,
     ExportOptions, ExportResult, ExportTarget, MobaXtermExporter, NativeExport, RemminaExporter,
     RoyalTsExporter, SshConfigExporter,
 };
-use rustconn_core::models::{Connection, ConnectionGroup, Snippet};
+use rustconn_core::models::{
+    Connection, ConnectionGroup, ConnectionTemplate, SmartFolder, Snippet,
+};
+use rustconn_core::variables::Variable;
 use std::cell::RefCell;
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -72,6 +76,10 @@ pub struct ExportDialog {
     connections: Rc<RefCell<Vec<Connection>>>,
     groups: Rc<RefCell<Vec<ConnectionGroup>>>,
     snippets: Rc<RefCell<Vec<Snippet>>>,
+    smart_folders: Rc<RefCell<Vec<SmartFolder>>>,
+    templates: Rc<RefCell<Vec<ConnectionTemplate>>>,
+    clusters: Rc<RefCell<Vec<Cluster>>>,
+    variables: Rc<RefCell<Vec<Variable>>>,
     result: Rc<RefCell<Option<ExportResult>>>,
     on_complete: ExportCallback,
     parent: Option<gtk4::Window>,
@@ -86,7 +94,7 @@ impl ExportDialog {
             .title(i18n("Export Connections"))
             .modal(true)
             .default_width(600)
-            .default_height(500)
+            .default_height(650)
             .build();
 
         if let Some(p) = parent {
@@ -199,6 +207,10 @@ impl ExportDialog {
             connections: Rc::new(RefCell::new(Vec::new())),
             groups: Rc::new(RefCell::new(Vec::new())),
             snippets: Rc::new(RefCell::new(Vec::new())),
+            smart_folders: Rc::new(RefCell::new(Vec::new())),
+            templates: Rc::new(RefCell::new(Vec::new())),
+            clusters: Rc::new(RefCell::new(Vec::new())),
+            variables: Rc::new(RefCell::new(Vec::new())),
             result: Rc::new(RefCell::new(None)),
             on_complete,
             parent: parent.cloned(),
@@ -595,6 +607,26 @@ impl ExportDialog {
         *self.snippets.borrow_mut() = snippets;
     }
 
+    /// Sets the smart folders to include in native export
+    pub fn set_smart_folders(&self, smart_folders: Vec<SmartFolder>) {
+        *self.smart_folders.borrow_mut() = smart_folders;
+    }
+
+    /// Sets the templates to include in native export
+    pub fn set_templates(&self, templates: Vec<ConnectionTemplate>) {
+        *self.templates.borrow_mut() = templates;
+    }
+
+    /// Sets the clusters to include in native export
+    pub fn set_clusters(&self, clusters: Vec<Cluster>) {
+        *self.clusters.borrow_mut() = clusters;
+    }
+
+    /// Sets the variables to include in native export
+    pub fn set_variables(&self, variables: Vec<Variable>) {
+        *self.variables.borrow_mut() = variables;
+    }
+
     /// Maps a format dropdown index to an `ExportFormat`
     fn format_from_index(index: u32) -> ExportFormat {
         match index {
@@ -611,10 +643,15 @@ impl ExportDialog {
     }
 
     /// Performs the export operation
+    #[allow(clippy::too_many_arguments)]
     fn do_export(
         connections: &[Connection],
         groups: &[ConnectionGroup],
         snippets: &[Snippet],
+        smart_folders: &[SmartFolder],
+        templates: &[ConnectionTemplate],
+        clusters: &[Cluster],
+        variables: &[Variable],
         options: &ExportOptions,
         csv_options: Option<&CsvExportOptions>,
     ) -> Result<ExportResult, String> {
@@ -645,14 +682,15 @@ impl ExportDialog {
             }
             ExportFormat::Native => {
                 // Native export includes all data types
-                let export = NativeExport::with_data(
+                let mut export = NativeExport::with_data(
                     connections.to_vec(),
                     groups.to_vec(),
-                    Vec::new(), // Templates would need to be passed in
-                    Vec::new(), // Clusters would need to be passed in
-                    Vec::new(), // Variables would need to be passed in
+                    templates.to_vec(),
+                    clusters.to_vec(),
+                    variables.to_vec(),
                     snippets.to_vec(),
                 );
+                export.smart_folders = smart_folders.to_vec();
                 export
                     .to_file(&options.output_path)
                     .map_err(|e| e.to_string())?;
@@ -910,6 +948,10 @@ impl ExportDialog {
         let connections = self.connections.clone();
         let groups = self.groups.clone();
         let snippets = self.snippets.clone();
+        let smart_folders = self.smart_folders.clone();
+        let templates = self.templates.clone();
+        let clusters = self.clusters.clone();
+        let variables = self.variables.clone();
         let result_cell = self.result.clone();
         let on_complete = self.on_complete.clone();
         let csv_delimiter_dropdown = self.csv_delimiter_dropdown.clone();
@@ -1006,6 +1048,10 @@ impl ExportDialog {
             let all_conns = connections.borrow().clone();
             let all_grps = groups.borrow().clone();
             let snips = snippets.borrow().clone();
+            let smart_fldrs = smart_folders.borrow().clone();
+            let tmpls = templates.borrow().clone();
+            let clstrs = clusters.borrow().clone();
+            let vars = variables.borrow().clone();
 
             // Filter connections and groups by selected group (and its descendants)
             let (conns, grps) = {
@@ -1068,6 +1114,10 @@ impl ExportDialog {
                         &conns,
                         &grps,
                         &snips,
+                        &smart_fldrs,
+                        &tmpls,
+                        &clstrs,
+                        &vars,
                         &options_clone,
                         csv_opts_clone.as_ref(),
                     )

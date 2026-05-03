@@ -443,6 +443,27 @@ impl SwitchRowBuilder {
     }
 }
 
+/// Marker function for xgettext to discover dialog header button labels.
+/// These strings are used indirectly via `dialog_header()` and would otherwise
+/// be invisible to the POT extraction tool.
+///
+/// This function is never called at runtime.
+#[allow(dead_code)]
+fn _i18n_markers() {
+    // Button labels used in dialog_header() across the codebase
+    i18n("Close");
+    i18n("Cancel");
+    i18n("Save");
+    i18n("Create");
+    i18n("Export");
+    i18n("Import");
+    i18n("Copy");
+    i18n("Connect");
+    i18n("Send");
+    i18n("Use Template");
+    i18n("Done");
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

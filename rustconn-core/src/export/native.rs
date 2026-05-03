@@ -13,13 +13,13 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use crate::cluster::Cluster;
-use crate::models::{Connection, ConnectionGroup, ConnectionTemplate, Snippet};
+use crate::models::{Connection, ConnectionGroup, ConnectionTemplate, SmartFolder, Snippet};
 use crate::variables::Variable;
 
 use super::ExportError;
 
 /// Current version of the native export format
-pub const NATIVE_FORMAT_VERSION: u32 = 2;
+pub const NATIVE_FORMAT_VERSION: u32 = 3;
 
 /// File extension for native export files
 pub const NATIVE_FILE_EXTENSION: &str = "rcn";
@@ -69,6 +69,9 @@ pub struct NativeExport {
     /// Snippets (added in format version 2)
     #[serde(default)]
     pub snippets: Vec<Snippet>,
+    /// Smart folders for dynamic connection grouping (added in format version 3)
+    #[serde(default)]
+    pub smart_folders: Vec<SmartFolder>,
     /// Custom metadata
     #[serde(default)]
     pub metadata: HashMap<String, String>,
@@ -88,6 +91,7 @@ impl NativeExport {
             clusters: Vec::new(),
             variables: Vec::new(),
             snippets: Vec::new(),
+            smart_folders: Vec::new(),
             metadata: HashMap::new(),
         }
     }
@@ -112,6 +116,7 @@ impl NativeExport {
             clusters,
             variables,
             snippets,
+            smart_folders: Vec::new(),
             metadata: HashMap::new(),
         }
     }
@@ -218,6 +223,7 @@ impl NativeExport {
     /// transformations to data from older format versions.
     const fn migrate(mut export: Self) -> Self {
         // v1 → v2: snippets field added with #[serde(default)], no data migration needed
+        // v2 → v3: smart_folders field added with #[serde(default)], no data migration needed
 
         // Update version to current after migration
         export.version = NATIVE_FORMAT_VERSION;
@@ -233,6 +239,7 @@ impl NativeExport {
             + self.clusters.len()
             + self.variables.len()
             + self.snippets.len()
+            + self.smart_folders.len()
     }
 
     /// Returns true if this export contains no data
@@ -244,6 +251,7 @@ impl NativeExport {
             && self.clusters.is_empty()
             && self.variables.is_empty()
             && self.snippets.is_empty()
+            && self.smart_folders.is_empty()
     }
 
     /// Returns a summary of the export contents
@@ -251,13 +259,14 @@ impl NativeExport {
     pub fn summary(&self) -> String {
         format!(
             "Connections: {}, Groups: {}, Templates: {}, Clusters: {}, \
-             Variables: {}, Snippets: {}",
+             Variables: {}, Snippets: {}, Smart Folders: {}",
             self.connections.len(),
             self.groups.len(),
             self.templates.len(),
             self.clusters.len(),
             self.variables.len(),
-            self.snippets.len()
+            self.snippets.len(),
+            self.smart_folders.len()
         )
     }
 }
