@@ -650,14 +650,26 @@ fn check_secret_backend_available(
     window_weak: &glib::WeakRef<adw::ApplicationWindow>,
 ) {
     let state_ref = state.borrow();
-    let backend = state_ref.settings().secrets.preferred_backend;
+    let secrets = &state_ref.settings().secrets;
+    let backend = secrets.preferred_backend;
 
     // Only warn for non-default backends (LibSecret is always the fallback)
     if matches!(backend, rustconn_core::config::SecretBackendType::LibSecret) {
         return;
     }
 
-    let available = state_ref.has_secret_backend();
+    // KeePassXc/KdbxFile use direct KDBX file access, not SecretManager backends.
+    // Check KDBX-specific availability instead of probing LibSecretBackend
+    // (which is what SecretManager contains for these backend types).
+    let available = if matches!(
+        backend,
+        rustconn_core::config::SecretBackendType::KeePassXc
+            | rustconn_core::config::SecretBackendType::KdbxFile
+    ) {
+        secrets.kdbx_enabled && secrets.kdbx_path.as_ref().is_some_and(|p| p.exists())
+    } else {
+        state_ref.has_secret_backend()
+    };
     drop(state_ref);
 
     if !available && let Some(win) = window_weak.upgrade() {

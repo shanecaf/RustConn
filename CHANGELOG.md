@@ -5,6 +5,12 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.3] - 2026-05-04
+
+### Fixed
+- **False "KeePassXc backend unavailable" toast when KeePassXc is running** — `check_secret_backend_available` checked `SecretManager.is_available()` for all non-LibSecret backends, but `build_from_settings` registers `LibSecretBackend` (not `KeePassXcBackend`) for KeePassXc/KdbxFile because KDBX credentials are resolved via direct file access in `resolve_credentials_blocking`; the availability probe therefore tested whether `secret-tool` could be spawned within a 5-second `block_on` timeout — which can fail in Flatpak sandboxes or when D-Bus is slow at startup — and incorrectly reported KeePassXc as unavailable; now KeePassXc/KdbxFile availability is determined by checking `kdbx_enabled && kdbx_path.exists()` instead of probing the unrelated LibSecretBackend ([#123](https://github.com/totoshko88/RustConn/issues/123))
+- **Flatpak Local Shell: "no job control" warnings and broken PTY** — `flatpak-spawn --host` only forwards stdio without creating a host-side PTY, so the shell cannot become a session leader — causing `tcgetpgrp failed`, `setpgid: Inappropriate ioctl for device` warnings and broken job control (Ctrl-Z, fg, bg); now wraps the host shell in `script -qfc` (util-linux) which allocates a real PTY on the host, giving bash/zsh/fish a proper controlling terminal ([#122](https://github.com/totoshko88/RustConn/issues/122))
+
 ## [0.13.2] - 2026-05-04
 
 ### Fixed

@@ -4990,12 +4990,23 @@ impl MainWindow {
                 })
                 .unwrap_or_else(|| "/bin/bash".to_string());
 
-            // Run the host shell directly via flatpak-spawn.
-            // The "can't set process group" / "no job control" warnings
-            // are an inherent limitation of flatpak-spawn --host (bash is
-            // not a session leader). They are cosmetic — the shell works.
-            let spawn_cmd =
-                format!("flatpak-spawn --host --env=TERM=xterm-256color -- {host_shell} -l");
+            // Run the host shell via flatpak-spawn, wrapped in `script` to
+            // allocate a real PTY on the host side (#122).
+            //
+            // flatpak-spawn --host only forwards stdio — it does NOT create a
+            // PTY on the host. Without a PTY the shell cannot become a session
+            // leader, which causes:
+            //   - "can't set process group" / "no job control" warnings
+            //   - tcgetpgrp / setpgid failures
+            //   - broken job control (Ctrl-Z, fg, bg)
+            //
+            // `script -qfc '<shell> --login' /dev/null` (from util-linux,
+            // present on virtually every Linux host) creates a host-side PTY
+            // and runs the shell inside it, giving bash/zsh/fish a proper
+            // controlling terminal.
+            let spawn_cmd = format!(
+                "flatpak-spawn --host --env=TERM=xterm-256color -- script -qfc '{host_shell} --login' /dev/null"
+            );
             notebook.spawn_command(session_id, &["/bin/sh", "-c", &spawn_cmd], None, None, None);
         } else {
             notebook.spawn_command(session_id, &[&shell], None, None, None);
