@@ -212,23 +212,13 @@ pub fn show_new_group_dialog_with_parent(
         .default_width(450)
         .build();
 
-    // Create header bar with Close/Create buttons (GNOME HIG)
+    // Header bar with Create icon button (GNOME HIG)
     let header = adw::HeaderBar::new();
-    header.set_show_end_title_buttons(false);
-    header.set_show_start_title_buttons(false);
-    let close_btn = gtk4::Button::builder().label(i18n("Close")).build();
-    let create_btn = gtk4::Button::builder()
-        .label(i18n("Create"))
-        .css_classes(["suggested-action"])
-        .build();
-    header.pack_start(&close_btn);
-    header.pack_end(&create_btn);
-
-    // Close button handler
-    let window_clone = group_window.clone();
-    close_btn.connect_clicked(move |_| {
-        window_clone.close();
-    });
+    let create_btn = gtk4::Button::from_icon_name("list-add-symbolic");
+    create_btn.set_tooltip_text(Some(&i18n("Create")));
+    create_btn.update_property(&[gtk4::accessible::Property::Label(&i18n("Create"))]);
+    create_btn.add_css_class("suggested-action");
+    header.pack_start(&create_btn);
 
     // Scrollable content with clamp
     let clamp = adw::Clamp::builder()

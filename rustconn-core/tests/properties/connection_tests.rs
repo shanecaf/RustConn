@@ -174,6 +174,8 @@ fn arb_rdp_config() -> impl Strategy<Value = RdpConfig> {
                 keyboard_layout: None,
                 scale_override: Default::default(),
                 disable_nla: false,
+                security_layer: Default::default(),
+                tls_security_level: None,
                 ignore_certificate: false,
                 clipboard_enabled: true,
                 show_local_cursor: true,

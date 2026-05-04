@@ -32,14 +32,14 @@ pub fn show_password_generator_dialog(parent: Option<&impl IsA<gtk4::Window>>) {
 
     window.set_size_request(350, 300);
 
-    // Header bar (GNOME HIG)
-    let (header, close_btn, copy_btn) = crate::dialogs::widgets::dialog_header("Close", "Copy");
-
-    // Close button handler
-    let window_clone = window.clone();
-    close_btn.connect_clicked(move |_| {
-        window_clone.close();
-    });
+    // Header bar with Copy button and standard window buttons (GNOME HIG)
+    let header = adw::HeaderBar::new();
+    let copy_btn = Button::from_icon_name("edit-copy-symbolic");
+    copy_btn.set_tooltip_text(Some(&i18n("Copy to Clipboard")));
+    copy_btn.update_property(&[gtk4::accessible::Property::Label(&i18n(
+        "Copy to Clipboard",
+    ))]);
+    header.pack_start(&copy_btn);
 
     // Scrollable content with clamp
     let scrolled = gtk4::ScrolledWindow::builder()

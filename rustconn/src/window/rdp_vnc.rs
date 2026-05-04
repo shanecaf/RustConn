@@ -511,6 +511,23 @@ fn start_embedded_rdp_session(
     // Pass certificate verification setting
     embedded_config.ignore_certificate = rdp_config.ignore_certificate;
 
+    // Pass security layer and TLS level for automatic FreeRDP fallback
+    embedded_config.security_layer = rdp_config.security_layer;
+    embedded_config.tls_security_level = rdp_config.tls_security_level;
+
+    // Add security layer and TLS level to extra_args for FreeRDP fallback
+    if let Some(sec_arg) = rdp_config.security_layer.freerdp_arg() {
+        embedded_config.extra_args.push(sec_arg.to_string());
+    }
+    if let Some(level) = rdp_config.tls_security_level {
+        embedded_config
+            .extra_args
+            .push(format!("/tls-seclevel:{level}"));
+    }
+    if rdp_config.disable_nla {
+        embedded_config.extra_args.push("/sec:nla:off".to_string());
+    }
+
     // Wrap in Rc to keep widget alive in notebook
     let embedded_widget = Rc::new(embedded_widget);
 
@@ -692,6 +709,16 @@ fn start_external_rdp_session(
 
     // Get extra args from RDP config
     let mut extra_args = rdp_config.custom_args.clone();
+
+    // Add security layer flag if not default (Negotiate)
+    if let Some(sec_arg) = rdp_config.security_layer.freerdp_arg() {
+        extra_args.push(sec_arg.to_string());
+    }
+
+    // Add TLS security level for legacy server compatibility
+    if let Some(level) = rdp_config.tls_security_level {
+        extra_args.push(format!("/tls-seclevel:{level}"));
+    }
 
     // Add NLA disable flag if configured
     // FreeRDP 3.x syntax: /sec:nla:off (disables NLA while keeping other methods)

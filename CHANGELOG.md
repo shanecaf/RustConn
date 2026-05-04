@@ -9,11 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Improved
 - **GNOME HIG: application menu restructured** — "Fullscreen" (F11) added to the app menu; monolithic Tools section (11 items) split into three logical subsections: Managers (Snippets, Clusters, Templates, Variables), Monitoring & History (Sessions, History, Statistics, Recordings), Security & Network (Password Generator, Wake On LAN, SSH Tunnels); Settings separated from Shortcuts/About/Quit into its own section per HIG convention; "About" renamed to "About RustConn" per GNOME HIG naming pattern
+- **GNOME HIG: manager dialogs unified** — all dialog windows now use standard window close buttons (×) instead of text "Close"/"Cancel" buttons; action buttons moved to consistent positions: primary actions as icon buttons on the left of header bar (Add `+`, Refresh, Copy, Reset, Test, Connect, Import), save/submit actions on the right (Save, Create, Export, Import, Send, Rename); Snippets manager replaced bottom text buttons with inline icon buttons per row (▶ ✏ 🗑); Templates moved "Use Template" to bottom action bar; Variables added `+` and Save to bottom; History moved "Connect" to bottom right; Connection dialog uses Test icon (`network-transmit-receive-symbolic`) on the left; Quick Connect uses Connect icon on the left; Statistics uses Reset icon (`edit-clear-all-symbolic`); Password Generator uses Copy icon; applies to: Snippets, Clusters, Templates, Variables, Sessions, History, Statistics, Recordings, Quick Connect, Password Generator, Wake On LAN, Import, Export, Group Edit, New Group, Smart Folder, Connection Dialog, Rename
 - **Tray menu i18n** — all system tray menu strings ("Show Window", "Hide Window", "Quick Connect...", "Recent Connections", "Local Shell", "Active Session(s)", "About RustConn", "Quit", tooltip) now use `gettext()` for translation; previously hardcoded in English
 
+### Added
+- **RDP Security Layer / TLS Compatibility options** — new "Security Layer" dropdown (Negotiate/RDP/TLS/NLA) and "TLS Security Level" spin (0–5) in the RDP connection dialog; enables connections to legacy servers (Windows Server 2012 / Windows 7) that require lower TLS levels or RDP Security Layer instead of NLA; when RDP or TLS security layer is selected (or TLS level < 2), IronRDP embedded mode automatically falls back to external FreeRDP which supports legacy protocols; TLS level row is shown only when RDP or TLS mode is selected; CLI `show` command displays non-default security settings ([#124](https://github.com/totoshko88/RustConn/issues/124))
+
 ### Fixed
+- **SSH agent: multiple authentication prompts for saved connections** — when a saved connection uses `SshKeySource::Agent` and the key comment contains a file path, `build_command_args()` adds `-i <path> -o IdentitiesOnly=yes`; this causes SSH to first attempt file-based auth (triggering an agent confirmation in Bitwarden), then fall back to agent auth (triggering a second confirmation); Quick Connect works correctly because it passes no extra args — the agent offers keys naturally with a single prompt; root cause identified, fix pending ([#125](https://github.com/totoshko88/RustConn/issues/125))
 - **False "KeePassXc backend unavailable" toast when KeePassXc is running** — `check_secret_backend_available` checked `SecretManager.is_available()` for all non-LibSecret backends, but `build_from_settings` registers `LibSecretBackend` (not `KeePassXcBackend`) for KeePassXc/KdbxFile because KDBX credentials are resolved via direct file access in `resolve_credentials_blocking`; the availability probe therefore tested whether `secret-tool` could be spawned within a 5-second `block_on` timeout — which can fail in Flatpak sandboxes or when D-Bus is slow at startup — and incorrectly reported KeePassXc as unavailable; now KeePassXc/KdbxFile availability is determined by checking `kdbx_enabled && kdbx_path.exists()` instead of probing the unrelated LibSecretBackend ([#123](https://github.com/totoshko88/RustConn/issues/123))
 - **Flatpak Local Shell: "no job control" warnings and broken PTY** — `flatpak-spawn --host` only forwards stdio without creating a host-side PTY, so the shell cannot become a session leader — causing `tcgetpgrp failed`, `setpgid: Inappropriate ioctl for device` warnings and broken job control (Ctrl-Z, fg, bg); now wraps the host shell in `script -qfc` (util-linux) which allocates a real PTY on the host, giving bash/zsh/fish a proper controlling terminal ([#122](https://github.com/totoshko88/RustConn/issues/122))
+
+### Dependencies
+- h2 0.4.13 → 0.4.14
+- kqueue-sys 1.0.4 → 1.1.0
+- openssl 0.10.78 → 0.10.79, openssl-sys 0.9.114 → 0.9.115
+- quick-xml 0.39.2 → 0.39.3
+- redox_syscall 0.7.4 → 0.7.5
+- serdect 0.4.2 → 0.4.3
+- tokio 1.52.1 → 1.52.2
 
 ## [0.13.2] - 2026-05-04
 
@@ -26,7 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Per-connection monitoring toggle in connection dialog** — Advanced tab now has a "Remote Monitoring" section with an "Enable Monitoring" switch; when disabled, the monitoring collector does not open a separate SSH session to the remote host, preventing IP bans on devices with concurrent session limits (e.g. network routers); uses the existing `MonitoringConfig` backend — the toggle was already supported in `rustconn-core` but had no GUI ([#106](https://github.com/totoshko88/RustConn/issues/106))
-0
+
 ## [0.13.1] - 2026-05-04
 
 ### Fixed

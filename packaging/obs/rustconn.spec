@@ -238,7 +238,16 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
-* Sun May 04 2026 Anton Isaiev <totoshko88@gmail.com> - 0.13.3-1
+* Mon May 04 2026 Anton Isaiev <totoshko88@gmail.com> - 0.13.3-1
+- Version bump to 0.13.3
+- Added RDP Security Layer / TLS Compatibility options (#124)
+- Improved GNOME HIG: application menu restructured, manager dialogs unified
+- Improved Tray menu i18n
+- Fixed SSH agent multiple authentication prompts for saved connections (#125)
+- Fixed false KeePassXc backend unavailable toast (#123)
+- Fixed Flatpak Local Shell no job control warnings (#122)
+
+* Sun May 04 2026 Anton Isaiev <totoshko88@gmail.com> - 0.13.3-0
 - [Fixed] False "KeePassXc backend unavailable" toast when KeePassXc is
   running — availability now checked via kdbx_enabled && kdbx_path.exists()
   instead of probing the unrelated LibSecretBackend (#123)

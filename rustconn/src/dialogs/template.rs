@@ -19,9 +19,9 @@ use libadwaita as adw;
 use rustconn_core::models::{
     AwsSsmConfig, AzureBastionConfig, AzureSshConfig, BoundaryConfig, CloudflareAccessConfig,
     ConnectionTemplate, GcpIapConfig, GenericZeroTrustConfig, HoopDevConfig, OciBastionConfig,
-    ProtocolConfig, ProtocolType, RdpClientMode, RdpConfig, RdpPerformanceMode, Resolution,
-    ScaleOverride, SpiceConfig, SpiceImageCompression, SshAuthMethod, SshConfig, SshKeySource,
-    TailscaleSshConfig, TeleportConfig, VncClientMode, VncConfig, VncPerformanceMode,
+    ProtocolConfig, ProtocolType, RdpClientMode, RdpConfig, RdpPerformanceMode, RdpSecurityLayer,
+    Resolution, ScaleOverride, SpiceConfig, SpiceImageCompression, SshAuthMethod, SshConfig,
+    SshKeySource, TailscaleSshConfig, TeleportConfig, VncClientMode, VncConfig, VncPerformanceMode,
     ZeroTrustConfig, ZeroTrustProvider, ZeroTrustProviderConfig,
 };
 use std::cell::RefCell;
@@ -135,15 +135,13 @@ impl TemplateDialog {
 
         window.set_size_request(350, 300);
 
-        // Header bar (GNOME HIG)
-        let (header, close_btn, save_btn) =
-            crate::dialogs::widgets::dialog_header("Close", "Create");
-
-        // Close button handler
-        let window_clone = window.clone();
-        close_btn.connect_clicked(move |_| {
-            window_clone.close();
-        });
+        // Header bar with Create icon button (GNOME HIG)
+        let header = adw::HeaderBar::new();
+        let save_btn = Button::from_icon_name("list-add-symbolic");
+        save_btn.set_tooltip_text(Some(&i18n("Create")));
+        save_btn.update_property(&[gtk4::accessible::Property::Label(&i18n("Create"))]);
+        save_btn.add_css_class("suggested-action");
+        header.pack_start(&save_btn);
 
         // Create ViewStack for tabs (libadwaita style)
         let view_stack = adw::ViewStack::new();
@@ -2478,6 +2476,8 @@ impl TemplateDialog {
             keyboard_layout: None,
             scale_override: ScaleOverride::default(),
             disable_nla: false,
+            security_layer: RdpSecurityLayer::default(),
+            tls_security_level: None,
             ignore_certificate: false,
             clipboard_enabled: true,
             show_local_cursor: true,
@@ -3034,15 +3034,12 @@ impl TemplateManagerDialog {
 
         window.set_size_request(320, 280);
 
-        let (header, close_btn, create_conn_btn) =
-            crate::dialogs::widgets::dialog_header("Close", "Use Template");
-        create_conn_btn.set_sensitive(false);
-
-        // Close button handler
-        let window_clone = window.clone();
-        close_btn.connect_clicked(move |_| {
-            window_clone.close();
-        });
+        // Header bar with Add button and standard window buttons (GNOME HIG)
+        let header = adw::HeaderBar::new();
+        let add_btn = Button::from_icon_name("list-add-symbolic");
+        add_btn.set_tooltip_text(Some(&i18n("New Template")));
+        add_btn.update_property(&[gtk4::accessible::Property::Label(&i18n("New Template"))]);
+        header.pack_start(&add_btn);
 
         let clamp = adw::Clamp::builder()
             .maximum_size(600)
@@ -3097,15 +3094,15 @@ impl TemplateManagerDialog {
             .label(i18n("Delete"))
             .sensitive(false)
             .build();
-        let new_template_btn = Button::builder()
-            .label(i18n("Create Template"))
-            .sensitive(true)
+        let create_conn_btn = Button::builder()
+            .label(i18n("Use Template"))
+            .sensitive(false)
             .css_classes(["suggested-action"])
             .build();
 
         button_box.append(&edit_btn);
         button_box.append(&delete_btn);
-        button_box.append(&new_template_btn);
+        button_box.append(&create_conn_btn);
         content.append(&button_box);
 
         // Use ToolbarView for adw::Window
@@ -3133,9 +3130,9 @@ impl TemplateManagerDialog {
             create_conn_clone.set_sensitive(has_selection);
         });
 
-        // "Create Template" button - creates a new template
+        // "Add" button in header - creates a new template
         let on_new_clone = on_new.clone();
-        new_template_btn.connect_clicked(move |_| {
+        add_btn.connect_clicked(move |_| {
             if let Some(ref cb) = *on_new_clone.borrow() {
                 cb();
             }

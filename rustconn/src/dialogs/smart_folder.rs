@@ -7,7 +7,7 @@ use crate::dialogs::widgets::{DropdownRowBuilder, EntryRowBuilder};
 use crate::i18n::i18n;
 use adw::prelude::*;
 use gtk4::prelude::*;
-use gtk4::{Box as GtkBox, DropDown, Entry, Orientation, ScrolledWindow};
+use gtk4::{Box as GtkBox, Button, DropDown, Entry, Orientation, ScrolledWindow};
 use libadwaita as adw;
 use rustconn_core::ProtocolType;
 use rustconn_core::models::{ConnectionGroup, SmartFolder};
@@ -73,19 +73,21 @@ impl SmartFolderDialog {
         }
         window.set_size_request(320, 280);
 
-        // Header bar
-        let action_label = if is_edit {
-            i18n("Save")
+        // Header bar with Save/Create icon button (GNOME HIG)
+        let header = adw::HeaderBar::new();
+        let save_btn = if is_edit {
+            let btn = Button::from_icon_name("document-save-symbolic");
+            btn.set_tooltip_text(Some(&i18n("Save")));
+            btn.update_property(&[gtk4::accessible::Property::Label(&i18n("Save"))]);
+            btn
         } else {
-            i18n("Create")
+            let btn = Button::from_icon_name("list-add-symbolic");
+            btn.set_tooltip_text(Some(&i18n("Create")));
+            btn.update_property(&[gtk4::accessible::Property::Label(&i18n("Create"))]);
+            btn
         };
-        let (header, close_btn, save_btn) =
-            crate::dialogs::widgets::dialog_header(&i18n("Cancel"), &action_label);
-
-        let window_clone = window.clone();
-        close_btn.connect_clicked(move |_| {
-            window_clone.close();
-        });
+        save_btn.add_css_class("suggested-action");
+        header.pack_start(&save_btn);
 
         // Scrollable content
         let scrolled = ScrolledWindow::builder()

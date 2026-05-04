@@ -80,6 +80,15 @@ pub fn cmd_show(config_path: Option<&Path>, name: &str) -> Result<(), CliError> 
             if config.disable_nla {
                 println!("  NLA:      disabled");
             }
+            if !matches!(
+                config.security_layer,
+                rustconn_core::models::RdpSecurityLayer::Negotiate
+            ) {
+                println!("  Security: {}", config.security_layer.display_name());
+            }
+            if let Some(level) = config.tls_security_level {
+                println!("  TLS Level: {level}");
+            }
             if !config.clipboard_enabled {
                 println!("  Clipboard: disabled");
             }

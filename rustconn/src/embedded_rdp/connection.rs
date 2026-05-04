@@ -88,16 +88,31 @@ impl super::EmbeddedRdpWidget {
         // Check if IronRDP embedded mode is available (Requirement 1.5)
         // This is determined at compile time via the rdp-embedded feature flag
         if Self::is_ironrdp_available() {
-            // Try IronRDP embedded mode first
-            match self.connect_ironrdp(config) {
-                Ok(()) => {
-                    return Ok(());
-                }
-                Err(e) => {
-                    // Log the error and fall back to FreeRDP (Requirement 1.5)
-                    let reason = format!("IronRDP connection failed: {e}");
-                    self.report_fallback(&reason);
-                    self.cleanup_embedded_mode();
+            // Skip IronRDP if security settings require FreeRDP
+            // (RDP Security Layer, TLS-only, or low TLS security level)
+            let force_freerdp = config.security_layer.requires_freerdp()
+                || config.tls_security_level.is_some_and(|l| l < 2);
+
+            if force_freerdp {
+                let reason = format!(
+                    "Security layer {:?} / TLS level {:?} requires FreeRDP \
+                     (IronRDP only supports TLS 1.2+)",
+                    config.security_layer, config.tls_security_level
+                );
+                tracing::info!(protocol = "rdp", %reason, "Skipping IronRDP for legacy security");
+                self.report_fallback(&reason);
+            } else {
+                // Try IronRDP embedded mode first
+                match self.connect_ironrdp(config) {
+                    Ok(()) => {
+                        return Ok(());
+                    }
+                    Err(e) => {
+                        // Log the error and fall back to FreeRDP (Requirement 1.5)
+                        let reason = format!("IronRDP connection failed: {e}");
+                        self.report_fallback(&reason);
+                        self.cleanup_embedded_mode();
+                    }
                 }
             }
         } else {

@@ -7,7 +7,7 @@
 use crate::i18n::{i18n, i18n_f};
 use adw::prelude::*;
 use gtk4::prelude::*;
-use gtk4::{Box as GtkBox, Orientation};
+use gtk4::{Box as GtkBox, Button, Orientation};
 use libadwaita as adw;
 use rustconn_core::models::Connection;
 use rustconn_core::wol::{MacAddress, WolConfig};
@@ -38,8 +38,13 @@ impl WolDialog {
 
         window.set_size_request(320, -1);
 
-        let (header, cancel_btn, send_btn) =
-            crate::dialogs::widgets::dialog_header("Cancel", "Send");
+        // Header bar with Send icon button and standard window buttons (GNOME HIG)
+        let header = adw::HeaderBar::new();
+        let send_btn = Button::from_icon_name("mail-send-symbolic");
+        send_btn.set_tooltip_text(Some(&i18n("Send")));
+        send_btn.update_property(&[gtk4::accessible::Property::Label(&i18n("Send"))]);
+        send_btn.add_css_class("suggested-action");
+        header.pack_start(&send_btn);
 
         let clamp = adw::Clamp::builder()
             .maximum_size(600)
@@ -121,12 +126,6 @@ impl WolDialog {
                 broadcast_c.set_text(&wol.broadcast_address);
                 port_c.set_text(&wol.port.to_string());
             }
-        });
-
-        // Cancel
-        let window_c = window.clone();
-        cancel_btn.connect_clicked(move |_| {
-            window_c.close();
         });
 
         // Send

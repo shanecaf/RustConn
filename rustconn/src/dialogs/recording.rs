@@ -86,29 +86,15 @@ impl RecordingsDialog {
 
         window.set_size_request(400, 300);
 
-        // Header bar with Close + Import buttons
+        // Header bar with Import button and standard window buttons (GNOME HIG)
         let header = adw::HeaderBar::new();
-        header.set_show_end_title_buttons(false);
-        header.set_show_start_title_buttons(false);
-
-        let close_btn = Button::builder().label(i18n("Close")).build();
-        close_btn.update_property(&[gtk4::accessible::Property::Label(&i18n(
-            "Close recordings dialog",
-        ))]);
-        header.pack_start(&close_btn);
 
         let import_btn = Button::builder()
             .icon_name("document-open-symbolic")
             .tooltip_text(i18n("Import recording"))
             .build();
         import_btn.update_property(&[gtk4::accessible::Property::Label(&i18n("Import recording"))]);
-        header.pack_end(&import_btn);
-
-        // Close handler
-        let window_clone = window.clone();
-        close_btn.connect_clicked(move |_| {
-            window_clone.close();
-        });
+        header.pack_start(&import_btn);
 
         // Main content box
         let content = GtkBox::new(Orientation::Vertical, 0);

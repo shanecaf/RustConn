@@ -1286,6 +1286,93 @@ impl ScaleOverride {
     }
 }
 
+/// RDP security layer selection for FreeRDP connections.
+///
+/// Controls which security protocol is used during the RDP handshake.
+/// Legacy servers (Windows Server 2012 / Windows 7) may require `Rdp` or `Tls`
+/// instead of the default `Negotiate`.
+///
+/// **Note:** `Rdp` and `Tls` modes are incompatible with IronRDP (which requires
+/// TLS 1.2+ via `rustls`). When these modes are selected, the connection
+/// automatically falls back to external FreeRDP.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum RdpSecurityLayer {
+    /// Server negotiates the best available method (default)
+    #[default]
+    Negotiate,
+    /// RDP Security Layer only (legacy, no TLS — for very old servers)
+    Rdp,
+    /// TLS encryption without NLA
+    Tls,
+    /// Network Level Authentication (CredSSP over TLS)
+    Nla,
+}
+
+impl RdpSecurityLayer {
+    /// Returns all available security layers
+    #[must_use]
+    pub const fn all() -> &'static [Self] {
+        &[Self::Negotiate, Self::Rdp, Self::Tls, Self::Nla]
+    }
+
+    /// Returns the display name for this security layer
+    #[must_use]
+    pub const fn display_name(self) -> &'static str {
+        match self {
+            Self::Negotiate => "Negotiate (Auto)",
+            Self::Rdp => "RDP (Legacy)",
+            Self::Tls => "TLS",
+            Self::Nla => "NLA",
+        }
+    }
+
+    /// Returns the index of this layer in the `all()` array
+    #[must_use]
+    pub const fn index(self) -> u32 {
+        match self {
+            Self::Negotiate => 0,
+            Self::Rdp => 1,
+            Self::Tls => 2,
+            Self::Nla => 3,
+        }
+    }
+
+    /// Creates a security layer from a dropdown index
+    #[must_use]
+    pub const fn from_index(index: u32) -> Self {
+        match index {
+            1 => Self::Rdp,
+            2 => Self::Tls,
+            3 => Self::Nla,
+            _ => Self::Negotiate,
+        }
+    }
+
+    /// Returns the FreeRDP `/sec:` argument for this security layer.
+    ///
+    /// `Negotiate` returns `None` (FreeRDP default behavior).
+    #[must_use]
+    pub const fn freerdp_arg(self) -> Option<&'static str> {
+        match self {
+            Self::Negotiate => None,
+            Self::Rdp => Some("/sec:rdp"),
+            Self::Tls => Some("/sec:tls"),
+            Self::Nla => Some("/sec:nla"),
+        }
+    }
+
+    /// Whether this security layer requires FreeRDP (incompatible with IronRDP).
+    ///
+    /// IronRDP uses `rustls` which only supports TLS 1.2+, so `Rdp` (no TLS)
+    /// cannot work. `Tls` without NLA also requires OpenSSL-level control
+    /// that `rustls` doesn't provide.
+    #[must_use]
+    pub const fn requires_freerdp(self) -> bool {
+        matches!(self, Self::Rdp | Self::Tls)
+    }
+}
+
 /// RDP protocol configuration
 // Allow 4 bools - these are distinct RDP connection options
 #[allow(clippy::struct_excessive_bools)]
@@ -1324,6 +1411,16 @@ pub struct RdpConfig {
     /// Disable Network Level Authentication
     #[serde(default)]
     pub disable_nla: bool,
+    /// Security layer selection (Negotiate/RDP/TLS/NLA).
+    /// Legacy servers (Windows 2012/Win7) may need `Rdp` or `Tls`.
+    /// `Rdp` and `Tls` force FreeRDP fallback (incompatible with IronRDP).
+    #[serde(default)]
+    pub security_layer: RdpSecurityLayer,
+    /// TLS security level for FreeRDP (0–5). `None` = FreeRDP default.
+    /// Level 0 enables compatibility with legacy servers (TLS 1.0).
+    /// Only effective with FreeRDP; IronRDP uses `rustls` (TLS 1.2+ only).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tls_security_level: Option<u8>,
     /// Skip TLS certificate verification (use `/cert:ignore` instead of `/cert:tofu`).
     /// Default: false (TOFU — trust-on-first-use, like SSH known_hosts).
     #[serde(default)]
@@ -1353,6 +1450,25 @@ impl RdpConfig {
     pub fn effective_color_depth(&self) -> u8 {
         self.color_depth
             .unwrap_or_else(|| self.performance_mode.color_depth())
+    }
+
+    /// Whether this configuration requires FreeRDP instead of IronRDP.
+    ///
+    /// Returns `true` when the security layer or TLS level is incompatible
+    /// with IronRDP's `rustls` backend (TLS 1.2+ only).
+    #[must_use]
+    pub fn requires_freerdp_fallback(&self) -> bool {
+        // Security layer incompatible with IronRDP
+        if self.security_layer.requires_freerdp() {
+            return true;
+        }
+        // TLS security level < 2 requires OpenSSL (legacy TLS 1.0/1.1)
+        if let Some(level) = self.tls_security_level
+            && level < 2
+        {
+            return true;
+        }
+        false
     }
 }
 

@@ -33,12 +33,12 @@ pub use protocol::{
     AwsSsmConfig, AzureBastionConfig, AzureSshConfig, BoundaryConfig, CloudflareAccessConfig,
     GcpIapConfig, GenericZeroTrustConfig, HoopDevConfig, KubernetesConfig, MoshConfig,
     MoshPredictMode, OciBastionConfig, PortForward, PortForwardDirection, ProtocolConfig,
-    RdpClientMode, RdpConfig, RdpGateway, RdpPerformanceMode, Resolution, ScaleOverride,
-    SerialBaudRate, SerialConfig, SerialDataBits, SerialFlowControl, SerialParity, SerialStopBits,
-    SharedFolder, SpiceConfig, SpiceImageCompression, SshAuthMethod, SshConfig, SshKeySource,
-    TailscaleSshConfig, TeleportConfig, TelnetBackspaceSends, TelnetConfig, TelnetDeleteSends,
-    VncClientMode, VncConfig, VncPerformanceMode, ZeroTrustConfig, ZeroTrustProvider,
-    ZeroTrustProviderConfig,
+    RdpClientMode, RdpConfig, RdpGateway, RdpPerformanceMode, RdpSecurityLayer, Resolution,
+    ScaleOverride, SerialBaudRate, SerialConfig, SerialDataBits, SerialFlowControl, SerialParity,
+    SerialStopBits, SharedFolder, SpiceConfig, SpiceImageCompression, SshAuthMethod, SshConfig,
+    SshKeySource, TailscaleSshConfig, TeleportConfig, TelnetBackspaceSends, TelnetConfig,
+    TelnetDeleteSends, VncClientMode, VncConfig, VncPerformanceMode, ZeroTrustConfig,
+    ZeroTrustProvider, ZeroTrustProviderConfig,
 };
 pub use smart_folder::SmartFolder;
 pub use snippet::{Snippet, SnippetVariable};

@@ -76,7 +76,7 @@ impl FlatpakComponentsDialog {
         toast_overlay.set_child(Some(&content));
 
         let toolbar_view = adw::ToolbarView::new();
-        toolbar_view.add_top_bar(&Self::build_header_bar(&dialog));
+        toolbar_view.add_top_bar(&Self::build_header_bar(&component_rows));
         toolbar_view.set_content(Some(&toast_overlay));
 
         dialog.set_child(Some(&toolbar_view));
@@ -92,18 +92,29 @@ impl FlatpakComponentsDialog {
         })
     }
 
-    fn build_header_bar(dialog: &adw::Dialog) -> adw::HeaderBar {
+    fn build_header_bar(component_rows: &Rc<RefCell<Vec<ComponentRow>>>) -> adw::HeaderBar {
         let header = adw::HeaderBar::new();
 
-        let close_button = Button::with_label(&i18n("Close"));
-        close_button.connect_clicked(glib::clone!(
-            #[weak]
-            dialog,
-            move |_| {
-                dialog.close();
+        // Refresh All button on the left (GNOME HIG)
+        let refresh_btn = Button::from_icon_name("view-refresh-symbolic");
+        refresh_btn.set_tooltip_text(Some(&i18n("Update All")));
+        refresh_btn.update_property(&[gtk4::accessible::Property::Label(&i18n("Update All"))]);
+
+        let rows_clone = component_rows.clone();
+        refresh_btn.connect_clicked(move |_| {
+            let rows = rows_clone.borrow();
+            for info in rows.iter() {
+                // Only update installed & downloadable components
+                let is_installed = info
+                    .action_button
+                    .label()
+                    .is_some_and(|l| l == i18n("Remove"));
+                if is_installed && info.update_button.is_visible() {
+                    info.update_button.emit_clicked();
+                }
             }
-        ));
-        header.pack_end(&close_button);
+        });
+        header.pack_start(&refresh_btn);
 
         header
     }
