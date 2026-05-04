@@ -177,9 +177,20 @@ impl Default for ToastOverlay {
 /// Tries to find an `adw::ToastOverlay` in the window structure. If no overlay
 /// is found, falls back to an `adw::AlertDialog` so the message is never lost.
 pub fn show_toast_on_window(window: &impl IsA<gui::Window>, message: &str, toast_type: ToastType) {
+    // Try window.child() first (works for GtkWindow / AdwApplicationWindow)
     if let Some(child) = window.child()
         && let Some(overlay) = find_toast_overlay(&child)
     {
+        let toast = adw::Toast::new(message);
+        toast.set_priority(toast_type.priority());
+        overlay.add_toast(toast);
+        return;
+    }
+
+    // For adw::Window (dialogs) — walk the widget tree directly via first_child()
+    // since adw::Window.child() may return None while content is set via set_content()
+    let widget = window.as_ref().upcast_ref::<gui::Widget>();
+    if let Some(overlay) = find_toast_overlay(widget) {
         let toast = adw::Toast::new(message);
         toast.set_priority(toast_type.priority());
         overlay.add_toast(toast);
@@ -194,7 +205,6 @@ pub fn show_toast_on_window(window: &impl IsA<gui::Window>, message: &str, toast
     let dialog = adw::AlertDialog::new(Some(&heading), Some(message));
     dialog.add_response("ok", "OK");
     dialog.set_default_response(Some("ok"));
-    let widget = window.as_ref().upcast_ref::<gui::Widget>();
     dialog.present(Some(widget));
 }
 

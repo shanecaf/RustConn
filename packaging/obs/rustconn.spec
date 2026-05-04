@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.13.2
+Version:        0.13.3
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -238,6 +238,20 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Mon May 04 2026 Anton Isaiev <totoshko88@gmail.com> - 0.13.3-1
+- Version bump to 0.13.3
+- Added RDP Security Layer / TLS Compatibility options (#124)
+- Improved GNOME HIG: application menu restructured, manager dialogs unified
+- Improved Tray menu i18n
+- Fixed SSH agent multiple authentication prompts for saved connections (#125)
+- Fixed false KeePassXc backend unavailable toast (#123)
+- Fixed Flatpak Local Shell no job control warnings (#122)
+
+* Sun May 04 2026 Anton Isaiev <totoshko88@gmail.com> - 0.13.3-0
+- [Fixed] False "KeePassXc backend unavailable" toast when KeePassXc is
+  running — availability now checked via kdbx_enabled && kdbx_path.exists()
+  instead of probing the unrelated LibSecretBackend (#123)
+
 * Sun May 04 2026 Anton Isaiev <totoshko88@gmail.com> - 0.13.2-0
 - [Fixed] Mouse scroll not working in terminal sessions (#121)
 - [Fixed] Flatpak local shell sandboxed shell (#122)

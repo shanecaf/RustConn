@@ -103,14 +103,13 @@ impl ExportDialog {
 
         dialog.set_size_request(350, 300);
 
-        // Header bar (GNOME HIG)
-        let (header, close_btn, export_button) = super::widgets::dialog_header("Close", "Export");
-
-        // Close button handler
-        let dialog_clone = dialog.clone();
-        close_btn.connect_clicked(move |_| {
-            dialog_clone.close();
-        });
+        // Header bar with Export icon button and standard window buttons (GNOME HIG)
+        let header = adw::HeaderBar::new();
+        let export_button = Button::from_icon_name("document-save-symbolic");
+        export_button.set_tooltip_text(Some(&i18n("Export")));
+        export_button.update_property(&[gtk4::accessible::Property::Label(&i18n("Export"))]);
+        export_button.add_css_class("suggested-action");
+        header.pack_start(&export_button);
 
         // Create main content area
         let content = GtkBox::new(Orientation::Vertical, 0);

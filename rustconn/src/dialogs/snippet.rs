@@ -73,15 +73,13 @@ impl SnippetDialog {
 
         window.set_size_request(320, 280);
 
-        // Header bar (GNOME HIG)
-        let (header, close_btn, new_btn) =
-            crate::dialogs::widgets::dialog_header("Close", "Create");
-
-        // Close button handler
-        let window_clone = window.clone();
-        close_btn.connect_clicked(move |_| {
-            window_clone.close();
-        });
+        // Header bar with Create icon button (GNOME HIG)
+        let header = adw::HeaderBar::new();
+        let new_btn = Button::from_icon_name("list-add-symbolic");
+        new_btn.set_tooltip_text(Some(&i18n("Create")));
+        new_btn.update_property(&[gtk4::accessible::Property::Label(&i18n("Create"))]);
+        new_btn.add_css_class("suggested-action");
+        header.pack_start(&new_btn);
 
         // Scrollable content with clamp
         let scrolled = ScrolledWindow::builder()
@@ -494,25 +492,21 @@ impl SnippetDialog {
             // Validate
             let name = name_entry.text();
             if name.trim().is_empty() {
-                crate::toast::show_toast_on_window(
-                    &window,
-                    &i18n("Snippet name is required"),
-                    crate::toast::ToastType::Warning,
-                );
+                name_entry.add_css_class("error");
+                name_entry.grab_focus();
                 return;
             }
+            name_entry.remove_css_class("error");
 
             let buffer = command_view.buffer();
             let (start, end) = buffer.bounds();
             let command = buffer.text(&start, &end, false);
             if command.trim().is_empty() {
-                crate::toast::show_toast_on_window(
-                    &window,
-                    &i18n("Command is required"),
-                    crate::toast::ToastType::Warning,
-                );
+                command_view.add_css_class("error");
+                command_view.grab_focus();
                 return;
             }
+            command_view.remove_css_class("error");
 
             // Build snippet
             let snippet = Self::build_snippet_from_fields(

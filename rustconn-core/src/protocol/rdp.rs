@@ -115,6 +115,14 @@ impl RdpProtocol {
             if rdp_config.audio_redirect {
                 args.push("/sound".to_string());
             }
+            // Security layer selection (FreeRDP /sec: flags)
+            if let Some(sec_arg) = rdp_config.security_layer.freerdp_arg() {
+                args.push(sec_arg.to_string());
+            }
+            // TLS security level for legacy server compatibility
+            if let Some(level) = rdp_config.tls_security_level {
+                args.push(format!("/tls-seclevel:{level}"));
+            }
             if let Some(ref gateway) = rdp_config.gateway {
                 args.push(format!("/g:{}:{}", gateway.hostname, gateway.port));
                 if let Some(ref gw_user) = gateway.username {

@@ -61,23 +61,12 @@ pub fn show_snippets_manager(
 
     manager_window.set_size_request(320, 280);
 
-    // Create header bar with Close/Create buttons (GNOME HIG)
+    // Header bar with Add button and standard window buttons (GNOME HIG)
     let header = adw::HeaderBar::new();
-    header.set_show_end_title_buttons(false);
-    header.set_show_start_title_buttons(false);
-    let close_btn = Button::builder().label(&i18n("Close")).build();
-    let new_btn = Button::builder()
-        .label(&i18n("Create"))
-        .css_classes(["suggested-action"])
-        .build();
-    header.pack_start(&close_btn);
-    header.pack_end(&new_btn);
-
-    // Close button handler
-    let window_clone = manager_window.clone();
-    close_btn.connect_clicked(move |_| {
-        window_clone.close();
-    });
+    let new_btn = Button::from_icon_name("list-add-symbolic");
+    new_btn.set_tooltip_text(Some(&i18n("New Snippet")));
+    new_btn.update_property(&[gtk4::accessible::Property::Label(&i18n("New Snippet"))]);
+    header.pack_start(&new_btn);
 
     // Create main content
     let content = gtk4::Box::new(Orientation::Vertical, 8);
@@ -99,34 +88,11 @@ pub fn show_snippets_manager(
         .build();
 
     let snippets_list = gtk4::ListBox::builder()
-        .selection_mode(gtk4::SelectionMode::Single)
+        .selection_mode(gtk4::SelectionMode::None)
         .css_classes(["boxed-list"])
         .build();
     scrolled.set_child(Some(&snippets_list));
     content.append(&scrolled);
-
-    // Action buttons
-    let button_box = gtk4::Box::new(Orientation::Horizontal, 8);
-    button_box.set_halign(gtk4::Align::End);
-
-    let edit_btn = Button::builder()
-        .label(&i18n("Edit"))
-        .sensitive(false)
-        .build();
-    let delete_btn = Button::builder()
-        .label(&i18n("Delete"))
-        .sensitive(false)
-        .build();
-    let execute_btn = Button::builder()
-        .label(&i18n("Execute"))
-        .sensitive(false)
-        .css_classes(["suggested-action"])
-        .build();
-
-    button_box.append(&edit_btn);
-    button_box.append(&delete_btn);
-    button_box.append(&execute_btn);
-    content.append(&button_box);
 
     // Use ToolbarView for proper adw::Window layout
     let toolbar_view = adw::ToolbarView::new();
@@ -134,36 +100,36 @@ pub fn show_snippets_manager(
     toolbar_view.set_content(Some(&content));
     manager_window.set_content(Some(&toolbar_view));
 
-    // Populate snippets list
-    populate_snippets_list(&state, &snippets_list, "");
+    // Populate snippets list with inline action buttons
+    populate_snippets_manager_list(&state, &snippets_list, "", &manager_window, &notebook);
 
     // Connect search
     let state_clone = state.clone();
     let list_clone = snippets_list.clone();
+    let manager_clone = manager_window.clone();
+    let notebook_clone = notebook.clone();
     search_entry.connect_search_changed(move |entry| {
         let query = entry.text().to_string();
-        populate_snippets_list(&state_clone, &list_clone, &query);
-    });
-
-    // Connect selection changed
-    let edit_clone = edit_btn.clone();
-    let delete_clone = delete_btn.clone();
-    let execute_clone = execute_btn.clone();
-    snippets_list.connect_row_selected(move |_, row| {
-        let has_selection = row.is_some();
-        edit_clone.set_sensitive(has_selection);
-        delete_clone.set_sensitive(has_selection);
-        execute_clone.set_sensitive(has_selection);
+        populate_snippets_manager_list(
+            &state_clone,
+            &list_clone,
+            &query,
+            &manager_clone,
+            &notebook_clone,
+        );
     });
 
     // Connect new button
     let state_clone = state.clone();
     let list_clone = snippets_list.clone();
     let manager_clone = manager_window.clone();
+    let notebook_clone = notebook;
     new_btn.connect_clicked(move |_| {
         let dialog = SnippetDialog::new(Some(&manager_clone.clone().upcast()));
         let state_inner = state_clone.clone();
         let list_inner = list_clone.clone();
+        let manager_inner = manager_clone.clone();
+        let notebook_inner = notebook_clone.clone();
         dialog.run(move |result| {
             if let Some(snippet) = result
                 && let Ok(mut state_mut) = state_inner.try_borrow_mut()
@@ -172,92 +138,185 @@ pub fn show_snippets_manager(
                     tracing::warn!(?e, "Failed to create snippet");
                 }
                 drop(state_mut);
-                populate_snippets_list(&state_inner, &list_inner, "");
+                populate_snippets_manager_list(
+                    &state_inner,
+                    &list_inner,
+                    "",
+                    &manager_inner,
+                    &notebook_inner,
+                );
             }
         });
     });
 
-    // Connect edit button
-    let state_clone = state.clone();
-    let list_clone = snippets_list.clone();
-    let manager_clone = manager_window.clone();
-    edit_btn.connect_clicked(move |_| {
-        if let Some(row) = list_clone.selected_row()
-            && let Some(id_str) = row.widget_name().as_str().strip_prefix("snippet-")
-            && let Ok(id) = Uuid::parse_str(id_str)
-        {
-            let state_ref = state_clone.borrow();
-            if let Some(snippet) = state_ref.get_snippet(id).cloned() {
+    manager_window.present();
+}
+
+/// Populates the snippets manager list with inline action buttons per row
+fn populate_snippets_manager_list(
+    state: &SharedAppState,
+    list: &gtk4::ListBox,
+    query: &str,
+    manager_window: &adw::Window,
+    notebook: &SharedNotebook,
+) {
+    // Clear existing rows
+    while let Some(row) = list.row_at_index(0) {
+        list.remove(&row);
+    }
+
+    let state_ref = state.borrow();
+    let snippets = if query.is_empty() {
+        state_ref.list_snippets()
+    } else {
+        state_ref.search_snippets(query)
+    };
+
+    for snippet in snippets {
+        let row = gtk4::ListBoxRow::new();
+        row.set_activatable(false);
+        row.set_widget_name(&format!("snippet-{}", snippet.id));
+
+        let hbox = gtk4::Box::new(Orientation::Horizontal, 8);
+        hbox.set_margin_top(8);
+        hbox.set_margin_bottom(8);
+        hbox.set_margin_start(12);
+        hbox.set_margin_end(8);
+
+        let vbox = gtk4::Box::new(Orientation::Vertical, 2);
+        vbox.set_hexpand(true);
+
+        let name_label = Label::builder()
+            .label(&snippet.name)
+            .halign(gtk4::Align::Start)
+            .css_classes(["heading"])
+            .build();
+        vbox.append(&name_label);
+
+        let cmd_preview = if snippet.command.len() > 50 {
+            format!("{}...", &snippet.command[..50])
+        } else {
+            snippet.command.clone()
+        };
+        let cmd_label = Label::builder()
+            .label(&cmd_preview)
+            .halign(gtk4::Align::Start)
+            .css_classes(["dim-label", "monospace"])
+            .ellipsize(gtk4::pango::EllipsizeMode::End)
+            .build();
+        vbox.append(&cmd_label);
+
+        hbox.append(&vbox);
+
+        // Inline action buttons (GNOME HIG)
+        let snippet_id = snippet.id;
+
+        let execute_btn = Button::from_icon_name("media-playback-start-symbolic");
+        execute_btn.add_css_class("flat");
+        execute_btn.set_tooltip_text(Some(&i18n("Execute")));
+        execute_btn.update_property(&[gtk4::accessible::Property::Label(&i18n("Execute snippet"))]);
+        execute_btn.set_valign(gtk4::Align::Center);
+
+        let edit_btn = Button::from_icon_name("document-edit-symbolic");
+        edit_btn.add_css_class("flat");
+        edit_btn.set_tooltip_text(Some(&i18n("Edit")));
+        edit_btn.update_property(&[gtk4::accessible::Property::Label(&i18n("Edit snippet"))]);
+        edit_btn.set_valign(gtk4::Align::Center);
+
+        let delete_btn = Button::from_icon_name("user-trash-symbolic");
+        delete_btn.add_css_class("flat");
+        delete_btn.set_tooltip_text(Some(&i18n("Delete")));
+        delete_btn.update_property(&[gtk4::accessible::Property::Label(&i18n("Delete snippet"))]);
+        delete_btn.set_valign(gtk4::Align::Center);
+
+        hbox.append(&execute_btn);
+        hbox.append(&edit_btn);
+        hbox.append(&delete_btn);
+
+        row.set_child(Some(&hbox));
+        list.append(&row);
+
+        // Connect execute
+        let state_exec = state.clone();
+        let notebook_exec = notebook.clone();
+        let manager_exec = manager_window.clone();
+        execute_btn.connect_clicked(move |_| {
+            let state_ref = state_exec.borrow();
+            if let Some(snippet) = state_ref.get_snippet(snippet_id).cloned() {
                 drop(state_ref);
-                let dialog = SnippetDialog::new(Some(&manager_clone.clone().upcast()));
+                execute_snippet(&manager_exec, &notebook_exec, &snippet, &state_exec);
+            }
+        });
+
+        // Connect edit
+        let state_edit = state.clone();
+        let list_edit = list.clone();
+        let manager_edit = manager_window.clone();
+        let notebook_edit = notebook.clone();
+        edit_btn.connect_clicked(move |_| {
+            let state_ref = state_edit.borrow();
+            if let Some(snippet) = state_ref.get_snippet(snippet_id).cloned() {
+                drop(state_ref);
+                let dialog = SnippetDialog::new(Some(&manager_edit.clone().upcast()));
                 dialog.set_snippet(&snippet);
-                let state_inner = state_clone.clone();
-                let list_inner = list_clone.clone();
+                let state_inner = state_edit.clone();
+                let list_inner = list_edit.clone();
+                let manager_inner = manager_edit.clone();
+                let notebook_inner = notebook_edit.clone();
                 dialog.run(move |result| {
                     if let Some(updated) = result
                         && let Ok(mut state_mut) = state_inner.try_borrow_mut()
                     {
-                        if let Err(e) = state_mut.update_snippet(id, updated) {
+                        if let Err(e) = state_mut.update_snippet(snippet_id, updated) {
                             tracing::warn!(?e, "Failed to update snippet");
                         }
                         drop(state_mut);
-                        populate_snippets_list(&state_inner, &list_inner, "");
+                        populate_snippets_manager_list(
+                            &state_inner,
+                            &list_inner,
+                            "",
+                            &manager_inner,
+                            &notebook_inner,
+                        );
                     }
                 });
             }
-        }
-    });
+        });
 
-    // Connect delete button
-    let state_clone = state.clone();
-    let list_clone = snippets_list.clone();
-    let manager_clone = manager_window.clone();
-    delete_btn.connect_clicked(move |_| {
-        if let Some(row) = list_clone.selected_row()
-            && let Some(id_str) = row.widget_name().as_str().strip_prefix("snippet-")
-            && let Ok(id) = Uuid::parse_str(id_str)
-        {
-            let state_inner = state_clone.clone();
-            let list_inner = list_clone.clone();
+        // Connect delete
+        let state_del = state.clone();
+        let list_del = list.clone();
+        let manager_del = manager_window.clone();
+        let notebook_del = notebook.clone();
+        delete_btn.connect_clicked(move |_| {
+            let state_inner = state_del.clone();
+            let list_inner = list_del.clone();
+            let manager_inner = manager_del.clone();
+            let notebook_inner = notebook_del.clone();
             alert::show_confirm(
-                &manager_clone,
+                &manager_del,
                 &i18n("Delete Snippet?"),
                 &i18n("Are you sure you want to delete this snippet?"),
                 &i18n("Delete"),
                 true,
                 move |confirmed| {
                     if confirmed && let Ok(mut state_mut) = state_inner.try_borrow_mut() {
-                        if let Err(e) = state_mut.delete_snippet(id) {
+                        if let Err(e) = state_mut.delete_snippet(snippet_id) {
                             tracing::warn!(?e, "Failed to delete snippet");
                         }
                         drop(state_mut);
-                        populate_snippets_list(&state_inner, &list_inner, "");
+                        populate_snippets_manager_list(
+                            &state_inner,
+                            &list_inner,
+                            "",
+                            &manager_inner,
+                            &notebook_inner,
+                        );
                     }
                 },
             );
-        }
-    });
-
-    // Connect execute button
-    let state_for_exec = state.clone();
-    let state_clone = state;
-    let list_clone = snippets_list;
-    let notebook_clone = notebook;
-    let manager_clone = manager_window.clone();
-    execute_btn.connect_clicked(move |_| {
-        if let Some(row) = list_clone.selected_row()
-            && let Some(id_str) = row.widget_name().as_str().strip_prefix("snippet-")
-            && let Ok(id) = Uuid::parse_str(id_str)
-        {
-            let state_ref = state_clone.borrow();
-            if let Some(snippet) = state_ref.get_snippet(id).cloned() {
-                drop(state_ref);
-                execute_snippet(&manager_clone, &notebook_clone, &snippet, &state_for_exec);
-            }
-        }
-    });
-
-    manager_window.present();
+        });
+    }
 }
 
 /// Populates the snippets list with filtered results

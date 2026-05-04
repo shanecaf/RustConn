@@ -33,15 +33,8 @@ impl HistoryDialog {
             .content_height(400)
             .build();
 
-        // Header bar (GNOME HIG)
-        let (header, close_btn, connect_btn) = super::widgets::dialog_header("Close", "Connect");
-        connect_btn.set_sensitive(false);
-
-        // Close button handler
-        let dialog_clone = dialog.clone();
-        close_btn.connect_clicked(move |_| {
-            dialog_clone.close();
-        });
+        // Header bar with standard close (GNOME HIG — adw::Dialog has built-in close)
+        let header = adw::HeaderBar::new();
 
         // Main content
         let content = GtkBox::new(Orientation::Vertical, 0);
@@ -91,8 +84,8 @@ impl HistoryDialog {
         scrolled.set_child(Some(&clamp));
         content.append(&scrolled);
 
-        // Clear history button at bottom
-        let bottom_bar = GtkBox::new(Orientation::Horizontal, 0);
+        // Bottom action bar: Clear History (left) + Connect (right)
+        let bottom_bar = GtkBox::new(Orientation::Horizontal, 8);
         bottom_bar.set_margin_top(6);
         bottom_bar.set_margin_bottom(12);
         bottom_bar.set_margin_start(12);
@@ -102,7 +95,19 @@ impl HistoryDialog {
             .label(i18n("Clear History"))
             .css_classes(["destructive-action"])
             .build();
+
+        let spacer = GtkBox::new(Orientation::Horizontal, 0);
+        spacer.set_hexpand(true);
+
+        let connect_btn = Button::builder()
+            .label(i18n("Connect"))
+            .css_classes(["suggested-action"])
+            .sensitive(false)
+            .build();
+
         bottom_bar.append(&clear_btn);
+        bottom_bar.append(&spacer);
+        bottom_bar.append(&connect_btn);
         content.append(&bottom_bar);
 
         let toolbar_view = adw::ToolbarView::new();

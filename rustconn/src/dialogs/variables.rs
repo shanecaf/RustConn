@@ -11,7 +11,7 @@ use adw::prelude::*;
 use gtk4::prelude::*;
 use gtk4::{
     Box as GtkBox, Button, CheckButton, Entry, Grid, Label, ListBox, ListBoxRow, Orientation,
-    ScrolledWindow,
+    ScrolledWindow, glib,
 };
 use libadwaita as adw;
 use rustconn_core::config::AppSettings;
@@ -28,7 +28,7 @@ type SharedSettings = Rc<RefCell<Option<AppSettings>>>;
 pub struct VariablesDialog {
     window: adw::Window,
     variables_list: ListBox,
-    add_button: Button,
+    add_header_btn: Button,
     variables: Rc<RefCell<Vec<VariableRow>>>,
     on_save: VariablesCallback,
     settings: SharedSettings,
@@ -69,15 +69,12 @@ impl VariablesDialog {
 
         window.set_size_request(320, 280);
 
-        // Header bar (GNOME HIG)
-        let (header, cancel_btn, save_btn) =
-            crate::dialogs::widgets::dialog_header("Cancel", "Save");
-
-        // Cancel button handler
-        let window_clone = window.clone();
-        cancel_btn.connect_clicked(move |_| {
-            window_clone.close();
-        });
+        // Header bar with Add button and standard window buttons (GNOME HIG)
+        let header = adw::HeaderBar::new();
+        let add_header_btn = Button::from_icon_name("list-add-symbolic");
+        add_header_btn.set_tooltip_text(Some(&i18n("Add Variable")));
+        add_header_btn.update_property(&[gtk4::accessible::Property::Label(&i18n("Add Variable"))]);
+        header.pack_start(&add_header_btn);
 
         // Create main content area with clamp
         let clamp = adw::Clamp::builder()
@@ -100,22 +97,32 @@ impl VariablesDialog {
         window.set_content(Some(&toolbar_view));
 
         // Variables list in PreferencesGroup
-        let (group, variables_list, add_button) = Self::create_variables_section();
+        let (group, variables_list) = Self::create_variables_section();
         content.append(&group);
 
         let on_save: VariablesCallback = Rc::new(RefCell::new(None));
         let variables: Rc<RefCell<Vec<VariableRow>>> = Rc::new(RefCell::new(Vec::new()));
         let settings: SharedSettings = Rc::new(RefCell::new(None));
 
-        // Connect cancel button
-        let window_clone = window.clone();
+        // Connect window close to cancel callback
         let on_save_clone = on_save.clone();
-        cancel_btn.connect_clicked(move |_| {
+        window.connect_close_request(move |_| {
             if let Some(ref cb) = *on_save_clone.borrow() {
                 cb(None);
             }
-            window_clone.close();
+            glib::Propagation::Proceed
         });
+
+        // Save button at bottom of content
+        let save_box = GtkBox::new(Orientation::Horizontal, 8);
+        save_box.set_halign(gtk4::Align::End);
+        save_box.set_margin_top(12);
+        let save_btn = Button::builder()
+            .label(i18n("Save"))
+            .css_classes(["suggested-action"])
+            .build();
+        save_box.append(&save_btn);
+        content.append(&save_box);
 
         // Connect save button
         let window_clone = window.clone();
@@ -132,7 +139,7 @@ impl VariablesDialog {
         Self {
             window,
             variables_list,
-            add_button,
+            add_header_btn,
             variables,
             on_save,
             settings,
@@ -140,7 +147,7 @@ impl VariablesDialog {
     }
 
     /// Creates the variables section with list and add button
-    fn create_variables_section() -> (adw::PreferencesGroup, ListBox, Button) {
+    fn create_variables_section() -> (adw::PreferencesGroup, ListBox) {
         let group = adw::PreferencesGroup::builder()
             .title(i18n("Variables"))
             .description(i18n(
@@ -164,19 +171,7 @@ impl VariablesDialog {
 
         group.add(&scrolled);
 
-        let button_box = GtkBox::new(Orientation::Horizontal, 8);
-        button_box.set_halign(gtk4::Align::End);
-        button_box.set_margin_top(12);
-
-        let add_button = Button::builder()
-            .label(i18n("Add Variable"))
-            .css_classes(["flat"])
-            .build();
-        button_box.append(&add_button);
-
-        group.add(&button_box);
-
-        (group, variables_list, add_button)
+        (group, variables_list)
     }
 
     /// Creates a variable row widget
@@ -495,13 +490,13 @@ impl VariablesDialog {
         self.variables.borrow_mut().push(var_row);
     }
 
-    /// Wires up the add button
+    /// Wires up the add button in the header bar
     fn wire_add_button(&self) {
         let variables_list = self.variables_list.clone();
         let variables = self.variables.clone();
         let settings = self.settings.clone();
 
-        self.add_button.connect_clicked(move |_| {
+        self.add_header_btn.connect_clicked(move |_| {
             let var_row = Self::create_variable_row(None, &settings);
 
             // Connect delete button

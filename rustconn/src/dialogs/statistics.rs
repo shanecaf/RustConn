@@ -7,7 +7,7 @@ use crate::i18n::i18n;
 use adw::prelude::*;
 use gtk4::Box as GtkBox;
 use gtk4::prelude::*;
-use gtk4::{Label, Orientation, ScrolledWindow};
+use gtk4::{Button, Label, Orientation, ScrolledWindow};
 use libadwaita as adw;
 use rustconn_core::models::ConnectionStatistics;
 use std::cell::RefCell;
@@ -38,17 +38,13 @@ impl StatisticsDialog {
 
         window.set_size_request(320, 280);
 
-        // Header bar (GNOME HIG)
-        let (header, close_btn, reset_btn) =
-            crate::dialogs::widgets::dialog_header("Close", "Reset");
-        reset_btn.remove_css_class("suggested-action");
-        reset_btn.add_css_class("destructive-action");
-
-        // Close button handler
-        let window_clone = window.clone();
-        close_btn.connect_clicked(move |_| {
-            window_clone.close();
-        });
+        // Header bar with Reset icon button on the left (GNOME HIG)
+        let header = adw::HeaderBar::new();
+        let reset_btn = Button::from_icon_name("edit-clear-all-symbolic");
+        reset_btn.add_css_class("flat");
+        reset_btn.set_tooltip_text(Some(&i18n("Reset Statistics")));
+        reset_btn.update_property(&[gtk4::accessible::Property::Label(&i18n("Reset Statistics"))]);
+        header.pack_start(&reset_btn);
 
         // Scrolled content with clamp
         let scrolled = ScrolledWindow::builder()

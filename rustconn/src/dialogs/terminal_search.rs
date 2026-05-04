@@ -49,13 +49,11 @@ impl TerminalSearchDialog {
 
         window.set_size_request(280, -1);
 
-        // Create header bar
+        // Header bar with standard window close button (×) per GNOME HIG
         let header = adw::HeaderBar::new();
-        header.set_show_end_title_buttons(false);
-        header.set_show_start_title_buttons(false);
 
-        let close_btn = Button::builder().label(i18n("Close")).build();
-        header.pack_start(&close_btn);
+        // Invisible close_btn kept for signal wiring (cleanup on close)
+        let close_btn = Button::builder().visible(false).build();
 
         // Create main content
         let content = GtkBox::new(Orientation::Vertical, 12);

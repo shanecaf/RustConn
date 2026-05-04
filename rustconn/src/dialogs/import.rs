@@ -61,14 +61,13 @@ impl ImportDialog {
 
         dialog.set_size_request(350, 300);
 
-        // Header bar (GNOME HIG)
-        let (header, close_btn, import_button) = super::widgets::dialog_header("Close", "Import");
-
-        // Close button handler
-        let dialog_clone = dialog.clone();
-        close_btn.connect_clicked(move |_| {
-            dialog_clone.close();
-        });
+        // Header bar with Import icon button and standard window buttons (GNOME HIG)
+        let header = adw::HeaderBar::new();
+        let import_button = Button::from_icon_name("document-open-symbolic");
+        import_button.set_tooltip_text(Some(&i18n("Import")));
+        import_button.update_property(&[gtk4::accessible::Property::Label(&i18n("Import"))]);
+        import_button.add_css_class("suggested-action");
+        header.pack_start(&import_button);
 
         // Create main layout with header at top using ToolbarView
         let toolbar_view = adw::ToolbarView::new();

@@ -250,14 +250,10 @@ pub fn rename_selected_item(
     rename_window.set_transient_for(Some(window));
 
     let header = adw::HeaderBar::new();
-    header.set_show_end_title_buttons(false);
-    header.set_show_start_title_buttons(false);
-    let cancel_btn = gtk4::Button::builder().label(i18n("Cancel")).build();
     let save_btn = gtk4::Button::builder()
         .label(i18n("Rename"))
         .css_classes(["suggested-action"])
         .build();
-    header.pack_start(&cancel_btn);
     header.pack_end(&save_btn);
 
     let content = gtk4::Box::new(Orientation::Vertical, 12);
@@ -280,12 +276,6 @@ pub fn rename_selected_item(
     toolbar_view.add_top_bar(&header);
     toolbar_view.set_content(Some(&content));
     rename_window.set_content(Some(&toolbar_view));
-
-    // Cancel button
-    let window_clone = rename_window.clone();
-    cancel_btn.connect_clicked(move |_| {
-        window_clone.close();
-    });
 
     // Save button
     let state_clone = state.clone();
@@ -473,15 +463,11 @@ pub fn show_edit_group_dialog(
     group_window.set_transient_for(Some(window));
 
     let header = adw::HeaderBar::new();
-    header.set_show_end_title_buttons(false);
-    header.set_show_start_title_buttons(false);
-    let cancel_btn = gtk4::Button::builder().label(i18n("Cancel")).build();
-    let save_btn = gtk4::Button::builder()
-        .label(i18n("Save"))
-        .css_classes(["suggested-action"])
-        .build();
-    header.pack_start(&cancel_btn);
-    header.pack_end(&save_btn);
+    let save_btn = gtk4::Button::from_icon_name("document-save-symbolic");
+    save_btn.set_tooltip_text(Some(&i18n("Save")));
+    save_btn.update_property(&[gtk4::accessible::Property::Label(&i18n("Save"))]);
+    save_btn.add_css_class("suggested-action");
+    header.pack_start(&save_btn);
 
     // Scrollable content with clamp
     let clamp = adw::Clamp::builder()
@@ -1725,11 +1711,6 @@ pub fn show_edit_group_dialog(
     content.append(&description_group);
 
     // Connect handlers
-    let window_clone = group_window.clone();
-    cancel_btn.connect_clicked(move |_| {
-        window_clone.close();
-    });
-
     let state_clone = state.clone();
     let sidebar_clone = sidebar;
     let window_clone = group_window.clone();
@@ -2417,23 +2398,13 @@ pub fn show_quick_connect_dialog_with_state(
         quick_window.set_transient_for(Some(gtk_win));
     }
 
-    // Create header bar with Close/Connect buttons (GNOME HIG)
+    // Header bar with Connect icon and standard window buttons (GNOME HIG)
     let header = adw::HeaderBar::new();
-    header.set_show_end_title_buttons(false);
-    header.set_show_start_title_buttons(false);
-    let close_btn = Button::builder().label(i18n("Close")).build();
-    let connect_btn = Button::builder()
-        .label(i18n("Connect"))
-        .css_classes(["suggested-action"])
-        .build();
-    header.pack_start(&close_btn);
-    header.pack_end(&connect_btn);
-
-    // Close button handler
-    let window_clone = quick_window.clone();
-    close_btn.connect_clicked(move |_| {
-        window_clone.close();
-    });
+    let connect_btn = Button::from_icon_name("go-next-symbolic");
+    connect_btn.set_tooltip_text(Some(&i18n("Connect")));
+    connect_btn.update_property(&[gtk4::accessible::Property::Label(&i18n("Connect"))]);
+    connect_btn.add_css_class("suggested-action");
+    header.pack_start(&connect_btn);
 
     // Main content
     let content = gtk4::Box::new(Orientation::Vertical, 12);

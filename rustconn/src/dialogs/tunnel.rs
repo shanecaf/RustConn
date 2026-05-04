@@ -606,7 +606,12 @@ fn show_add_edit_dialog(
         .content_height(600)
         .build();
 
-    let (header, cancel_btn, save_btn) = crate::dialogs::widgets::dialog_header("Cancel", "Save");
+    let header = adw::HeaderBar::new();
+    let save_btn = gtk4::Button::from_icon_name("list-add-symbolic");
+    save_btn.set_tooltip_text(Some(&i18n("Add")));
+    save_btn.update_property(&[gtk4::accessible::Property::Label(&i18n("Add"))]);
+    save_btn.add_css_class("suggested-action");
+    header.pack_start(&save_btn);
 
     // Save button starts disabled for new tunnels (name is empty)
     if !is_edit {
@@ -936,12 +941,6 @@ fn show_add_edit_dialog(
     toolbar_view.add_top_bar(&header);
     toolbar_view.set_content(Some(&clamp));
     dialog.set_child(Some(&toolbar_view));
-
-    // Cancel
-    let dialog_c = dialog.clone();
-    cancel_btn.connect_clicked(move |_| {
-        dialog_c.close();
-    });
 
     // Save
     let dialog_c = dialog.clone();

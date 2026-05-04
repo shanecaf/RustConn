@@ -170,6 +170,8 @@ pub struct ConnectionDialog {
     rdp_gateway_port_spin: SpinButton,
     rdp_gateway_username_entry: Entry,
     rdp_disable_nla_check: CheckButton,
+    rdp_security_layer_dropdown: DropDown,
+    rdp_tls_security_level_spin: SpinButton,
     rdp_ignore_certificate_check: CheckButton,
     rdp_clipboard_check: CheckButton,
     rdp_show_local_cursor_check: CheckButton,
@@ -524,6 +526,8 @@ impl ConnectionDialog {
             rdp_gateway_port_spin,
             rdp_gateway_username_entry,
             rdp_disable_nla_check,
+            rdp_security_layer_dropdown,
+            rdp_tls_security_level_spin,
             ignore_certificate_check,
             rdp_clipboard_check,
             rdp_show_local_cursor_check,
@@ -839,6 +843,8 @@ impl ConnectionDialog {
             &rdp_gateway_port_spin,
             &rdp_gateway_username_entry,
             &rdp_disable_nla_check,
+            &rdp_security_layer_dropdown,
+            &rdp_tls_security_level_spin,
             &ignore_certificate_check,
             &rdp_clipboard_check,
             &rdp_show_local_cursor_check,
@@ -1019,6 +1025,8 @@ impl ConnectionDialog {
             rdp_gateway_port_spin,
             rdp_gateway_username_entry,
             rdp_disable_nla_check,
+            rdp_security_layer_dropdown,
+            rdp_tls_security_level_spin,
             rdp_ignore_certificate_check: ignore_certificate_check,
             rdp_clipboard_check,
             rdp_show_local_cursor_check,
@@ -1665,28 +1673,17 @@ impl ConnectionDialog {
             window.set_transient_for(Some(p));
         }
 
-        // Create header bar with Close/Test/Create buttons (GNOME HIG)
+        // Header bar with Test icon and Create icon button (GNOME HIG)
         let header = adw::HeaderBar::new();
-        header.set_show_end_title_buttons(false);
-        header.set_show_start_title_buttons(false);
-        let close_btn = Button::builder().label(i18n("Close")).build();
-        let test_btn = Button::builder()
-            .label(i18n("Test"))
-            .tooltip_text(i18n("Test connection"))
-            .build();
-        let save_btn = Button::builder()
-            .label(i18n("Create"))
-            .css_classes(["suggested-action"])
-            .build();
-        header.pack_start(&close_btn);
-        header.pack_end(&save_btn);
-        header.pack_end(&test_btn);
-
-        // Close button handler
-        let window_clone = window.clone();
-        close_btn.connect_clicked(move |_| {
-            window_clone.close();
-        });
+        let test_btn = Button::from_icon_name("network-transmit-receive-symbolic");
+        test_btn.set_tooltip_text(Some(&i18n("Test Connection")));
+        test_btn.update_property(&[gtk4::accessible::Property::Label(&i18n("Test connection"))]);
+        let save_btn = Button::from_icon_name("list-add-symbolic");
+        save_btn.set_tooltip_text(Some(&i18n("Create")));
+        save_btn.update_property(&[gtk4::accessible::Property::Label(&i18n("Create"))]);
+        save_btn.add_css_class("suggested-action");
+        header.pack_start(&test_btn);
+        header.pack_start(&save_btn);
 
         (window, header, save_btn, test_btn)
     }
@@ -1903,6 +1900,8 @@ impl ConnectionDialog {
         rdp_gateway_port_spin: &SpinButton,
         rdp_gateway_username_entry: &Entry,
         rdp_disable_nla_check: &CheckButton,
+        rdp_security_layer_dropdown: &DropDown,
+        rdp_tls_security_level_spin: &SpinButton,
         rdp_ignore_certificate_check: &CheckButton,
         rdp_clipboard_check: &CheckButton,
         rdp_show_local_cursor_check: &CheckButton,
@@ -2066,6 +2065,8 @@ impl ConnectionDialog {
         let rdp_gateway_port_spin = rdp_gateway_port_spin.clone();
         let rdp_gateway_username_entry = rdp_gateway_username_entry.clone();
         let rdp_disable_nla_check = rdp_disable_nla_check.clone();
+        let rdp_security_layer_dropdown = rdp_security_layer_dropdown.clone();
+        let rdp_tls_security_level_spin = rdp_tls_security_level_spin.clone();
         let rdp_ignore_certificate_check = rdp_ignore_certificate_check.clone();
         let rdp_clipboard_check = rdp_clipboard_check.clone();
         let rdp_show_local_cursor_check = rdp_show_local_cursor_check.clone();
@@ -2243,6 +2244,8 @@ impl ConnectionDialog {
                 rdp_gateway_port_spin: &rdp_gateway_port_spin,
                 rdp_gateway_username_entry: &rdp_gateway_username_entry,
                 rdp_disable_nla_check: &rdp_disable_nla_check,
+                rdp_security_layer_dropdown: &rdp_security_layer_dropdown,
+                rdp_tls_security_level_spin: &rdp_tls_security_level_spin,
                 rdp_ignore_certificate_check: &rdp_ignore_certificate_check,
                 rdp_clipboard_check: &rdp_clipboard_check,
                 rdp_show_local_cursor_check: &rdp_show_local_cursor_check,
@@ -2402,6 +2405,8 @@ impl ConnectionDialog {
         SpinButton,
         Entry,
         CheckButton,
+        DropDown,
+        SpinButton,
         CheckButton,
         CheckButton,
         CheckButton,
@@ -2650,6 +2655,51 @@ impl ConnectionDialog {
         nla_row.add_suffix(&disable_nla_check);
         features_group.add(&nla_row);
 
+        // Security Layer dropdown
+        let security_layer_items: Vec<String> = rustconn_core::models::RdpSecurityLayer::all()
+            .iter()
+            .map(|s| i18n(s.display_name()))
+            .collect();
+        let security_layer_strs: Vec<&str> =
+            security_layer_items.iter().map(String::as_str).collect();
+        let security_layer_list = gtk4::StringList::new(&security_layer_strs);
+        let security_layer_dropdown =
+            DropDown::new(Some(security_layer_list), gtk4::Expression::NONE);
+        security_layer_dropdown.set_selected(0);
+        security_layer_dropdown.set_valign(gtk4::Align::Center);
+        security_layer_dropdown
+            .update_property(&[gtk4::accessible::Property::Label(&i18n("Security Layer"))]);
+        let security_layer_row = adw::ActionRow::builder()
+            .title(i18n("Security Layer"))
+            .subtitle(i18n("RDP/TLS for legacy servers (forces external FreeRDP)"))
+            .build();
+        security_layer_row.add_suffix(&security_layer_dropdown);
+        features_group.add(&security_layer_row);
+
+        // TLS Security Level spin (0–5, default hidden)
+        let tls_level_adj = gtk4::Adjustment::new(2.0, 0.0, 5.0, 1.0, 1.0, 0.0);
+        let tls_security_level_spin = SpinButton::builder()
+            .adjustment(&tls_level_adj)
+            .climb_rate(1.0)
+            .digits(0)
+            .valign(gtk4::Align::Center)
+            .build();
+        let tls_level_row = adw::ActionRow::builder()
+            .title(i18n("TLS Security Level"))
+            .subtitle(i18n("0 = legacy (Win7/2012), 2 = default, 5 = strict"))
+            .build();
+        tls_level_row.add_suffix(&tls_security_level_spin);
+        tls_level_row.set_visible(false); // Hidden by default
+        features_group.add(&tls_level_row);
+
+        // Show TLS level row only when security layer is not Negotiate
+        let tls_level_row_clone = tls_level_row.clone();
+        security_layer_dropdown.connect_selected_notify(move |dropdown| {
+            // Show TLS level for RDP(1), TLS(2) — legacy modes that benefit from it
+            let show = dropdown.selected() == 1 || dropdown.selected() == 2;
+            tls_level_row_clone.set_visible(show);
+        });
+
         // Ignore certificate
         let ignore_certificate_check = CheckButton::new();
         let cert_row = adw::ActionRow::builder()
@@ -2880,6 +2930,8 @@ impl ConnectionDialog {
             gateway_port_spin,
             gateway_username_entry,
             disable_nla_check,
+            security_layer_dropdown,
+            tls_security_level_spin,
             ignore_certificate_check,
             clipboard_check,
             rdp_show_local_cursor_check,
@@ -5207,7 +5259,12 @@ impl ConnectionDialog {
     /// Populates the dialog with an existing connection for editing
     pub fn set_connection(&self, conn: &Connection) {
         self.window.set_title(Some(&i18n("Edit Connection")));
-        self.save_button.set_label(&i18n("Save"));
+        // Switch from Create icon to Save icon for edit mode
+        self.save_button.set_label("");
+        self.save_button.set_icon_name("document-save-symbolic");
+        self.save_button.set_tooltip_text(Some(&i18n("Save")));
+        self.save_button
+            .update_property(&[gtk4::accessible::Property::Label(&i18n("Save"))]);
         *self.editing_id.borrow_mut() = Some(conn.id);
 
         // Basic fields
@@ -6152,6 +6209,13 @@ impl ConnectionDialog {
         self.rdp_jiggler_interval_spin
             .set_sensitive(rdp.jiggler_enabled);
         self.rdp_disable_nla_check.set_active(rdp.disable_nla);
+        self.rdp_security_layer_dropdown
+            .set_selected(rdp.security_layer.index());
+        if let Some(level) = rdp.tls_security_level {
+            self.rdp_tls_security_level_spin.set_value(f64::from(level));
+        } else {
+            self.rdp_tls_security_level_spin.set_value(2.0); // Default
+        }
         self.rdp_ignore_certificate_check
             .set_active(rdp.ignore_certificate);
         if let Some(ref gw) = rdp.gateway {
@@ -7375,6 +7439,8 @@ struct ConnectionDialogData<'a> {
     rdp_gateway_port_spin: &'a SpinButton,
     rdp_gateway_username_entry: &'a Entry,
     rdp_disable_nla_check: &'a CheckButton,
+    rdp_security_layer_dropdown: &'a DropDown,
+    rdp_tls_security_level_spin: &'a SpinButton,
     rdp_ignore_certificate_check: &'a CheckButton,
     rdp_clipboard_check: &'a CheckButton,
     rdp_show_local_cursor_check: &'a CheckButton,
@@ -8440,6 +8506,14 @@ impl ConnectionDialogData<'_> {
             keyboard_layout: dropdown_index_to_klid(self.rdp_keyboard_layout_dropdown.selected()),
             scale_override: ScaleOverride::from_index(self.rdp_scale_override_dropdown.selected()),
             disable_nla: self.rdp_disable_nla_check.is_active(),
+            security_layer: rustconn_core::models::RdpSecurityLayer::from_index(
+                self.rdp_security_layer_dropdown.selected(),
+            ),
+            tls_security_level: {
+                let level = self.rdp_tls_security_level_spin.value() as u8;
+                // Only store if non-default (level != 2) to keep config clean
+                if level == 2 { None } else { Some(level) }
+            },
             ignore_certificate: self.rdp_ignore_certificate_check.is_active(),
             clipboard_enabled: self.rdp_clipboard_check.is_active(),
             show_local_cursor: self.rdp_show_local_cursor_check.is_active(),

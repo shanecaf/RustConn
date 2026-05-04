@@ -154,29 +154,37 @@ pub fn create_app_menu() -> gio::Menu {
     conn_section.append(Some(&i18n("Local Shell")), Some("win.local-shell"));
     menu.append_section(None, &conn_section);
 
-    // Tools section (managers)
-    let tools_section = gio::Menu::new();
-    tools_section.append(Some(&i18n("Snippets...")), Some("win.manage-snippets"));
-    tools_section.append(Some(&i18n("Clusters...")), Some("win.manage-clusters"));
-    tools_section.append(Some(&i18n("Templates...")), Some("win.manage-templates"));
-    tools_section.append(Some(&i18n("Variables...")), Some("win.manage-variables"));
-    tools_section.append(Some(&i18n("Active Sessions...")), Some("win.show-sessions"));
-    tools_section.append(
+    // Tools section — Managers
+    let managers_section = gio::Menu::new();
+    managers_section.append(Some(&i18n("Snippets...")), Some("win.manage-snippets"));
+    managers_section.append(Some(&i18n("Clusters...")), Some("win.manage-clusters"));
+    managers_section.append(Some(&i18n("Templates...")), Some("win.manage-templates"));
+    managers_section.append(Some(&i18n("Variables...")), Some("win.manage-variables"));
+    menu.append_section(None, &managers_section);
+
+    // Tools section — Monitoring & History
+    let monitoring_section = gio::Menu::new();
+    monitoring_section.append(Some(&i18n("Active Sessions...")), Some("win.show-sessions"));
+    monitoring_section.append(
         Some(&i18n("Connection History...")),
         Some("win.show-history"),
     );
-    tools_section.append(Some(&i18n("Statistics...")), Some("win.show-statistics"));
-    tools_section.append(
+    monitoring_section.append(Some(&i18n("Statistics...")), Some("win.show-statistics"));
+    monitoring_section.append(Some(&i18n("Recordings...")), Some("win.manage-recordings"));
+    menu.append_section(None, &monitoring_section);
+
+    // Tools section — Security & Network
+    let security_section = gio::Menu::new();
+    security_section.append(
         Some(&i18n("Password Generator...")),
         Some("win.password-generator"),
     );
-    tools_section.append(
+    security_section.append(
         Some(&i18n("Wake On LAN...")),
         Some("win.wake-on-lan-dialog"),
     );
-    tools_section.append(Some(&i18n("Recordings...")), Some("win.manage-recordings"));
-    tools_section.append(Some(&i18n("SSH Tunnels...")), Some("win.ssh-tunnels"));
-    menu.append_section(None, &tools_section);
+    security_section.append(Some(&i18n("SSH Tunnels...")), Some("win.ssh-tunnels"));
+    menu.append_section(None, &security_section);
 
     // File section (import/export connections)
     let file_section = gio::Menu::new();
@@ -193,19 +201,24 @@ pub fn create_app_menu() -> gio::Menu {
     );
     menu.append_section(None, &edit_section);
 
-    // App section
-    let app_section = gio::Menu::new();
-    app_section.append(Some(&i18n("Settings...")), Some("win.settings"));
+    // Settings section (separated from app meta per GNOME HIG)
+    let settings_section = gio::Menu::new();
+    settings_section.append(Some(&i18n("Settings...")), Some("win.settings"));
     // Flatpak Components menu item - only visible in Flatpak environment
     // The action is always registered but does nothing outside Flatpak
     if rustconn_core::flatpak::is_flatpak() {
-        app_section.append(
+        settings_section.append(
             Some(&i18n("Flatpak Components...")),
             Some("win.flatpak-components"),
         );
     }
+    menu.append_section(None, &settings_section);
+
+    // App meta section (GNOME HIG: Fullscreen, Shortcuts, About, Quit)
+    let app_section = gio::Menu::new();
+    app_section.append(Some(&i18n("Fullscreen")), Some("win.toggle-fullscreen"));
     app_section.append(Some(&i18n("Keyboard Shortcuts...")), Some("app.shortcuts"));
-    app_section.append(Some(&i18n("About")), Some("app.about"));
+    app_section.append(Some(&i18n("About RustConn")), Some("app.about"));
     app_section.append(Some(&i18n("Quit")), Some("app.quit"));
     menu.append_section(None, &app_section);
 

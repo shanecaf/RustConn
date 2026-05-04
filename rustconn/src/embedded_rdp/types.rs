@@ -139,6 +139,12 @@ pub struct RdpConfig {
     /// Whether to ignore TLS certificate validation (default: false).
     /// When false, uses TOFU (trust-on-first-use) like SSH known_hosts.
     pub ignore_certificate: bool,
+    /// Security layer selection (Negotiate/RDP/TLS/NLA).
+    /// `Rdp` and `Tls` force FreeRDP fallback (incompatible with IronRDP).
+    pub security_layer: rustconn_core::models::RdpSecurityLayer,
+    /// TLS security level for FreeRDP (0–5). Level 0 = legacy TLS 1.0 compat.
+    /// Only effective with FreeRDP; IronRDP uses rustls (TLS 1.2+ only).
+    pub tls_security_level: Option<u8>,
     /// Enable mouse jiggler to prevent idle disconnect
     pub jiggler_enabled: bool,
     /// Mouse jiggler interval in seconds (10–600, default: 60)
@@ -169,6 +175,8 @@ impl Default for RdpConfig {
             gateway_port: 443,
             gateway_username: None,
             ignore_certificate: false,
+            security_layer: rustconn_core::models::RdpSecurityLayer::default(),
+            tls_security_level: None,
             jiggler_enabled: false,
             jiggler_interval_secs: 60,
         }

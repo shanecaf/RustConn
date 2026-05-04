@@ -65,15 +65,13 @@ impl ClusterDialog {
 
         window.set_size_request(320, 280);
 
-        // Header bar (GNOME HIG)
-        let (header, close_btn, save_btn) =
-            crate::dialogs::widgets::dialog_header("Close", "Create");
-
-        // Close button handler
-        let window_clone = window.clone();
-        close_btn.connect_clicked(move |_| {
-            window_clone.close();
-        });
+        // Header bar with Create icon button (GNOME HIG)
+        let header = adw::HeaderBar::new();
+        let save_btn = Button::from_icon_name("list-add-symbolic");
+        save_btn.set_tooltip_text(Some(&i18n("Create")));
+        save_btn.update_property(&[gtk4::accessible::Property::Label(&i18n("Create"))]);
+        save_btn.add_css_class("suggested-action");
+        header.pack_start(&save_btn);
 
         // Scrollable content with clamp
         let scrolled = ScrolledWindow::builder()
@@ -144,13 +142,11 @@ impl ClusterDialog {
         save_btn.connect_clicked(move |_| {
             let name = name_entry_clone.text().trim().to_string();
             if name.is_empty() {
-                crate::toast::show_toast_on_window(
-                    &window_clone,
-                    &i18n("Cluster name cannot be empty"),
-                    crate::toast::ToastType::Warning,
-                );
+                name_entry_clone.add_css_class("error");
+                name_entry_clone.grab_focus();
                 return;
             }
+            name_entry_clone.remove_css_class("error");
 
             // Collect selected connections
             let selected_ids: Vec<Uuid> = connection_rows_clone
@@ -395,15 +391,12 @@ impl ClusterListDialog {
 
         window.set_size_request(320, 280);
 
-        // Header bar (GNOME HIG)
-        let (header, close_btn, new_btn) =
-            crate::dialogs::widgets::dialog_header("Close", "Create");
-
-        // Close button handler
-        let window_clone = window.clone();
-        close_btn.connect_clicked(move |_| {
-            window_clone.close();
-        });
+        // Header bar with Add button and standard window buttons (GNOME HIG)
+        let header = adw::HeaderBar::new();
+        let new_btn = Button::from_icon_name("list-add-symbolic");
+        new_btn.set_tooltip_text(Some(&i18n("New Cluster")));
+        new_btn.update_property(&[gtk4::accessible::Property::Label(&i18n("New Cluster"))]);
+        header.pack_start(&new_btn);
 
         // Create main content area with clamp
         let clamp = adw::Clamp::builder()
