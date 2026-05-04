@@ -21,6 +21,7 @@
 //! The tray icon feature is enabled by default but can be disabled by building
 //! with `--no-default-features` if the D-Bus dependency is not available.
 
+use gettextrs::gettext;
 use std::sync::mpsc::{self, Receiver};
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
@@ -135,9 +136,13 @@ mod tray_impl {
                 Err(e) => e.into_inner(),
             };
             let description = if state.active_sessions > 0 {
-                format!("{} active session(s)", state.active_sessions)
+                let mut msg = gettext("{} active session(s)");
+                if let Some(pos) = msg.find("{}") {
+                    msg.replace_range(pos..pos + 2, &state.active_sessions.to_string());
+                }
+                msg
             } else {
-                "No active sessions".to_string()
+                gettext("No active sessions")
             };
             ksni::ToolTip {
                 icon_name: String::new(),
@@ -170,12 +175,12 @@ mod tray_impl {
             let mut items: Vec<MenuItem<Self>> = Vec::new();
 
             let toggle_label = if window_visible {
-                "Hide Window"
+                gettext("Hide Window")
             } else {
-                "Show Window"
+                gettext("Show Window")
             };
             items.push(MenuItem::Standard(StandardItem {
-                label: toggle_label.to_string(),
+                label: toggle_label,
                 activate: Box::new(|tray: &mut Self| {
                     let _ = tray.sender.send(TrayMessage::ToggleWindow);
                 }),
@@ -199,7 +204,7 @@ mod tray_impl {
                     })
                     .collect();
                 items.push(MenuItem::SubMenu(ksni::menu::SubMenu {
-                    label: "Recent Connections".to_string(),
+                    label: gettext("Recent Connections"),
                     submenu: recent_items,
                     ..Default::default()
                 }));
@@ -207,14 +212,14 @@ mod tray_impl {
             }
 
             items.push(MenuItem::Standard(StandardItem {
-                label: "Quick Connect...".to_string(),
+                label: gettext("Quick Connect..."),
                 activate: Box::new(|tray: &mut Self| {
                     let _ = tray.sender.send(TrayMessage::QuickConnect);
                 }),
                 ..Default::default()
             }));
             items.push(MenuItem::Standard(StandardItem {
-                label: "Local Shell".to_string(),
+                label: gettext("Local Shell"),
                 activate: Box::new(|tray: &mut Self| {
                     let _ = tray.sender.send(TrayMessage::LocalShell);
                 }),
@@ -223,8 +228,12 @@ mod tray_impl {
             items.push(MenuItem::Separator);
 
             if active_sessions > 0 {
+                let mut label = gettext("{} Active Session(s)");
+                if let Some(pos) = label.find("{}") {
+                    label.replace_range(pos..pos + 2, &active_sessions.to_string());
+                }
                 items.push(MenuItem::Standard(StandardItem {
-                    label: format!("{active_sessions} Active Session(s)"),
+                    label,
                     enabled: false,
                     ..Default::default()
                 }));
@@ -232,14 +241,14 @@ mod tray_impl {
             }
 
             items.push(MenuItem::Standard(StandardItem {
-                label: "About".to_string(),
+                label: gettext("About RustConn"),
                 activate: Box::new(|tray: &mut Self| {
                     let _ = tray.sender.send(TrayMessage::About);
                 }),
                 ..Default::default()
             }));
             items.push(MenuItem::Standard(StandardItem {
-                label: "Quit".to_string(),
+                label: gettext("Quit"),
                 activate: Box::new(|tray: &mut Self| {
                     let _ = tray.sender.send(TrayMessage::Quit);
                 }),

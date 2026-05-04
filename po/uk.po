@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: rustconn 0.12.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-04 00:16+0300\n"
+"POT-Creation-Date: 2026-05-04 16:11+0300\n"
 "PO-Revision-Date: 2026-04-25 10:46+0000\n"
 "Last-Translator: Mykola Zubkov <zubkov139@ukr.net>\n"
 "Language-Team: Ukrainian\n"
@@ -76,11 +76,11 @@ msgstr "Помилка ініціялізації"
 msgid "{} credentials migrated from legacy encryption to AES-256-GCM"
 msgstr "{} облікових даних перенесено з застарілого шифрування на AES-256-GCM"
 
-#: rustconn/src/app.rs:665
+#: rustconn/src/app.rs:677
 msgid "{} backend unavailable. Using fallback."
 msgstr "Бекенд {} недоступний. Використано резервний."
 
-#: rustconn/src/app.rs:755
+#: rustconn/src/app.rs:767
 msgid ""
 "Modern connection manager for Linux with a GTK4/Wayland-native interface. "
 "Manage SSH, RDP, VNC, SPICE, Telnet, Serial, Kubernetes, and Zero Trust "
@@ -91,35 +91,35 @@ msgstr ""
 "однієї програми."
 
 #. Translators: Replace this with your name and language, e.g. "John Doe (German)"
-#: rustconn/src/app.rs:791
+#: rustconn/src/app.rs:803
 msgid "translator-credits"
 msgstr "Микола Зубков (Українська)"
 
-#: rustconn/src/app.rs:798
+#: rustconn/src/app.rs:810
 msgid "User Guide"
 msgstr "Посібник користувача"
 
-#: rustconn/src/app.rs:802
+#: rustconn/src/app.rs:814
 msgid "Installation"
 msgstr "Установлення"
 
-#: rustconn/src/app.rs:806
+#: rustconn/src/app.rs:818
 msgid "Releases"
 msgstr "Випуски"
 
-#: rustconn/src/app.rs:810
+#: rustconn/src/app.rs:822
 msgid "Changelog"
 msgstr "Журнал змін"
 
-#: rustconn/src/app.rs:820
+#: rustconn/src/app.rs:832
 msgid "Special Thanks"
 msgstr "Подяки"
 
-#: rustconn/src/app.rs:835
+#: rustconn/src/app.rs:847
 msgid "Made in Ukraine"
 msgstr "Зроблено в Україні"
 
-#: rustconn/src/app.rs:836
+#: rustconn/src/app.rs:848
 msgid "All contributors and supporters"
 msgstr "Усім учасникам і прихильникам"
 
@@ -275,6 +275,7 @@ msgid "External Window"
 msgstr "Зовнішнє вікно"
 
 #: rustconn/src/dialogs/connection/advanced_tab.rs:68
+#: rustconn/src/window/ui.rs:219
 msgid "Fullscreen"
 msgstr "Повноекранний"
 
@@ -369,40 +370,40 @@ msgstr "Очисть перевизначення кольорів"
 msgid "Remote Monitoring"
 msgstr ""
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:322
+#: rustconn/src/dialogs/connection/advanced_tab.rs:323
 msgid "Override global monitoring settings for this connection"
 msgstr ""
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:326
+#: rustconn/src/dialogs/connection/advanced_tab.rs:328
 msgid "Enable Monitoring"
 msgstr ""
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:327
+#: rustconn/src/dialogs/connection/advanced_tab.rs:329
 msgid "Collect CPU, RAM, disk and network metrics via SSH"
 msgstr ""
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:336
+#: rustconn/src/dialogs/connection/advanced_tab.rs:338
 msgid "Session Recording"
 msgstr "Запис сеансу"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:340
+#: rustconn/src/dialogs/connection/advanced_tab.rs:342
 msgid "Record Session"
 msgstr "Запис сеансу"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:341
+#: rustconn/src/dialogs/connection/advanced_tab.rs:343
 msgid "Save terminal output to file"
 msgstr "Збережи вивід терміналу у файл"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:349
+#: rustconn/src/dialogs/connection/advanced_tab.rs:351
 #: rustconn/src/dialogs/settings/monitoring_tab.rs:175
 msgid "Activity Monitor"
 msgstr "Монітор активності"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:350
+#: rustconn/src/dialogs/connection/advanced_tab.rs:352
 msgid "Detect terminal output activity or silence"
 msgstr "Виявляти активність або тишу у виводі термінала"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:353
+#: rustconn/src/dialogs/connection/advanced_tab.rs:355
 #: rustconn/src/dialogs/connection/dialog.rs:3430
 #: rustconn/src/dialogs/connection/spice.rs:175
 #: rustconn/src/dialogs/settings/monitoring_tab.rs:181
@@ -411,117 +412,117 @@ msgstr "Виявляти активність або тишу у виводі т
 msgid "Off"
 msgstr "Вимк."
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:353
+#: rustconn/src/dialogs/connection/advanced_tab.rs:355
 #: rustconn/src/dialogs/settings/logging_tab.rs:114
 #: rustconn/src/dialogs/settings/monitoring_tab.rs:181
 msgid "Activity"
 msgstr "Активність"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:353
+#: rustconn/src/dialogs/connection/advanced_tab.rs:355
 #: rustconn/src/dialogs/settings/monitoring_tab.rs:181
 msgid "Silence"
 msgstr "Тиша"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:355
+#: rustconn/src/dialogs/connection/advanced_tab.rs:357
 msgid "Mode"
 msgstr "Режим"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:356
+#: rustconn/src/dialogs/connection/advanced_tab.rs:358
 msgid "Select monitoring mode for this connection"
 msgstr "Вибери режим моніторингу для цього з'єднання"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:364
+#: rustconn/src/dialogs/connection/advanced_tab.rs:366
 msgid "Quiet Period"
 msgstr "Період спокою"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:365
+#: rustconn/src/dialogs/connection/advanced_tab.rs:367
 #: rustconn/src/dialogs/settings/monitoring_tab.rs:193
 msgid "Seconds of silence before activity notification"
 msgstr "Секунд тиші перед сповіщенням про активність"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:373
+#: rustconn/src/dialogs/connection/advanced_tab.rs:375
 msgid "Silence Timeout"
 msgstr "Час очікування тиші"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:374
+#: rustconn/src/dialogs/connection/advanced_tab.rs:376
 #: rustconn/src/dialogs/settings/monitoring_tab.rs:201
 msgid "Seconds of no output before silence notification"
 msgstr "Секунд без виводу перед сповіщенням про тишу"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:409
+#: rustconn/src/dialogs/connection/advanced_tab.rs:411
 #: rustconn/src/dialogs/settings/mod.rs:238
 msgid "Highlight Rules"
 msgstr "Правила підсвічування"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:410
+#: rustconn/src/dialogs/connection/advanced_tab.rs:412
 msgid "Regex-based text highlighting for this connection"
 msgstr "Підсвічування тексту на основі регулярних виразів для цього з'єднання"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:423
+#: rustconn/src/dialogs/connection/advanced_tab.rs:425
 #: rustconn/src/dialogs/settings/mod.rs:253
 msgid "No highlight rules"
 msgstr "Немає правил підсвічування"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:433
+#: rustconn/src/dialogs/connection/advanced_tab.rs:435
 #: rustconn/src/dialogs/connection/automation_tab.rs:139
 #: rustconn/src/dialogs/settings/mod.rs:262
 #: rustconn/src/window/edit_dialogs.rs:1517
 msgid "Add Rule"
 msgstr "Додай правило"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:443
+#: rustconn/src/dialogs/connection/advanced_tab.rs:445
 #: rustconn/src/dialogs/shortcuts.rs:598 rustconn/src/dialogs/wol.rs:29
 #: rustconn/src/sidebar_ui.rs:168
 msgid "Wake On LAN"
 msgstr "Wake On LAN"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:449
+#: rustconn/src/dialogs/connection/advanced_tab.rs:451
 msgid "Enable WOL"
 msgstr "Увімкни WOL"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:450
+#: rustconn/src/dialogs/connection/advanced_tab.rs:452
 msgid "Send magic packet before connecting"
 msgstr "Надішли magic-пакет перед з'єднуванням"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:460
+#: rustconn/src/dialogs/connection/advanced_tab.rs:462
 msgid "WOL Settings"
 msgstr "Устави WOL"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:467
+#: rustconn/src/dialogs/connection/advanced_tab.rs:469
 msgid "AA:BB:CC:DD:EE:FF"
 msgstr "AA:BB:CC:DD:EE:FF"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:470
+#: rustconn/src/dialogs/connection/advanced_tab.rs:472
 #: rustconn/src/dialogs/wol.rs:77
 msgid "MAC Address"
 msgstr "MAC-адреса"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:495
+#: rustconn/src/dialogs/connection/advanced_tab.rs:497
 msgid "Format: AA:BB:CC:DD:EE:FF"
 msgstr "Формат: AA:BB:CC:DD:EE:FF"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:507
+#: rustconn/src/dialogs/connection/advanced_tab.rs:509
 #: rustconn/src/dialogs/wol.rs:82
 msgid "Broadcast Address"
 msgstr "Адреса широкомовлення"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:521
+#: rustconn/src/dialogs/connection/advanced_tab.rs:523
 msgid "UDP Port"
 msgstr "UDP-порт"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:522
+#: rustconn/src/dialogs/connection/advanced_tab.rs:524
 msgid "Default: 9"
 msgstr "Типово: 9"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:542
+#: rustconn/src/dialogs/connection/advanced_tab.rs:544
 msgid "Wait Time (sec)"
 msgstr "Час очікування (сек)"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:543
+#: rustconn/src/dialogs/connection/advanced_tab.rs:545
 msgid "Time to wait for boot"
 msgstr "Час очікування завантаження"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:663
+#: rustconn/src/dialogs/connection/advanced_tab.rs:665
 #: rustconn/src/dialogs/connection/general_tab.rs:78
 #: rustconn/src/dialogs/export.rs:388 rustconn/src/dialogs/settings/mod.rs:1203
 #: rustconn/src/dialogs/smart_folder.rs:121
@@ -532,27 +533,27 @@ msgstr "Час очікування завантаження"
 msgid "Name"
 msgstr "Назва"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:665
+#: rustconn/src/dialogs/connection/advanced_tab.rs:667
 #: rustconn/src/dialogs/settings/mod.rs:1205
 msgid "Rule name"
 msgstr "Назва правила"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:672
+#: rustconn/src/dialogs/connection/advanced_tab.rs:674
 #: rustconn/src/dialogs/settings/mod.rs:1213
 msgid "Pattern (regex)"
 msgstr "Шаблон (regex)"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:674
+#: rustconn/src/dialogs/connection/advanced_tab.rs:676
 #: rustconn/src/dialogs/settings/mod.rs:1215
 msgid "Regex pattern to match"
 msgstr "Регулярний вираз для пошуку"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:682
+#: rustconn/src/dialogs/connection/advanced_tab.rs:684
 #: rustconn/src/dialogs/settings/mod.rs:1224
 msgid "Enable rule"
 msgstr "Увімкни правило"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:689
+#: rustconn/src/dialogs/connection/advanced_tab.rs:691
 #: rustconn/src/dialogs/connection/dialog.rs:4325
 #: rustconn/src/dialogs/connection/dialog.rs:4327
 #: rustconn/src/dialogs/settings/mod.rs:1232
@@ -561,7 +562,7 @@ msgstr "Увімкни правило"
 msgid "Delete rule"
 msgstr "Вилучи правило"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:693
+#: rustconn/src/dialogs/connection/advanced_tab.rs:695
 #: rustconn/src/dialogs/settings/mod.rs:1237
 msgid "Delete highlight rule"
 msgstr "Вилучи правило підсвічування"
@@ -3302,7 +3303,7 @@ msgstr "Експортування..."
 msgid "Preparing export..."
 msgstr "Підготовка (до) експортування..."
 
-#: rustconn/src/dialogs/export.rs:494 rustconn/src/window/mod.rs:5088
+#: rustconn/src/dialogs/export.rs:494 rustconn/src/window/mod.rs:5115
 msgid "Export Complete"
 msgstr "Експортування завершено"
 
@@ -5600,7 +5601,8 @@ msgid "Do nothing"
 msgstr "Нічого не робити"
 
 #: rustconn/src/dialogs/settings/ui_tab.rs:165
-#: rustconn/src/dialogs/settings/ui_tab.rs:364 rustconn/src/window/ui.rs:154
+#: rustconn/src/dialogs/settings/ui_tab.rs:364 rustconn/src/tray.rs:222
+#: rustconn/src/window/ui.rs:154
 msgid "Local Shell"
 msgstr "Локальна оболонка"
 
@@ -7440,6 +7442,42 @@ msgstr "Відомости"
 msgid "Retry"
 msgstr "Повтори"
 
+#: rustconn/src/tray.rs:139
+msgid "{} active session(s)"
+msgstr ""
+
+#: rustconn/src/tray.rs:145
+msgid "No active sessions"
+msgstr ""
+
+#: rustconn/src/tray.rs:178
+msgid "Hide Window"
+msgstr "Сховати вікно"
+
+#: rustconn/src/tray.rs:180
+msgid "Show Window"
+msgstr "Показати вікно"
+
+#: rustconn/src/tray.rs:207
+msgid "Recent Connections"
+msgstr "Нещодавні з'єднання"
+
+#: rustconn/src/tray.rs:215
+msgid "Quick Connect..."
+msgstr "Швидке з'єднання..."
+
+#: rustconn/src/tray.rs:231
+msgid "{} Active Session(s)"
+msgstr "{} активних сесій"
+
+#: rustconn/src/tray.rs:244 rustconn/src/window/ui.rs:221
+msgid "About RustConn"
+msgstr ""
+
+#: rustconn/src/tray.rs:251 rustconn/src/window/ui.rs:222
+msgid "Quit"
+msgstr "Вийди"
+
 #: rustconn/src/vault_ops.rs:20
 msgid "Failed to save password to vault"
 msgstr "Не вдалося зберегти пароль до сховища"
@@ -8031,7 +8069,7 @@ msgstr "Не вдалося відкрити .rdp файл"
 msgid "Failed to open .vv file"
 msgstr "Не вдалося відкрити .vv файл"
 
-#: rustconn/src/window/mod.rs:5090
+#: rustconn/src/window/mod.rs:5117
 msgid "Successfully exported {} connection(s). {} skipped."
 msgstr "Успішно експортовано {} з'єднань. {} пропущено."
 
@@ -8440,69 +8478,61 @@ msgstr "Шаблони…"
 msgid "Variables..."
 msgstr "Змінниці…"
 
-#: rustconn/src/window/ui.rs:163
+#: rustconn/src/window/ui.rs:167
 msgid "Active Sessions..."
 msgstr "Активні сесії..."
 
-#: rustconn/src/window/ui.rs:165
+#: rustconn/src/window/ui.rs:169
 msgid "Connection History..."
 msgstr "Історія з'єднувань…"
 
-#: rustconn/src/window/ui.rs:168
+#: rustconn/src/window/ui.rs:172
 msgid "Statistics..."
 msgstr "Статистика…"
 
-#: rustconn/src/window/ui.rs:170
-msgid "Password Generator..."
-msgstr "Ґенератор паролів…"
-
-#: rustconn/src/window/ui.rs:174
-msgid "Wake On LAN..."
-msgstr "Wake On LAN…"
-
-#: rustconn/src/window/ui.rs:177
+#: rustconn/src/window/ui.rs:173
 msgid "Recordings..."
 msgstr "Записи..."
 
-#: rustconn/src/window/ui.rs:178
+#: rustconn/src/window/ui.rs:179
+msgid "Password Generator..."
+msgstr "Ґенератор паролів…"
+
+#: rustconn/src/window/ui.rs:183
+msgid "Wake On LAN..."
+msgstr "Wake On LAN…"
+
+#: rustconn/src/window/ui.rs:186
 msgid "SSH Tunnels..."
 msgstr "SSH-тунелі..."
 
-#: rustconn/src/window/ui.rs:183
+#: rustconn/src/window/ui.rs:191
 msgid "Import Connections..."
 msgstr "Імпортуй з'єднки…"
 
-#: rustconn/src/window/ui.rs:184
+#: rustconn/src/window/ui.rs:192
 msgid "Export Connections..."
 msgstr "Експортуй з'єднки…"
 
-#: rustconn/src/window/ui.rs:189
+#: rustconn/src/window/ui.rs:197
 msgid "Copy Connection"
 msgstr "Скопіюй з'єднок"
 
-#: rustconn/src/window/ui.rs:191
+#: rustconn/src/window/ui.rs:199
 msgid "Paste Connection"
 msgstr "Устав з'єднок"
 
-#: rustconn/src/window/ui.rs:198
+#: rustconn/src/window/ui.rs:206
 msgid "Settings..."
 msgstr "Устави..."
 
-#: rustconn/src/window/ui.rs:203
+#: rustconn/src/window/ui.rs:211
 msgid "Flatpak Components..."
 msgstr "Компоненти Flatpak…"
 
-#: rustconn/src/window/ui.rs:207
+#: rustconn/src/window/ui.rs:220
 msgid "Keyboard Shortcuts..."
 msgstr "Комбінації клавіш..."
-
-#: rustconn/src/window/ui.rs:208
-msgid "About"
-msgstr "Про програму"
-
-#: rustconn/src/window/ui.rs:209
-msgid "Quit"
-msgstr "Вийди"
 
 #: rustconn/assets/io.github.totoshko88.RustConn.desktop:3
 msgid "RustConn"
@@ -8515,6 +8545,9 @@ msgid ""
 msgstr ""
 "ssh;rdp;vnc;spice;mosh;telnet;zerotrust;з'єднання;термінал;віддалений;"
 "kubernetes;k8s;послідовний;sftp;"
+
+#~ msgid "About"
+#~ msgstr "Про програму"
 
 #~ msgid "Mouse passthrough"
 #~ msgstr "Передача миші"
@@ -8620,21 +8653,6 @@ msgstr ""
 
 #~ msgid "e.g. Production, Staging"
 #~ msgstr "напр. Production, Staging"
-
-#~ msgid "Hide Window"
-#~ msgstr "Сховати вікно"
-
-#~ msgid "Show Window"
-#~ msgstr "Показати вікно"
-
-#~ msgid "Recent Connections"
-#~ msgstr "Нещодавні з'єднання"
-
-#~ msgid "Quick Connect..."
-#~ msgstr "Швидке з'єднання..."
-
-#~ msgid "{} Active Session(s)"
-#~ msgstr "{} активних сесій"
 
 #~ msgid "Cluster Created"
 #~ msgstr "Кластер створено"
