@@ -298,6 +298,12 @@ impl EmbeddedRdpWidget {
         let drawing_area = DrawingArea::new();
         drawing_area.set_hexpand(true);
         drawing_area.set_vexpand(true);
+        // Explicitly set content size to 0 so the DrawingArea does not report
+        // a natural size based on the RDP framebuffer dimensions. Without this,
+        // AdwTabOverview warns "exceeds AdwApplicationWindow size" because it
+        // measures the child's natural size for thumbnail generation.
+        drawing_area.set_content_width(0);
+        drawing_area.set_content_height(0);
         // Don't set fixed content size - let the widget expand to fill available space
         // The actual RDP resolution will be set when connect() is called
         drawing_area.set_can_focus(true);

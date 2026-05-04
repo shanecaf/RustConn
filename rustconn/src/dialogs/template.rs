@@ -2084,13 +2084,11 @@ impl TemplateDialog {
         save_btn.connect_clicked(move |_| {
             let name = name_entry.text();
             if name.trim().is_empty() {
-                crate::toast::show_toast_on_window(
-                    &window,
-                    &i18n("Template name is required"),
-                    crate::toast::ToastType::Warning,
-                );
+                name_entry.add_css_class("error");
+                name_entry.grab_focus();
                 return;
             }
+            name_entry.remove_css_class("error");
 
             let protocol_idx = protocol_dropdown.selected() as usize;
             let protocol_config = Self::build_protocol_config(

@@ -858,7 +858,7 @@ impl SshConfig {
         // Determine if we should add IdentitiesOnly based on key source
         // File auth method should always use IdentitiesOnly to prevent "Too many auth failures"
         // Agent auth method with a valid key path should also use IdentitiesOnly
-        let mut should_use_identities_only =
+        let should_use_identities_only =
             self.identities_only || matches!(self.key_source, SshKeySource::File { .. });
 
         // Add identity file if specified via key_source (preferred) or key_path (legacy)
@@ -867,39 +867,13 @@ impl SshConfig {
                 args.push("-i".to_string());
                 args.push(path.display().to_string());
             }
-            SshKeySource::Agent { comment, .. } => {
-                // The comment often contains the key file path (e.g., "/home/user/.ssh/id_ed25519")
-                // If it's a valid path, use it with -i flag - SSH will match it to the agent key
-                if !comment.is_empty() {
-                    let key_path = std::path::Path::new(comment);
-                    // Check if comment looks like a file path and the public key exists
-                    if comment.starts_with('/') || comment.starts_with('~') {
-                        // Expand ~ to home directory
-                        let expanded_path = if comment.starts_with('~') {
-                            dirs::home_dir().map_or_else(
-                                || key_path.to_path_buf(),
-                                |home| home.join(comment.strip_prefix("~/").unwrap_or(comment)),
-                            )
-                        } else {
-                            key_path.to_path_buf()
-                        };
-
-                        // Check if the key file or its .pub version exists
-                        let pub_path =
-                            expanded_path.with_extension(expanded_path.extension().map_or_else(
-                                || "pub".to_string(),
-                                |e| format!("{}.pub", e.to_string_lossy()),
-                            ));
-
-                        if expanded_path.exists() || pub_path.exists() {
-                            args.push("-i".to_string());
-                            args.push(expanded_path.display().to_string());
-                            // Enable IdentitiesOnly to use only this specific key
-                            should_use_identities_only = true;
-                        }
-                    }
-                }
-                // If comment is not a valid path, SSH will try all agent keys (no -i flag added)
+            SshKeySource::Agent { .. } => {
+                // When using SSH agent authentication, do NOT pass -i <path> even if the
+                // comment contains a file path. Passing -i causes SSH to first attempt
+                // file-based auth (triggering an agent confirmation in Bitwarden/KeeAgent),
+                // then fall back to agent auth (triggering a second confirmation).
+                // Without -i, the agent offers keys naturally with a single prompt.
+                // See: https://github.com/totoshko88/RustConn/issues/125
             }
             SshKeySource::Default | SshKeySource::File { .. } | SshKeySource::Inherit => {
                 // Default or File with empty path - check legacy key_path field

@@ -389,6 +389,9 @@ impl MainWindow {
         // so it can overlay the entire window content (GNOME Web pattern)
         let tab_overview = terminal_notebook.tab_overview();
         tab_overview.set_child(Some(&toolbar_view));
+        // Clip overflow to prevent the TabOverview from requesting more space
+        // than the window provides when embedded RDP sessions have large framebuffers
+        tab_overview.set_overflow(gtk4::Overflow::Hidden);
 
         window.set_content(Some(tab_overview));
 
@@ -1138,16 +1141,19 @@ impl MainWindow {
         });
         window.add_action(&switch_tab_action);
 
-        // Toggle fullscreen action
-        let toggle_fullscreen_action = gio::SimpleAction::new("toggle-fullscreen", None);
+        // Toggle fullscreen action (stateful per GNOME HIG — menu shows checkmark)
+        let toggle_fullscreen_action =
+            gio::SimpleAction::new_stateful("toggle-fullscreen", None, &false.to_variant());
         let window_weak = window.downgrade();
-        toggle_fullscreen_action.connect_activate(move |_, _| {
+        toggle_fullscreen_action.connect_activate(move |action, _| {
             if let Some(win) = window_weak.upgrade() {
-                if win.is_fullscreen() {
+                let is_fullscreen = win.is_fullscreen();
+                if is_fullscreen {
                     win.unfullscreen();
                 } else {
                     win.fullscreen();
                 }
+                action.set_state(&(!is_fullscreen).to_variant());
             }
         });
         window.add_action(&toggle_fullscreen_action);

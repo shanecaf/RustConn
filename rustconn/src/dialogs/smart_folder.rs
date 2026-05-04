@@ -7,7 +7,7 @@ use crate::dialogs::widgets::{DropdownRowBuilder, EntryRowBuilder};
 use crate::i18n::i18n;
 use adw::prelude::*;
 use gtk4::prelude::*;
-use gtk4::{Box as GtkBox, Button, DropDown, Entry, Orientation, ScrolledWindow};
+use gtk4::{Box as GtkBox, Button, DropDown, Entry, Orientation};
 use libadwaita as adw;
 use rustconn_core::ProtocolType;
 use rustconn_core::models::{ConnectionGroup, SmartFolder};
@@ -65,13 +65,12 @@ impl SmartFolderDialog {
             .title(title)
             .modal(true)
             .default_width(460)
-            .default_height(380)
             .build();
 
         if let Some(p) = parent {
             window.set_transient_for(Some(p));
         }
-        window.set_size_request(320, 280);
+        window.set_size_request(320, -1);
 
         // Header bar with Save/Create icon button (GNOME HIG)
         let header = adw::HeaderBar::new();
@@ -89,13 +88,7 @@ impl SmartFolderDialog {
         save_btn.add_css_class("suggested-action");
         header.pack_start(&save_btn);
 
-        // Scrollable content
-        let scrolled = ScrolledWindow::builder()
-            .hscrollbar_policy(gtk4::PolicyType::Never)
-            .vscrollbar_policy(gtk4::PolicyType::Automatic)
-            .vexpand(true)
-            .build();
-
+        // Content with clamp (no scroll needed — content fits naturally)
         let clamp = adw::Clamp::builder()
             .maximum_size(600)
             .tightening_threshold(400)
@@ -108,11 +101,13 @@ impl SmartFolderDialog {
         content.set_margin_end(12);
 
         clamp.set_child(Some(&content));
-        scrolled.set_child(Some(&clamp));
+
+        let toast_overlay = adw::ToastOverlay::new();
+        toast_overlay.set_child(Some(&clamp));
 
         let toolbar_view = adw::ToolbarView::new();
         toolbar_view.add_top_bar(&header);
-        toolbar_view.set_content(Some(&scrolled));
+        toolbar_view.set_content(Some(&toast_overlay));
         window.set_content(Some(&toolbar_view));
 
         // === Name section ===
@@ -279,13 +274,12 @@ impl SmartFolderDialog {
         self.save_btn.connect_clicked(move |_| {
             let name = name_entry.text().trim().to_string();
             if name.is_empty() {
-                crate::toast::show_toast_on_window(
-                    &window,
-                    &i18n("Name is required"),
-                    crate::toast::ToastType::Warning,
-                );
+                // Inline validation: highlight the Name field with error style
+                name_entry.add_css_class("error");
+                name_entry.grab_focus();
                 return;
             }
+            name_entry.remove_css_class("error");
 
             // Protocol filter
             let proto_idx = protocol_dropdown.selected();

@@ -2667,6 +2667,8 @@ impl ConnectionDialog {
             DropDown::new(Some(security_layer_list), gtk4::Expression::NONE);
         security_layer_dropdown.set_selected(0);
         security_layer_dropdown.set_valign(gtk4::Align::Center);
+        security_layer_dropdown
+            .update_property(&[gtk4::accessible::Property::Label(&i18n("Security Layer"))]);
         let security_layer_row = adw::ActionRow::builder()
             .title(i18n("Security Layer"))
             .subtitle(i18n("RDP/TLS for legacy servers (forces external FreeRDP)"))
@@ -5257,7 +5259,12 @@ impl ConnectionDialog {
     /// Populates the dialog with an existing connection for editing
     pub fn set_connection(&self, conn: &Connection) {
         self.window.set_title(Some(&i18n("Edit Connection")));
-        self.save_button.set_label(&i18n("Save"));
+        // Switch from Create icon to Save icon for edit mode
+        self.save_button.set_label("");
+        self.save_button.set_icon_name("document-save-symbolic");
+        self.save_button.set_tooltip_text(Some(&i18n("Save")));
+        self.save_button
+            .update_property(&[gtk4::accessible::Property::Label(&i18n("Save"))]);
         *self.editing_id.borrow_mut() = Some(conn.id);
 
         // Basic fields

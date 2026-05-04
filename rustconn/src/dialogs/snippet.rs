@@ -492,25 +492,21 @@ impl SnippetDialog {
             // Validate
             let name = name_entry.text();
             if name.trim().is_empty() {
-                crate::toast::show_toast_on_window(
-                    &window,
-                    &i18n("Snippet name is required"),
-                    crate::toast::ToastType::Warning,
-                );
+                name_entry.add_css_class("error");
+                name_entry.grab_focus();
                 return;
             }
+            name_entry.remove_css_class("error");
 
             let buffer = command_view.buffer();
             let (start, end) = buffer.bounds();
             let command = buffer.text(&start, &end, false);
             if command.trim().is_empty() {
-                crate::toast::show_toast_on_window(
-                    &window,
-                    &i18n("Command is required"),
-                    crate::toast::ToastType::Warning,
-                );
+                command_view.add_css_class("error");
+                command_view.grab_focus();
                 return;
             }
+            command_view.remove_css_class("error");
 
             // Build snippet
             let snippet = Self::build_snippet_from_fields(

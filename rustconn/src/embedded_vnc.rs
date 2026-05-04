@@ -187,8 +187,13 @@ impl EmbeddedVncWidget {
         let drawing_area = DrawingArea::new();
         drawing_area.set_hexpand(true);
         drawing_area.set_vexpand(true);
-        drawing_area.set_content_width(1280);
-        drawing_area.set_content_height(720);
+        // Do NOT set content_width/content_height to the VNC resolution — this
+        // inflates the widget's natural size and causes AdwTabOverview to warn
+        // "exceeds AdwApplicationWindow size". The DrawingArea expands to fill
+        // available space via hexpand/vexpand; the actual VNC resolution is
+        // negotiated dynamically via SetDesktopSize.
+        drawing_area.set_content_width(0);
+        drawing_area.set_content_height(0);
         drawing_area.set_can_focus(true);
         drawing_area.set_focusable(true);
 

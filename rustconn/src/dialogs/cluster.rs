@@ -142,13 +142,11 @@ impl ClusterDialog {
         save_btn.connect_clicked(move |_| {
             let name = name_entry_clone.text().trim().to_string();
             if name.is_empty() {
-                crate::toast::show_toast_on_window(
-                    &window_clone,
-                    &i18n("Cluster name cannot be empty"),
-                    crate::toast::ToastType::Warning,
-                );
+                name_entry_clone.add_css_class("error");
+                name_entry_clone.grab_focus();
                 return;
             }
+            name_entry_clone.remove_css_class("error");
 
             // Collect selected connections
             let selected_ids: Vec<Uuid> = connection_rows_clone

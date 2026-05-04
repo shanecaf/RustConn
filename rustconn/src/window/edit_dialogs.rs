@@ -463,11 +463,11 @@ pub fn show_edit_group_dialog(
     group_window.set_transient_for(Some(window));
 
     let header = adw::HeaderBar::new();
-    let save_btn = gtk4::Button::builder()
-        .label(i18n("Save"))
-        .css_classes(["suggested-action"])
-        .build();
-    header.pack_end(&save_btn);
+    let save_btn = gtk4::Button::from_icon_name("document-save-symbolic");
+    save_btn.set_tooltip_text(Some(&i18n("Save")));
+    save_btn.update_property(&[gtk4::accessible::Property::Label(&i18n("Save"))]);
+    save_btn.add_css_class("suggested-action");
+    header.pack_start(&save_btn);
 
     // Scrollable content with clamp
     let clamp = adw::Clamp::builder()
