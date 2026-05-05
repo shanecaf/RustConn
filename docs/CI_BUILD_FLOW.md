@@ -10,10 +10,9 @@ graph LR
     Push[git push main] --> CI[CI Checks]
     Tag[git push v*] --> CI
     Tag --> Release[Release Workflow]
-    Tag --> Flatpak[Flatpak Build]
-    Tag --> Snap[Snap Build]
     Tag --> Flathub[Flathub Update]
     Release --> GHRelease[GitHub Release]
+    Release --> SnapStore[Snap Store]
     Release --> OBS[OBS Update]
     OBS --> RPM[openSUSE/Fedora RPMs]
     OBS --> DEB[Debian/Ubuntu DEBs]
@@ -50,30 +49,56 @@ graph TD
 
 ## Release Workflow (`release.yml`)
 
-Triggered by pushing a version tag (`v*`).
+Triggered by pushing a version tag (`v*`). This is the **single unified release workflow**
+that builds all package formats, publishes to Snap Store, creates the GitHub Release,
+and updates OBS.
 
 ```mermaid
 graph TD
-    Tag[git push tag v0.13.0] --> BuildDeb[Build .deb]
+    Tag[git push tag v0.13.4] --> BuildDeb[Build .deb]
     Tag --> BuildRPM[Build .rpm]
     Tag --> BuildAppImage[Build AppImage]
+    Tag --> BuildSnap[Build .snap]
+    Tag --> BuildFlatpak[Build .flatpak]
 
-    BuildDeb --> |ubuntu-24.04| DebArtifact[rustconn_0.13.0_amd64.deb]
-    BuildRPM --> |fedora:44 container| RPMArtifact[rustconn-0.13.0-1.fc44.x86_64.rpm]
-    BuildAppImage --> |ubuntu-24.04| AppImageArtifact[RustConn-0.13.0-x86_64.AppImage]
+    BuildDeb --> |ubuntu-24.04| DebArtifact[rustconn_0.13.4_amd64.deb]
+    BuildRPM --> |fedora:44 container| RPMArtifact[rustconn-0.13.4-1.fc44.x86_64.rpm]
+    BuildAppImage --> |ubuntu-24.04| AppImageArtifact[RustConn-0.13.4-x86_64.AppImage]
+    BuildSnap --> |LXD + snapcraft| SnapArtifact[rustconn_0.13.4_amd64.snap]
+    BuildFlatpak --> |GNOME 50 container| FlatpakArtifact[RustConn-0.13.4.flatpak]
+
+    BuildSnap --> |continue-on-error| SnapStore[Publish to Snap Store edge]
 
     DebArtifact --> Release[Create GitHub Release]
     RPMArtifact --> Release
     AppImageArtifact --> Release
+    SnapArtifact --> Release
+    FlatpakArtifact --> Release
 
     Release --> UpdateOBS[Update OBS Package]
 ```
 
+### Build Jobs
+
+| Job | Runner | Output |
+|-----|--------|--------|
+| `build-deb` | ubuntu-24.04 | `rustconn_X.Y.Z_amd64.deb` |
+| `build-rpm` | fedora:44 container | `rustconn-X.Y.Z-1.fc44.x86_64.rpm` |
+| `build-appimage` | ubuntu-24.04 + linuxdeploy | `RustConn-X.Y.Z-x86_64.AppImage` |
+| `build-snap` | ubuntu-latest + LXD + snapcraft | `rustconn_X.Y.Z_amd64.snap` |
+| `build-flatpak` | GNOME 50 Flatpak container | `RustConn-X.Y.Z.flatpak` |
+
+### Snap Store Publishing
+
+The `build-snap` job also publishes to Snap Store (edge channel) after building.
+This step uses `continue-on-error: true` — if publishing fails (e.g., awaiting
+manual review/approval on Snap Store), the job still succeeds and the `.snap`
+artifact is included in the GitHub Release.
 
 ### GitHub Release Artifacts
 
-The release job collects artifacts from all three build jobs and creates a GitHub Release
-with `.deb`, `.rpm`, and `.AppImage` files attached.
+The `release` job collects artifacts from all five build jobs and creates a GitHub
+Release with `.deb`, `.rpm`, `.AppImage`, `.snap`, and `.flatpak` files attached.
 
 ## OBS Update Flow
 
@@ -100,7 +125,7 @@ sequenceDiagram
     CI->>OBS: osc rebuild (all targets)
 
     OBS->>OBS: Source service: git clone → rustconn-X.Y.Z.tar.xz
-    OBS->>OBS: Build 7 targets in parallel
+    OBS->>OBS: Build 8 targets in parallel
 ```
 
 ### OBS Build Targets
@@ -110,7 +135,8 @@ graph TD
     OBS[OBS Package] --> TW[openSUSE Tumbleweed]
     OBS --> SR[openSUSE Slowroll]
     OBS --> Leap[openSUSE Leap 16.0]
-    OBS --> Fed[Fedora 44]
+    OBS --> Fed44[Fedora 44]
+    OBS --> Fed43[Fedora 43]
     OBS --> Deb[Debian 13 Trixie]
     OBS --> U24[Ubuntu 24.04 LTS]
     OBS --> U26[Ubuntu 26.04 LTS]
@@ -118,7 +144,8 @@ graph TD
     TW --> |rustconn.spec| RPM1[.rpm]
     SR --> |rustconn.spec| RPM2[.rpm]
     Leap --> |rustconn.spec| RPM3[.rpm]
-    Fed --> |rustconn.spec + rust-toolchain| RPM4[.rpm]
+    Fed44 --> |rustconn.spec + rust-toolchain| RPM4[.rpm]
+    Fed43 --> |rustconn.spec + rust-toolchain| RPM5[.rpm]
     Deb --> |debian.dsc + rust-toolchain| DEB1[.deb]
     U24 --> |debian.dsc + rust-toolchain| DEB2[.deb]
     U26 --> |debian.dsc + rust-toolchain| DEB3[.deb]
@@ -131,9 +158,10 @@ graph TD
 | openSUSE Tumbleweed | `devel:languages:rust` repo | System Rust may lag behind MSRV |
 | openSUSE Slowroll | `devel:languages:rust` repo | Same as Tumbleweed |
 | openSUSE Leap 16.0 | `devel:languages:rust` repo | System Rust too old |
-| Fedora 44 | `rust-toolchain.tar.zst` | System Rust < 1.95, no internet for rustup |
+| Fedora 44 | `rust-toolchain.tar.zst` | No BuildRequires for Rust; bundled for consistency |
+| Fedora 43 | `rust-toolchain.tar.zst` | No BuildRequires for Rust; bundled for consistency |
 | Debian 13 | `rust-toolchain.tar.zst` | No Rust in repos >= 1.95, no internet |
-| Ubuntu 24.04 | `rust-toolchain.tar.zst` | System Rust 1.75, no internet |
+| Ubuntu 24.04 | `rust-toolchain.tar.zst` | System Rust is only 1.75 (MSRV requires 1.95), no internet for rustup |
 | Ubuntu 26.04 | `rust-toolchain.tar.zst` | May have Rust 1.95+, but bundled for consistency |
 
 ### libadwaita Feature Flags
@@ -142,29 +170,14 @@ OBS builds auto-detect the libadwaita version and enable appropriate features:
 
 | libadwaita | Feature flag | Distros |
 |-----------|-------------|---------|
-| 1.8+ | `adw-1-8` | Tumbleweed, Slowroll, Ubuntu 26.04 |
+| 1.8+ | `adw-1-8` | Tumbleweed, Slowroll, Fedora 43, Ubuntu 26.04 |
 | 1.7 | `adw-1-7` | Leap 16.0, Fedora 44, Debian 13 |
 | 1.5 | (baseline) | Ubuntu 24.04 |
 
 For RPM builds (`rustconn.spec`), feature flags are set via `%if` macros based on distro version.
 For DEB builds (`debian.rules`), `pkg-config --modversion libadwaita-1` detects the version at build time.
 
-## Flatpak Build (`flatpak.yml`)
-
-Triggered by version tags. Builds a `.flatpak` bundle using GNOME 50 runtime.
-
-```mermaid
-graph TD
-    Tag[git push tag v*] --> GenSources[Generate cargo-sources.json]
-    GenSources --> Build[flatpak-builder]
-    Build --> Bundle[RustConn.flatpak]
-    Bundle --> Artifact[Upload CI Artifact]
-    Bundle --> |if tag| AttachRelease[Attach to GitHub Release]
-```
-
-The Flatpak bundle is self-contained with GNOME 50 runtime and all embedded protocol clients.
-
-## Flathub Release (Manual)
+## Flathub Release (Semi-automated)
 
 Flathub updates are semi-automated. The `flathub-update.yml` workflow generates the
 necessary files, but the PR to Flathub must be created manually.
@@ -175,15 +188,15 @@ sequenceDiagram
     participant GH as GitHub Actions
     participant FH as flathub/io.github.totoshko88.RustConn
 
-    Dev->>GH: Push tag v0.13.0
+    Dev->>GH: Push tag v0.13.4
     GH->>GH: Generate cargo-sources.json
     GH->>GH: Update manifest tag
-    GH->>GH: Upload artifact: flathub-update-v0.13.0
+    GH->>GH: Upload artifact: flathub-update-v0.13.4
 
     Dev->>Dev: Download artifact
     Dev->>FH: Create branch
     Dev->>FH: Upload manifest + cargo-sources.json
-    Dev->>FH: Create PR "Update to v0.13.0"
+    Dev->>FH: Create PR "Update to v0.13.4"
     FH->>FH: Flathub CI builds and tests
     FH->>FH: Merge → published to Flathub
 ```
@@ -201,20 +214,14 @@ Note: `flathub.json` has `automerge-flathubbot-prs: true`, so Flathub Bot PRs
 (triggered by `x-checker-data` in the manifest) are auto-merged after CI passes.
 However, `cargo-sources.json` still needs manual regeneration.
 
-## Snap Build (`snap.yml`)
+## Standalone Workflows (Manual Testing)
 
-Triggered by version tags. Uses `canonical/action-build` to build the snap.
+These workflows are triggered only via `workflow_dispatch` for manual testing:
 
-```mermaid
-graph TD
-    Tag[git push tag v*] --> Build[snapcraft build]
-    Build --> Snap[rustconn_amd64.snap]
-    Snap --> Artifact[Upload CI Artifact]
-    Snap --> |if tag| Publish[Publish to Snap Store]
-```
-
-Note: Snap version is hardcoded in `snap/snapcraft.yaml` and must be updated manually
-before tagging.
+| Workflow | Purpose |
+|----------|---------|
+| `flatpak.yml` | Test Flatpak build without creating a release |
+| `snap.yml` | Test Snap build without publishing |
 
 ## CLI Version Check (`check-cli-versions.yml`)
 
@@ -225,13 +232,13 @@ Runs weekly (Monday 06:00 UTC) to check for updates to bundled CLI tools
 
 | File | What to update | Automated? |
 |------|---------------|-----------|
-| `Cargo.toml` | workspace version | Manual |
+| `Cargo.toml` | workspace version | Release Version hook |
 | `CHANGELOG.md` | Release notes | Manual |
-| `debian/changelog` | Debian changelog entry | Manual |
-| `packaging/obs/debian.changelog` | OBS Debian changelog | CI updates on OBS |
-| `packaging/obs/rustconn.changes` | OBS RPM changelog | CI updates on OBS |
-| `packaging/obs/rustconn.spec` | Version field | CI updates on OBS |
-| `packaging/obs/debian.dsc` | Version + tarball name | CI updates on OBS |
-| `packaging/obs/_service` | Tag revision | CI updates on OBS |
-| `snap/snapcraft.yaml` | version field | Manual |
-| `metainfo.xml` | `<release>` entry | Manual (hook may assist) |
+| `debian/changelog` | Debian changelog entry | Release Version hook |
+| `packaging/obs/debian.changelog` | OBS Debian changelog | CI (release.yml) |
+| `packaging/obs/rustconn.changes` | OBS RPM changelog | CI (release.yml) |
+| `packaging/obs/rustconn.spec` | Version field | CI (release.yml) |
+| `packaging/obs/debian.dsc` | Version + tarball name | CI (release.yml) |
+| `packaging/obs/_service` | Tag revision | CI (release.yml) |
+| `snap/snapcraft.yaml` | version field | Release Version hook |
+| `metainfo.xml` | `<release>` entry | Release Version hook |

@@ -1,9 +1,6 @@
 name: Flatpak
 
 on:
-  push:
-    tags:
-      - 'v*'
   workflow_dispatch:
 
 env:
@@ -45,37 +42,3 @@ jobs:
         with:
           name: flatpak
           path: RustConn.flatpak
-
-      - name: Upload cargo-sources for Flathub
-        uses: actions/upload-artifact@v6
-        with:
-          name: cargo-sources
-          path: packaging/flathub/cargo-sources.json
-
-  release-flatpak:
-    name: Add Flatpak to Release
-    needs: build-flatpak
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
-    permissions:
-      contents: write
-    steps:
-      - name: Download Flatpak artifact
-        uses: actions/download-artifact@v7
-        with:
-          name: flatpak
-          path: dist/
-
-      - name: Get version from tag
-        id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
-      - name: Rename Flatpak
-        run: mv dist/RustConn.flatpak "dist/RustConn-${{ steps.version.outputs.VERSION }}.flatpak"
-
-      - name: Upload to Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: dist/*.flatpak
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
