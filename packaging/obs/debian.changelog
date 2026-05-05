@@ -1,5 +1,20 @@
 rustconn (0.13.4-1) unstable; urgency=medium
 
+  * [Added] RDP Autotype: send text as keystrokes bypassing clipboard
+    restrictions — new "Type Clipboard" and "Type Text…" toolbar buttons
+    in embedded RDP sessions; sends text character-by-character using
+    TS_UNICODE_KEYBOARD_EVENT PDU which is keyboard-layout independent;
+    solves scenarios where server-side paste is blocked by GPO, Citrix
+    policy, UAC dialogs, or password fields that reject Ctrl+V;
+    per-connection configurable timing: inter-character delay (5–200ms,
+    default 20ms) and initial delay (0–5000ms, default 0ms); iterates by
+    Unicode grapheme clusters so composed characters are sent as single
+    units; only available for embedded IronRDP mode (#127)
+  * [Added] KeePass custom entry path for secret variables — secret
+    variables can now reference an existing entry in the KeePass database
+    instead of the default RustConn/rustconn/var/{name} path; new
+    "KeePass entry" field in Variables dialog when variable is marked as
+    Secret and KeePass backend is active (#114)
   * [Fixed] RDP toolbar Copy/Paste buttons do nothing on Wayland (COSMIC,
     GNOME) — replaced drawing_area.display().clipboard() with
     root().native().display().clipboard() which uses the top-level window
@@ -7,6 +22,8 @@ rustconn (0.13.4-1) unstable; urgency=medium
     swallowing errors; CLIPRDR client_capabilities now advertises
     USE_LONG_FORMAT_NAMES flag required by Windows Server 2016+; added
     tracing for all clipboard button operations (#126)
+  * [Dependencies] unicode-segmentation 1.13.2 (new),
+    tower-http 0.6.8 → 0.6.9
 
  -- Anton Isaiev <totoshko88@gmail.com>  Mon, 05 May 2026 18:00:00 +0200
 

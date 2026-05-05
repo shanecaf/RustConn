@@ -239,6 +239,13 @@ done
 
 %changelog
 * Mon May 05 2026 Anton Isaiev <totoshko88@gmail.com> - 0.13.4-1
+- [Added] RDP Autotype: send text as keystrokes bypassing clipboard
+  restrictions — Type Clipboard and Type Text toolbar buttons in embedded
+  RDP sessions; TS_UNICODE_KEYBOARD_EVENT PDU, keyboard-layout independent;
+  configurable timing (inter-character delay 5–200ms, initial delay
+  0–5000ms); iterates by Unicode grapheme clusters (#127)
+- [Added] KeePass custom entry path for secret variables — reference
+  existing KeePass entries instead of default path (#114)
 - [Fixed] RDP toolbar Copy/Paste buttons do nothing on Wayland (COSMIC,
   GNOME) — replaced drawing_area.display().clipboard() with
   root().native().display().clipboard() which uses the top-level window
@@ -246,6 +253,8 @@ done
   swallowing errors; CLIPRDR client_capabilities now advertises
   USE_LONG_FORMAT_NAMES flag required by Windows Server 2016+; added
   tracing for all clipboard button operations (#126)
+- [Dependencies] unicode-segmentation 1.13.2 (new),
+  tower-http 0.6.8 → 0.6.9
 
 * Mon May 04 2026 Anton Isaiev <totoshko88@gmail.com> - 0.13.3-1
 - Version bump to 0.13.3
