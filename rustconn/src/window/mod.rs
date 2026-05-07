@@ -4036,8 +4036,29 @@ impl MainWindow {
                     .get_session_info(session_id)
                     .is_some_and(|info| info.protocol == "ssh");
 
+            // Skip auto-reconnect for rapid crashes (session lived < 5 seconds).
+            // This prevents infinite reconnect loops when the terminal process
+            // crashes immediately (e.g., SIGSEGV in VTE on macOS).
+            let is_rapid_crash = notebook_clone
+                .get_session_info(session_id)
+                .is_some_and(|info| {
+                    let elapsed = chrono::Utc::now()
+                        .signed_duration_since(info.connected_at)
+                        .num_seconds();
+                    elapsed < 5
+                });
+
+            if is_rapid_crash {
+                tracing::warn!(
+                    %session_id,
+                    %connection_id,
+                    "Skipping auto-reconnect: session crashed within 5 seconds of start"
+                );
+            }
+
             if is_failure
                 && !is_ssh_auth_failure
+                && !is_rapid_crash
                 && let Ok(state_ref) = state_clone.try_borrow()
                 && let Some(conn) = state_ref.get_connection(connection_id)
             {

@@ -28,11 +28,33 @@ const SSH_EXEC_TIMEOUT_SECS: u64 = 10;
 ///
 /// The path uses `XDG_RUNTIME_DIR` (tmpfs, user-private) when available,
 /// falling back to the system temp directory.
+///
+/// On macOS, uses `/tmp` instead of `$TMPDIR` (which is a long path under
+/// `/var/folders/...`) to stay within the 104-byte Unix socket path limit.
+/// Long hostnames are truncated to keep the total path under the limit.
 #[must_use]
 pub fn ssh_control_path(host: &str, port: u16) -> String {
-    let dir = std::env::var("XDG_RUNTIME_DIR")
-        .unwrap_or_else(|_| std::env::temp_dir().to_string_lossy().to_string());
-    format!("{dir}/rustconn-ssh-{host}-{port}-%r")
+    let dir = std::env::var("XDG_RUNTIME_DIR").unwrap_or_else(|_| {
+        // macOS $TMPDIR is ~52 chars (/var/folders/xx/.../T/), which leaves
+        // very little room for the socket name within the 104-byte limit.
+        // Use /tmp instead (symlinks to /private/tmp on macOS, only 4 chars).
+        if cfg!(target_os = "macos") {
+            "/tmp".to_string()
+        } else {
+            std::env::temp_dir().to_string_lossy().to_string()
+        }
+    });
+
+    // Unix socket path limit: 104 bytes on macOS, 108 on Linux.
+    // Format: {dir}/rc-{host}-{port}-%r
+    // Reserve ~20 chars for /%r expansion and null terminator.
+    let max_host_len = 40;
+    let short_host = if host.len() > max_host_len {
+        &host[..max_host_len]
+    } else {
+        host
+    };
+    format!("{dir}/rc-{short_host}-{port}-%r")
 }
 
 /// Legacy monitoring-only control path (now delegates to shared path).
@@ -40,9 +62,80 @@ fn monitoring_control_path(host: &str, port: u16) -> String {
     ssh_control_path(host, port)
 }
 
+/// Checks if any file exists with the given prefix (for socket detection).
+///
+/// SSH expands `%r` in `ControlPath` to the remote username, so we can't
+/// predict the exact filename. Instead we check if any file starting with
+/// the prefix (everything before `-%r`) exists in the directory.
+fn glob_socket_exists(prefix: &str) -> bool {
+    let Some(dir) = std::path::Path::new(prefix).parent() else {
+        return false;
+    };
+    let Some(file_prefix) = std::path::Path::new(prefix).file_name() else {
+        return false;
+    };
+    let file_prefix_str = file_prefix.to_string_lossy();
+
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return false;
+    };
+
+    entries
+        .filter_map(Result::ok)
+        .any(|entry| {
+            entry
+                .file_name()
+                .to_string_lossy()
+                .starts_with(file_prefix_str.as_ref())
+        })
+}
+
 /// Environment variable name used to pass the password to the askpass script.
 /// Intentionally obscure to reduce exposure in `/proc/PID/environ`.
 const ASKPASS_ENV_VAR: &str = "_RC_MON_PW";
+
+/// Closes the SSH ControlMaster socket for a given host/port.
+///
+/// Sends `ssh -O exit` to gracefully terminate the master connection.
+/// Called when the last session to a host is closed or on application exit.
+/// Errors are logged but not propagated (best-effort cleanup).
+pub async fn close_control_socket(host: &str, port: u16, username: Option<&str>) {
+    let control_path = ssh_control_path(host, port);
+
+    let mut cmd = Command::new("ssh");
+    cmd.arg("-O").arg("exit");
+    cmd.arg("-o").arg(format!("ControlPath={control_path}"));
+
+    if port != 22 {
+        cmd.arg("-p").arg(port.to_string());
+    }
+
+    let destination = if let Some(user) = username {
+        format!("{user}@{host}")
+    } else {
+        host.to_string()
+    };
+    cmd.arg(&destination);
+
+    cmd.stdout(std::process::Stdio::null());
+    cmd.stderr(std::process::Stdio::null());
+
+    match tokio::time::timeout(Duration::from_secs(3), cmd.output()).await {
+        Ok(Ok(output)) => {
+            if output.status.success() {
+                tracing::debug!(%host, port, "ControlMaster socket closed");
+            } else {
+                tracing::debug!(%host, port, "ControlMaster socket already closed or not found");
+            }
+        }
+        Ok(Err(e)) => {
+            tracing::debug!(%host, port, error = %e, "Failed to close ControlMaster socket");
+        }
+        Err(_) => {
+            tracing::debug!(%host, port, "Timeout closing ControlMaster socket");
+        }
+    }
+}
 
 /// RAII wrapper for the temporary `SSH_ASKPASS` script.
 ///
@@ -196,15 +289,43 @@ pub fn ssh_exec_factory(
         Box::pin(async move {
             let mut cmd = Command::new("ssh");
 
-            // Use ControlMaster to multiplex monitoring commands over a single
-            // SSH connection. This avoids repeated SSH agent confirmations
-            // (e.g., Bitwarden) for every monitoring poll cycle.
-            // "auto" means: become master if no socket exists, otherwise reuse.
-            cmd.arg("-o").arg("ControlMaster=auto");
+            // Wait for the main SSH session's ControlMaster socket to appear.
+            // The main VTE session creates the socket after authentication;
+            // monitoring starts shortly after (cursor_row > 2), but there may
+            // be a brief race. Poll for up to 5 seconds before falling back.
+            let socket_ready = {
+                // ControlPath contains %r which SSH expands to the remote username.
+                // We check for any file matching the pattern prefix.
+                let socket_prefix = control_path.replace("-%r", "-");
+                let mut ready = false;
+                for _ in 0..50 {
+                    // Check if any socket file matching our pattern exists
+                    if std::path::Path::new(&control_path).exists()
+                        || glob_socket_exists(&socket_prefix)
+                    {
+                        ready = true;
+                        break;
+                    }
+                    tokio::time::sleep(Duration::from_millis(100)).await;
+                }
+                ready
+            };
+
+            if socket_ready {
+                // Socket exists — connect as slave only (no new auth needed).
+                cmd.arg("-o").arg("ControlMaster=no");
+            } else {
+                // Socket not found after timeout — fall back to creating our own
+                // master. This handles edge cases where the main session doesn't
+                // use ControlMaster (e.g., user disabled it in extra_args).
+                tracing::debug!(
+                    %control_path,
+                    "Monitoring: ControlMaster socket not found, creating own master"
+                );
+                cmd.arg("-o").arg("ControlMaster=auto");
+                cmd.arg("-o").arg("ControlPersist=30");
+            }
             cmd.arg("-o").arg(format!("ControlPath={control_path}"));
-            // Keep the master connection alive for 30s after last use,
-            // covering the typical 3s monitoring interval with margin.
-            cmd.arg("-o").arg("ControlPersist=30");
 
             if let (Some(pw), Some(script)) = (&password, &askpass_script) {
                 // SSH_ASKPASS mechanism: OpenSSH calls the script to get

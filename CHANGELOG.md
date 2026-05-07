@@ -5,6 +5,14 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.7] - 2026-05-08
+
+### Fixed
+- **SSH: monitoring no longer triggers a second agent confirmation** — monitoring now waits up to 5 seconds for the main session's ControlMaster socket to appear, then connects as `ControlMaster=no` (slave only); previously monitoring used `ControlMaster=auto` which could race with the main session and create a separate master connection, causing a second Bitwarden/SSH agent prompt; falls back to creating its own master only if the socket never appears ([#125](https://github.com/totoshko88/RustConn/issues/125))
+- **SSH: ControlMaster sockets cleaned up on application exit** — all SSH ControlMaster sockets are now gracefully closed (`ssh -O exit`) when the application shuts down; previously sockets lingered in the filesystem until `ControlPersist` timeout expired ([#125](https://github.com/totoshko88/RustConn/issues/125))
+- **SSH: control socket path shortened for macOS compatibility** — the ControlPath format changed from `rustconn-ssh-{host}-{port}-%r` to `rc-{host}-{port}-%r`; on macOS, `/tmp` is used instead of `$TMPDIR` (which is ~52 chars under `/var/folders/...`) to stay within the 104-byte Unix socket path limit; long hostnames are truncated to 40 characters
+- **Auto-reconnect: no longer loops infinitely on rapid crashes** — if a session crashes within 5 seconds of starting (e.g., SIGSEGV in VTE), auto-reconnect is skipped to prevent an infinite reconnect loop; previously a terminal crash would trigger immediate reconnect → crash → reconnect indefinitely at ~17ms intervals
+
 ## [0.13.6] - 2026-05-07
 
 ### Improved

@@ -198,6 +198,37 @@ fn build_ui(app: &adw::Application, tray_manager: SharedTrayManager) {
         // any widget references held by tray state callbacks.
         tray_shutdown.borrow_mut().take();
 
+        // Close SSH ControlMaster sockets for all connections that were active.
+        // This prevents stale sockets from lingering after app exit.
+        let connections: Vec<_> = state_shutdown
+            .try_borrow()
+            .ok()
+            .map(|state_ref| {
+                state_ref
+                    .list_connections()
+                    .into_iter()
+                    .filter(|c| c.protocol == rustconn_core::models::ProtocolType::Ssh)
+                    .map(|c| (c.host.clone(), c.port, c.username.clone()))
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+
+        if !connections.is_empty() {
+            let rt = tokio::runtime::Runtime::new().ok();
+            if let Some(rt) = rt {
+                rt.block_on(async {
+                    for (host, port, username) in &connections {
+                        rustconn_core::close_control_socket(
+                            host,
+                            *port,
+                            username.as_deref(),
+                        )
+                        .await;
+                    }
+                });
+            }
+        }
+
         if let Some(Err(e)) = try_with_state(&state_shutdown, |s| s.flush_persistence()) {
             tracing::error!(%e, "Failed to flush persistence on shutdown");
         }
