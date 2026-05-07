@@ -51,6 +51,9 @@ pub enum HostCheckError {
     /// Polling was cancelled
     #[error("Host check cancelled")]
     Cancelled,
+    /// I/O or runtime error
+    #[error("I/O error: {0}")]
+    Io(#[from] std::io::Error),
 }
 
 /// Result type for host check operations

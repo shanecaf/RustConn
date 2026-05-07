@@ -2,11 +2,17 @@
 
 use std::path::Path;
 
+use crate::cli::OutputFormat;
 use crate::error::CliError;
 use crate::util::{create_config_manager, find_connection};
 
 /// Test connection command handler
-pub fn cmd_test(config_path: Option<&Path>, name: &str, timeout: u64) -> Result<(), CliError> {
+pub fn cmd_test(
+    config_path: Option<&Path>,
+    name: &str,
+    timeout: u64,
+    format: OutputFormat,
+) -> Result<(), CliError> {
     let config_manager = create_config_manager(config_path)?;
 
     let connections = config_manager
@@ -15,7 +21,10 @@ pub fn cmd_test(config_path: Option<&Path>, name: &str, timeout: u64) -> Result<
 
     if connections.is_empty() {
         if name.eq_ignore_ascii_case("all") {
-            println!("No connections configured.");
+            match format {
+                OutputFormat::Json => println!("[]"),
+                _ => println!("No connections configured."),
+            }
             return Ok(());
         }
         return Err(CliError::ConnectionNotFound(name.to_string()));
@@ -29,16 +38,20 @@ pub fn cmd_test(config_path: Option<&Path>, name: &str, timeout: u64) -> Result<
         .map_err(|e| CliError::TestFailed(format!("Failed to create async runtime: {e}")))?;
 
     if name.eq_ignore_ascii_case("all") {
-        println!("Testing {} connections...\n", connections.len());
-
         let summary = runtime.block_on(tester.test_batch(&connections));
 
-        for result in &summary.results {
-            print_test_result(result);
+        match format {
+            OutputFormat::Json => print_batch_json(&summary)?,
+            OutputFormat::Csv => print_batch_csv(&summary),
+            OutputFormat::Table => {
+                println!("Testing {} connections...\n", connections.len());
+                for result in &summary.results {
+                    print_test_result_table(result);
+                }
+                println!();
+                print_test_summary_table(&summary);
+            }
         }
-
-        println!();
-        print_test_summary(&summary);
 
         if summary.has_failures() {
             return Err(CliError::TestFailed(format!(
@@ -49,10 +62,16 @@ pub fn cmd_test(config_path: Option<&Path>, name: &str, timeout: u64) -> Result<
     } else {
         let connection = find_connection(&connections, name)?;
 
-        println!("Testing connection '{}'...\n", connection.name);
-
         let result = runtime.block_on(tester.test_connection(connection));
-        print_test_result(&result);
+
+        match format {
+            OutputFormat::Json => print_single_json(&result)?,
+            OutputFormat::Csv => print_single_csv(&result),
+            OutputFormat::Table => {
+                println!("Testing connection '{}'...\n", connection.name);
+                print_test_result_table(&result);
+            }
+        }
 
         if result.is_failure() {
             return Err(CliError::TestFailed(
@@ -64,8 +83,58 @@ pub fn cmd_test(config_path: Option<&Path>, name: &str, timeout: u64) -> Result<
     Ok(())
 }
 
-/// Print a single test result with colors
-fn print_test_result(result: &rustconn_core::testing::TestResult) {
+/// Print batch test results as JSON.
+fn print_batch_json(summary: &rustconn_core::testing::TestSummary) -> Result<(), CliError> {
+    let output = serde_json::json!({
+        "total": summary.total,
+        "passed": summary.passed,
+        "failed": summary.failed,
+        "pass_rate": summary.pass_rate(),
+        "results": summary.results,
+    });
+    let json = serde_json::to_string_pretty(&output)
+        .map_err(|e| CliError::TestFailed(format!("JSON serialization failed: {e}")))?;
+    println!("{json}");
+    Ok(())
+}
+
+/// Print a single test result as JSON.
+fn print_single_json(result: &rustconn_core::testing::TestResult) -> Result<(), CliError> {
+    let json = serde_json::to_string_pretty(result)
+        .map_err(|e| CliError::TestFailed(format!("JSON serialization failed: {e}")))?;
+    println!("{json}");
+    Ok(())
+}
+
+/// Print batch test results as CSV.
+fn print_batch_csv(summary: &rustconn_core::testing::TestSummary) {
+    println!("connection,success,latency_ms,error");
+    for result in &summary.results {
+        print_csv_row(result);
+    }
+}
+
+/// Print a single test result as CSV.
+fn print_single_csv(result: &rustconn_core::testing::TestResult) {
+    println!("connection,success,latency_ms,error");
+    print_csv_row(result);
+}
+
+/// Print one CSV row for a test result.
+fn print_csv_row(result: &rustconn_core::testing::TestResult) {
+    let latency = result.latency_ms.map_or(String::new(), |l| l.to_string());
+    let error = result.error.as_deref().unwrap_or("");
+    println!(
+        "{},{},{},{}",
+        crate::format::escape_csv_field(&result.connection_name),
+        result.success,
+        latency,
+        crate::format::escape_csv_field(error),
+    );
+}
+
+/// Print a single test result with colors (table mode).
+fn print_test_result_table(result: &rustconn_core::testing::TestResult) {
     use crate::color;
 
     if result.success {
@@ -99,8 +168,8 @@ fn print_test_result(result: &rustconn_core::testing::TestResult) {
     }
 }
 
-/// Print the test summary with colors
-fn print_test_summary(summary: &rustconn_core::testing::TestSummary) {
+/// Print the test summary with colors (table mode).
+fn print_test_summary_table(summary: &rustconn_core::testing::TestSummary) {
     use crate::color;
 
     println!("{}Test Summary:{}", color::bold(), color::reset());

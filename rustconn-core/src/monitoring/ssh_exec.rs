@@ -19,14 +19,25 @@ use tokio::process::Command;
 /// Default timeout for SSH monitoring commands (seconds)
 const SSH_EXEC_TIMEOUT_SECS: u64 = 10;
 
-/// Directory for SSH ControlMaster sockets used by monitoring.
-/// Each monitoring session gets a unique socket so multiple connections
-/// don't interfere with each other.
-fn monitoring_control_path(host: &str, port: u16) -> String {
-    // Use XDG_RUNTIME_DIR if available (tmpfs, user-private), fall back to /tmp
+/// Returns the SSH `ControlPath` for a given host/port combination.
+///
+/// This path is shared between the main VTE terminal SSH connection and the
+/// monitoring SSH process. By using the same `ControlPath`, monitoring can
+/// multiplex over the already-authenticated master connection, avoiding a
+/// second key/passphrase prompt.
+///
+/// The path uses `XDG_RUNTIME_DIR` (tmpfs, user-private) when available,
+/// falling back to the system temp directory.
+#[must_use]
+pub fn ssh_control_path(host: &str, port: u16) -> String {
     let dir = std::env::var("XDG_RUNTIME_DIR")
         .unwrap_or_else(|_| std::env::temp_dir().to_string_lossy().to_string());
-    format!("{dir}/rustconn-mon-{host}-{port}-%r")
+    format!("{dir}/rustconn-ssh-{host}-{port}-%r")
+}
+
+/// Legacy monitoring-only control path (now delegates to shared path).
+fn monitoring_control_path(host: &str, port: u16) -> String {
+    ssh_control_path(host, port)
 }
 
 /// Environment variable name used to pass the password to the askpass script.

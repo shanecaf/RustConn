@@ -223,12 +223,13 @@ impl SettingsDialog {
 
         let monitoring_widgets = MonitoringPageWidgets::new();
 
-        // === GNOME HIG: 4 combined pages ===
+        // === GNOME HIG: 5 combined pages ===
         //
-        // 1. Terminal   = Terminal + Logging
-        // 2. Interface  = UI + Keybindings
-        // 3. Secrets    = Secrets + SSH Agent
-        // 4. Connection = Clients + Monitoring
+        // 1. Terminal    = Terminal + Logging
+        // 2. Interface   = UI + Keybindings
+        // 3. Secrets     = Secrets + SSH Agent
+        // 4. Connection  = Clients
+        // 5. Monitoring  = Monitoring + Activity Monitor
 
         // 1. Terminal page already has terminal groups; add logging groups
         move_groups(&logging_page, &terminal_page);
@@ -291,21 +292,24 @@ impl SettingsDialog {
         // 3. Secrets page already has secrets groups; add SSH agent groups
         move_groups(&ssh_agent_page, &secrets_widgets.page);
 
-        // 4. Create a combined Connection page for clients + monitoring
+        // 4. Connection page — only clients
         let connection_page = adw::PreferencesPage::builder()
             .title(i18n("Connection"))
             .icon_name("network-server-symbolic")
             .build();
         move_groups(&clients_page, &connection_page);
-        move_groups(&monitoring_widgets.page, &connection_page);
 
-        // Add only the 4 combined pages + Cloud Sync
+        // 5. Monitoring as its own page
+        // (monitoring_widgets.page already has the correct title/icon)
+
+        // Add all 5 combined pages + Cloud Sync
         dialog.add(&terminal_page);
         dialog.add(&ui_page);
         dialog.add(&secrets_widgets.page);
         dialog.add(&connection_page);
+        dialog.add(&monitoring_widgets.page);
 
-        // 5. Cloud Sync page
+        // 6. Cloud Sync page
         let cloud_sync_widgets = create_cloud_sync_page();
         dialog.add(&cloud_sync_widgets.page);
 

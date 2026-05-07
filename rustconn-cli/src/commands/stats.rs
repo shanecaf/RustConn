@@ -3,11 +3,12 @@
 use std::collections::HashMap;
 use std::path::Path;
 
+use crate::cli::OutputFormat;
 use crate::error::CliError;
 use crate::util::create_config_manager;
 
 /// Show connection statistics
-pub fn cmd_stats(config_path: Option<&Path>) -> Result<(), CliError> {
+pub fn cmd_stats(config_path: Option<&Path>, format: OutputFormat) -> Result<(), CliError> {
     let config_manager = create_config_manager(config_path)?;
 
     let connections = config_manager
@@ -50,23 +51,57 @@ pub fn cmd_stats(config_path: Option<&Path>) -> Result<(), CliError> {
         .filter(|c| c.last_connected.is_some())
         .count();
 
-    println!("RustConn Statistics");
-    println!("===================\n");
+    match format {
+        OutputFormat::Json => {
+            let output = serde_json::json!({
+                "connections": connections.len(),
+                "groups": groups.len(),
+                "templates": templates.len(),
+                "clusters": clusters.len(),
+                "snippets": snippets_count,
+                "variables": variables.len(),
+                "by_protocol": by_protocol,
+                "recently_used_7d": recent_count,
+                "ever_connected": ever_used,
+            });
+            let json = serde_json::to_string_pretty(&output)
+                .map_err(|e| CliError::Config(format!("JSON serialization failed: {e}")))?;
+            println!("{json}");
+        }
+        OutputFormat::Csv => {
+            println!("metric,value");
+            println!("connections,{}", connections.len());
+            println!("groups,{}", groups.len());
+            println!("templates,{}", templates.len());
+            println!("clusters,{}", clusters.len());
+            println!("snippets,{snippets_count}");
+            println!("variables,{}", variables.len());
+            for (proto, count) in &by_protocol {
+                println!("protocol_{proto},{count}");
+            }
+            println!("recently_used_7d,{recent_count}");
+            println!("ever_connected,{ever_used}");
+        }
+        OutputFormat::Table => {
+            println!("RustConn Statistics");
+            println!("===================\n");
 
-    println!("Connections: {}", connections.len());
-    for (proto, count) in &by_protocol {
-        println!("  {proto}: {count}");
+            println!("Connections: {}", connections.len());
+            for (proto, count) in &by_protocol {
+                println!("  {proto}: {count}");
+            }
+
+            println!("\nGroups:     {}", groups.len());
+            println!("Templates:  {}", templates.len());
+            println!("Clusters:   {}", clusters.len());
+            println!("Snippets:   {snippets_count}");
+            println!("Variables:  {}", variables.len());
+
+            println!("\nUsage:");
+            println!("  Recently used (7 days): {recent_count}");
+            println!("  Ever connected: {ever_used}");
+        }
     }
-
-    println!("\nGroups:     {}", groups.len());
-    println!("Templates:  {}", templates.len());
-    println!("Clusters:   {}", clusters.len());
-    println!("Snippets:   {snippets_count}");
-    println!("Variables:  {}", variables.len());
-
-    println!("\nUsage:");
-    println!("  Recently used (7 days): {recent_count}");
-    println!("  Ever connected: {ever_used}");
 
     Ok(())
 }

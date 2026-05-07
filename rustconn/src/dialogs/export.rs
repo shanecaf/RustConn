@@ -728,7 +728,10 @@ impl ExportDialog {
     fn format_result_summary(result: &ExportResult, format: ExportFormat) -> String {
         let summary = i18n_f(
             "Successfully exported {} connection(s) to {} format.",
-            &[&result.exported_count.to_string(), format.display_name()],
+            &[
+                &result.exported_count.to_string(),
+                &i18n(format.display_name()),
+            ],
         );
 
         if result.skipped_count > 0 {
@@ -1041,7 +1044,10 @@ impl ExportDialog {
             progress_bar.set_fraction(0.0);
             #[cfg(not(feature = "adw-1-6"))]
             progress_spinner.set_spinning(true);
-            progress_label.set_text(&i18n_f("Exporting to {}...", &[format.display_name()]));
+            progress_label.set_text(&i18n_f(
+                "Exporting to {}...",
+                &[&i18n(format.display_name())],
+            ));
 
             // Perform export on a background thread to avoid blocking the UI
             let all_conns = connections.borrow().clone();

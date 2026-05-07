@@ -1,6 +1,6 @@
 # RustConn CLI Reference
 
-**Version 0.13.0** | Full command-line interface for RustConn connection management
+**Version 0.13.6** | Full command-line interface for RustConn connection management
 
 The `rustconn-cli` binary provides full connection management from the terminal. It shares the same configuration files as the GUI (`~/.config/rustconn/`), so changes made in either tool are immediately visible to the other.
 
@@ -78,7 +78,7 @@ Error: Connection not found: 'prodction'. Did you mean: Production DB, Productio
 
 ## Output Formats
 
-Commands that list data (`list`, `snippet list`, `group list`, etc.) support three output formats:
+Commands that list or display data support three output formats:
 
 | Format | Flag | Description |
 |--------|------|-------------|
@@ -87,6 +87,8 @@ Commands that list data (`list`, `snippet list`, `group list`, etc.) support thr
 | `csv` | `--format csv` | Comma-separated values |
 
 When stdout is not a terminal (piped or redirected), the format automatically switches from `table` to `json` for scripting convenience. Long table output is paged through `less` when available.
+
+Commands supporting `--format`: `list`, `show`, `test`, `stats`, `group list`, `group show`, `snippet list`, `template list`, `cluster list`, `var list`, `smart-folder list`, `dynamic-folder list`, `recording list`, `sync list`.
 
 ---
 
@@ -246,15 +248,21 @@ The `--dry-run` flag prints the exact command that would be executed (e.g. `ssh 
 ### show — Show connection details
 
 ```bash
-rustconn-cli show "Server"
+rustconn-cli show "Server" [-f table|json|csv]
 ```
 
 Displays all fields for a connection including protocol-specific configuration (SSH auth method, key path, RDP resolution, serial device settings, monitoring config, Zero Trust provider details).
 
 ```bash
 rustconn-cli show "My Server"
+rustconn-cli show "My Server" --format json          # Full structured JSON (no secrets)
+rustconn-cli show "My Server" --format csv           # Key-value CSV pairs
 rustconn-cli show 550e8400-e29b-41d4-a716-446655440000   # By UUID
 ```
+
+The JSON output includes: `id`, `name`, `host`, `port`, `protocol`, `username`, `description`, `group_id`, `group_name`, `tags`, `icon`, `is_pinned`, `created_at`, `updated_at`, `last_connected`, `password_source` (type only, not the value), `domain`, `window_mode`, `skip_port_check`, `session_recording_enabled`, `is_dynamic`, plus protocol-specific fields (`auth_method`, `key_path`, `jump_host`, `resolution`, `device`, `baud_rate`, `provider`, etc.).
+
+When piped (non-TTY stdout), output defaults to JSON automatically.
 
 ### update — Update an existing connection
 
@@ -304,17 +312,35 @@ The duplicate gets a new UUID, fresh timestamps, and no `last_connected` value.
 ### test — Test connectivity
 
 ```bash
-rustconn-cli test "Server" [--timeout 10]
-rustconn-cli test all [--timeout 10]
+rustconn-cli test "Server" [--timeout 10] [-f table|json|csv]
+rustconn-cli test all [--timeout 10] [-f table|json|csv]
 ```
 
 ```bash
 rustconn-cli test "My Server"                # Test single connection
 rustconn-cli test all                        # Test all connections
 rustconn-cli test all --timeout 5            # Custom timeout (seconds, default: 10)
+rustconn-cli test all --format json          # Structured JSON with pass_rate and latency
+rustconn-cli test "My Server" --format csv   # CSV output
 ```
 
 Output shows colored pass/fail indicators with latency measurements. When testing all connections, a summary with pass rate is printed at the end. Exit code is `2` if any test fails.
+
+JSON output for `test all` includes:
+```json
+{
+  "total": 5,
+  "passed": 4,
+  "failed": 1,
+  "pass_rate": 80.0,
+  "results": [
+    {"connection_id": "...", "connection_name": "Server", "success": true, "latency_ms": 42},
+    ...
+  ]
+}
+```
+
+When piped (non-TTY stdout), output defaults to JSON automatically.
 
 ### sftp — Open SFTP session
 
@@ -469,7 +495,7 @@ The `run` subcommand without `--execute` only prints the expanded command (safe 
 | Subcommand | Description |
 |------------|-------------|
 | `group list` | List all groups (`--format`) |
-| `group show <name>` | Show group details and connections |
+| `group show <name>` | Show group details, child groups, and connections (`--format`) |
 | `group create` | Create a group (`--name`, `--parent`, `--description`, `--icon`) |
 | `group edit <name>` | Edit group properties (`--new-name`, `--parent`, `--description`, `--icon`, `--ssh-key-path`, `--ssh-auth-method`, `--ssh-proxy-jump`, `--ssh-agent-socket`, `--add-expect-rule`, `--clear-expect-rules`, `--add-post-login-script`, `--clear-post-login-scripts`) |
 | `group delete <name>` | Delete a group |
@@ -478,6 +504,8 @@ The `run` subcommand without `--execute` only prints the expanded command (safe 
 
 ```bash
 rustconn-cli group list
+rustconn-cli group show "Production"                     # Table view
+rustconn-cli group show "Production" --format json       # JSON with child groups and connections
 rustconn-cli group create --name "Staging"
 rustconn-cli group create --name "EU" --parent "Production" --icon "🇪🇺"
 rustconn-cli group edit "Staging" --new-name "Staging EU" --icon "🇪🇺" --parent "Production"
@@ -672,10 +700,33 @@ Supported shells: `bash`, `zsh`, `fish`, `elvish`, `powershell`.
 ### stats — Show connection statistics
 
 ```bash
-rustconn-cli stats
+rustconn-cli stats [-f table|json|csv]
 ```
 
 Shows a summary: total connections by protocol, groups, templates, clusters, snippets, variables, recently used connections (last 7 days), and ever-connected count.
+
+```bash
+rustconn-cli stats                   # Human-readable table
+rustconn-cli stats --format json     # Structured JSON for scripting
+rustconn-cli stats --format csv      # CSV key-value pairs
+```
+
+JSON output:
+```json
+{
+  "connections": 42,
+  "groups": 5,
+  "templates": 3,
+  "clusters": 2,
+  "snippets": 8,
+  "variables": 4,
+  "by_protocol": {"ssh": 30, "rdp": 8, "vnc": 4},
+  "recently_used_7d": 12,
+  "ever_connected": 35
+}
+```
+
+When piped (non-TTY stdout), output defaults to JSON automatically.
 
 ---
 
@@ -750,6 +801,15 @@ rustconn-cli list --format json > connections-backup.json
 # Test all connections and fail CI if any are unreachable
 rustconn-cli test all --timeout 5 || echo "Some connections failed"
 
+# Get structured test results for monitoring
+rustconn-cli test all --format json | jq '.results[] | select(.success == false)'
+
+# Show connection details as JSON (useful for AI agents and automation)
+rustconn-cli show "Production DB" --format json | jq '{host, port, protocol, username}'
+
+# Get statistics as JSON
+rustconn-cli stats --format json | jq '.by_protocol'
+
 # List SSH connections as CSV for processing
 rustconn-cli list --format csv --protocol ssh | tail -n +2 | while IFS=, read -r name host port _; do
     echo "Checking $name at $host:$port"
@@ -757,6 +817,13 @@ done
 
 # Dry-run a connection to see the command
 rustconn-cli connect "Production DB" --dry-run
+
+# Get all connections in a group with their details
+rustconn-cli group show "Production" --format json | jq '.connections[]'
+
+# Pipe-friendly: auto-JSON when not in terminal
+rustconn-cli list | jq '.[].name'                    # Auto-JSON, extract names
+rustconn-cli show "Server" | jq '.tags'              # Auto-JSON, extract tags
 
 # Sync from inventory with dry-run first
 rustconn-cli sync inventory inventory.yml --source ansible --dry-run

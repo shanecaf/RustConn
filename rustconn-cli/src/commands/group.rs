@@ -16,7 +16,9 @@ use crate::util::create_config_manager;
 pub fn cmd_group(config_path: Option<&Path>, subcmd: GroupCommands) -> Result<(), CliError> {
     match subcmd {
         GroupCommands::List { format } => cmd_group_list(config_path, format.effective()),
-        GroupCommands::Show { name } => cmd_group_show(config_path, &name),
+        GroupCommands::Show { name, format } => {
+            cmd_group_show(config_path, &name, format.effective())
+        }
         GroupCommands::Create {
             name,
             parent,
@@ -136,7 +138,12 @@ fn print_group_csv(groups: &[ConnectionGroup]) {
     }
 }
 
-fn cmd_group_show(config_path: Option<&Path>, name: &str) -> Result<(), CliError> {
+#[allow(clippy::too_many_lines)]
+fn cmd_group_show(
+    config_path: Option<&Path>,
+    name: &str,
+    format: OutputFormat,
+) -> Result<(), CliError> {
     let config_manager = create_config_manager(config_path)?;
 
     let groups = config_manager
@@ -149,76 +156,160 @@ fn cmd_group_show(config_path: Option<&Path>, name: &str) -> Result<(), CliError
 
     let group = find_group(&groups, name)?;
 
-    println!("Group Details:");
-    println!("  ID:   {}", group.id);
-    println!("  Name: {}", group.name);
-
-    if let Some(ref desc) = group.description {
-        println!("  Description: {desc}");
-    }
-    if let Some(ref icon) = group.icon {
-        println!("  Icon: {icon}");
-    }
-
-    if let Some(parent_id) = group.parent_id {
-        let parent_name = groups
-            .iter()
-            .find(|g| g.id == parent_id)
-            .map_or("(unknown)", |g| g.name.as_str());
-        println!("  Parent: {parent_name} ({parent_id})");
-    }
-
-    // SSH inheritance fields
-    if let Some(ref auth_method) = group.ssh_auth_method {
-        let method = match auth_method {
-            rustconn_core::models::SshAuthMethod::Password => "Password",
-            rustconn_core::models::SshAuthMethod::PublicKey => "PublicKey",
-            rustconn_core::models::SshAuthMethod::KeyboardInteractive => "KeyboardInteractive",
-            rustconn_core::models::SshAuthMethod::Agent => "Agent",
-            rustconn_core::models::SshAuthMethod::SecurityKey => "SecurityKey",
-        };
-        println!("  SSH Auth Method: {method}");
-    }
-    if let Some(ref key_path) = group.ssh_key_path {
-        println!("  SSH Key Path: {}", key_path.display());
-    }
-    if let Some(ref proxy_jump) = group.ssh_proxy_jump {
-        println!("  SSH Proxy Jump: {proxy_jump}");
-    }
-    if let Some(ref agent_socket) = group.ssh_agent_socket {
-        println!("  SSH Agent Socket: {agent_socket}");
-    }
-
-    // Automation fields
-    if !group.expect_rules.is_empty() {
-        println!("\nExpect Rules ({}):", group.expect_rules.len());
-        for rule in &group.expect_rules {
-            let status = if rule.enabled { "✓" } else { "✗" };
-            let one_shot = if rule.one_shot { " (one-shot)" } else { "" };
-            let timeout = rule
-                .timeout_ms
-                .map_or(String::new(), |t| format!(" timeout={t}ms"));
-            println!(
-                "  [{status}] pattern='{}' → response='{}' priority={}{timeout}{one_shot}",
-                rule.pattern, rule.response, rule.priority
-            );
-        }
-    }
-    if !group.post_login_scripts.is_empty() {
-        println!("\nPost-login Scripts ({}):", group.post_login_scripts.len());
-        for script in &group.post_login_scripts {
-            println!("  - {script}");
-        }
-    }
-
     let group_connections: Vec<_> = connections
         .iter()
         .filter(|c| c.group_id == Some(group.id))
         .collect();
 
-    println!("\nConnections ({}):", group_connections.len());
-    for conn in &group_connections {
-        println!("  - {} ({})", conn.name, conn.host);
+    let child_groups: Vec<_> = groups
+        .iter()
+        .filter(|g| g.parent_id == Some(group.id))
+        .collect();
+
+    match format {
+        OutputFormat::Json => {
+            let conn_list: Vec<serde_json::Value> = group_connections
+                .iter()
+                .map(|c| {
+                    serde_json::json!({
+                        "id": c.id.to_string(),
+                        "name": c.name,
+                        "host": c.host,
+                        "port": c.port,
+                        "protocol": c.protocol.as_str(),
+                        "username": c.username,
+                    })
+                })
+                .collect();
+
+            let child_list: Vec<serde_json::Value> = child_groups
+                .iter()
+                .map(|g| {
+                    serde_json::json!({
+                        "id": g.id.to_string(),
+                        "name": g.name,
+                    })
+                })
+                .collect();
+
+            let parent_name = group
+                .parent_id
+                .and_then(|pid| groups.iter().find(|g| g.id == pid).map(|g| g.name.clone()));
+
+            let output = serde_json::json!({
+                "id": group.id.to_string(),
+                "name": group.name,
+                "description": group.description,
+                "icon": group.icon,
+                "parent_id": group.parent_id.map(|id| id.to_string()),
+                "parent_name": parent_name,
+                "ssh_auth_method": group.ssh_auth_method.as_ref().map(|m| format!("{m:?}")),
+                "ssh_key_path": group.ssh_key_path.as_ref().map(|p| p.display().to_string()),
+                "ssh_proxy_jump": group.ssh_proxy_jump,
+                "ssh_agent_socket": group.ssh_agent_socket,
+                "expect_rules_count": group.expect_rules.len(),
+                "post_login_scripts_count": group.post_login_scripts.len(),
+                "child_groups": child_list,
+                "connections": conn_list,
+                "connection_count": group_connections.len(),
+            });
+            let json = serde_json::to_string_pretty(&output)
+                .map_err(|e| CliError::Group(format!("JSON serialization failed: {e}")))?;
+            println!("{json}");
+        }
+        OutputFormat::Csv => {
+            println!("type,id,name,host,port,protocol");
+            for g in &child_groups {
+                println!("group,{},{},,,", g.id, escape_csv_field(&g.name));
+            }
+            for c in &group_connections {
+                println!(
+                    "connection,{},{},{},{},{}",
+                    c.id,
+                    escape_csv_field(&c.name),
+                    escape_csv_field(&c.host),
+                    c.port,
+                    c.protocol.as_str(),
+                );
+            }
+        }
+        OutputFormat::Table => {
+            println!("Group Details:");
+            println!("  ID:   {}", group.id);
+            println!("  Name: {}", group.name);
+
+            if let Some(ref desc) = group.description {
+                println!("  Description: {desc}");
+            }
+            if let Some(ref icon) = group.icon {
+                println!("  Icon: {icon}");
+            }
+
+            if let Some(parent_id) = group.parent_id {
+                let parent_name = groups
+                    .iter()
+                    .find(|g| g.id == parent_id)
+                    .map_or("(unknown)", |g| g.name.as_str());
+                println!("  Parent: {parent_name} ({parent_id})");
+            }
+
+            // SSH inheritance fields
+            if let Some(ref auth_method) = group.ssh_auth_method {
+                let method = match auth_method {
+                    rustconn_core::models::SshAuthMethod::Password => "Password",
+                    rustconn_core::models::SshAuthMethod::PublicKey => "PublicKey",
+                    rustconn_core::models::SshAuthMethod::KeyboardInteractive => {
+                        "KeyboardInteractive"
+                    }
+                    rustconn_core::models::SshAuthMethod::Agent => "Agent",
+                    rustconn_core::models::SshAuthMethod::SecurityKey => "SecurityKey",
+                };
+                println!("  SSH Auth Method: {method}");
+            }
+            if let Some(ref key_path) = group.ssh_key_path {
+                println!("  SSH Key Path: {}", key_path.display());
+            }
+            if let Some(ref proxy_jump) = group.ssh_proxy_jump {
+                println!("  SSH Proxy Jump: {proxy_jump}");
+            }
+            if let Some(ref agent_socket) = group.ssh_agent_socket {
+                println!("  SSH Agent Socket: {agent_socket}");
+            }
+
+            // Automation fields
+            if !group.expect_rules.is_empty() {
+                println!("\nExpect Rules ({}):", group.expect_rules.len());
+                for rule in &group.expect_rules {
+                    let status = if rule.enabled { "✓" } else { "✗" };
+                    let one_shot = if rule.one_shot { " (one-shot)" } else { "" };
+                    let timeout = rule
+                        .timeout_ms
+                        .map_or(String::new(), |t| format!(" timeout={t}ms"));
+                    println!(
+                        "  [{status}] pattern='{}' → response='{}' priority={}{timeout}{one_shot}",
+                        rule.pattern, rule.response, rule.priority
+                    );
+                }
+            }
+            if !group.post_login_scripts.is_empty() {
+                println!("\nPost-login Scripts ({}):", group.post_login_scripts.len());
+                for script in &group.post_login_scripts {
+                    println!("  - {script}");
+                }
+            }
+
+            if !child_groups.is_empty() {
+                println!("\nChild Groups ({}):", child_groups.len());
+                for g in &child_groups {
+                    println!("  - {}", g.name);
+                }
+            }
+
+            println!("\nConnections ({}):", group_connections.len());
+            for conn in &group_connections {
+                println!("  - {} ({})", conn.name, conn.host);
+            }
+        }
     }
 
     Ok(())

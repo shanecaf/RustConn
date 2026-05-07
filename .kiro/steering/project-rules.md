@@ -18,9 +18,11 @@ Communication language: Ukrainian.
 
 - `unsafe_code = "forbid"` — no unsafe whatsoever
 - Passwords/keys → `secrecy::SecretString`, never plain String
+- Intermediate `expose_secret().to_string()` → wrap in `zeroize::Zeroizing::new()`
 - Errors → `thiserror::Error`, never `unwrap()`/`expect()`
 - Logging → `tracing`, never `println!`/`eprintln!`
 - i18n → `i18n()` / `i18n_f()` with `{}` placeholders for all user-facing strings
+- `display_name()` values used in UI → wrap in `i18n()` at call site
 - After new i18n strings → `bash po/update-pot.sh` + `msgmerge --update` for 16 languages
 - Rust 2024 edition: let-chains instead of collapsible_if
 - Never `set_var`/`remove_var` (unsafe in Rust 2024)

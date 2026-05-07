@@ -45,7 +45,7 @@ impl MonitoringPageWidgets {
     pub fn new() -> Self {
         let page = adw::PreferencesPage::builder()
             .title(i18n("Monitoring"))
-            .icon_name("preferences-system-symbolic")
+            .icon_name("utilities-system-monitor-symbolic")
             .build();
 
         // === General Group ===
@@ -56,7 +56,9 @@ impl MonitoringPageWidgets {
 
         let enabled_row = adw::SwitchRow::builder()
             .title(i18n("Enable monitoring"))
-            .subtitle(i18n("Show CPU, memory, disk, and network for SSH sessions"))
+            .subtitle(i18n(
+                "Global switch for all connections (per-connection: Advanced tab in connection settings)",
+            ))
             .build();
         general_group.add(&enabled_row);
 

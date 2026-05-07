@@ -969,7 +969,7 @@ impl TerminalNotebook {
         // Monitor section with current mode in label
         let monitor_section = gio::Menu::new();
         let mode = current_mode.unwrap_or(MonitorMode::Off);
-        let label = i18n_f("Monitor: {}", &[mode.display_name()]);
+        let label = i18n_f("Monitor: {}", &[&i18n(mode.display_name())]);
         monitor_section.append(Some(&label), Some("tab.cycle-monitor"));
         menu.append_section(None, &monitor_section);
 
@@ -1817,6 +1817,32 @@ impl TerminalNotebook {
         if let Some(key) = identity_file {
             argv.push("-i");
             argv.push(key);
+        }
+
+        // Always enable ControlMaster so monitoring can multiplex over the
+        // same authenticated connection without a second key/passphrase prompt.
+        // If the user already set ControlMaster via extra_args (build_command_args),
+        // skip to avoid duplicates. But always ensure ControlPath is set to the
+        // shared path so monitoring can find the socket.
+
+        let has_control_master = extra_args.iter().any(|a| a.contains("ControlMaster"));
+        let has_control_path = extra_args.iter().any(|a| a.contains("ControlPath"));
+        let control_path_opt = format!(
+            "ControlPath={}",
+            rustconn_core::ssh_control_path(host, port)
+        );
+        if !has_control_master {
+            argv.push("-o");
+            argv.push("ControlMaster=auto");
+            argv.push("-o");
+            argv.push(&control_path_opt);
+            argv.push("-o");
+            argv.push("ControlPersist=10m");
+        } else if !has_control_path {
+            // User enabled ControlMaster manually but no ControlPath —
+            // add our shared path so monitoring can reuse the socket.
+            argv.push("-o");
+            argv.push(&control_path_opt);
         }
 
         // In Flatpak, ~/.ssh is read-only — use a writable known_hosts path

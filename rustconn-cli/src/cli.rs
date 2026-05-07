@@ -251,6 +251,10 @@ pub enum Commands {
         /// Connection timeout in seconds
         #[arg(short, long, default_value = "10")]
         timeout: u64,
+
+        /// Output format (table, json, csv)
+        #[arg(short, long, default_value = "table", value_enum)]
+        format: OutputFormat,
     },
 
     /// Delete a connection
@@ -265,10 +269,14 @@ pub enum Commands {
     },
 
     /// Show connection details
-    #[command(about = "Show connection details")]
+    #[command(about = "Show detailed information about a connection")]
     Show {
         /// Connection name or UUID
         name: String,
+
+        /// Output format (table, json, csv)
+        #[arg(short, long, default_value = "table", value_enum)]
+        format: OutputFormat,
     },
 
     /// Update a connection
@@ -503,7 +511,11 @@ pub enum Commands {
 
     /// Show connection statistics
     #[command(about = "Show connection statistics")]
-    Stats,
+    Stats {
+        /// Output format (table, json, csv)
+        #[arg(short, long, default_value = "table", value_enum)]
+        format: OutputFormat,
+    },
 
     /// Generate shell completions
     #[command(about = "Generate shell completion scripts")]
@@ -718,6 +730,10 @@ pub enum GroupCommands {
     Show {
         /// Group name or ID
         name: String,
+
+        /// Output format (table, json, csv)
+        #[arg(short, long, default_value = "table", value_enum)]
+        format: OutputFormat,
     },
 
     /// Create a new group

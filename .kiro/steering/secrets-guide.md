@@ -1,19 +1,20 @@
 ---
 inclusion: fileMatch
-fileMatchPattern: "rustconn-core/src/secret/**/*.rs"
+fileMatchPattern: "rustconn-core/src/secret/**/*.rs,rustconn/src/window/rdp_vnc.rs,rustconn/src/vault_ops.rs"
 ---
 
 # Secrets — Security Rules
 
-You are editing a file in `rustconn-core/src/secret/`.
+You are editing a file that handles credentials.
 
 ## Mandatory
 
 1. Passwords → `secrecy::SecretString`, never plain `String`
-2. Intermediate password Strings → `.zeroize()` after use
+2. Intermediate password Strings → wrap in `zeroize::Zeroizing::new()` or call `.zeroize()` after use
 3. External CLIs → password via stdin pipe (`Command::new().stdin(Stdio::piped())`), NEVER via `.arg(password)`
 4. Error messages → MUST NOT include secret values
 5. Logging → MUST NOT log password/secret/token variables via `tracing`/`println!`/`dbg!`
+6. GUI layer: `expose_secret().to_string()` → always wrap in `Zeroizing::new()`
 
 ## Timeouts
 

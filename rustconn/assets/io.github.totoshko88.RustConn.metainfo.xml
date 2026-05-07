@@ -144,6 +144,20 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.13.6" date="2026-05-07">
+      <description>
+        <p>Version 0.13.6 — Monitoring preferences, SSH ControlMaster, CLI formats, security hardening:</p>
+        <ul>
+          <li>Monitoring settings moved to a dedicated Preferences page with its own tab and icon</li>
+          <li>CLI commands (show, test, stats, group show) support --format json|csv|table for scripting and AI agents; defaults to JSON when piped</li>
+          <li>Activity monitor mode and export format names now translatable in the UI</li>
+          <li>Intermediate RDP/VNC password strings now zeroized on drop for improved security</li>
+          <li>Host check gracefully handles runtime creation failure instead of panicking</li>
+          <li>SSH connection and monitoring share a single ControlMaster socket, eliminating the second authentication prompt</li>
+          <li>Repository hygiene: removed committed swap file, added gitignore patterns</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.13.5" date="2026-05-06">
       <description>
         <p>Version 0.13.5 — Drag and Drop, RDP Display Control:</p>

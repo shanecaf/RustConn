@@ -56,9 +56,10 @@ pub fn start_rdp_with_password_dialog(
         let state_ref = state.borrow();
         state_ref.get_cached_credentials(connection_id).map(|c| {
             use secrecy::ExposeSecret;
+            use zeroize::Zeroizing;
             (
                 c.username.clone(),
-                c.password.expose_secret().to_string(),
+                Zeroizing::new(c.password.expose_secret().to_string()),
                 c.domain.clone(),
             )
         })
@@ -869,7 +870,8 @@ pub fn start_vnc_with_password_dialog(
         let state_ref = state.borrow();
         state_ref.get_cached_credentials(connection_id).map(|c| {
             use secrecy::ExposeSecret;
-            c.password.expose_secret().to_string()
+            use zeroize::Zeroizing;
+            Zeroizing::new(c.password.expose_secret().to_string())
         })
     };
 

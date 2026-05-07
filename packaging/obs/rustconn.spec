@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.13.5
+Version:        0.13.6
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -238,6 +238,24 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Wed May 07 2026 Anton Isaiev <totoshko88@gmail.com> - 0.13.6-1
+- [Improved] Preferences: Monitoring moved to its own page with dedicated
+  tab and utilities-system-monitor-symbolic icon (#125)
+- [Improved] CLI: machine-readable output (--format json|csv|table) for
+  show, test, stats, group show commands; defaults to JSON when stdout is
+  piped (non-TTY) (#132)
+- [Improved] i18n: MonitorMode and ExportFormat display_name() values now
+  translatable via i18n() at call sites
+- [Improved] Security: intermediate password strings (RDP/VNC) now wrapped
+  in zeroize::Zeroizing<String> so plaintext is overwritten on drop
+- [Improved] Reliability: host check no longer panics on runtime creation
+  failure — proper Result propagation via HostCheckError::Io variant
+- [Fixed] SSH: single authentication prompt for connection + monitoring —
+  VTE terminal uses ControlMaster=auto with shared ControlPath; monitoring
+  reuses the same socket instead of opening a separate session (#125)
+- [Fixed] Repository hygiene: removed committed vim swap file; added *.swp,
+  *.swo, *.po~ patterns to .gitignore
+
 * Tue May 06 2026 Anton Isaiev <totoshko88@gmail.com> - 0.13.5-0
 - Version bump to 0.13.5
 - Added Drag & Drop file paths into VTE terminals (#74)

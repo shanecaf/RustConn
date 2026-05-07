@@ -300,5 +300,6 @@ pub use monitoring::{
     CollectorHandle, CpuSnapshot, DiskMetrics, LoadAverage, METRICS_COMMAND, MemoryMetrics,
     MetricsComputer, MetricsEvent, MetricsParser, MonitoringConfig, MonitoringError,
     MonitoringResult, MonitoringSettings, NetworkMetrics, NetworkSnapshot, RemoteMetrics,
-    RemoteOsType, SYSTEM_INFO_COMMAND, SystemInfo, ssh_exec_factory, start_collector,
+    RemoteOsType, SYSTEM_INFO_COMMAND, SystemInfo, ssh_control_path, ssh_exec_factory,
+    start_collector,
 };

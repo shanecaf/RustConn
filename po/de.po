@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: rustconn 0.12.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-06 21:54+0300\n"
+"POT-Creation-Date: 2026-05-07 18:23+0300\n"
 "PO-Revision-Date: 2026-04-25 10:46+0000\n"
 "Last-Translator: RustConn Team\n"
 "Language-Team: German\n"
@@ -27,7 +27,7 @@ msgstr "OK"
 #: rustconn/src/dialogs/history.rs:191 rustconn/src/dialogs/progress.rs:64
 #: rustconn/src/dialogs/progress.rs:184 rustconn/src/dialogs/recording.rs:505
 #: rustconn/src/dialogs/recording.rs:576
-#: rustconn/src/dialogs/settings/mod.rs:434
+#: rustconn/src/dialogs/settings/mod.rs:438
 #: rustconn/src/dialogs/settings/ssh_agent_tab.rs:494
 #: rustconn/src/dialogs/settings/terminal_tab.rs:593
 #: rustconn/src/dialogs/settings/terminal_tab.rs:640
@@ -246,9 +246,10 @@ msgstr "Dieser Cluster wird dauerhaft entfernt."
 #: rustconn/src/dialogs/cluster.rs:637 rustconn/src/dialogs/recording.rs:577
 #: rustconn/src/dialogs/template.rs:3095 rustconn/src/dialogs/template.rs:3173
 #: rustconn/src/dialogs/tunnel.rs:490 rustconn/src/sidebar_ui.rs:202
-#: rustconn/src/smart_folder_ui.rs:358 rustconn/src/window/clusters.rs:497
-#: rustconn/src/window/operations.rs:136 rustconn/src/window/snippets.rs:228
-#: rustconn/src/window/snippets.rs:300 rustconn/src/window/templates.rs:148
+#: rustconn/src/smart_folder_ui.rs:393 rustconn/src/smart_folder_ui.rs:577
+#: rustconn/src/window/clusters.rs:497 rustconn/src/window/operations.rs:136
+#: rustconn/src/window/snippets.rs:228 rustconn/src/window/snippets.rs:300
+#: rustconn/src/window/templates.rs:148
 msgid "Delete"
 msgstr "Löschen"
 
@@ -402,7 +403,7 @@ msgid "Save terminal output to file"
 msgstr "Terminalausgabe in Datei speichern"
 
 #: rustconn/src/dialogs/connection/advanced_tab.rs:351
-#: rustconn/src/dialogs/settings/monitoring_tab.rs:175
+#: rustconn/src/dialogs/settings/monitoring_tab.rs:177
 msgid "Activity Monitor"
 msgstr "Aktivitätsmonitor"
 
@@ -413,7 +414,7 @@ msgstr "Terminal-Ausgabeaktivität oder Stille erkennen"
 #: rustconn/src/dialogs/connection/advanced_tab.rs:355
 #: rustconn/src/dialogs/connection/dialog.rs:3558
 #: rustconn/src/dialogs/connection/spice.rs:175
-#: rustconn/src/dialogs/settings/monitoring_tab.rs:181
+#: rustconn/src/dialogs/settings/monitoring_tab.rs:183
 #: rustconn/src/dialogs/settings/terminal_tab.rs:256
 #: rustconn/src/dialogs/template.rs:1266
 msgid "Off"
@@ -421,12 +422,12 @@ msgstr "Aus"
 
 #: rustconn/src/dialogs/connection/advanced_tab.rs:355
 #: rustconn/src/dialogs/settings/logging_tab.rs:114
-#: rustconn/src/dialogs/settings/monitoring_tab.rs:181
+#: rustconn/src/dialogs/settings/monitoring_tab.rs:183
 msgid "Activity"
 msgstr "Aktivität"
 
 #: rustconn/src/dialogs/connection/advanced_tab.rs:355
-#: rustconn/src/dialogs/settings/monitoring_tab.rs:181
+#: rustconn/src/dialogs/settings/monitoring_tab.rs:183
 msgid "Silence"
 msgstr "Stille"
 
@@ -443,7 +444,7 @@ msgid "Quiet Period"
 msgstr "Ruhephase"
 
 #: rustconn/src/dialogs/connection/advanced_tab.rs:367
-#: rustconn/src/dialogs/settings/monitoring_tab.rs:193
+#: rustconn/src/dialogs/settings/monitoring_tab.rs:195
 msgid "Seconds of silence before activity notification"
 msgstr "Sekunden Stille vor Aktivitätsbenachrichtigung"
 
@@ -452,12 +453,12 @@ msgid "Silence Timeout"
 msgstr "Stille-Zeitüberschreitung"
 
 #: rustconn/src/dialogs/connection/advanced_tab.rs:376
-#: rustconn/src/dialogs/settings/monitoring_tab.rs:201
+#: rustconn/src/dialogs/settings/monitoring_tab.rs:203
 msgid "Seconds of no output before silence notification"
 msgstr "Sekunden ohne Ausgabe vor Stille-Benachrichtigung"
 
 #: rustconn/src/dialogs/connection/advanced_tab.rs:411
-#: rustconn/src/dialogs/settings/mod.rs:238
+#: rustconn/src/dialogs/settings/mod.rs:239
 msgid "Highlight Rules"
 msgstr "Hervorhebungsregeln"
 
@@ -466,20 +467,20 @@ msgid "Regex-based text highlighting for this connection"
 msgstr "Regex-basierte Texthervorhebung für diese Verbindung"
 
 #: rustconn/src/dialogs/connection/advanced_tab.rs:425
-#: rustconn/src/dialogs/settings/mod.rs:253
+#: rustconn/src/dialogs/settings/mod.rs:254
 msgid "No highlight rules"
 msgstr "Keine Hervorhebungsregeln"
 
 #: rustconn/src/dialogs/connection/advanced_tab.rs:435
 #: rustconn/src/dialogs/connection/automation_tab.rs:139
-#: rustconn/src/dialogs/settings/mod.rs:262
+#: rustconn/src/dialogs/settings/mod.rs:263
 #: rustconn/src/window/edit_dialogs.rs:1503
 msgid "Add Rule"
 msgstr "Regel hinzufügen"
 
 #: rustconn/src/dialogs/connection/advanced_tab.rs:445
 #: rustconn/src/dialogs/shortcuts.rs:598 rustconn/src/dialogs/wol.rs:29
-#: rustconn/src/sidebar_ui.rs:168
+#: rustconn/src/sidebar_ui.rs:168 rustconn/src/smart_folder_ui.rs:538
 msgid "Wake On LAN"
 msgstr "Wake On LAN"
 
@@ -531,7 +532,7 @@ msgstr "Wartezeit für den Start"
 
 #: rustconn/src/dialogs/connection/advanced_tab.rs:665
 #: rustconn/src/dialogs/connection/general_tab.rs:78
-#: rustconn/src/dialogs/export.rs:387 rustconn/src/dialogs/settings/mod.rs:1203
+#: rustconn/src/dialogs/export.rs:387 rustconn/src/dialogs/settings/mod.rs:1207
 #: rustconn/src/dialogs/smart_folder.rs:119
 #: rustconn/src/dialogs/template.rs:504
 #: rustconn/src/window/connection_dialogs.rs:249
@@ -541,36 +542,36 @@ msgid "Name"
 msgstr "Name"
 
 #: rustconn/src/dialogs/connection/advanced_tab.rs:667
-#: rustconn/src/dialogs/settings/mod.rs:1205
+#: rustconn/src/dialogs/settings/mod.rs:1209
 msgid "Rule name"
 msgstr "Regelname"
 
 #: rustconn/src/dialogs/connection/advanced_tab.rs:674
-#: rustconn/src/dialogs/settings/mod.rs:1213
+#: rustconn/src/dialogs/settings/mod.rs:1217
 msgid "Pattern (regex)"
 msgstr "Muster (regex)"
 
 #: rustconn/src/dialogs/connection/advanced_tab.rs:676
-#: rustconn/src/dialogs/settings/mod.rs:1215
+#: rustconn/src/dialogs/settings/mod.rs:1219
 msgid "Regex pattern to match"
 msgstr "Regex-Muster zum Abgleich"
 
 #: rustconn/src/dialogs/connection/advanced_tab.rs:684
-#: rustconn/src/dialogs/settings/mod.rs:1224
+#: rustconn/src/dialogs/settings/mod.rs:1228
 msgid "Enable rule"
 msgstr "Regel aktivieren"
 
 #: rustconn/src/dialogs/connection/advanced_tab.rs:691
 #: rustconn/src/dialogs/connection/dialog.rs:4453
 #: rustconn/src/dialogs/connection/dialog.rs:4455
-#: rustconn/src/dialogs/settings/mod.rs:1232
+#: rustconn/src/dialogs/settings/mod.rs:1236
 #: rustconn/src/window/edit_dialogs.rs:2679
 #: rustconn/src/window/edit_dialogs.rs:2681
 msgid "Delete rule"
 msgstr "Regel löschen"
 
 #: rustconn/src/dialogs/connection/advanced_tab.rs:695
-#: rustconn/src/dialogs/settings/mod.rs:1237
+#: rustconn/src/dialogs/settings/mod.rs:1241
 msgid "Delete highlight rule"
 msgstr "Hervorhebungsregel löschen"
 
@@ -1168,7 +1169,7 @@ msgstr "Falls abweichend vom Verbindungsbenutzernamen"
 #: rustconn/src/dialogs/connection/rdp.rs:342
 #: rustconn/src/dialogs/connection/ssh.rs:442
 #: rustconn/src/dialogs/connection/telnet.rs:36
-#: rustconn/src/dialogs/settings/mod.rs:296
+#: rustconn/src/dialogs/settings/mod.rs:297
 #: rustconn/src/dialogs/template.rs:674 rustconn/src/dialogs/wol.rs:64
 #: rustconn/src/dialogs/wol.rs:70
 msgid "Connection"
@@ -3555,7 +3556,7 @@ msgid "Update component"
 msgstr "Komponente aktualisieren"
 
 #: rustconn/src/dialogs/flatpak_components.rs:322
-#: rustconn/src/dialogs/flatpak_components.rs:503 rustconn/src/toast.rs:264
+#: rustconn/src/dialogs/flatpak_components.rs:503 rustconn/src/toast.rs:269
 msgid "Install"
 msgstr "Installieren"
 
@@ -3599,7 +3600,8 @@ msgid "Clear History"
 msgstr "Verlauf löschen"
 
 #: rustconn/src/dialogs/history.rs:103 rustconn/src/dialogs/widgets.rs:461
-#: rustconn/src/sidebar_ui.rs:138 rustconn/src/window/edit_dialogs.rs:2404
+#: rustconn/src/sidebar_ui.rs:138 rustconn/src/smart_folder_ui.rs:460
+#: rustconn/src/window/edit_dialogs.rs:2404
 #: rustconn/src/window/edit_dialogs.rs:2405
 msgid "Connect"
 msgstr "Verbinden"
@@ -4345,7 +4347,7 @@ msgstr "Import fehlgeschlagen"
 
 #: rustconn/src/dialogs/recording.rs:764
 #: rustconn/src/dialogs/settings/ssh_agent_tab.rs:304 rustconn/src/toast.rs:73
-#: rustconn/src/toast.rs:260 rustconn/src/toast.rs:289
+#: rustconn/src/toast.rs:263 rustconn/src/toast.rs:293
 #: rustconn/src/window/clusters.rs:463
 #: rustconn/src/window/connection_dialogs.rs:792
 #: rustconn/src/window/edit_dialogs.rs:325
@@ -4567,73 +4569,73 @@ msgstr "Zeitstempel"
 msgid "Prepend [HH:MM:SS] to each line in session logs"
 msgstr "[HH:MM:SS] vor jede Zeile im Sitzungsprotokoll setzen"
 
-#: rustconn/src/dialogs/settings/mod.rs:239
+#: rustconn/src/dialogs/settings/mod.rs:240
 msgid "Global regex-based text highlighting rules"
 msgstr "Globale regex-basierte Texthervorhebungsregeln"
 
-#: rustconn/src/dialogs/settings/mod.rs:320
+#: rustconn/src/dialogs/settings/mod.rs:324
 msgid "Backup & Restore"
 msgstr "Sicherung & Wiederherstellung"
 
-#: rustconn/src/dialogs/settings/mod.rs:321
+#: rustconn/src/dialogs/settings/mod.rs:325
 msgid "Export or import all settings as a ZIP archive"
 msgstr "Alle Einstellungen als ZIP-Archiv exportieren oder importieren"
 
-#: rustconn/src/dialogs/settings/mod.rs:325
+#: rustconn/src/dialogs/settings/mod.rs:329
 msgid "Backup Settings…"
 msgstr "Einstellungen sichern…"
 
-#: rustconn/src/dialogs/settings/mod.rs:326
+#: rustconn/src/dialogs/settings/mod.rs:330
 msgid "Save all configuration files to a ZIP archive"
 msgstr "Alle Konfigurationsdateien in ein ZIP-Archiv speichern"
 
-#: rustconn/src/dialogs/settings/mod.rs:329
+#: rustconn/src/dialogs/settings/mod.rs:333
 msgid "Restore Settings…"
 msgstr "Einstellungen wiederherstellen…"
 
-#: rustconn/src/dialogs/settings/mod.rs:331
+#: rustconn/src/dialogs/settings/mod.rs:335
 msgid "Load configuration from a ZIP archive (restart required)"
 msgstr "Konfiguration aus ZIP-Archiv laden (Neustart erforderlich)"
 
-#: rustconn/src/dialogs/settings/mod.rs:359
+#: rustconn/src/dialogs/settings/mod.rs:363
 msgid "Save Backup"
 msgstr "Sicherung speichern"
 
-#: rustconn/src/dialogs/settings/mod.rs:377
+#: rustconn/src/dialogs/settings/mod.rs:381
 msgid "Backup saved ({} files)"
 msgstr "Sicherung gespeichert ({} Dateien)"
 
-#: rustconn/src/dialogs/settings/mod.rs:390
+#: rustconn/src/dialogs/settings/mod.rs:394
 msgid "Backup Error"
 msgstr "Sicherungsfehler"
 
-#: rustconn/src/dialogs/settings/mod.rs:413
+#: rustconn/src/dialogs/settings/mod.rs:417
 msgid "Open Backup"
 msgstr "Sicherung öffnen"
 
-#: rustconn/src/dialogs/settings/mod.rs:429
+#: rustconn/src/dialogs/settings/mod.rs:433
 msgid "Restore Settings?"
 msgstr "Einstellungen wiederherstellen?"
 
-#: rustconn/src/dialogs/settings/mod.rs:431
+#: rustconn/src/dialogs/settings/mod.rs:435
 msgid ""
 "This will overwrite current settings. A restart is required to apply changes."
 msgstr ""
 "Dies überschreibt die aktuellen Einstellungen. Ein Neustart ist erforderlich."
 
-#: rustconn/src/dialogs/settings/mod.rs:435
+#: rustconn/src/dialogs/settings/mod.rs:439
 msgid "Restore"
 msgstr "Wiederherstellen"
 
-#: rustconn/src/dialogs/settings/mod.rs:450
+#: rustconn/src/dialogs/settings/mod.rs:454
 msgid "Restored {} files. Restart to apply."
 msgstr "{} Dateien wiederhergestellt. Neustart zum Anwenden."
 
-#: rustconn/src/dialogs/settings/mod.rs:463
+#: rustconn/src/dialogs/settings/mod.rs:467
 msgid "Restore Error"
 msgstr "Wiederherstellungsfehler"
 
-#: rustconn/src/dialogs/settings/mod.rs:737
+#: rustconn/src/dialogs/settings/mod.rs:741
 msgid "Failed to start"
 msgstr "Start fehlgeschlagen"
 
@@ -4649,71 +4651,75 @@ msgstr "Erfassung von Remote-Host-Metriken"
 msgid "Enable monitoring"
 msgstr "Überwachung aktivieren"
 
-#: rustconn/src/dialogs/settings/monitoring_tab.rs:59
-msgid "Show CPU, memory, disk, and network for SSH sessions"
-msgstr "CPU, Speicher, Festplatte und Netzwerk für SSH-Sitzungen anzeigen"
+#: rustconn/src/dialogs/settings/monitoring_tab.rs:60
+msgid ""
+"Global switch for all connections (per-connection: Advanced tab in "
+"connection settings)"
+msgstr ""
+"Globaler Schalter für alle Verbindungen (pro Verbindung: Reiter «Erweitert» "
+"in den Verbindungseinstellungen)"
 
-#: rustconn/src/dialogs/settings/monitoring_tab.rs:64
+#: rustconn/src/dialogs/settings/monitoring_tab.rs:66
 msgid "Polling interval"
 msgstr "Abfrageintervall"
 
-#: rustconn/src/dialogs/settings/monitoring_tab.rs:65
+#: rustconn/src/dialogs/settings/monitoring_tab.rs:67
 msgid "Seconds between metric updates"
 msgstr "Sekunden zwischen Metrik-Aktualisierungen"
 
-#: rustconn/src/dialogs/settings/monitoring_tab.rs:75
+#: rustconn/src/dialogs/settings/monitoring_tab.rs:77
 msgid "Visible Metrics"
 msgstr "Sichtbare Metriken"
 
-#: rustconn/src/dialogs/settings/monitoring_tab.rs:76
+#: rustconn/src/dialogs/settings/monitoring_tab.rs:78
 msgid "Select which metrics to display"
 msgstr "Auswählen, welche Metriken angezeigt werden"
 
-#: rustconn/src/dialogs/settings/monitoring_tab.rs:85
+#: rustconn/src/dialogs/settings/monitoring_tab.rs:87
 msgid "CPU usage"
 msgstr "CPU-Auslastung"
 
-#: rustconn/src/dialogs/settings/monitoring_tab.rs:97
+#: rustconn/src/dialogs/settings/monitoring_tab.rs:99
 msgid "Memory usage"
 msgstr "Speicherauslastung"
 
-#: rustconn/src/dialogs/settings/monitoring_tab.rs:109
+#: rustconn/src/dialogs/settings/monitoring_tab.rs:111
 msgid "Disk usage"
 msgstr "Festplattenauslastung"
 
-#: rustconn/src/dialogs/settings/monitoring_tab.rs:121
+#: rustconn/src/dialogs/settings/monitoring_tab.rs:123
 msgid "Network throughput"
 msgstr "Netzwerkdurchsatz"
 
-#: rustconn/src/dialogs/settings/monitoring_tab.rs:133
+#: rustconn/src/dialogs/settings/monitoring_tab.rs:135
 msgid "Load average"
 msgstr "Durchschnittliche Auslastung"
 
-#: rustconn/src/dialogs/settings/monitoring_tab.rs:145
+#: rustconn/src/dialogs/settings/monitoring_tab.rs:147
 msgid "System info"
 msgstr "Systeminformationen"
 
-#: rustconn/src/dialogs/settings/monitoring_tab.rs:146
+#: rustconn/src/dialogs/settings/monitoring_tab.rs:148
 msgid "Distribution, kernel version, uptime"
 msgstr "Distribution, Kernelversion, Betriebszeit"
 
-#: rustconn/src/dialogs/settings/monitoring_tab.rs:177
+#: rustconn/src/dialogs/settings/monitoring_tab.rs:179
 msgid "Default settings for terminal activity and silence detection"
 msgstr "Standardeinstellungen für Terminal-Aktivitäts- und Stille-Erkennung"
 
-#: rustconn/src/dialogs/settings/monitoring_tab.rs:183
+#: rustconn/src/dialogs/settings/monitoring_tab.rs:185
 msgid "Default Mode"
 msgstr "Standardmodus"
 
-#: rustconn/src/dialogs/settings/monitoring_tab.rs:184
+#: rustconn/src/dialogs/settings/monitoring_tab.rs:186
 msgid "Monitoring mode applied to new connections"
 msgstr "Überwachungsmodus für neue Verbindungen"
 
-#: rustconn/src/dialogs/settings/monitoring_tab.rs:192
+#: rustconn/src/dialogs/settings/monitoring_tab.rs:194
 msgid "Default Quiet Period"
 msgstr "Standard-Ruhephase"
 
-#: rustconn/src/dialogs/settings/monitoring_tab.rs:200
+#: rustconn/src/dialogs/settings/monitoring_tab.rs:202
 msgid "Default Silence Timeout"
 msgstr "Standard-Stille-Zeitüberschreitung"
 
@@ -6395,8 +6401,8 @@ msgid "SPICE"
 msgstr "SPICE"
 
 #: rustconn/src/dialogs/template.rs:3091 rustconn/src/sidebar_ui.rs:116
-#: rustconn/src/sidebar_ui.rs:193 rustconn/src/smart_folder_ui.rs:344
-#: rustconn/src/window/snippets.rs:222
+#: rustconn/src/sidebar_ui.rs:193 rustconn/src/smart_folder_ui.rs:379
+#: rustconn/src/smart_folder_ui.rs:478 rustconn/src/window/snippets.rs:222
 msgid "Edit"
 msgstr "Bearbeiten"
 
@@ -6704,7 +6710,7 @@ msgstr ""
 "Backend in den Einstellungen.Geheimnis konnte nicht geladen werden. Prüfen "
 "Sie das Backend in den Einstellungen."
 
-#: rustconn/src/dialogs/widgets.rs:460 rustconn/src/embedded_rdp/mod.rs:247
+#: rustconn/src/dialogs/widgets.rs:460 rustconn/src/embedded_rdp/mod.rs:250
 #: rustconn/src/embedded_spice.rs:244 rustconn/src/embedded_trait.rs:202
 #: rustconn/src/embedded_vnc.rs:161 rustconn/src/terminal/config.rs:152
 msgid "Copy"
@@ -6761,12 +6767,12 @@ msgid "Autotype channel not ready"
 msgstr "Autotype-Kanal nicht bereit"
 
 #: rustconn/src/embedded_rdp/autotype.rs:97
-#: rustconn/src/embedded_rdp/clipboard.rs:174
+#: rustconn/src/embedded_rdp/clipboard.rs:215
 msgid "Local clipboard is empty"
 msgstr ""
 
 #: rustconn/src/embedded_rdp/autotype.rs:105
-#: rustconn/src/embedded_rdp/clipboard.rs:182
+#: rustconn/src/embedded_rdp/clipboard.rs:223
 msgid "Cannot read clipboard"
 msgstr ""
 
@@ -6794,19 +6800,19 @@ msgstr "Jetzt tippen"
 msgid "No text to type"
 msgstr "Kein Text zum Tippen"
 
-#: rustconn/src/embedded_rdp/clipboard.rs:76
+#: rustconn/src/embedded_rdp/clipboard.rs:90
 msgid "Copied {} chars"
 msgstr "Kopiert: {} Zeichen"
 
-#: rustconn/src/embedded_rdp/clipboard.rs:84
+#: rustconn/src/embedded_rdp/clipboard.rs:98
 msgid "No remote clipboard data"
 msgstr "Keine Remote-Zwischenablage-Daten"
 
-#: rustconn/src/embedded_rdp/clipboard.rs:152 rustconn/src/embedded_vnc.rs:838
+#: rustconn/src/embedded_rdp/clipboard.rs:193 rustconn/src/embedded_vnc.rs:838
 msgid "Pasted {} chars"
 msgstr "Eingefügt: {} Zeichen"
 
-#: rustconn/src/embedded_rdp/clipboard.rs:162
+#: rustconn/src/embedded_rdp/clipboard.rs:203
 msgid "Clipboard channel not ready"
 msgstr ""
 
@@ -6814,28 +6820,28 @@ msgstr ""
 msgid "Copy remote clipboard to local"
 msgstr "Remote-Zwischenablage lokal kopieren"
 
-#: rustconn/src/embedded_rdp/connection.rs:924
-#: rustconn/src/embedded_rdp/connection.rs:1003
+#: rustconn/src/embedded_rdp/connection.rs:930
+#: rustconn/src/embedded_rdp/connection.rs:1009
 msgid "Save {} Files"
 msgstr "{} Dateien speichern"
 
-#: rustconn/src/embedded_rdp/connection.rs:928
+#: rustconn/src/embedded_rdp/connection.rs:934
 msgid "Save {} files from remote clipboard"
 msgstr "{} Dateien aus Remote-Zwischenablage speichern"
 
-#: rustconn/src/embedded_rdp/connection.rs:966
+#: rustconn/src/embedded_rdp/connection.rs:972
 msgid "Downloaded {}/{} files"
 msgstr "{}/{} Dateien heruntergeladen"
 
-#: rustconn/src/embedded_rdp/connection.rs:1008
+#: rustconn/src/embedded_rdp/connection.rs:1014
 msgid "Saved {} files"
 msgstr "{} Dateien gespeichert"
 
-#: rustconn/src/embedded_rdp/connection.rs:1190
+#: rustconn/src/embedded_rdp/connection.rs:1205
 msgid "Using external RDP client (server incompatible)"
 msgstr "Externer RDP-Client wird verwendet (Server inkompatibel)"
 
-#: rustconn/src/embedded_rdp/connection.rs:1196
+#: rustconn/src/embedded_rdp/connection.rs:1211
 msgid "RDP server incompatible. Install FreeRDP."
 msgstr "RDP-Server inkompatibel. Installieren Sie FreeRDP."
 
@@ -6847,88 +6853,88 @@ msgstr ""
 msgid "Try Again"
 msgstr ""
 
-#: rustconn/src/embedded_rdp/mod.rs:249
+#: rustconn/src/embedded_rdp/mod.rs:252
 msgid "Copy remote clipboard to local (waiting for remote data...)"
 msgstr "Remote-Zwischenablage lokal kopieren (warte auf Remote-Daten...)"
 
-#: rustconn/src/embedded_rdp/mod.rs:255 rustconn/src/embedded_spice.rs:249
+#: rustconn/src/embedded_rdp/mod.rs:258 rustconn/src/embedded_spice.rs:249
 #: rustconn/src/embedded_trait.rs:210 rustconn/src/embedded_vnc.rs:166
 #: rustconn/src/terminal/config.rs:153
 msgid "Paste"
 msgstr "Einfügen"
 
-#: rustconn/src/embedded_rdp/mod.rs:256 rustconn/src/embedded_spice.rs:250
+#: rustconn/src/embedded_rdp/mod.rs:259 rustconn/src/embedded_spice.rs:250
 #: rustconn/src/embedded_trait.rs:211 rustconn/src/embedded_vnc.rs:167
 msgid "Paste from local clipboard to remote session"
 msgstr "Aus lokaler Zwischenablage in Remote-Sitzung einfügen"
 
-#: rustconn/src/embedded_rdp/mod.rs:260
+#: rustconn/src/embedded_rdp/mod.rs:263
 msgid "Type Clipboard"
 msgstr "Zwischenablage tippen"
 
-#: rustconn/src/embedded_rdp/mod.rs:262
+#: rustconn/src/embedded_rdp/mod.rs:265
 msgid "Send clipboard contents as keystrokes (bypasses paste restrictions)"
 msgstr ""
 "Zwischenablage-Inhalt als Tastenanschläge senden (umgeht "
 "Einfügebeschränkungen)"
 
-#: rustconn/src/embedded_rdp/mod.rs:267
+#: rustconn/src/embedded_rdp/mod.rs:270
 msgid "Type Text…"
 msgstr "Text tippen …"
 
-#: rustconn/src/embedded_rdp/mod.rs:269
+#: rustconn/src/embedded_rdp/mod.rs:272
 msgid "Type custom text as keystrokes into remote session"
 msgstr ""
 "Benutzerdefinierten Text als Tastenanschläge in Remote-Sitzung eingeben"
 
-#: rustconn/src/embedded_rdp/mod.rs:281 rustconn/src/embedded_spice.rs:262
+#: rustconn/src/embedded_rdp/mod.rs:284 rustconn/src/embedded_spice.rs:262
 #: rustconn/src/embedded_trait.rs:226 rustconn/src/embedded_trait.rs:228
 #: rustconn/src/embedded_vnc.rs:179
 msgid "Send Ctrl+Alt+Del to remote session"
 msgstr "Ctrl+Alt+Del an Remote-Sitzung senden"
 
-#: rustconn/src/embedded_rdp/mod.rs:287 rustconn/src/embedded_rdp/mod.rs:290
+#: rustconn/src/embedded_rdp/mod.rs:290 rustconn/src/embedded_rdp/mod.rs:293
 msgid "Windows admin tools"
 msgstr "Windows-Verwaltungstools"
 
-#: rustconn/src/embedded_rdp/mod.rs:306
+#: rustconn/src/embedded_rdp/mod.rs:309
 msgid "Save Files"
 msgstr "Dateien speichern"
 
-#: rustconn/src/embedded_rdp/mod.rs:309
+#: rustconn/src/embedded_rdp/mod.rs:312
 msgid "Save files from remote clipboard"
 msgstr "Dateien aus Remote-Zwischenablage speichern"
 
-#: rustconn/src/embedded_rdp/mod.rs:345 rustconn/src/embedded_spice.rs:288
-#: rustconn/src/embedded_vnc.rs:212 rustconn/src/terminal/mod.rs:2059
+#: rustconn/src/embedded_rdp/mod.rs:348 rustconn/src/embedded_spice.rs:288
+#: rustconn/src/embedded_vnc.rs:212 rustconn/src/terminal/mod.rs:2085
 msgid "Session disconnected"
 msgstr "Sitzung getrennt"
 
-#: rustconn/src/embedded_rdp/mod.rs:348 rustconn/src/embedded_spice.rs:291
+#: rustconn/src/embedded_rdp/mod.rs:351 rustconn/src/embedded_spice.rs:291
 #: rustconn/src/embedded_trait.rs:233 rustconn/src/embedded_vnc.rs:215
-#: rustconn/src/terminal/mod.rs:1764 rustconn/src/terminal/mod.rs:2062
+#: rustconn/src/terminal/mod.rs:1764 rustconn/src/terminal/mod.rs:2088
 msgid "Reconnect"
 msgstr "Neu verbinden"
 
-#: rustconn/src/embedded_rdp/mod.rs:350 rustconn/src/embedded_spice.rs:293
+#: rustconn/src/embedded_rdp/mod.rs:353 rustconn/src/embedded_spice.rs:293
 #: rustconn/src/embedded_vnc.rs:217 rustconn/src/terminal/mod.rs:1766
-#: rustconn/src/terminal/mod.rs:2064
+#: rustconn/src/terminal/mod.rs:2090
 msgid "Reconnect to this session"
 msgstr "Erneut mit dieser Sitzung verbinden"
 
-#: rustconn/src/embedded_rdp/mod.rs:507
+#: rustconn/src/embedded_rdp/mod.rs:516
 msgid "{} file(s) ready to paste on remote"
 msgstr ""
 
-#: rustconn/src/embedded_rdp/mod.rs:632
+#: rustconn/src/embedded_rdp/mod.rs:641
 msgid "Select folder to save files"
 msgstr "Ordner zum Speichern der Dateien auswählen"
 
-#: rustconn/src/embedded_rdp/mod.rs:661
+#: rustconn/src/embedded_rdp/mod.rs:670
 msgid "Downloading..."
 msgstr "Herunterladen..."
 
-#: rustconn/src/embedded_rdp/mod.rs:694
+#: rustconn/src/embedded_rdp/mod.rs:703
 msgid "Downloading files..."
 msgstr "Dateien werden heruntergeladen..."
 
@@ -7156,11 +7162,11 @@ msgstr "Duplizieren"
 msgid "Move to Group..."
 msgstr "In Gruppe verschieben..."
 
-#: rustconn/src/sidebar_ui.rs:154
+#: rustconn/src/sidebar_ui.rs:154 rustconn/src/smart_folder_ui.rs:499
 msgid "Copy Username"
 msgstr "Benutzername kopieren"
 
-#: rustconn/src/sidebar_ui.rs:158
+#: rustconn/src/sidebar_ui.rs:158 rustconn/src/smart_folder_ui.rs:517
 msgid "Copy Password"
 msgstr "Passwort kopieren"
 
@@ -7172,7 +7178,7 @@ msgstr "Snippet ausführen..."
 msgid "Open SFTP"
 msgstr "SFTP öffnen"
 
-#: rustconn/src/sidebar_ui.rs:170
+#: rustconn/src/sidebar_ui.rs:170 rustconn/src/smart_folder_ui.rs:556
 msgid "Check if Online"
 msgstr "Online-Status prüfen"
 
@@ -7558,23 +7564,23 @@ msgstr "Befehl nicht gefunden: {}"
 msgid "'{}' is not installed"
 msgstr "„{}“ ist nicht installiert"
 
-#: rustconn/src/terminal/mod.rs:2557
+#: rustconn/src/terminal/mod.rs:2583
 msgid "Displayed in Split View"
 msgstr "In geteilter Ansicht angezeigt"
 
-#: rustconn/src/terminal/mod.rs:2558
+#: rustconn/src/terminal/mod.rs:2584
 msgid "This session is shown in another tab's split layout"
 msgstr "Diese Sitzung wird im geteilten Layout eines anderen Tabs angezeigt"
 
-#: rustconn/src/terminal/mod.rs:2563
+#: rustconn/src/terminal/mod.rs:2589
 msgid "Go to Split View"
 msgstr "Zur geteilten Ansicht wechseln"
 
-#: rustconn/src/terminal/mod.rs:3343
+#: rustconn/src/terminal/mod.rs:3369
 msgid "Playback: {}"
 msgstr "Wiedergabe: {}"
 
-#: rustconn/src/terminal/mod.rs:3373
+#: rustconn/src/terminal/mod.rs:3399
 msgid "●REC"
 msgstr "●REC"
 
@@ -7618,11 +7624,11 @@ msgstr "Wiedergabe abgeschlossen"
 msgid "Warning"
 msgstr "Warnung"
 
-#: rustconn/src/toast.rs:204
+#: rustconn/src/toast.rs:208
 msgid "Info"
 msgstr "Info"
 
-#: rustconn/src/toast.rs:285
+#: rustconn/src/toast.rs:290
 msgid "Retry"
 msgstr "Wiederholen"
 
@@ -7855,70 +7861,68 @@ msgstr "Passwort konnte nicht vom Geheimnis-Backend abgerufen werden"
 msgid "Item restored"
 msgstr "Element wiederhergestellt"
 
-#: rustconn/src/window/edit_actions.rs:398
+#: rustconn/src/window/edit_actions.rs:426
 msgid "Wake On LAN sent to {} — waiting for host to come online..."
 msgstr "Wake On LAN an {} gesendet — warte auf Host..."
 
-#: rustconn/src/window/edit_actions.rs:438
+#: rustconn/src/window/edit_actions.rs:466
 msgid "{} is online — connecting..."
 msgstr "{} ist online — verbinde..."
 
-#: rustconn/src/window/edit_actions.rs:453
+#: rustconn/src/window/edit_actions.rs:481
 msgid "{} did not come online after WoL"
 msgstr "{} ist nach WoL nicht online gegangen"
 
-#: rustconn/src/window/edit_actions.rs:465
+#: rustconn/src/window/edit_actions.rs:493
 msgid "Failed to send Wake On LAN packet. Check network permissions."
 msgstr ""
 "Wake On LAN-Paket konnte nicht gesendet werden. Überprüfen Sie die "
 "Netzwerkberechtigungen.Wake On LAN-Paket konnte nicht gesendet werden. "
 "Prüfen Sie die Netzwerkberechtigungen."
 
-#: rustconn/src/window/edit_actions.rs:511
+#: rustconn/src/window/edit_actions.rs:539
 msgid "Checking if {} is online..."
 msgstr "Prüfe, ob {} online ist..."
 
-#: rustconn/src/window/edit_actions.rs:542
+#: rustconn/src/window/edit_actions.rs:570
 msgid "{} is online"
 msgstr "{} ist online"
 
-#: rustconn/src/window/edit_actions.rs:557
+#: rustconn/src/window/edit_actions.rs:585
 msgid "{} did not come online within timeout"
 msgstr "{} ist innerhalb der Zeitüberschreitung nicht online gegangen"
 
-#: rustconn/src/window/edit_actions.rs:564
+#: rustconn/src/window/edit_actions.rs:592
 msgid "Host check failed: {}"
 msgstr "Host-Prüfung fehlgeschlagen: {}"
 
-#: rustconn/src/window/edit_actions.rs:629
-#: rustconn/src/window/edit_actions.rs:745
+#: rustconn/src/window/edit_actions.rs:657
+#: rustconn/src/window/edit_actions.rs:773
 msgid "SFTP is only available for SSH connections."
 msgstr "SFTP ist nur für SSH-Verbindungen verfügbar."
 
-#: rustconn/src/window/edit_actions.rs:675
+#: rustconn/src/window/edit_actions.rs:703
 msgid "SSH key not available"
 msgstr "SSH-Schlüssel nicht verfügbar"
 
-#: rustconn/src/window/edit_actions.rs:683
+#: rustconn/src/window/edit_actions.rs:711
 msgid "Failed to add SSH key to agent."
 msgstr "SSH-Schlüssel konnte nicht zum Agenten hinzugefügt werden."
 
-#: rustconn/src/window/edit_actions.rs:698
+#: rustconn/src/window/edit_actions.rs:726
 msgid "Midnight Commander (mc) is not installed."
 msgstr "Midnight Commander (mc) ist nicht installiert."
 
-#: rustconn/src/window/edit_actions.rs:703
+#: rustconn/src/window/edit_actions.rs:731
 msgid "Opening mc SFTP..."
 msgstr "mc SFTP wird geöffnet..."
 
-#: rustconn/src/window/edit_actions.rs:753
+#: rustconn/src/window/edit_actions.rs:781
 msgid "Opening SFTP..."
 msgstr "SFTP wird geöffnet..."
 
-#: rustconn/src/window/edit_actions.rs:921 rustconn/src/window/mod.rs:2949
-#: rustconn/src/window/mod.rs:3134 rustconn/src/window/protocols.rs:175
-#: rustconn/src/window/protocols.rs:874 rustconn/src/window/protocols.rs:1076
-#: rustconn/src/window/protocols.rs:1942 rustconn/src/window/protocols.rs:2696
+#: rustconn/src/window/edit_actions.rs:949 rustconn/src/window/mod.rs:2949
+#: rustconn/src/window/mod.rs:3134
 msgid "Connection failed. Host unreachable."
 msgstr "Verbindung fehlgeschlagen. Host nicht erreichbar."
 
@@ -8444,11 +8448,11 @@ msgstr "Pod und Container für Kubernetes konfigurieren"
 msgid "Install mosh for MOSH connections"
 msgstr "Installieren Sie mosh für MOSH-Verbindungen"
 
-#: rustconn/src/window/rdp_vnc.rs:362
+#: rustconn/src/window/rdp_vnc.rs:363
 msgid "SSH tunnel failed: {}"
 msgstr "SSH-Tunnel fehlgeschlagen: {}"
 
-#: rustconn/src/window/rdp_vnc.rs:585
+#: rustconn/src/window/rdp_vnc.rs:586
 msgid "RDP connection failed. Check that the remote host is reachable."
 msgstr ""
 "RDP-Verbindung fehlgeschlagen. Überprüfen Sie, ob der Remote-Host erreichbar "
@@ -8515,7 +8519,7 @@ msgstr "Zu sendender Text..."
 msgid "Append newline (press Enter)"
 msgstr "Zeilenumbruch anhängen (Enter drücken)"
 
-#: rustconn/src/window/smart_folders.rs:146
+#: rustconn/src/window/smart_folders.rs:147
 msgid "Smart folder '{}' deleted"
 msgstr "Intelligenter Ordner '{}' gelöscht"
 
@@ -8755,6 +8759,9 @@ msgid ""
 msgstr ""
 "ssh;rdp;vnc;spice;mosh;telnet;zerotrust;verbindung;terminal;remote;"
 "kubernetes;k8s;seriell;sftp;"
+
+#~ msgid "Show CPU, memory, disk, and network for SSH sessions"
+#~ msgstr "CPU, Speicher, Festplatte und Netzwerk für SSH-Sitzungen anzeigen"
 
 #~ msgid "Cluster name cannot be empty"
 #~ msgstr "Clustername darf nicht leer sein"

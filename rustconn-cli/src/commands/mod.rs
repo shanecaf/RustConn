@@ -126,9 +126,13 @@ pub fn dispatch(config_path: Option<&Path>, command: Commands) -> Result<(), Cli
             export_import::cmd_export(config_path, format, &output)
         }
         Commands::Import { format, file } => export_import::cmd_import(config_path, format, &file),
-        Commands::Test { name, timeout } => test::cmd_test(config_path, &name, timeout),
+        Commands::Test {
+            name,
+            timeout,
+            format,
+        } => test::cmd_test(config_path, &name, timeout, format.effective()),
         Commands::Delete { name, force } => delete::cmd_delete(config_path, &name, force),
-        Commands::Show { name } => show::cmd_show(config_path, &name),
+        Commands::Show { name, format } => show::cmd_show(config_path, &name, format.effective()),
         Commands::Update {
             name,
             new_name,
@@ -221,7 +225,7 @@ pub fn dispatch(config_path: Option<&Path>, command: Commands) -> Result<(), Cli
             duplicate::cmd_duplicate(config_path, &name, new_name.as_deref())
         }
         Commands::Sftp { name, cli, mc } => sftp::cmd_sftp(config_path, &name, cli, mc),
-        Commands::Stats => stats::cmd_stats(config_path),
+        Commands::Stats { format } => stats::cmd_stats(config_path, format.effective()),
         Commands::Completions { shell } => completions::cmd_completions(shell),
         Commands::ManPage => manpage::cmd_manpage(),
         Commands::Sync(subcmd) => cloud_sync::cmd_cloud_sync(config_path, subcmd),

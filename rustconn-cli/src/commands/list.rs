@@ -197,7 +197,15 @@ pub struct ConnectionOutput {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub username: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub group_id: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub tags: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub icon: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_connected: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auth_method: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -239,7 +247,11 @@ impl From<&Connection> for ConnectionOutput {
             port: conn.port,
             protocol: conn.protocol.as_str().to_string(),
             username: conn.username.clone(),
+            description: conn.description.clone(),
+            group_id: conn.group_id.map(|id| id.to_string()),
+            tags: conn.tags.clone(),
             icon: conn.icon.clone(),
+            last_connected: conn.last_connected.map(|t| t.to_rfc3339()),
             auth_method,
             device,
             baud_rate,
