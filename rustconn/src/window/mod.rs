@@ -4036,8 +4036,29 @@ impl MainWindow {
                     .get_session_info(session_id)
                     .is_some_and(|info| info.protocol == "ssh");
 
+            // Skip auto-reconnect for rapid crashes (session lived < 5 seconds).
+            // This prevents infinite reconnect loops when the terminal process
+            // crashes immediately (e.g., SIGSEGV in VTE on macOS).
+            let is_rapid_crash = notebook_clone
+                .get_session_info(session_id)
+                .is_some_and(|info| {
+                    let elapsed = chrono::Utc::now()
+                        .signed_duration_since(info.connected_at)
+                        .num_seconds();
+                    elapsed < 5
+                });
+
+            if is_rapid_crash {
+                tracing::warn!(
+                    %session_id,
+                    %connection_id,
+                    "Skipping auto-reconnect: session crashed within 5 seconds of start"
+                );
+            }
+
             if is_failure
                 && !is_ssh_auth_failure
+                && !is_rapid_crash
                 && let Ok(state_ref) = state_clone.try_borrow()
                 && let Some(conn) = state_ref.get_connection(connection_id)
             {
@@ -5023,6 +5044,43 @@ impl MainWindow {
                 "flatpak-spawn --host --env=TERM=xterm-256color -- script -qfc '{host_shell} --login' /dev/null"
             );
             notebook.spawn_command(session_id, &["/bin/sh", "-c", &spawn_cmd], None, None, None);
+
+            // Wire up PTY resize propagation for Flatpak host shell (#122).
+            //
+            // VTE automatically resizes its own PTY (sandbox-side), but the
+            // host-side PTY created by `script` never receives TIOCSWINSZ.
+            // On each VTE char-size-changed, forward the new dimensions to the
+            // host via `flatpak-spawn --host -- stty rows R cols C`.
+            //
+            // Debounced: only the last resize in a 200ms window is sent to
+            // avoid spawning dozens of threads during rapid window dragging.
+            if let Some(terminal) = notebook.get_terminal(session_id) {
+                use vte4::prelude::*;
+                let last_resize = std::sync::Arc::new(std::sync::Mutex::new(
+                    std::time::Instant::now().checked_sub(std::time::Duration::from_secs(1)).unwrap(),
+                ));
+                terminal.connect_char_size_changed(move |term, _width, _height| {
+                    let rows = term.row_count();
+                    let cols = term.column_count();
+                    let last = last_resize.clone();
+                    // Debounce: skip if last resize was less than 200ms ago
+                    // (the spawned thread will use the latest values).
+                    let mut guard = last.lock().unwrap_or_else(|e| e.into_inner());
+                    if guard.elapsed() < std::time::Duration::from_millis(200) {
+                        return;
+                    }
+                    *guard = std::time::Instant::now();
+                    drop(guard);
+
+                    // Spawn a background process to resize the host PTY.
+                    // `stty` on the host sets the PTY dimensions and the kernel
+                    // delivers SIGWINCH to the foreground process group.
+                    let cmd = format!("flatpak-spawn --host -- stty rows {rows} cols {cols}");
+                    std::thread::spawn(move || {
+                        let _ = std::process::Command::new("sh").args(["-c", &cmd]).output();
+                    });
+                });
+            }
         } else {
             notebook.spawn_command(session_id, &[&shell], None, None, None);
         }

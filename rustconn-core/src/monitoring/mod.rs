@@ -22,4 +22,4 @@ pub use parser::{
     METRICS_COMMAND, MetricsParser, MonitoringError, MonitoringResult, SYSTEM_INFO_COMMAND,
 };
 pub use settings::{MonitoringConfig, MonitoringSettings};
-pub use ssh_exec::{ssh_control_path, ssh_exec_factory};
+pub use ssh_exec::{close_control_socket, ssh_control_path, ssh_exec_factory};
