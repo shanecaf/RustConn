@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.13.10] - 2026-05-09
 
+### Added
+- **Import/Export: SecureCRT session support** — import connections from SecureCRT's `Config/Sessions/` directory (individual `.ini` files); export connections back to SecureCRT INI format as a directory tree; supports SSH2, Telnet, RDP, VNC protocols with hostname, port, username, SSH key path, X11/agent forwarding, compression; folder hierarchy preserved as connection groups; available in GUI export dialog, CLI, and programmatic API ([#140](https://github.com/totoshko88/RustConn/issues/140))
+
 ### Fixed
 - **SSH: ControlMaster sockets now actually closed on application exit** — the shutdown handler scanned `active_sessions()` to find SSH connections needing socket cleanup, but by the time GTK's `connect_shutdown` fires, all sessions are already in `Terminated` state (GTK destroys widgets first), so the list was always empty and no sockets were ever closed; replaced with a filesystem scan of the runtime directory for `rc-*` socket files, which works regardless of session state; stale sockets that don't respond to `ssh -O exit` are force-removed ([#125](https://github.com/totoshko88/RustConn/issues/125))
 
