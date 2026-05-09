@@ -572,9 +572,9 @@ pub fn load_variable_from_vault_with_path(
     use secrecy::ExposeSecret;
 
     let default_key = rustconn_core::variable_secret_key(var_name);
-    let lookup_key = kdbx_entry_path
-        .filter(|p| !p.trim().is_empty())
-        .unwrap_or(&default_key);
+    // Filter out empty/whitespace-only custom paths — treat them as "no custom path".
+    let effective_custom_path = kdbx_entry_path.filter(|p| !p.trim().is_empty());
+    let lookup_key = effective_custom_path.unwrap_or(&default_key);
     let backend_type = select_backend_for_load(settings);
 
     tracing::debug!(
@@ -593,7 +593,7 @@ pub fn load_variable_from_vault_with_path(
 
                 // Custom path → exact lookup (no RustConn/ prefix, no fallbacks)
                 // Default path → standard lookup with RustConn/ prefix and fallbacks
-                if kdbx_entry_path.is_some() {
+                if effective_custom_path.is_some() {
                     rustconn_core::secret::KeePassStatus::get_password_from_kdbx_exact(
                         kdbx,
                         settings.kdbx_password.as_ref(),
@@ -609,7 +609,12 @@ pub fn load_variable_from_vault_with_path(
                         None,
                     )
                 }
-                .map(|opt| opt.map(|s| s.expose_secret().to_string()))
+                .map(|opt| {
+                    opt.map(|s| {
+                        let z = zeroize::Zeroizing::new(s.expose_secret().to_string());
+                        (*z).clone()
+                    })
+                })
                 .map_err(|e| format!("{e}"))
             } else {
                 Err("KeePass enabled but no database file configured".to_string())

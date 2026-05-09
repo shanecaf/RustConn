@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **SSH: ControlMaster sockets now actually closed on application exit** — the shutdown handler scanned `active_sessions()` to find SSH connections needing socket cleanup, but by the time GTK's `connect_shutdown` fires, all sessions are already in `Terminated` state (GTK destroys widgets first), so the list was always empty and no sockets were ever closed; replaced with a filesystem scan of the runtime directory for `rc-*` socket files, which works regardless of session state; stale sockets that don't respond to `ssh -O exit` are force-removed ([#125](https://github.com/totoshko88/RustConn/issues/125))
 - **KeePass: custom entry path for variables ignored RustConn/ prefix** — when a user specified a custom "KeePass entry" path for a secret variable, the lookup still prepended `RustConn/` and tried fallback paths, making it impossible to reference entries at arbitrary locations in the database; added `get_password_from_kdbx_exact()` that queries the entry at the exact user-specified path without any prefix or fallback logic; default (no custom path) behaviour unchanged ([#143](https://github.com/totoshko88/RustConn/issues/143))
 
+### Dependencies
+- `hashbrown` 0.17.0 → 0.17.1
+
 ## [0.13.9] - 2026-05-09
 
 ### Fixed

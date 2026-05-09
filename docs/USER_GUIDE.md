@@ -1,6 +1,6 @@
 # RustConn User Guide
 
-**Version 0.13.9** | GTK4/libadwaita Connection Manager for Linux
+**Version 0.13.10** | GTK4/libadwaita Connection Manager for Linux
 
 RustConn is a modern connection manager designed for Linux with Wayland-first approach. It supports SSH, RDP, VNC, SPICE, MOSH, SFTP, Telnet, Serial, Kubernetes protocols and Zero Trust integrations through a native GTK4/libadwaita interface.
 
@@ -1874,6 +1874,7 @@ Back up your entire RustConn configuration as a single ZIP archive.
 - Ansible inventory (INI/YAML)
 - Royal TS (.rtsz XML)
 - MobaXterm sessions (.mxtsessions)
+- SecureCRT sessions (.ini directory)
 - Remote Desktop Manager (JSON)
 - RDP files (.rdp — Microsoft Remote Desktop)
 - Virt-Viewer (.vv files — SPICE/VNC from libvirt, Proxmox VE)
@@ -1899,6 +1900,7 @@ Double-click source to start import immediately.
 | Ansible | `/etc/ansible/hosts` | INI/YAML file | SSH | Groups preserved |
 | Royal TS | — | `.rtsz` file | All | Folder hierarchy → groups |
 | MobaXterm | — | `.mxtsessions` | SSH, RDP, VNC, Telnet, Serial | INI-based sessions |
+| SecureCRT | `~/.vandyke/Config/Sessions/` | Directory or `.ini` | SSH, Telnet, RDP, VNC | Folder hierarchy → groups |
 | Remote Desktop Manager | — | JSON file | SSH, RDP, VNC | Devolutions JSON export |
 | RDP File | — | `.rdp` file | RDP | Microsoft Remote Desktop format |
 | Virt-Viewer | — | `.vv` file | SPICE, VNC | From libvirt, Proxmox VE, oVirt |
@@ -1908,7 +1910,7 @@ Double-click source to start import immediately.
 
 ### Export (Ctrl+Shift+E)
 
-**Supported formats:** SSH Config, Remmina profiles, Asbru-CM, Ansible inventory, Royal TS (.rtsz), MobaXterm (.mxtsessions), RustConn Native (.rcn).
+**Supported formats:** SSH Config, Remmina profiles, Asbru-CM, Ansible inventory, Royal TS (.rtsz), MobaXterm (.mxtsessions), SecureCRT (.ini), RustConn Native (.rcn).
 
 Options: Include passwords (where supported), Export selected only.
 
@@ -1922,6 +1924,7 @@ Options: Include passwords (where supported), Export selected only.
 | Ansible | SSH only | No | Yes (groups) | INI or YAML inventory format |
 | Royal TS | All | Encrypted | Yes | XML `.rtsz` archive |
 | MobaXterm | SSH, RDP, VNC, Telnet | Encrypted | Yes | INI-based `.mxtsessions` |
+| SecureCRT | SSH, Telnet, RDP, VNC | No | Yes | Directory of `.ini` files |
 | RustConn Native | All | Encrypted | Yes | Full-fidelity backup format |
 
 ### CSV Import/Export
@@ -1969,6 +1972,12 @@ xdg-mime default io.github.totoshko88.RustConn.desktop application/x-rdp
 
 1. Export sessions from MobaXterm → copy `.mxtsessions` file to Linux
 2. **File > Import > MobaXterm** → select file → Import
+
+#### From SecureCRT
+
+1. Locate SecureCRT sessions directory (`~/.vandyke/Config/Sessions/` on Linux, or `%APPDATA%\VanDyke\Config\Sessions\` on Windows — copy to Linux)
+2. **File > Import > SecureCRT** → select the `Sessions` directory → Import
+3. Folder hierarchy is preserved as connection groups; SSH keys, usernames, ports, X11/agent forwarding settings are imported
 
 #### From Royal TS
 

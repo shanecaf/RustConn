@@ -161,7 +161,20 @@ pub async fn close_all_control_sockets() {
             let name_str = name.to_string_lossy();
             // Match RustConn SSH sockets: rc-{host}-{port}-{username}
             // Exclude askpass scripts: rc-askpass-*
-            name_str.starts_with("rc-") && !name_str.starts_with("rc-askpass-")
+            if !name_str.starts_with("rc-") || name_str.starts_with("rc-askpass-") {
+                return false;
+            }
+            // Only include actual Unix sockets (skip regular files that happen
+            // to match the naming pattern).
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::FileTypeExt;
+                entry.file_type().map(|ft| ft.is_socket()).unwrap_or(false)
+            }
+            #[cfg(not(unix))]
+            {
+                true
+            }
         })
         .collect();
 
