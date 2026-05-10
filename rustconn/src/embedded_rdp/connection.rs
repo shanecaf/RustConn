@@ -1139,11 +1139,19 @@ impl super::EmbeddedRdpWidget {
         }
 
         // Detect protocol-level errors that indicate server incompatibility
+        // Known issue: IronRDP connector 0.8.0 does not handle ServerDeactivateAll
+        // PDU during CapabilitiesExchange phase. GNOME Remote Desktop (grd) and
+        // some other servers send this PDU before ServerDemandActive, causing
+        // "unexpected Share Control Pdu (expected ServerDemandActive)" error.
+        // See: https://github.com/Devolutions/IronRDP — upstream limitation.
         let is_protocol_error = msg.contains("ServerDemandActive")
+            || msg.contains("ServerDeactivateAll")
             || msg.contains("connect_finalize")
-            || msg.contains("unexpected")
-            || msg.contains("Unsupported")
-            || msg.contains("negotiation");
+            || msg.contains("unexpected Share Control Pdu")
+            || msg.contains("Unsupported PDU")
+            || msg.contains("Unsupported security protocol")
+            || msg.contains("negotiation failed")
+            || msg.contains("NegotiationError");
 
         if is_protocol_error {
             tracing::warn!(

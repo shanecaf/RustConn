@@ -7,16 +7,14 @@
 //! - Clipboard sharing
 //! - Image compression settings
 //! - Shared folders management
+//! - Jump host selection
 
-// These functions are prepared for future refactoring when dialog.rs is further modularized
-#![allow(dead_code)]
-
-use super::protocol_layout::ProtocolLayoutBuilder;
-use super::shared_folders;
-use super::widgets::CheckboxRowBuilder;
 use adw::prelude::*;
 use gtk4::prelude::*;
-use gtk4::{Box as GtkBox, Button, CheckButton, DropDown, Entry, Orientation, StringList};
+use gtk4::{
+    Box as GtkBox, Button, CheckButton, DropDown, Entry, Label, Orientation, ScrolledWindow,
+    StringList,
+};
 use libadwaita as adw;
 use rustconn_core::models::SharedFolder;
 use std::cell::RefCell;
@@ -24,73 +22,53 @@ use std::rc::Rc;
 
 use crate::i18n::i18n;
 
-/// Return type for SPICE options creation
-#[allow(clippy::type_complexity)]
-pub type SpiceOptionsWidgets = (
-    GtkBox,
-    CheckButton,                    // tls_check
-    Entry,                          // ca_cert_entry
-    Button,                         // ca_cert_button
-    CheckButton,                    // skip_verify_check
-    CheckButton,                    // usb_check
-    CheckButton,                    // clipboard_check
-    DropDown,                       // compression_dropdown
-    Entry,                          // proxy_entry
-    Rc<RefCell<Vec<SharedFolder>>>, // shared_folders
-    gtk4::ListBox,                  // folders_list
-);
-
 /// Creates the SPICE options panel using libadwaita components following GNOME HIG.
-#[must_use]
-pub fn create_spice_options() -> SpiceOptionsWidgets {
-    let (container, content) = ProtocolLayoutBuilder::new().build();
-
-    // === Security Group ===
-    let (security_group, tls_check, ca_cert_entry, ca_cert_button, skip_verify_check) =
-        create_security_group();
-    content.append(&security_group);
-
-    // === Features Group ===
-    let (features_group, usb_check, clipboard_check, compression_dropdown, proxy_entry) =
-        create_features_group();
-    content.append(&features_group);
-
-    // === Shared Folders Group ===
-    let (folders_group, shared_folders, folders_list) =
-        shared_folders::create_shared_folders_group();
-    content.append(&folders_group);
-
-    (
-        container,
-        tls_check,
-        ca_cert_entry,
-        ca_cert_button,
-        skip_verify_check,
-        usb_check,
-        clipboard_check,
-        compression_dropdown,
-        proxy_entry,
-        shared_folders,
-        folders_list,
-    )
-}
-
-/// Creates the Security preferences group
-fn create_security_group() -> (
-    adw::PreferencesGroup,
+#[allow(clippy::type_complexity, clippy::too_many_lines)]
+pub(super) fn create_spice_options() -> (
+    GtkBox,
     CheckButton,
     Entry,
     Button,
     CheckButton,
+    CheckButton,
+    CheckButton,
+    DropDown,
+    Entry,
+    CheckButton,
+    Rc<RefCell<Vec<SharedFolder>>>,
+    gtk4::ListBox,
+    DropDown,
 ) {
+    let scrolled = ScrolledWindow::builder()
+        .hscrollbar_policy(gtk4::PolicyType::Never)
+        .vscrollbar_policy(gtk4::PolicyType::Automatic)
+        .vexpand(true)
+        .build();
+
+    let clamp = adw::Clamp::builder()
+        .maximum_size(600)
+        .tightening_threshold(400)
+        .build();
+
+    let content = GtkBox::new(Orientation::Vertical, 12);
+    content.set_margin_top(12);
+    content.set_margin_bottom(12);
+    content.set_margin_start(12);
+    content.set_margin_end(12);
+
+    // === Security Group ===
     let security_group = adw::PreferencesGroup::builder()
         .title(i18n("Security"))
         .build();
 
     // TLS enabled
-    let (tls_row, tls_check) = CheckboxRowBuilder::new("TLS Encryption")
-        .subtitle("Encrypt connection with TLS")
+    let tls_check = CheckButton::new();
+    let tls_row = adw::ActionRow::builder()
+        .title(i18n("TLS Encryption"))
+        .subtitle(i18n("Encrypt connection with TLS"))
+        .activatable_widget(&tls_check)
         .build();
+    tls_row.add_suffix(&tls_check);
     security_group.add(&tls_row);
 
     // CA certificate path
@@ -117,62 +95,73 @@ fn create_security_group() -> (
     ca_cert_row.add_suffix(&ca_cert_box);
     security_group.add(&ca_cert_row);
 
-    // Skip certificate verification
-    let (skip_verify_row, skip_verify_check) = CheckboxRowBuilder::new("Skip Verification")
-        .subtitle("Disable certificate verification (insecure)")
-        .build();
-    skip_verify_check.set_sensitive(false);
-    security_group.add(&skip_verify_row);
-
-    // Wire TLS toggle to CA cert and skip verify sensitivity
-    let ca_cert_row_clone = ca_cert_row.clone();
-    let skip_verify_check_clone = skip_verify_check.clone();
-    tls_check.connect_toggled(move |check| {
-        let on = check.is_active();
-        ca_cert_row_clone.set_sensitive(on);
-        skip_verify_check_clone.set_sensitive(on);
-        if !on {
-            skip_verify_check_clone.set_active(false);
+    // SPICE-2: Inline file validation for CA certificate path
+    ca_cert_entry.connect_changed(move |entry| {
+        let path_text = entry.text();
+        let path_str = path_text.trim();
+        if path_str.is_empty() {
+            entry.remove_css_class("error");
+            entry.set_tooltip_text(None);
+        } else {
+            let path = std::path::Path::new(path_str);
+            if path.exists() {
+                entry.remove_css_class("error");
+                entry.set_tooltip_text(None);
+            } else {
+                entry.add_css_class("error");
+                entry.set_tooltip_text(Some(&i18n("File not found")));
+            }
         }
     });
-    ca_cert_row.set_sensitive(false);
 
-    (
-        security_group,
-        tls_check,
-        ca_cert_entry,
-        ca_cert_button,
-        skip_verify_check,
-    )
-}
+    // Skip certificate verification
+    let skip_verify_check = CheckButton::new();
+    let skip_verify_row = adw::ActionRow::builder()
+        .title(i18n("Skip Verification"))
+        .subtitle(i18n("Disable certificate verification (insecure)"))
+        .activatable_widget(&skip_verify_check)
+        .build();
+    skip_verify_row.add_suffix(&skip_verify_check);
+    security_group.add(&skip_verify_row);
 
-/// Creates the Features preferences group
-fn create_features_group() -> (
-    adw::PreferencesGroup,
-    CheckButton,
-    CheckButton,
-    DropDown,
-    Entry,
-) {
+    content.append(&security_group);
+
+    // === Features Group ===
     let features_group = adw::PreferencesGroup::builder()
         .title(i18n("Features"))
         .build();
 
     // USB redirection
-    let (usb_row, usb_check) = CheckboxRowBuilder::new("USB Redirection")
-        .subtitle("Forward USB devices to remote")
+    let usb_check = CheckButton::new();
+    let usb_row = adw::ActionRow::builder()
+        .title(i18n("USB Redirection"))
+        .subtitle(i18n("Forward USB devices to remote"))
+        .activatable_widget(&usb_check)
         .build();
+    usb_row.add_suffix(&usb_check);
     features_group.add(&usb_row);
 
     // Clipboard sharing
-    let (clipboard_row, clipboard_check) = CheckboxRowBuilder::new("Clipboard Sharing")
-        .subtitle("Synchronize clipboard with remote")
-        .active(true)
+    let clipboard_check = CheckButton::new();
+    clipboard_check.set_active(true);
+    let clipboard_row = adw::ActionRow::builder()
+        .title(i18n("Clipboard Sharing"))
+        .subtitle(i18n("Synchronize clipboard with remote"))
+        .activatable_widget(&clipboard_check)
         .build();
+    clipboard_row.add_suffix(&clipboard_check);
     features_group.add(&clipboard_row);
 
     // Image compression
-    let compression_list = StringList::new(&[&i18n("Auto"), &i18n("Off"), "GLZ", "LZ", "QUIC"]);
+    let comp_items: Vec<String> = vec![
+        i18n("Auto"),
+        i18n("Off"),
+        "GLZ".to_string(),
+        "LZ".to_string(),
+        "QUIC".to_string(),
+    ];
+    let comp_strs: Vec<&str> = comp_items.iter().map(String::as_str).collect();
+    let compression_list = StringList::new(&comp_strs);
     let compression_dropdown = DropDown::new(Some(compression_list), gtk4::Expression::NONE);
     compression_dropdown.set_selected(0);
     compression_dropdown.set_valign(gtk4::Align::Center);
@@ -199,11 +188,136 @@ fn create_features_group() -> (
     proxy_row.add_suffix(&proxy_entry);
     features_group.add(&proxy_row);
 
+    // Show local cursor
+    let show_local_cursor_check = CheckButton::new();
+    show_local_cursor_check.set_active(true);
+    let show_cursor_row = adw::ActionRow::builder()
+        .title(i18n("Show Local Cursor"))
+        .subtitle(i18n("Hide to avoid double cursor in embedded mode"))
+        .activatable_widget(&show_local_cursor_check)
+        .build();
+    show_cursor_row.add_suffix(&show_local_cursor_check);
+    features_group.add(&show_cursor_row);
+
+    content.append(&features_group);
+
+    // Wire TLS toggle to CA cert and skip verify sensitivity
+    let ca_cert_row_clone = ca_cert_row.clone();
+    let skip_verify_check_clone = skip_verify_check.clone();
+    tls_check.connect_toggled(move |check| {
+        let on = check.is_active();
+        ca_cert_row_clone.set_sensitive(on);
+        skip_verify_check_clone.set_sensitive(on);
+        if !on {
+            skip_verify_check_clone.set_active(false);
+        }
+    });
+    ca_cert_row.set_sensitive(false);
+    skip_verify_check.set_sensitive(false);
+
+    // === Shared Folders Group ===
+    let folders_group = adw::PreferencesGroup::builder()
+        .title(i18n("Shared Folders"))
+        .description(i18n("Local folders accessible from remote session"))
+        .build();
+
+    let folders_list = gtk4::ListBox::builder()
+        .selection_mode(gtk4::SelectionMode::Single)
+        .css_classes(["boxed-list"])
+        .build();
+    folders_list.set_placeholder(Some(&Label::new(Some(&i18n("No shared folders")))));
+
+    let folders_scrolled = ScrolledWindow::builder()
+        .hscrollbar_policy(gtk4::PolicyType::Never)
+        .vscrollbar_policy(gtk4::PolicyType::Automatic)
+        .min_content_height(80)
+        .max_content_height(120)
+        .child(&folders_list)
+        .build();
+    folders_group.add(&folders_scrolled);
+
+    let folders_buttons = GtkBox::new(Orientation::Horizontal, 8);
+    folders_buttons.set_halign(gtk4::Align::End);
+    folders_buttons.set_margin_top(8);
+    let add_folder_btn = Button::builder()
+        .label(i18n("Add"))
+        .css_classes(["suggested-action"])
+        .build();
+    let remove_folder_btn = Button::builder()
+        .label(i18n("Remove"))
+        .sensitive(false)
+        .build();
+    folders_buttons.append(&add_folder_btn);
+    folders_buttons.append(&remove_folder_btn);
+    folders_group.add(&folders_buttons);
+
+    content.append(&folders_group);
+
+    let shared_folders: Rc<RefCell<Vec<SharedFolder>>> = Rc::new(RefCell::new(Vec::new()));
+
+    // Connect add folder button
+    super::shared_folders::connect_add_folder_button(
+        &add_folder_btn,
+        &folders_list,
+        &shared_folders,
+    );
+
+    // Connect remove folder button
+    super::shared_folders::connect_remove_folder_button(
+        &remove_folder_btn,
+        &folders_list,
+        &shared_folders,
+    );
+
+    // Enable/disable remove button based on selection
+    let remove_btn_for_selection = remove_folder_btn;
+    folders_list.connect_row_selected(move |_, row| {
+        remove_btn_for_selection.set_sensitive(row.is_some());
+    });
+
+    // === Connection Group (Jump Host) ===
+    let spice_connection_group = adw::PreferencesGroup::builder()
+        .title(i18n("Connection"))
+        .build();
+
+    let none_items: Vec<String> = vec![i18n("(None)")];
+    let none_refs: Vec<&str> = none_items.iter().map(String::as_str).collect();
+    let spice_jump_host_list = StringList::new(&none_refs);
+    let spice_jump_host_dropdown =
+        DropDown::new(Some(spice_jump_host_list), gtk4::Expression::NONE);
+    spice_jump_host_dropdown.set_selected(0);
+    spice_jump_host_dropdown.set_enable_search(true);
+    spice_jump_host_dropdown.set_size_request(200, -1);
+    spice_jump_host_dropdown.set_hexpand(false);
+
+    let spice_jump_host_row = adw::ActionRow::builder()
+        .title(i18n("Jump Host"))
+        .subtitle(i18n("Tunnel SPICE through an SSH connection"))
+        .build();
+    spice_jump_host_row.add_suffix(&spice_jump_host_dropdown);
+    spice_connection_group.add(&spice_jump_host_row);
+
+    content.append(&spice_connection_group);
+
+    clamp.set_child(Some(&content));
+    scrolled.set_child(Some(&clamp));
+
+    let vbox = GtkBox::new(Orientation::Vertical, 0);
+    vbox.append(&scrolled);
+
     (
-        features_group,
+        vbox,
+        tls_check,
+        ca_cert_entry,
+        ca_cert_button,
+        skip_verify_check,
         usb_check,
         clipboard_check,
         compression_dropdown,
         proxy_entry,
+        show_local_cursor_check,
+        shared_folders,
+        folders_list,
+        spice_jump_host_dropdown,
     )
 }

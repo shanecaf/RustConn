@@ -6,131 +6,124 @@
 //! - Encoding preferences
 //! - Compression and quality settings
 //! - View-only mode, scaling, clipboard sharing
+//! - Jump host selection
 
-// These functions are prepared for future refactoring when dialog.rs is further modularized
-#![allow(dead_code)]
-
-use super::protocol_layout::ProtocolLayoutBuilder;
-use super::widgets::{CheckboxRowBuilder, DropdownRowBuilder, EntryRowBuilder, SpinRowBuilder};
 use adw::prelude::*;
 use gtk4::prelude::*;
-use gtk4::{Box as GtkBox, CheckButton, DropDown, Entry, SpinButton};
+use gtk4::{
+    Box as GtkBox, CheckButton, DropDown, Entry, Orientation, ScrolledWindow, SpinButton,
+    StringList,
+};
 use libadwaita as adw;
 use rustconn_core::models::{ScaleOverride, VncClientMode, VncPerformanceMode};
 
 use crate::i18n::i18n;
 
-/// Return type for VNC options creation
-#[allow(clippy::type_complexity)]
-pub type VncOptionsWidgets = (
-    GtkBox,
-    DropDown,    // client_mode_dropdown
-    DropDown,    // performance_mode_dropdown
-    DropDown,    // encoding_dropdown
-    SpinButton,  // compression_spin
-    SpinButton,  // quality_spin
-    CheckButton, // view_only_check
-    CheckButton, // scaling_check
-    CheckButton, // clipboard_check
-    CheckButton, // show_local_cursor_check
-    DropDown,    // scale_override_dropdown
-    Entry,       // custom_args_entry
-);
-
 /// Creates the VNC options panel using libadwaita components following GNOME HIG.
-#[must_use]
-pub fn create_vnc_options() -> VncOptionsWidgets {
-    let (container, content) = ProtocolLayoutBuilder::new().build();
-
-    // === Display Group ===
-    let (
-        display_group,
-        client_mode_dropdown,
-        performance_mode_dropdown,
-        encoding_dropdown,
-        scale_override_dropdown,
-    ) = create_display_group();
-    content.append(&display_group);
-
-    // === Quality Group ===
-    let (quality_group, compression_spin, quality_spin) = create_quality_group();
-    content.append(&quality_group);
-
-    // VNC-2: Sync compression/quality with Performance Mode changes
-    let compression_clone = compression_spin.clone();
-    let quality_clone = quality_spin.clone();
-    performance_mode_dropdown.connect_selected_notify(move |dropdown| {
-        let (comp, qual) = match dropdown.selected() {
-            0 => (0.0, 9.0), // Quality
-            2 => (9.0, 0.0), // Speed
-            _ => (5.0, 5.0), // Balanced
-        };
-        compression_clone.set_value(comp);
-        quality_clone.set_value(qual);
-    });
-
-    // === Features Group ===
-    let (features_group, view_only_check, scaling_check, clipboard_check, show_local_cursor_check) =
-        create_features_group();
-    content.append(&features_group);
-
-    // === Advanced Group ===
-    let (advanced_group, custom_args_entry) = create_advanced_group();
-    content.append(&advanced_group);
-
-    (
-        container,
-        client_mode_dropdown,
-        performance_mode_dropdown,
-        encoding_dropdown,
-        compression_spin,
-        quality_spin,
-        view_only_check,
-        scaling_check,
-        clipboard_check,
-        show_local_cursor_check,
-        scale_override_dropdown,
-        custom_args_entry,
-    )
-}
-
-/// Creates the Display preferences group
-fn create_display_group() -> (
-    adw::PreferencesGroup,
+#[allow(clippy::type_complexity)]
+pub(super) fn create_vnc_options() -> (
+    GtkBox,
     DropDown,
     DropDown,
     DropDown,
+    SpinButton,
+    SpinButton,
+    CheckButton,
+    CheckButton,
+    CheckButton,
+    CheckButton,
+    DropDown,
+    Entry,
     DropDown,
 ) {
+    let scrolled = ScrolledWindow::builder()
+        .hscrollbar_policy(gtk4::PolicyType::Never)
+        .vscrollbar_policy(gtk4::PolicyType::Automatic)
+        .vexpand(true)
+        .build();
+
+    let clamp = adw::Clamp::builder()
+        .maximum_size(600)
+        .tightening_threshold(400)
+        .build();
+
+    let content = GtkBox::new(Orientation::Vertical, 12);
+    content.set_margin_top(12);
+    content.set_margin_bottom(12);
+    content.set_margin_start(12);
+    content.set_margin_end(12);
+
+    // === Display Group ===
     let display_group = adw::PreferencesGroup::builder()
         .title(i18n("Display"))
         .build();
 
     // Client mode dropdown
-    let client_mode_items: Vec<String> = vec![
+    let vnc_mode_items: Vec<String> = vec![
         i18n(VncClientMode::Embedded.display_name()),
         i18n(VncClientMode::External.display_name()),
     ];
-    let client_mode_strs: Vec<&str> = client_mode_items.iter().map(String::as_str).collect();
-    let (client_mode_row, client_mode_dropdown) = DropdownRowBuilder::new("Client Mode")
-        .subtitle("Embedded renders in tab, External opens separate window")
-        .items(&client_mode_strs)
+    let vnc_mode_strs: Vec<&str> = vnc_mode_items.iter().map(String::as_str).collect();
+    let client_mode_list = StringList::new(&vnc_mode_strs);
+    let client_mode_dropdown = DropDown::builder()
+        .model(&client_mode_list)
+        .valign(gtk4::Align::Center)
         .build();
+
+    let client_mode_row = adw::ActionRow::builder()
+        .title(i18n("Client Mode"))
+        .subtitle(i18n(
+            "Embedded renders in tab, External opens separate window",
+        ))
+        .build();
+    client_mode_row.add_suffix(&client_mode_dropdown);
     display_group.add(&client_mode_row);
 
     // Performance mode dropdown
-    let perf_items: Vec<String> = vec![
+    let vnc_perf_items: Vec<String> = vec![
         i18n(VncPerformanceMode::Quality.display_name()),
         i18n(VncPerformanceMode::Balanced.display_name()),
         i18n(VncPerformanceMode::Speed.display_name()),
     ];
-    let perf_strs: Vec<&str> = perf_items.iter().map(String::as_str).collect();
-    let (perf_row, performance_mode_dropdown) = DropdownRowBuilder::new("Performance Mode")
-        .subtitle("Quality/speed tradeoff for image rendering")
-        .items(&perf_strs)
-        .selected(1) // Default to Balanced
+    let vnc_perf_strs: Vec<&str> = vnc_perf_items.iter().map(String::as_str).collect();
+    let performance_mode_list = StringList::new(&vnc_perf_strs);
+    let performance_mode_dropdown = DropDown::builder()
+        .model(&performance_mode_list)
+        .valign(gtk4::Align::Center)
         .build();
-    display_group.add(&perf_row);
+    performance_mode_dropdown.set_selected(1); // Default to Balanced
+
+    let performance_mode_row = adw::ActionRow::builder()
+        .title(i18n("Performance Mode"))
+        .subtitle(i18n("Quality/speed tradeoff for image rendering"))
+        .build();
+    performance_mode_row.add_suffix(&performance_mode_dropdown);
+    display_group.add(&performance_mode_row);
+
+    // VNC-1: Encoding dropdown instead of free text entry
+    let encoding_items: Vec<String> = vec![
+        i18n("Auto"),
+        "Tight".to_string(),
+        "ZRLE".to_string(),
+        "Hextile".to_string(),
+        "Raw".to_string(),
+        "CopyRect".to_string(),
+    ];
+    let encoding_strs: Vec<&str> = encoding_items.iter().map(String::as_str).collect();
+    let encoding_list = StringList::new(&encoding_strs);
+    let encoding_dropdown = DropDown::builder()
+        .model(&encoding_list)
+        .valign(gtk4::Align::Center)
+        .build();
+
+    let encoding_row = adw::ActionRow::builder()
+        .title(i18n("Encoding"))
+        .subtitle(i18n(
+            "Preferred encoding method (overrides Performance Mode)",
+        ))
+        .build();
+    encoding_row.add_suffix(&encoding_dropdown);
+    display_group.add(&encoding_row);
 
     // Scale override dropdown (for embedded mode)
     let scale_items: Vec<String> = ScaleOverride::all()
@@ -138,91 +131,126 @@ fn create_display_group() -> (
         .map(|s| i18n(s.display_name()))
         .collect();
     let scale_strs: Vec<&str> = scale_items.iter().map(String::as_str).collect();
-    let (scale_row, scale_override_dropdown) = DropdownRowBuilder::new("Display Scale")
-        .subtitle("Override HiDPI scaling for embedded viewer")
-        .items(&scale_strs)
+    let scale_list = StringList::new(&scale_strs);
+    let scale_override_dropdown = DropDown::builder()
+        .model(&scale_list)
+        .valign(gtk4::Align::Center)
         .build();
+    let scale_row = adw::ActionRow::builder()
+        .title(i18n("Display Scale"))
+        .subtitle(i18n("Override HiDPI scaling for embedded viewer"))
+        .build();
+    scale_row.add_suffix(&scale_override_dropdown);
     display_group.add(&scale_row);
 
-    // VNC-1: Encoding dropdown instead of free text entry
-    let (encoding_row, encoding_dropdown) = DropdownRowBuilder::new("Encoding")
-        .subtitle("Preferred encoding method (overrides Performance Mode)")
-        .items(&["Auto", "Tight", "ZRLE", "Hextile", "Raw", "CopyRect"])
-        .build();
-    display_group.add(&encoding_row);
-
-    // Toggle scale row visibility based on client mode
+    // Show scale row only in embedded mode
     let scale_row_clone = scale_row.clone();
     client_mode_dropdown.connect_selected_notify(move |dropdown| {
         let is_embedded = dropdown.selected() == 0;
         scale_row_clone.set_visible(is_embedded);
     });
+    scale_row.set_visible(true); // Default: embedded
 
-    (
-        display_group,
-        client_mode_dropdown,
-        performance_mode_dropdown,
-        encoding_dropdown,
-        scale_override_dropdown,
-    )
-}
+    content.append(&display_group);
 
-/// Creates the Quality preferences group
-fn create_quality_group() -> (adw::PreferencesGroup, SpinButton, SpinButton) {
+    // === Quality Group ===
     let quality_group = adw::PreferencesGroup::builder()
         .title(i18n("Quality"))
         .build();
 
     // Compression
-    let (compression_row, compression_spin) = SpinRowBuilder::new("Compression")
-        .subtitle("0 (none) to 9 (maximum)")
-        .range(0.0, 9.0)
-        .value(6.0)
+    let compression_adj = gtk4::Adjustment::new(6.0, 0.0, 9.0, 1.0, 1.0, 0.0);
+    let compression_spin = SpinButton::builder()
+        .adjustment(&compression_adj)
+        .climb_rate(1.0)
+        .digits(0)
+        .valign(gtk4::Align::Center)
         .build();
+
+    let compression_row = adw::ActionRow::builder()
+        .title(i18n("Compression"))
+        .subtitle(i18n("0 (none) to 9 (maximum)"))
+        .build();
+    compression_row.add_suffix(&compression_spin);
     quality_group.add(&compression_row);
 
     // Quality
-    let (quality_row, quality_spin) = SpinRowBuilder::new("Quality")
-        .subtitle("0 (lowest) to 9 (highest)")
-        .range(0.0, 9.0)
-        .value(6.0)
+    let quality_adj = gtk4::Adjustment::new(6.0, 0.0, 9.0, 1.0, 1.0, 0.0);
+    let quality_spin = SpinButton::builder()
+        .adjustment(&quality_adj)
+        .climb_rate(1.0)
+        .digits(0)
+        .valign(gtk4::Align::Center)
         .build();
+
+    let quality_row = adw::ActionRow::builder()
+        .title(i18n("Quality"))
+        .subtitle(i18n("0 (lowest) to 9 (highest)"))
+        .build();
+    quality_row.add_suffix(&quality_spin);
     quality_group.add(&quality_row);
 
-    (quality_group, compression_spin, quality_spin)
-}
+    // VNC-2: Sync compression/quality with Performance Mode changes
+    let compression_spin_sync = compression_spin.clone();
+    let quality_spin_sync = quality_spin.clone();
+    performance_mode_dropdown.connect_selected_notify(move |dropdown| {
+        let (comp, qual) = match dropdown.selected() {
+            0 => (0.0, 9.0), // Quality
+            2 => (9.0, 0.0), // Speed
+            _ => (5.0, 5.0), // Balanced
+        };
+        compression_spin_sync.set_value(comp);
+        quality_spin_sync.set_value(qual);
+    });
 
-/// Creates the Features preferences group
-fn create_features_group() -> (
-    adw::PreferencesGroup,
-    CheckButton,
-    CheckButton,
-    CheckButton,
-    CheckButton,
-) {
+    content.append(&quality_group);
+
+    // === Features Group ===
     let features_group = adw::PreferencesGroup::builder()
         .title(i18n("Features"))
         .build();
 
     // View-only mode
-    let (view_only_row, view_only_check) = CheckboxRowBuilder::new("View-Only Mode")
-        .subtitle("Disable keyboard and mouse input")
+    let view_only_check = CheckButton::new();
+    let view_only_row = adw::ActionRow::builder()
+        .title(i18n("View-Only Mode"))
+        .subtitle(i18n("Disable keyboard and mouse input"))
+        .activatable_widget(&view_only_check)
         .build();
+    view_only_row.add_suffix(&view_only_check);
     features_group.add(&view_only_row);
 
     // Scaling
-    let (scaling_row, scaling_check) = CheckboxRowBuilder::new("Scale Display")
-        .subtitle("Fit remote desktop to window size")
-        .active(true)
+    let scaling_check = CheckButton::new();
+    scaling_check.set_active(true);
+    let scaling_row = adw::ActionRow::builder()
+        .title(i18n("Scale Display"))
+        .subtitle(i18n("Fit remote desktop to window size"))
+        .activatable_widget(&scaling_check)
         .build();
+    scaling_row.add_suffix(&scaling_check);
     features_group.add(&scaling_row);
 
     // Clipboard sharing
-    let (clipboard_row, clipboard_check) = CheckboxRowBuilder::new("Clipboard Sharing")
-        .subtitle("Synchronize clipboard with remote")
-        .active(true)
+    let clipboard_check = CheckButton::new();
+    clipboard_check.set_active(true);
+    let clipboard_row = adw::ActionRow::builder()
+        .title(i18n("Clipboard Sharing"))
+        .subtitle(i18n("Synchronize clipboard with remote"))
+        .activatable_widget(&clipboard_check)
         .build();
+    clipboard_row.add_suffix(&clipboard_check);
     features_group.add(&clipboard_row);
+
+    // Show local cursor
+    let vnc_show_local_cursor_check = CheckButton::builder().active(true).build();
+    let show_cursor_row = adw::ActionRow::builder()
+        .title(i18n("Show Local Cursor"))
+        .subtitle(i18n("Hide to avoid double cursor in embedded mode"))
+        .activatable_widget(&vnc_show_local_cursor_check)
+        .build();
+    show_cursor_row.add_suffix(&vnc_show_local_cursor_check);
+    features_group.add(&show_cursor_row);
 
     // VNC-3: Password info row
     let password_info_row = adw::ActionRow::builder()
@@ -233,33 +261,70 @@ fn create_features_group() -> (
     password_info_row.add_prefix(&gtk4::Image::from_icon_name("dialog-information-symbolic"));
     features_group.add(&password_info_row);
 
-    // Show local cursor
-    let (show_cursor_row, show_local_cursor_check) = CheckboxRowBuilder::new("Show Local Cursor")
-        .subtitle("Hide to avoid double cursor in embedded mode")
-        .active(true)
-        .build();
-    features_group.add(&show_cursor_row);
+    content.append(&features_group);
 
-    (
-        features_group,
-        view_only_check,
-        scaling_check,
-        clipboard_check,
-        show_local_cursor_check,
-    )
-}
-
-/// Creates the Advanced preferences group
-fn create_advanced_group() -> (adw::PreferencesGroup, Entry) {
+    // === Advanced Group ===
     let advanced_group = adw::PreferencesGroup::builder()
         .title(i18n("Advanced"))
         .build();
 
-    let (args_row, custom_args_entry) = EntryRowBuilder::new("Custom Arguments")
-        .subtitle("Extra command-line options for vncviewer")
-        .placeholder("Additional arguments for external client")
+    let custom_args_entry = Entry::builder()
+        .hexpand(true)
+        .placeholder_text(i18n("Additional arguments for external client"))
+        .valign(gtk4::Align::Center)
         .build();
+
+    let args_row = adw::ActionRow::builder()
+        .title(i18n("Custom Arguments"))
+        .subtitle(i18n("Extra command-line options for vncviewer"))
+        .build();
+    args_row.add_suffix(&custom_args_entry);
     advanced_group.add(&args_row);
 
-    (advanced_group, custom_args_entry)
+    content.append(&advanced_group);
+
+    // === Connection Group (Jump Host) ===
+    let vnc_connection_group = adw::PreferencesGroup::builder()
+        .title(i18n("Connection"))
+        .build();
+
+    let none_items: Vec<String> = vec![i18n("(None)")];
+    let none_refs: Vec<&str> = none_items.iter().map(String::as_str).collect();
+    let vnc_jump_host_list = StringList::new(&none_refs);
+    let vnc_jump_host_dropdown = DropDown::new(Some(vnc_jump_host_list), gtk4::Expression::NONE);
+    vnc_jump_host_dropdown.set_selected(0);
+    vnc_jump_host_dropdown.set_enable_search(true);
+    vnc_jump_host_dropdown.set_size_request(200, -1);
+    vnc_jump_host_dropdown.set_hexpand(false);
+
+    let vnc_jump_host_row = adw::ActionRow::builder()
+        .title(i18n("Jump Host"))
+        .subtitle(i18n("Tunnel VNC through an SSH connection"))
+        .build();
+    vnc_jump_host_row.add_suffix(&vnc_jump_host_dropdown);
+    vnc_connection_group.add(&vnc_jump_host_row);
+
+    content.append(&vnc_connection_group);
+
+    clamp.set_child(Some(&content));
+    scrolled.set_child(Some(&clamp));
+
+    let vbox = GtkBox::new(Orientation::Vertical, 0);
+    vbox.append(&scrolled);
+
+    (
+        vbox,
+        client_mode_dropdown,
+        performance_mode_dropdown,
+        encoding_dropdown,
+        compression_spin,
+        quality_spin,
+        view_only_check,
+        scaling_check,
+        clipboard_check,
+        vnc_show_local_cursor_check,
+        scale_override_dropdown,
+        custom_args_entry,
+        vnc_jump_host_dropdown,
+    )
 }

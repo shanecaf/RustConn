@@ -19,6 +19,7 @@ use crate::i18n::i18n;
 /// - The preferences group widget
 /// - A reference-counted vector of shared folders
 /// - The list box widget for displaying folders
+#[allow(dead_code)]
 #[must_use]
 pub fn create_shared_folders_group() -> (
     adw::PreferencesGroup,

@@ -5,61 +5,98 @@
 //! - Provider-specific configuration fields
 //! - Custom arguments for CLI commands
 
-// These functions are prepared for future refactoring when dialog.rs is further modularized
-#![allow(dead_code)]
 // OCI Bastion has target_id and target_ip fields which are semantically different
 #![allow(clippy::similar_names)]
 
-use super::protocol_layout::ProtocolLayoutBuilder;
 use adw::prelude::*;
 use gtk4::prelude::*;
-use gtk4::{Box as GtkBox, DropDown, Entry, Orientation, Stack, StringList};
+use gtk4::{Box as GtkBox, DropDown, Entry, Orientation, ScrolledWindow, Stack, StringList};
 use libadwaita as adw;
 
-use crate::i18n::{i18n, i18n_f};
+use crate::i18n::i18n;
 
-/// Return type for Zero Trust options creation
-#[allow(clippy::type_complexity)]
-pub type ZeroTrustOptionsWidgets = (
+/// Creates the Zero Trust options panel with provider-specific fields using libadwaita.
+#[allow(clippy::type_complexity, clippy::too_many_lines)]
+pub fn create_zerotrust_options() -> (
     GtkBox,
-    DropDown,      // provider_dropdown
-    Stack,         // provider_stack
-    adw::EntryRow, // aws_target
-    adw::EntryRow, // aws_profile
-    adw::EntryRow, // aws_region
-    adw::EntryRow, // gcp_instance
-    adw::EntryRow, // gcp_zone
-    adw::EntryRow, // gcp_project
-    adw::EntryRow, // azure_bastion_resource_id
-    adw::EntryRow, // azure_bastion_rg
-    adw::EntryRow, // azure_bastion_name
-    adw::EntryRow, // azure_ssh_vm
-    adw::EntryRow, // azure_ssh_rg
-    adw::EntryRow, // oci_bastion_id
-    adw::EntryRow, // oci_target_id
-    adw::EntryRow, // oci_target_ip
+    DropDown,
+    Stack,
+    adw::EntryRow,
+    adw::EntryRow,
+    adw::EntryRow,
+    adw::EntryRow,
+    adw::EntryRow,
+    adw::EntryRow,
+    adw::EntryRow,
+    adw::EntryRow,
+    adw::EntryRow,
+    adw::EntryRow,
+    adw::EntryRow,
+    adw::EntryRow,
+    adw::EntryRow,
+    adw::EntryRow,
     adw::EntryRow, // oci_ssh_key
     adw::SpinRow,  // oci_session_ttl
-    adw::EntryRow, // cf_hostname
-    adw::EntryRow, // teleport_host
-    adw::EntryRow, // teleport_cluster
-    adw::EntryRow, // tailscale_host
-    adw::EntryRow, // boundary_target
-    adw::EntryRow, // boundary_addr
+    adw::EntryRow,
+    adw::EntryRow,
+    adw::EntryRow,
+    adw::EntryRow,
+    adw::EntryRow,
+    adw::EntryRow,
     adw::EntryRow, // hoop_connection_name
     adw::EntryRow, // hoop_gateway_url
     adw::EntryRow, // hoop_grpc_url
-    adw::EntryRow, // generic_command
-    Entry,         // custom_args_entry
-);
+    adw::EntryRow,
+    Entry,
+) {
+    let scrolled = ScrolledWindow::builder()
+        .hscrollbar_policy(gtk4::PolicyType::Never)
+        .vscrollbar_policy(gtk4::PolicyType::Automatic)
+        .vexpand(true)
+        .build();
 
-/// Creates the Zero Trust options panel using libadwaita components following GNOME HIG.
-#[must_use]
-pub fn create_zerotrust_options() -> ZeroTrustOptionsWidgets {
-    let (container, content) = ProtocolLayoutBuilder::new().build();
+    let clamp = adw::Clamp::builder()
+        .maximum_size(600)
+        .tightening_threshold(400)
+        .build();
+
+    let content = GtkBox::new(Orientation::Vertical, 12);
+    content.set_margin_top(12);
+    content.set_margin_bottom(12);
+    content.set_margin_start(12);
+    content.set_margin_end(12);
 
     // === Provider Selection Group ===
-    let (provider_group, provider_dropdown) = create_provider_selection();
+    let provider_group = adw::PreferencesGroup::builder()
+        .title(i18n("Provider"))
+        .build();
+
+    let zt_items: Vec<String> = vec![
+        i18n("AWS Session Manager"),
+        i18n("GCP IAP Tunnel"),
+        i18n("Azure Bastion"),
+        i18n("Azure SSH (AAD)"),
+        i18n("OCI Bastion"),
+        i18n("Cloudflare Access"),
+        i18n("Teleport"),
+        i18n("Tailscale SSH"),
+        i18n("HashiCorp Boundary"),
+        i18n("Hoop.dev"),
+        i18n("Generic Command"),
+    ];
+    let zt_strs: Vec<&str> = zt_items.iter().map(String::as_str).collect();
+    let provider_list = StringList::new(&zt_strs);
+    let provider_dropdown = DropDown::new(Some(provider_list), gtk4::Expression::NONE);
+    provider_dropdown.set_selected(0);
+    provider_dropdown.set_valign(gtk4::Align::Center);
+
+    let provider_row = adw::ActionRow::builder()
+        .title(i18n("Zero Trust Provider"))
+        .subtitle(i18n("Select your identity-aware proxy service"))
+        .build();
+    provider_row.add_suffix(&provider_dropdown);
+    provider_group.add(&provider_row);
+
     content.append(&provider_group);
 
     // Provider-specific stack
@@ -67,50 +104,50 @@ pub fn create_zerotrust_options() -> ZeroTrustOptionsWidgets {
     provider_stack.set_vexpand(true);
 
     // AWS SSM options
-    let (aws_box, aws_target, aws_profile, aws_region) = create_aws_ssm_fields();
+    let (aws_box, aws_target, aws_profile, aws_region) = create_aws_ssm_fields_adw();
     provider_stack.add_named(&aws_box, Some("aws_ssm"));
 
     // GCP IAP options
-    let (gcp_box, gcp_instance, gcp_zone, gcp_project) = create_gcp_iap_fields();
+    let (gcp_box, gcp_instance, gcp_zone, gcp_project) = create_gcp_iap_fields_adw();
     provider_stack.add_named(&gcp_box, Some("gcp_iap"));
 
     // Azure Bastion options
     let (azure_bastion_box, azure_bastion_resource_id, azure_bastion_rg, azure_bastion_name) =
-        create_azure_bastion_fields();
+        create_azure_bastion_fields_adw();
     provider_stack.add_named(&azure_bastion_box, Some("azure_bastion"));
 
     // Azure SSH options
-    let (azure_ssh_box, azure_ssh_vm, azure_ssh_rg) = create_azure_ssh_fields();
+    let (azure_ssh_box, azure_ssh_vm, azure_ssh_rg) = create_azure_ssh_fields_adw();
     provider_stack.add_named(&azure_ssh_box, Some("azure_ssh"));
 
     // OCI Bastion options
     let (oci_box, oci_bastion_id, oci_target_id, oci_target_ip, oci_ssh_key, oci_session_ttl) =
-        create_oci_bastion_fields();
+        create_oci_bastion_fields_adw();
     provider_stack.add_named(&oci_box, Some("oci_bastion"));
 
     // Cloudflare Access options
-    let (cf_box, cf_hostname) = create_cloudflare_fields();
+    let (cf_box, cf_hostname) = create_cloudflare_fields_adw();
     provider_stack.add_named(&cf_box, Some("cloudflare"));
 
     // Teleport options
-    let (teleport_box, teleport_host, teleport_cluster) = create_teleport_fields();
+    let (teleport_box, teleport_host, teleport_cluster) = create_teleport_fields_adw();
     provider_stack.add_named(&teleport_box, Some("teleport"));
 
     // Tailscale SSH options
-    let (tailscale_box, tailscale_host) = create_tailscale_fields();
+    let (tailscale_box, tailscale_host) = create_tailscale_fields_adw();
     provider_stack.add_named(&tailscale_box, Some("tailscale"));
 
     // Boundary options
-    let (boundary_box, boundary_target, boundary_addr) = create_boundary_fields();
+    let (boundary_box, boundary_target, boundary_addr) = create_boundary_fields_adw();
     provider_stack.add_named(&boundary_box, Some("boundary"));
 
     // Hoop.dev options
     let (hoop_box, hoop_connection_name, hoop_gateway_url, hoop_grpc_url) =
-        create_hoop_dev_fields();
+        create_hoop_dev_fields_adw();
     provider_stack.add_named(&hoop_box, Some("hoop_dev"));
 
     // Generic command options
-    let (generic_box, generic_command) = create_generic_fields();
+    let (generic_box, generic_command) = create_generic_zt_fields_adw();
     provider_stack.add_named(&generic_box, Some("generic"));
 
     // Set initial view
@@ -118,48 +155,8 @@ pub fn create_zerotrust_options() -> ZeroTrustOptionsWidgets {
 
     content.append(&provider_stack);
 
-    // ZT-1: CLI availability warning
-    let cli_warning_row = adw::ActionRow::builder()
-        .title(i18n("CLI not found"))
-        .subtitle(i18n(
-            "Install the required CLI tool or use Flatpak Components",
-        ))
-        .build();
-    cli_warning_row.add_prefix(&gtk4::Image::from_icon_name("dialog-warning-symbolic"));
-    cli_warning_row.add_css_class("warning");
-    let cli_warning_group = adw::PreferencesGroup::new();
-    cli_warning_group.add(&cli_warning_row);
-    content.append(&cli_warning_group);
-
-    // Check initial provider CLI
-    let cli_commands = [
-        "aws",
-        "gcloud",
-        "az",
-        "az",
-        "oci",
-        "cloudflared",
-        "tsh",
-        "tailscale",
-        "boundary",
-        "hoop",
-        "",
-    ];
-    let initial_cli = cli_commands[0];
-    let found = initial_cli.is_empty()
-        || std::process::Command::new("which")
-            .arg(initial_cli)
-            .output()
-            .is_ok_and(|o| o.status.success());
-    cli_warning_group.set_visible(!found);
-    if !found {
-        cli_warning_row.set_title(&i18n_f("{} CLI not found", &[initial_cli]));
-    }
-
-    // Connect provider dropdown to stack + CLI check
+    // Connect provider dropdown to stack
     let stack_clone = provider_stack.clone();
-    let cli_warning_group_clone = cli_warning_group.clone();
-    let cli_warning_row_clone = cli_warning_row.clone();
     provider_dropdown.connect_selected_notify(move |dropdown| {
         let providers = [
             "aws_ssm",
@@ -177,30 +174,37 @@ pub fn create_zerotrust_options() -> ZeroTrustOptionsWidgets {
         let selected = dropdown.selected() as usize;
         if selected < providers.len() {
             stack_clone.set_visible_child_name(providers[selected]);
-
-            // ZT-1: Check CLI availability for selected provider
-            let cli = cli_commands[selected];
-            if cli.is_empty() {
-                cli_warning_group_clone.set_visible(false);
-            } else {
-                let available = std::process::Command::new("which")
-                    .arg(cli)
-                    .output()
-                    .is_ok_and(|o| o.status.success());
-                cli_warning_group_clone.set_visible(!available);
-                if !available {
-                    cli_warning_row_clone.set_title(&i18n_f("{} CLI not found", &[cli]));
-                }
-            }
         }
     });
 
     // === Advanced Group ===
-    let (advanced_group, custom_args_entry) = create_advanced_group();
+    let advanced_group = adw::PreferencesGroup::builder()
+        .title(i18n("Advanced"))
+        .build();
+
+    let custom_args_entry = Entry::builder()
+        .hexpand(true)
+        .placeholder_text(i18n("Additional command-line arguments"))
+        .valign(gtk4::Align::Center)
+        .build();
+
+    let args_row = adw::ActionRow::builder()
+        .title(i18n("Custom Arguments"))
+        .subtitle(i18n("Extra CLI options for the provider command"))
+        .build();
+    args_row.add_suffix(&custom_args_entry);
+    advanced_group.add(&args_row);
+
     content.append(&advanced_group);
 
+    clamp.set_child(Some(&content));
+    scrolled.set_child(Some(&clamp));
+
+    let vbox = GtkBox::new(Orientation::Vertical, 0);
+    vbox.append(&scrolled);
+
     (
-        container,
+        vbox,
         provider_dropdown,
         provider_stack,
         aws_target,
@@ -233,70 +237,14 @@ pub fn create_zerotrust_options() -> ZeroTrustOptionsWidgets {
     )
 }
 
-/// Creates the provider selection group
-fn create_provider_selection() -> (adw::PreferencesGroup, DropDown) {
-    let provider_group = adw::PreferencesGroup::builder()
-        .title(i18n("Provider"))
-        .build();
-
-    let provider_list = StringList::new(&[
-        &i18n("AWS Session Manager"),
-        &i18n("GCP IAP Tunnel"),
-        &i18n("Azure Bastion"),
-        &i18n("Azure SSH (AAD)"),
-        &i18n("OCI Bastion"),
-        &i18n("Cloudflare Access"),
-        &i18n("Teleport"),
-        &i18n("Tailscale SSH"),
-        &i18n("HashiCorp Boundary"),
-        &i18n("Hoop.dev"),
-        &i18n("Generic Command"),
-    ]);
-    let provider_dropdown = DropDown::new(Some(provider_list), gtk4::Expression::NONE);
-    provider_dropdown.set_selected(0);
-    provider_dropdown.set_valign(gtk4::Align::Center);
-
-    let provider_row = adw::ActionRow::builder()
-        .title(i18n("Zero Trust Provider"))
-        .subtitle(i18n("Select your identity-aware proxy service"))
-        .build();
-    provider_row.add_suffix(&provider_dropdown);
-    provider_group.add(&provider_row);
-
-    (provider_group, provider_dropdown)
-}
-
-/// Creates the advanced options group
-fn create_advanced_group() -> (adw::PreferencesGroup, Entry) {
-    let advanced_group = adw::PreferencesGroup::builder()
-        .title(i18n("Advanced"))
-        .build();
-
-    let custom_args_entry = Entry::builder()
-        .hexpand(true)
-        .placeholder_text(i18n("Additional command-line arguments"))
-        .valign(gtk4::Align::Center)
-        .build();
-
-    let args_row = adw::ActionRow::builder()
-        .title(i18n("Custom Arguments"))
-        .subtitle(i18n("Extra CLI options for the provider command"))
-        .build();
-    args_row.add_suffix(&custom_args_entry);
-    advanced_group.add(&args_row);
-
-    (advanced_group, custom_args_entry)
-}
-
-/// Creates AWS SSM provider fields
-fn create_aws_ssm_fields() -> (GtkBox, adw::EntryRow, adw::EntryRow, adw::EntryRow) {
+/// Creates AWS SSM provider fields using libadwaita
+fn create_aws_ssm_fields_adw() -> (GtkBox, adw::EntryRow, adw::EntryRow, adw::EntryRow) {
     let group = adw::PreferencesGroup::builder()
         .title(i18n("AWS Session Manager"))
         .description(i18n("Connect via AWS Systems Manager"))
         .build();
 
     let target_row = adw::EntryRow::builder().title(i18n("Instance ID")).build();
-    target_row.set_text("");
     group.add(&target_row);
 
     let profile_row = adw::EntryRow::builder().title(i18n("AWS Profile")).build();
@@ -304,7 +252,6 @@ fn create_aws_ssm_fields() -> (GtkBox, adw::EntryRow, adw::EntryRow, adw::EntryR
     group.add(&profile_row);
 
     let region_row = adw::EntryRow::builder().title(i18n("Region")).build();
-    region_row.set_text("");
     group.add(&region_row);
 
     let vbox = GtkBox::new(Orientation::Vertical, 0);
@@ -313,8 +260,8 @@ fn create_aws_ssm_fields() -> (GtkBox, adw::EntryRow, adw::EntryRow, adw::EntryR
     (vbox, target_row, profile_row, region_row)
 }
 
-/// Creates GCP IAP provider fields
-fn create_gcp_iap_fields() -> (GtkBox, adw::EntryRow, adw::EntryRow, adw::EntryRow) {
+/// Creates GCP IAP provider fields using libadwaita
+fn create_gcp_iap_fields_adw() -> (GtkBox, adw::EntryRow, adw::EntryRow, adw::EntryRow) {
     let group = adw::PreferencesGroup::builder()
         .title(i18n("GCP IAP Tunnel"))
         .description(i18n("Connect via Identity-Aware Proxy"))
@@ -323,15 +270,12 @@ fn create_gcp_iap_fields() -> (GtkBox, adw::EntryRow, adw::EntryRow, adw::EntryR
     let instance_row = adw::EntryRow::builder()
         .title(i18n("Instance Name"))
         .build();
-    instance_row.set_text("");
     group.add(&instance_row);
 
     let zone_row = adw::EntryRow::builder().title(i18n("Zone")).build();
-    zone_row.set_text("");
     group.add(&zone_row);
 
     let project_row = adw::EntryRow::builder().title(i18n("Project")).build();
-    project_row.set_text("");
     group.add(&project_row);
 
     let vbox = GtkBox::new(Orientation::Vertical, 0);
@@ -340,8 +284,8 @@ fn create_gcp_iap_fields() -> (GtkBox, adw::EntryRow, adw::EntryRow, adw::EntryR
     (vbox, instance_row, zone_row, project_row)
 }
 
-/// Creates Azure Bastion provider fields
-fn create_azure_bastion_fields() -> (GtkBox, adw::EntryRow, adw::EntryRow, adw::EntryRow) {
+/// Creates Azure Bastion provider fields using libadwaita
+fn create_azure_bastion_fields_adw() -> (GtkBox, adw::EntryRow, adw::EntryRow, adw::EntryRow) {
     let group = adw::PreferencesGroup::builder()
         .title(i18n("Azure Bastion"))
         .description(i18n("Connect via Azure Bastion service"))
@@ -350,17 +294,14 @@ fn create_azure_bastion_fields() -> (GtkBox, adw::EntryRow, adw::EntryRow, adw::
     let resource_id_row = adw::EntryRow::builder()
         .title(i18n("Target Resource ID"))
         .build();
-    resource_id_row.set_text("");
     group.add(&resource_id_row);
 
     let rg_row = adw::EntryRow::builder()
         .title(i18n("Resource Group"))
         .build();
-    rg_row.set_text("");
     group.add(&rg_row);
 
     let name_row = adw::EntryRow::builder().title(i18n("Bastion Name")).build();
-    name_row.set_text("");
     group.add(&name_row);
 
     let vbox = GtkBox::new(Orientation::Vertical, 0);
@@ -369,21 +310,19 @@ fn create_azure_bastion_fields() -> (GtkBox, adw::EntryRow, adw::EntryRow, adw::
     (vbox, resource_id_row, rg_row, name_row)
 }
 
-/// Creates Azure SSH (AAD) provider fields
-fn create_azure_ssh_fields() -> (GtkBox, adw::EntryRow, adw::EntryRow) {
+/// Creates Azure SSH (AAD) provider fields using libadwaita
+fn create_azure_ssh_fields_adw() -> (GtkBox, adw::EntryRow, adw::EntryRow) {
     let group = adw::PreferencesGroup::builder()
         .title(i18n("Azure SSH (AAD)"))
         .description(i18n("Connect via Azure AD authentication"))
         .build();
 
     let vm_row = adw::EntryRow::builder().title(i18n("VM Name")).build();
-    vm_row.set_text("");
     group.add(&vm_row);
 
     let rg_row = adw::EntryRow::builder()
         .title(i18n("Resource Group"))
         .build();
-    rg_row.set_text("");
     group.add(&rg_row);
 
     let vbox = GtkBox::new(Orientation::Vertical, 0);
@@ -392,8 +331,8 @@ fn create_azure_ssh_fields() -> (GtkBox, adw::EntryRow, adw::EntryRow) {
     (vbox, vm_row, rg_row)
 }
 
-/// Creates OCI Bastion provider fields
-fn create_oci_bastion_fields() -> (
+/// Creates OCI Bastion provider fields using libadwaita
+fn create_oci_bastion_fields_adw() -> (
     GtkBox,
     adw::EntryRow,
     adw::EntryRow,
@@ -407,15 +346,12 @@ fn create_oci_bastion_fields() -> (
         .build();
 
     let bastion_id_row = adw::EntryRow::builder().title(i18n("Bastion OCID")).build();
-    bastion_id_row.set_text("");
     group.add(&bastion_id_row);
 
     let target_id_row = adw::EntryRow::builder().title(i18n("Target OCID")).build();
-    target_id_row.set_text("");
     group.add(&target_id_row);
 
     let target_ip_row = adw::EntryRow::builder().title(i18n("Target IP")).build();
-    target_ip_row.set_text("");
     group.add(&target_ip_row);
 
     // ZT-2: SSH Public Key file path
@@ -447,15 +383,14 @@ fn create_oci_bastion_fields() -> (
     )
 }
 
-/// Creates Cloudflare Access provider fields
-fn create_cloudflare_fields() -> (GtkBox, adw::EntryRow) {
+/// Creates Cloudflare Access provider fields using libadwaita
+fn create_cloudflare_fields_adw() -> (GtkBox, adw::EntryRow) {
     let group = adw::PreferencesGroup::builder()
         .title(i18n("Cloudflare Access"))
         .description(i18n("Connect via Cloudflare Zero Trust"))
         .build();
 
     let hostname_row = adw::EntryRow::builder().title(i18n("Hostname")).build();
-    hostname_row.set_text("");
     group.add(&hostname_row);
 
     let vbox = GtkBox::new(Orientation::Vertical, 0);
@@ -464,19 +399,17 @@ fn create_cloudflare_fields() -> (GtkBox, adw::EntryRow) {
     (vbox, hostname_row)
 }
 
-/// Creates Teleport provider fields
-fn create_teleport_fields() -> (GtkBox, adw::EntryRow, adw::EntryRow) {
+/// Creates Teleport provider fields using libadwaita
+fn create_teleport_fields_adw() -> (GtkBox, adw::EntryRow, adw::EntryRow) {
     let group = adw::PreferencesGroup::builder()
         .title(i18n("Teleport"))
         .description(i18n("Connect via Gravitational Teleport"))
         .build();
 
     let host_row = adw::EntryRow::builder().title(i18n("Node Name")).build();
-    host_row.set_text("");
     group.add(&host_row);
 
     let cluster_row = adw::EntryRow::builder().title(i18n("Cluster")).build();
-    cluster_row.set_text("");
     group.add(&cluster_row);
 
     let vbox = GtkBox::new(Orientation::Vertical, 0);
@@ -485,8 +418,8 @@ fn create_teleport_fields() -> (GtkBox, adw::EntryRow, adw::EntryRow) {
     (vbox, host_row, cluster_row)
 }
 
-/// Creates Tailscale SSH provider fields
-fn create_tailscale_fields() -> (GtkBox, adw::EntryRow) {
+/// Creates Tailscale SSH provider fields using libadwaita
+fn create_tailscale_fields_adw() -> (GtkBox, adw::EntryRow) {
     let group = adw::PreferencesGroup::builder()
         .title(i18n("Tailscale SSH"))
         .description(i18n("Connect via Tailscale network"))
@@ -495,7 +428,6 @@ fn create_tailscale_fields() -> (GtkBox, adw::EntryRow) {
     let host_row = adw::EntryRow::builder()
         .title(i18n("Tailscale Host"))
         .build();
-    host_row.set_text("");
     group.add(&host_row);
 
     let vbox = GtkBox::new(Orientation::Vertical, 0);
@@ -504,21 +436,19 @@ fn create_tailscale_fields() -> (GtkBox, adw::EntryRow) {
     (vbox, host_row)
 }
 
-/// Creates HashiCorp Boundary provider fields
-fn create_boundary_fields() -> (GtkBox, adw::EntryRow, adw::EntryRow) {
+/// Creates HashiCorp Boundary provider fields using libadwaita
+fn create_boundary_fields_adw() -> (GtkBox, adw::EntryRow, adw::EntryRow) {
     let group = adw::PreferencesGroup::builder()
         .title(i18n("HashiCorp Boundary"))
         .description(i18n("Connect via Boundary proxy"))
         .build();
 
     let target_row = adw::EntryRow::builder().title(i18n("Target ID")).build();
-    target_row.set_text("");
     group.add(&target_row);
 
     let addr_row = adw::EntryRow::builder()
         .title(i18n("Controller Address"))
         .build();
-    addr_row.set_text("");
     group.add(&addr_row);
 
     let vbox = GtkBox::new(Orientation::Vertical, 0);
@@ -527,8 +457,8 @@ fn create_boundary_fields() -> (GtkBox, adw::EntryRow, adw::EntryRow) {
     (vbox, target_row, addr_row)
 }
 
-/// Creates Hoop.dev provider fields
-fn create_hoop_dev_fields() -> (GtkBox, adw::EntryRow, adw::EntryRow, adw::EntryRow) {
+/// Creates Hoop.dev provider fields using libadwaita
+fn create_hoop_dev_fields_adw() -> (GtkBox, adw::EntryRow, adw::EntryRow, adw::EntryRow) {
     let group = adw::PreferencesGroup::builder()
         .title(i18n("Hoop.dev"))
         .description(i18n("Connect via Hoop.dev zero-trust gateway"))
@@ -537,18 +467,12 @@ fn create_hoop_dev_fields() -> (GtkBox, adw::EntryRow, adw::EntryRow, adw::Entry
     let connection_name_row = adw::EntryRow::builder()
         .title(i18n("Connection Name"))
         .build();
-    connection_name_row.set_text("");
-    connection_name_row.set_property("placeholder-text", &i18n("e.g., my-database"));
     group.add(&connection_name_row);
 
     let gateway_url_row = adw::EntryRow::builder().title(i18n("Gateway URL")).build();
-    gateway_url_row.set_text("");
-    gateway_url_row.set_property("placeholder-text", &i18n("e.g., https://app.hoop.dev"));
     group.add(&gateway_url_row);
 
     let grpc_url_row = adw::EntryRow::builder().title(i18n("gRPC URL")).build();
-    grpc_url_row.set_text("");
-    grpc_url_row.set_property("placeholder-text", &i18n("e.g., grpc.hoop.dev:8443"));
     group.add(&grpc_url_row);
 
     let vbox = GtkBox::new(Orientation::Vertical, 0);
@@ -557,8 +481,8 @@ fn create_hoop_dev_fields() -> (GtkBox, adw::EntryRow, adw::EntryRow, adw::Entry
     (vbox, connection_name_row, gateway_url_row, grpc_url_row)
 }
 
-/// Creates Generic Zero Trust provider fields
-fn create_generic_fields() -> (GtkBox, adw::EntryRow) {
+/// Creates Generic Zero Trust provider fields using libadwaita
+fn create_generic_zt_fields_adw() -> (GtkBox, adw::EntryRow) {
     let group = adw::PreferencesGroup::builder()
         .title(i18n("Generic Command"))
         .description(i18n("Custom command for unsupported providers"))
@@ -567,16 +491,7 @@ fn create_generic_fields() -> (GtkBox, adw::EntryRow) {
     let command_row = adw::EntryRow::builder()
         .title(i18n("Command Template"))
         .build();
-    command_row.set_text("");
-    // ZT-3: Document supported placeholders
-    let placeholder_row = adw::ActionRow::builder()
-        .title(i18n("Placeholders"))
-        .subtitle(i18n("Supports ${host}, ${user}, ${port} substitution"))
-        .activatable(false)
-        .build();
-    placeholder_row.add_prefix(&gtk4::Image::from_icon_name("dialog-information-symbolic"));
     group.add(&command_row);
-    group.add(&placeholder_row);
 
     let vbox = GtkBox::new(Orientation::Vertical, 0);
     vbox.append(&group);

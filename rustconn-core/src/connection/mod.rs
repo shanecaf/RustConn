@@ -15,7 +15,6 @@
 //! transient connection failures with exponential backoff.
 
 pub mod automation_inheritance;
-pub mod fallback;
 mod interning;
 mod lazy_loader;
 mod manager;
@@ -32,4 +31,4 @@ pub use lazy_loader::LazyGroupLoader;
 pub use manager::ConnectionManager;
 pub use port_check::{PortCheckError, PortCheckResult, check_port, check_port_async};
 pub use retry::{RetryConfig, RetryState};
-pub use virtual_scroll::{SelectionState, VirtualScrollConfig};
+pub use virtual_scroll::SelectionState;

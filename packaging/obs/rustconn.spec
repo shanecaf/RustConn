@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.13.10
+Version:        0.13.11
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -238,6 +238,12 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Sat May 10 2026 Anton Isaiev <totoshko88@gmail.com> - 0.13.11-1
+- [Improved] RDP: better diagnostics for IronRDP fallback to FreeRDP —
+  error detection now includes detailed comments explaining the upstream
+  limitation (IronRDP connector 0.8.0 does not handle ServerDeactivateAll
+  during CapabilitiesExchange); submitted fix upstream (IronRDP#1253)
+
 * Sat May 09 2026 Anton Isaiev <totoshko88@gmail.com> - 0.13.10-1
 - [Added] Import/Export: SecureCRT session support — import connections
   from SecureCRT Config/Sessions/ directory; export connections back to

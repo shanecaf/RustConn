@@ -5,6 +5,7 @@
 
 use crate::async_utils::with_runtime;
 use chrono::Utc;
+use rustconn_core::automation::FolderConnectionTracker;
 use rustconn_core::cluster::{Cluster, ClusterManager};
 use rustconn_core::config::{AppSettings, ConfigManager};
 use rustconn_core::connection::ConnectionManager;
@@ -185,6 +186,8 @@ pub struct AppState {
     secret_backend_available: Option<bool>,
     /// Cloud Sync manager for export/import operations
     sync_manager: SyncManager,
+    /// Shared folder connection tracker for conditional task execution
+    folder_tracker: Arc<std::sync::Mutex<FolderConnectionTracker>>,
 }
 
 /// Bundles the parameters needed for blocking credential resolution.
@@ -319,6 +322,7 @@ impl AppState {
             history_entries,
             secret_backend_available: None,
             sync_manager,
+            folder_tracker: Arc::new(std::sync::Mutex::new(FolderConnectionTracker::new())),
         })
     }
 
@@ -1384,6 +1388,11 @@ impl AppState {
     /// Gets the current settings
     pub const fn settings(&self) -> &AppSettings {
         &self.settings
+    }
+
+    /// Returns the shared folder connection tracker for task conditional execution
+    pub fn folder_tracker(&self) -> &Arc<std::sync::Mutex<FolderConnectionTracker>> {
+        &self.folder_tracker
     }
 
     /// Gets mutable reference to settings for in-place modifications

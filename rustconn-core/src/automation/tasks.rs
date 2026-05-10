@@ -470,28 +470,43 @@ impl TaskExecutor {
 
         // Remove sensitive environment variables to prevent credential leakage
         // through automation tasks (TASK-005)
-        for var in &["BW_SESSION", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"] {
+        for var in &[
+            "BW_SESSION",
+            "AWS_SECRET_ACCESS_KEY",
+            "AWS_SESSION_TOKEN",
+            "AWS_ACCESS_KEY_ID",
+            "OP_SESSION",
+            "GITHUB_TOKEN",
+            "GH_TOKEN",
+        ] {
             cmd.env_remove(var);
         }
 
         // Spawn the process
-        let child = cmd.spawn().map_err(|e| TaskError::IoError(e.to_string()))?;
+        let mut child = cmd.spawn().map_err(|e| TaskError::IoError(e.to_string()))?;
 
         // Wait for completion with optional timeout
         let result = if let Some(timeout) = timeout_ms {
             let timeout_duration = std::time::Duration::from_millis(u64::from(timeout));
-            match tokio::time::timeout(timeout_duration, child.wait_with_output()).await {
-                Ok(output_result) => output_result,
-                Err(_) => return Err(TaskError::Timeout(timeout)),
+            if let Ok(wait_result) = tokio::time::timeout(timeout_duration, child.wait()).await {
+                let status = wait_result.map_err(|e| TaskError::IoError(e.to_string()))?;
+                Ok(status)
+            } else {
+                // Timeout expired — kill the child process to avoid orphans
+                let _ = child.kill().await;
+                return Err(TaskError::Timeout(timeout));
             }
         } else {
-            child.wait_with_output().await
+            child
+                .wait()
+                .await
+                .map_err(|e| TaskError::IoError(e.to_string()))
         };
 
-        let output = result.map_err(|e| TaskError::IoError(e.to_string()))?;
+        let status = result?;
 
         // Check exit status
-        let exit_code = Self::exit_code_from_status(output.status)?;
+        let exit_code = Self::exit_code_from_status(status)?;
 
         // Handle non-zero exit
         if exit_code != 0 && abort_on_failure {

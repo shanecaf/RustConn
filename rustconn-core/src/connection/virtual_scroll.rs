@@ -106,7 +106,7 @@ impl SelectionState {
 
 /// Configuration for virtual scrolling behavior
 #[derive(Debug, Clone)]
-pub struct VirtualScrollConfig {
+pub(crate) struct VirtualScrollConfig {
     /// Minimum number of items before enabling virtual scrolling
     pub threshold: usize,
     /// Number of items to render above/below visible area

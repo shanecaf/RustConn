@@ -1,6 +1,6 @@
 # RustConn Architecture Guide
 
-**Version 0.13.10** | Last updated: May 2026
+**Version 0.13.11** | Last updated: May 2026
 
 This document describes the internal architecture of RustConn for contributors and maintainers.
 
@@ -718,7 +718,7 @@ pub struct ProtocolCapabilities {
 2. Implement `Protocol` trait (including `capabilities()` and optionally `build_command()`)
 3. Add protocol config to `ProtocolConfig` enum
 4. Register in `ProtocolRegistry`
-5. Add UI fields in `rustconn/src/dialogs/connection/dialog.rs`
+5. Add UI fields in `rustconn/src/dialogs/connection/{protocol}.rs` (e.g., `rdp.rs`, `vnc.rs`)
 
 See `TelnetProtocol`, `SerialProtocol`, or `KubernetesProtocol` for minimal reference implementations using external clients.
 
@@ -960,7 +960,7 @@ rustconn/src/
 │   ├── widgets.rs         # Shared widget builders (CheckboxRow, EntryRow, SwitchRow, etc.)
 │   ├── connection/        # Connection dialog (modular)
 │   │   ├── mod.rs         # Module exports
-│   │   ├── dialog.rs      # Main ConnectionDialog (~1500 lines, coordination)
+│   │   ├── dialog.rs      # Main ConnectionDialog (~7000 lines, coordination + set/build methods)
 │   │   ├── general_tab.rs # General tab: name, host, port, group, credentials
 │   │   ├── data_tab.rs    # Data tab: variables, custom properties
 │   │   ├── automation_tab.rs # Automation tab: expect rules, pre/post tasks
@@ -1012,6 +1012,7 @@ rustconn-core/src/
 │   ├── manager.rs         # ConnectionManager with debounced persistence
 │   ├── retry.rs           # RetryConfig, RetryState, exponential backoff
 │   ├── port_check.rs      # TCP port reachability check
+│   ├── virtual_scroll.rs  # Virtual scrolling helpers
 │   └── ...
 ├── protocol/              # Protocol implementations
 ├── secret/                # Credential backends

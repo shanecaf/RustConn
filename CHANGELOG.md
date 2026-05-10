@@ -5,6 +5,18 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.11] - 2026-05-10
+
+### Improved
+- **RDP: better diagnostics for IronRDP fallback to FreeRDP** — when the embedded IronRDP client encounters a protocol incompatibility (e.g. GNOME Remote Desktop sending unexpected PDU during capabilities exchange), the error detection now includes detailed comments explaining the upstream limitation (IronRDP connector 0.8.0 does not handle `ServerDeactivateAll` during `CapabilitiesExchange`); submitted fix upstream ([Devolutions/IronRDP#1253](https://github.com/Devolutions/IronRDP/issues/1253)); narrowed fallback detection patterns to avoid false positives on generic network errors (e.g. "unexpected end of stream" no longer triggers fallback)
+- **Security: pre/post-connect tasks now use TaskExecutor from core** — pre-connect and post-disconnect automation tasks are now executed through `TaskExecutor` instead of raw `sh -c`; this adds: timeout enforcement (`timeout_ms` field is now respected — previously commands could hang indefinitely; timed-out processes are now killed instead of orphaned), environment sanitization (removes `BW_SESSION`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`, `AWS_ACCESS_KEY_ID`, `OP_SESSION`, `GITHUB_TOKEN`, `GH_TOKEN` from child process to prevent credential leakage), variable substitution (`${var}` references in task commands are now resolved from both global and connection-scoped variables — `${host}`, `${port}`, `${username}`, `${name}` are available automatically), and conditional execution (`only_first_in_folder` / `only_last_in_folder` conditions are now evaluated correctly via a shared `FolderConnectionTracker` in `AppState`)
+- **UX: pre-connect task failure toast now shows error details** — instead of a generic "Pre-connect task failed. Connection aborted." message, the toast now includes the specific error (e.g. "Task timed out after 5000ms", "Task failed with exit code 1") via `i18n_f()` for proper localization
+- **Code quality: ConnectionDialog decomposed** — extracted `create_rdp_options` (640 lines), `create_vnc_options` (310 lines), `create_spice_options` (290 lines), and `create_zerotrust_options` (480 lines) from the monolithic `dialog.rs` (8746 → 6968 lines, −20%) into their respective protocol modules (`rdp.rs`, `vnc.rs`, `spice.rs`, `zerotrust.rs`); replaced dead-code placeholder implementations with the actual production code; all protocol tab modules now follow the same pattern as the existing `ssh.rs`, `telnet.rs`, `serial.rs`, `kubernetes.rs`
+
+### Removed
+- **Dead code: `ConnectionFallback` module removed from rustconn-core** — the generic fallback chain (`ConnectionFallback`, `ConnectionStrategy`, `FallbackError`, `StrategyAttempt`) was never integrated into the GUI; the RDP fallback (IronRDP → wlfreerdp → xfreerdp) uses a purpose-built ad-hoc chain that is tightly coupled to GTK widget lifecycle; the generic module added complexity without benefit and can be restored from git history if needed
+- **Dead code: `VirtualScrollConfig` removed from public API** — `VirtualScrollConfig` was re-exported from `rustconn-core` but never imported by any consumer (GUI or CLI); removed from `lib.rs` and `connection/mod.rs` re-exports, reduced visibility to `pub(crate)` for internal module tests only
+
 ## [0.13.10] - 2026-05-09
 
 ### Added
