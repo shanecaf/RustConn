@@ -21,7 +21,6 @@ use gtk4::prelude::*;
 use gtk4::{Box as GtkBox, Orientation, Widget, gio, glib};
 use libadwaita as adw;
 use libadwaita::prelude::*;
-use regex::Regex;
 use rustconn_core::models::AutomationConfig;
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
@@ -39,7 +38,7 @@ use vte4::{PtyFlags, Terminal};
 const PCRE2_MULTILINE: u32 = 0x0000_0400;
 
 use crate::activity_coordinator::ActivityCoordinator;
-use crate::automation::{AutomationSession, Trigger};
+use crate::automation::{AutomationSession, prepare_rules_from_config};
 use crate::broadcast::BroadcastController;
 use crate::embedded_rdp::EmbeddedRdpWidget;
 use crate::embedded_spice::EmbeddedSpiceWidget;
@@ -1077,45 +1076,10 @@ impl TerminalNotebook {
         if let Some(cfg) = automation
             && !cfg.expect_rules.is_empty()
         {
-            let mut triggers = Vec::new();
-            let now = std::time::Instant::now();
-            for rule in &cfg.expect_rules {
-                if !rule.enabled {
-                    continue;
-                }
-                if let Ok(regex) = Regex::new(&rule.pattern) {
-                    // Substitute ${VAR} references in the response text
-                    let resolved_response = var_manager
-                        .substitute_for_command(
-                            &rule.response,
-                            rustconn_core::variables::VariableScope::Global,
-                        )
-                        .unwrap_or_else(|e| {
-                            tracing::warn!(
-                                response = %rule.response,
-                                error = %e,
-                                "Variable substitution failed in expect response, using raw text"
-                            );
-                            rule.response.clone()
-                        });
+            let rules = prepare_rules_from_config(&cfg.expect_rules, &var_manager);
 
-                    triggers.push(Trigger {
-                        pattern: regex,
-                        response: resolved_response,
-                        one_shot: rule.one_shot,
-                        timeout_ms: rule.timeout_ms,
-                        created_at: now,
-                    });
-                } else {
-                    tracing::warn!(
-                        pattern = %rule.pattern,
-                        "Skipping expect rule with invalid regex"
-                    );
-                }
-            }
-
-            if !triggers.is_empty() {
-                let session = AutomationSession::new(terminal.clone(), triggers);
+            if !rules.is_empty() {
+                let session = AutomationSession::new(terminal.clone(), rules);
                 self.automation_sessions
                     .borrow_mut()
                     .insert(session_id, session);

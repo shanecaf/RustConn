@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.13.11
+Version:        0.13.12
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -238,6 +238,18 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Sun May 11 2026 Anton Isaiev <totoshko88@gmail.com> - 0.13.12-1
+- [Improved] Code quality: AutomationSession now uses ExpectEngine from
+  core — GUI automation delegates to ExpectEngine for priority-sorted
+  matching, duplicate ID detection, pattern validation, and timeout handling;
+  Trigger struct removed; new prepare_rules_from_config() helper
+- [Improved] Code quality: SplitView legacy UUID layer partially removed —
+  external consumers no longer access internal panes vector via
+  panes_ref_clone(); click handlers use get_pane_session() which delegates
+  to adapter's panel model; TerminalPane reduced to pub(crate) visibility
+- [Added] ExpectEngine: new methods for GUI integration — match_line(),
+  remove_by_id(), remove_expired(), remove_expired_individual()
+
 * Sat May 10 2026 Anton Isaiev <totoshko88@gmail.com> - 0.13.11-1
 - [Improved] RDP: better diagnostics for IronRDP fallback to FreeRDP —
   error detection now includes detailed comments explaining the upstream

@@ -134,6 +134,16 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.13.12" date="2026-05-11">
+      <description>
+        <p>Version 0.13.12 — Code quality improvements and ExpectEngine integration:</p>
+        <ul>
+          <li>AutomationSession now uses ExpectEngine from core — priority-sorted matching, duplicate ID detection, pattern validation, and timeout handling</li>
+          <li>SplitView legacy UUID layer partially removed — external consumers use get_pane_session() instead of panes_ref_clone(); TerminalPane reduced to pub(crate) visibility</li>
+          <li>ExpectEngine: new methods for GUI integration — match_line(), remove_by_id(), remove_expired(), remove_expired_individual()</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.13.11" date="2026-05-10">
       <description>
         <p>Version 0.13.11 — Task automation, RDP diagnostics, code quality:</p>

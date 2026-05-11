@@ -5,6 +5,15 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.12] - 2026-05-11
+
+### Improved
+- **Code quality: AutomationSession now uses ExpectEngine from core** — the GUI automation module (`rustconn/src/automation.rs`) no longer maintains its own `Vec<Trigger>` with manual pattern matching; instead it delegates to `ExpectEngine` from `rustconn-core` which provides priority-sorted matching, duplicate ID detection, pattern validation, and timeout handling; the `Trigger` struct is removed; new `prepare_rules_from_config()` helper performs variable substitution and pattern validation before creating the session; matching logic in `check_terminal_content()` now uses `engine.match_line()` (handles trimmed lines and priority) and `engine.remove_by_id()` for one-shot removal; timeouts use per-rule `created_at` timestamps via `engine.remove_expired_individual()`
+- **Code quality: SplitView legacy UUID layer partially removed** — external consumers (`window/mod.rs`, `split_view_actions.rs`) no longer access the internal `panes` vector via `panes_ref_clone()`; click handlers now use `get_pane_session()` which delegates directly to the adapter's panel model; `get_pane_session()` rewritten to query `SplitLayoutModel` via UUID→PanelId mapping instead of scanning the legacy `Vec<TerminalPane>`; `get_pane_color()` now returns the shared container color directly; `TerminalPane` reduced to `pub(crate)` visibility and removed from public re-exports; `panes_ref()`, `panes_ref_clone()` methods removed from public API; drop target callback uses `container_color` directly instead of per-pane color lookup
+
+### Added
+- **ExpectEngine: new methods for GUI integration** — `match_line(&str)` matches a line against all enabled rules with automatic trimming (returns `&CompiledRule` for access to both pattern and rule metadata); `remove_by_id(Uuid)` removes a rule without error on missing ID (returns bool); `remove_expired(Instant, Instant)` removes rules past their timeout relative to a shared creation time; `remove_expired_individual(Instant, &HashMap<Uuid, Instant>)` removes rules using per-rule creation timestamps
+
 ## [0.13.11] - 2026-05-10
 
 ### Improved

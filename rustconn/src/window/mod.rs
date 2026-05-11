@@ -1970,21 +1970,15 @@ impl MainWindow {
             let split_view_for_click = split_view.clone();
             let notebook_for_click = terminal_notebook.clone();
             let sv_for_focus = split_view_for_click.clone();
-            let panes_clone = split_view_for_click.panes_ref_clone();
+            let sv_for_session = split_view_for_click.clone();
             let notebook_clone = notebook_for_click.clone();
             let sv_for_terminal = split_view_for_click.clone();
 
             split_view_for_click.setup_all_panel_click_handlers(move |clicked_pane_uuid| {
                 // Update the bridge's focused pane state (handles all focus styling)
                 sv_for_focus.set_focused_pane(Some(clicked_pane_uuid));
-                // Get session_id from the clicked pane
-                let session_to_switch = {
-                    let panes_ref = panes_clone.borrow();
-                    panes_ref
-                        .iter()
-                        .find(|p| p.id() == clicked_pane_uuid)
-                        .and_then(|p| p.current_session())
-                };
+                // Get session_id from the clicked pane via adapter
+                let session_to_switch = sv_for_session.get_pane_session(clicked_pane_uuid);
                 // Switch to the tab if there's a session in this pane
                 if let Some(session_id) = session_to_switch {
                     notebook_clone.switch_to_tab(session_id);
