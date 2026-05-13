@@ -1679,85 +1679,143 @@ impl TerminalNotebook {
         // Capture command name for error reporting
         let command_name = argv.first().unwrap_or(&"").to_string();
 
-        // Capture Rc references for the spawn error callback
+        // Capture Rc references for the spawn error callback (Linux only)
+        #[cfg(not(target_os = "macos"))]
         let sessions_rc = self.sessions.clone();
+        #[cfg(not(target_os = "macos"))]
         let session_info_rc = self.session_info.clone();
+        #[cfg(not(target_os = "macos"))]
         let on_reconnect_rc = self.on_reconnect.clone();
 
-        terminal.spawn_async(
-            PtyFlags::DEFAULT,
-            working_directory,
-            &argv_refs,
-            &env_refs,
-            glib::SpawnFlags::SEARCH_PATH_FROM_ENVP,
-            || {},
-            -1,
-            gio::Cancellable::NONE,
-            move |result| {
-                if let Err(e) = result {
+        tracing::debug!(
+            command = %command_name,
+            %session_id,
+            argv = ?argv_refs,
+            working_directory = ?working_directory,
+            env_count = env_refs.len(),
+            "Spawning command via VTE spawn_async"
+        );
+
+        // On macOS, VTE's built-in spawn_async doesn't connect PTY to child
+        // process output (known Homebrew VTE issue). Use native PTY instead.
+        #[cfg(target_os = "macos")]
+        {
+            match crate::macos_pty::spawn_native_pty(
+                terminal,
+                &argv_refs,
+                &env_refs,
+                working_directory,
+            ) {
+                Ok(_pid) => {
+                    tracing::info!(
+                        command = %command_name,
+                        %session_id,
+                        "Command spawned successfully (macOS native PTY)"
+                    );
+                }
+                Err(e) => {
                     tracing::error!(
                         command = %command_name,
                         %session_id,
                         %e,
-                        "Failed to spawn command"
+                        "Failed to spawn command (macOS native PTY)"
                     );
 
-                    // Mark tab as disconnected and show reconnect overlay
-                    if let Some(page) = sessions_rc.borrow().get(&session_id) {
-                        page.set_indicator_icon(Some(&gio::ThemedIcon::new(
-                            "network-offline-symbolic",
-                        )));
-                        page.set_indicator_activatable(false);
-
-                        // Build reconnect banner inside the tab container
-                        if let Ok(outer) = page.child().downcast::<GtkBox>()
-                            && let Some(inner) = outer.first_child()
-                            && let Ok(container) = inner.downcast::<GtkBox>()
-                        {
-                            let info = session_info_rc.borrow();
-                            let connection_id = info
-                                .get(&session_id)
-                                .map(|i| i.connection_id)
-                                .unwrap_or(Uuid::nil());
-                            drop(info);
-
-                            let banner = GtkBox::new(Orientation::Horizontal, 6);
-                            banner.set_margin_start(12);
-                            banner.set_margin_end(12);
-                            banner.set_margin_top(6);
-                            banner.set_margin_bottom(6);
-                            banner.set_halign(gtk4::Align::Center);
-                            banner.set_widget_name("reconnect-banner");
-
-                            let msg = i18n_f("Command not found: {}", &[&command_name]);
-                            let label = gtk4::Label::new(Some(&msg));
-                            label.add_css_class("dim-label");
-
-                            let button = gtk4::Button::with_label(&i18n("Reconnect"));
-                            button.add_css_class("suggested-action");
-                            button.set_tooltip_text(Some(&i18n("Reconnect to this session")));
-
-                            banner.append(&label);
-                            banner.append(&button);
-                            container.append(&banner);
-
-                            let on_reconnect = on_reconnect_rc.clone();
-                            button.connect_clicked(move |_| {
-                                if let Some(ref cb) = *on_reconnect.borrow() {
-                                    cb(session_id, connection_id);
-                                }
-                            });
-                        }
-                    }
-
-                    // Show toast on the nearest window
-                    let msg = i18n_f("'{}' is not installed", &[&command_name]);
+                    // Show error toast
+                    let msg = crate::i18n::i18n_f("'{}' is not installed", &[&command_name]);
                     crate::toast::show_error_toast_on_active_window(&msg);
                 }
-            },
-        );
+            }
+            true
+        }
 
-        true
+        #[cfg(not(target_os = "macos"))]
+        {
+            terminal.spawn_async(
+                PtyFlags::DEFAULT,
+                working_directory,
+                &argv_refs,
+                &env_refs,
+                glib::SpawnFlags::SEARCH_PATH_FROM_ENVP,
+                || {},
+                -1,
+                gio::Cancellable::NONE,
+                move |result| {
+                    match &result {
+                        Ok(_pid) => {
+                            tracing::info!(
+                                command = %command_name,
+                                %session_id,
+                                "Command spawned successfully"
+                            );
+                        }
+                        Err(_) => {}
+                    }
+                    if let Err(e) = result {
+                        tracing::error!(
+                            command = %command_name,
+                            %session_id,
+                            %e,
+                            "Failed to spawn command"
+                        );
+
+                        // Mark tab as disconnected and show reconnect overlay
+                        if let Some(page) = sessions_rc.borrow().get(&session_id) {
+                            page.set_indicator_icon(Some(&gio::ThemedIcon::new(
+                                "network-offline-symbolic",
+                            )));
+                            page.set_indicator_activatable(false);
+
+                            // Build reconnect banner inside the tab container
+                            if let Ok(outer) = page.child().downcast::<GtkBox>()
+                                && let Some(inner) = outer.first_child()
+                                && let Ok(container) = inner.downcast::<GtkBox>()
+                            {
+                                let info = session_info_rc.borrow();
+                                let connection_id = info
+                                    .get(&session_id)
+                                    .map(|i| i.connection_id)
+                                    .unwrap_or(Uuid::nil());
+                                drop(info);
+
+                                let banner = GtkBox::new(Orientation::Horizontal, 6);
+                                banner.set_margin_start(12);
+                                banner.set_margin_end(12);
+                                banner.set_margin_top(6);
+                                banner.set_margin_bottom(6);
+                                banner.set_halign(gtk4::Align::Center);
+                                banner.set_widget_name("reconnect-banner");
+
+                                let msg = i18n_f("Command not found: {}", &[&command_name]);
+                                let label = gtk4::Label::new(Some(&msg));
+                                label.add_css_class("dim-label");
+
+                                let button = gtk4::Button::with_label(&i18n("Reconnect"));
+                                button.add_css_class("suggested-action");
+                                button.set_tooltip_text(Some(&i18n("Reconnect to this session")));
+
+                                banner.append(&label);
+                                banner.append(&button);
+                                container.append(&banner);
+
+                                let on_reconnect = on_reconnect_rc.clone();
+                                button.connect_clicked(move |_| {
+                                    if let Some(ref cb) = *on_reconnect.borrow() {
+                                        cb(session_id, connection_id);
+                                    }
+                                });
+                            }
+                        }
+
+                        // Show toast on the nearest window
+                        let msg = i18n_f("'{}' is not installed", &[&command_name]);
+                        crate::toast::show_error_toast_on_active_window(&msg);
+                    }
+                },
+            );
+
+            true
+        }
     }
 
     /// Spawns an SSH command in the terminal

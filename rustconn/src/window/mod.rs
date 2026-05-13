@@ -3631,6 +3631,11 @@ impl MainWindow {
             // Custom command: run via user's shell with -c
             notebook.spawn_command(session_id, &[&shell, "-c", cmd], None, None, None);
         } else {
+            // On macOS, launch as login shell so .zprofile/.zshrc are sourced
+            // and the shell gets a proper controlling terminal.
+            #[cfg(target_os = "macos")]
+            notebook.spawn_command(session_id, &[&shell, "--login"], None, None, None);
+            #[cfg(not(target_os = "macos"))]
             notebook.spawn_command(session_id, &[&shell], None, None, None);
         }
 

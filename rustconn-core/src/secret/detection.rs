@@ -85,6 +85,33 @@ pub async fn detect_keepassxc() -> PasswordManagerInfo {
         info.installed = true;
     }
 
+    // Fallback: check common paths if not found in PATH
+    // (macOS GUI apps have minimal PATH without /opt/homebrew/bin)
+    if !info.installed {
+        let fallback_paths = [
+            "/opt/homebrew/bin/keepassxc-cli",
+            "/usr/local/bin/keepassxc-cli",
+            "/Applications/KeePassXC.app/Contents/MacOS/keepassxc-cli",
+        ];
+        for path in &fallback_paths {
+            let p = PathBuf::from(path);
+            if p.exists() {
+                if let Ok(output) = Command::new(path)
+                    .arg("--version")
+                    .output()
+                    .await
+                    && output.status.success()
+                {
+                    let version_str = String::from_utf8_lossy(&output.stdout);
+                    info.version = parse_version_line(&version_str);
+                    info.installed = true;
+                    info.path = Some(p);
+                    break;
+                }
+            }
+        }
+    }
+
     // Check if KeePassXC is running (socket exists)
     let socket_path = std::env::var("XDG_RUNTIME_DIR")
         .map(|dir| PathBuf::from(dir).join("kpxc_server"))
