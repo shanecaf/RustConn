@@ -448,7 +448,7 @@ pub fn get_extended_path() -> String {
     let cli_dirs = get_cli_path_dirs();
     let current_path = std::env::var("PATH").unwrap_or_default();
 
-    let mut extra_paths: Vec<&str> = Vec::new();
+    let extra_paths: Vec<&str> = Vec::new();
 
     // On macOS, GUI apps have minimal PATH. Add Homebrew and common tool dirs.
     #[cfg(target_os = "macos")]

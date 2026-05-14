@@ -1741,15 +1741,12 @@ impl TerminalNotebook {
                 -1,
                 gio::Cancellable::NONE,
                 move |result| {
-                    match &result {
-                        Ok(_pid) => {
-                            tracing::info!(
-                                command = %command_name,
-                                %session_id,
-                                "Command spawned successfully"
-                            );
-                        }
-                        Err(_) => {}
+                    if let Ok(_pid) = &result {
+                        tracing::info!(
+                            command = %command_name,
+                            %session_id,
+                            "Command spawned successfully"
+                        );
                     }
                     if let Err(e) = result {
                         tracing::error!(

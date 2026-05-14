@@ -9,6 +9,20 @@ use std::sync::LazyLock;
 use regex::Regex;
 use tokio::process::Command;
 
+/// Creates a [`Command`] with the extended PATH that includes Homebrew,
+/// Flatpak CLI directories, and other platform-specific tool locations.
+///
+/// On macOS, GUI apps launched via `.app` bundle inherit a minimal PATH
+/// (`/usr/bin:/bin:/usr/sbin:/sbin`), so tools installed via Homebrew or
+/// in custom locations are invisible to bare `Command::new("tool")`.
+/// This helper ensures all detection commands can find CLI tools regardless
+/// of how the application was launched.
+fn detection_command(program: &str) -> Command {
+    let mut cmd = Command::new(program);
+    cmd.env("PATH", crate::cli_download::get_extended_path());
+    cmd
+}
+
 /// Cached regex for version parsing: matches patterns like "1.2.3" or "v1.2.3"
 pub static VERSION_REGEX: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"v?(\d+\.\d+(?:\.\d+)?)").expect("VERSION_REGEX is a valid regex pattern")
@@ -73,8 +87,8 @@ pub async fn detect_keepassxc() -> PasswordManagerInfo {
         formats: vec!["KDBX 3", "KDBX 4"],
     };
 
-    // Check keepassxc-cli availability
-    if let Ok(output) = Command::new("keepassxc-cli")
+    // Check keepassxc-cli availability (extended PATH covers Homebrew, .app bundle, etc.)
+    if let Ok(output) = detection_command("keepassxc-cli")
         .arg("--version")
         .output()
         .await
@@ -83,33 +97,6 @@ pub async fn detect_keepassxc() -> PasswordManagerInfo {
         let version_str = String::from_utf8_lossy(&output.stdout);
         info.version = parse_version_line(&version_str);
         info.installed = true;
-    }
-
-    // Fallback: check common paths if not found in PATH
-    // (macOS GUI apps have minimal PATH without /opt/homebrew/bin)
-    if !info.installed {
-        let fallback_paths = [
-            "/opt/homebrew/bin/keepassxc-cli",
-            "/usr/local/bin/keepassxc-cli",
-            "/Applications/KeePassXC.app/Contents/MacOS/keepassxc-cli",
-        ];
-        for path in &fallback_paths {
-            let p = PathBuf::from(path);
-            if p.exists() {
-                if let Ok(output) = Command::new(path)
-                    .arg("--version")
-                    .output()
-                    .await
-                    && output.status.success()
-                {
-                    let version_str = String::from_utf8_lossy(&output.stdout);
-                    info.version = parse_version_line(&version_str);
-                    info.installed = true;
-                    info.path = Some(p);
-                    break;
-                }
-            }
-        }
     }
 
     // Check if KeePassXC is running (socket exists)
@@ -125,7 +112,7 @@ pub async fn detect_keepassxc() -> PasswordManagerInfo {
     }
 
     // Find executable path
-    if let Ok(output) = Command::new("which").arg("keepassxc").output().await
+    if let Ok(output) = detection_command("which").arg("keepassxc").output().await
         && output.status.success()
     {
         let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
@@ -151,7 +138,7 @@ pub async fn detect_gnome_secrets() -> PasswordManagerInfo {
     };
 
     // Check for flatpak installation
-    if let Ok(output) = Command::new("flatpak")
+    if let Ok(output) = detection_command("flatpak")
         .args(["info", "org.gnome.World.Secrets"])
         .output()
         .await
@@ -165,7 +152,10 @@ pub async fn detect_gnome_secrets() -> PasswordManagerInfo {
 
     // Check for native installation
     if !info.installed
-        && let Ok(output) = Command::new("which").arg("gnome-secrets").output().await
+        && let Ok(output) = detection_command("which")
+            .arg("gnome-secrets")
+            .output()
+            .await
         && output.status.success()
     {
         let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
@@ -177,7 +167,7 @@ pub async fn detect_gnome_secrets() -> PasswordManagerInfo {
 
     // Also check for old name (gnome-passwordsafe)
     if !info.installed
-        && let Ok(output) = Command::new("which")
+        && let Ok(output) = detection_command("which")
             .arg("gnome-passwordsafe")
             .output()
             .await
@@ -211,7 +201,10 @@ pub async fn detect_libsecret() -> PasswordManagerInfo {
     };
 
     // Check secret-tool
-    if let Ok(output) = Command::new("secret-tool").arg("--version").output().await
+    if let Ok(output) = detection_command("secret-tool")
+        .arg("--version")
+        .output()
+        .await
         && output.status.success()
     {
         let version_str = String::from_utf8_lossy(&output.stdout);
@@ -220,7 +213,10 @@ pub async fn detect_libsecret() -> PasswordManagerInfo {
     }
 
     // Check if gnome-keyring-daemon is running
-    if let Ok(output) = Command::new("pgrep").arg("gnome-keyring-d").output().await
+    if let Ok(output) = detection_command("pgrep")
+        .arg("gnome-keyring-d")
+        .output()
+        .await
         && output.status.success()
     {
         info.running = true;
@@ -229,7 +225,7 @@ pub async fn detect_libsecret() -> PasswordManagerInfo {
 
     // Check if kwalletd is running (KDE)
     if !info.running
-        && let Ok(output) = Command::new("pgrep").arg("kwalletd").output().await
+        && let Ok(output) = detection_command("pgrep").arg("kwalletd").output().await
         && output.status.success()
     {
         info.running = true;
@@ -273,7 +269,7 @@ pub async fn detect_bitwarden() -> PasswordManagerInfo {
 
     // Try standard paths first
     for path in &bw_paths {
-        if let Ok(output) = Command::new(path).arg("--version").output().await
+        if let Ok(output) = detection_command(path).arg("--version").output().await
             && output.status.success()
         {
             let version_str = String::from_utf8_lossy(&output.stdout);
@@ -291,7 +287,7 @@ pub async fn detect_bitwarden() -> PasswordManagerInfo {
             if path.contains('*') {
                 continue;
             }
-            if let Ok(output) = Command::new(path).arg("--version").output().await
+            if let Ok(output) = detection_command(path).arg("--version").output().await
                 && output.status.success()
             {
                 let version_str = String::from_utf8_lossy(&output.stdout);
@@ -305,7 +301,7 @@ pub async fn detect_bitwarden() -> PasswordManagerInfo {
 
     // Check login status
     if let Some(ref cmd) = bw_cmd {
-        if let Ok(output) = Command::new(cmd).arg("status").output().await
+        if let Ok(output) = detection_command(cmd).arg("status").output().await
             && output.status.success()
         {
             let status_str = String::from_utf8_lossy(&output.stdout);
@@ -334,14 +330,14 @@ pub async fn detect_bitwarden() -> PasswordManagerInfo {
 
     // If still not found, try which command
     if !info.installed
-        && let Ok(output) = Command::new("which").arg("bw").output().await
+        && let Ok(output) = detection_command("which").arg("bw").output().await
         && output.status.success()
     {
         let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
         if !path.is_empty() {
             info.path = Some(PathBuf::from(&path));
             // Try to get version from found path
-            if let Ok(ver_output) = Command::new(&path).arg("--version").output().await
+            if let Ok(ver_output) = detection_command(&path).arg("--version").output().await
                 && ver_output.status.success()
             {
                 let version_str = String::from_utf8_lossy(&ver_output.stdout);
@@ -372,7 +368,7 @@ pub async fn detect_keepass() -> PasswordManagerInfo {
     };
 
     // Check kpcli (Perl CLI for KeePass)
-    if let Ok(output) = Command::new("kpcli").arg("--version").output().await
+    if let Ok(output) = detection_command("kpcli").arg("--version").output().await
         && output.status.success()
     {
         let version_str = String::from_utf8_lossy(&output.stdout);
@@ -383,7 +379,7 @@ pub async fn detect_keepass() -> PasswordManagerInfo {
 
     // Check keepass2 (Mono/.NET version)
     if !info.installed
-        && let Ok(output) = Command::new("which").arg("keepass2").output().await
+        && let Ok(output) = detection_command("which").arg("keepass2").output().await
         && output.status.success()
     {
         let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
@@ -422,7 +418,7 @@ pub async fn detect_onepassword() -> PasswordManagerInfo {
 
     // Try standard paths first
     for path in &op_paths {
-        if let Ok(output) = Command::new(path).arg("--version").output().await
+        if let Ok(output) = detection_command(path).arg("--version").output().await
             && output.status.success()
         {
             let version_str = String::from_utf8_lossy(&output.stdout);
@@ -436,7 +432,7 @@ pub async fn detect_onepassword() -> PasswordManagerInfo {
     // Try home-relative paths
     if !info.installed {
         for path in &extra_paths {
-            if let Ok(output) = Command::new(path).arg("--version").output().await
+            if let Ok(output) = detection_command(path).arg("--version").output().await
                 && output.status.success()
             {
                 let version_str = String::from_utf8_lossy(&output.stdout);
@@ -450,7 +446,7 @@ pub async fn detect_onepassword() -> PasswordManagerInfo {
 
     // Check signin status using whoami
     if let Some(ref cmd) = op_cmd {
-        if let Ok(output) = Command::new(cmd)
+        if let Ok(output) = detection_command(cmd)
             .args(["whoami", "--format", "json"])
             .output()
             .await
@@ -483,14 +479,14 @@ pub async fn detect_onepassword() -> PasswordManagerInfo {
 
     // If still not found, try which command
     if !info.installed
-        && let Ok(output) = Command::new("which").arg("op").output().await
+        && let Ok(output) = detection_command("which").arg("op").output().await
         && output.status.success()
     {
         let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
         if !path.is_empty() {
             info.path = Some(PathBuf::from(&path));
             // Try to get version from found path
-            if let Ok(ver_output) = Command::new(&path).arg("--version").output().await
+            if let Ok(ver_output) = detection_command(&path).arg("--version").output().await
                 && ver_output.status.success()
             {
                 let version_str = String::from_utf8_lossy(&ver_output.stdout);
@@ -535,7 +531,7 @@ pub async fn detect_passbolt() -> PasswordManagerInfo {
     let mut pb_cmd: Option<String> = None;
 
     for path in &passbolt_paths {
-        if let Ok(output) = Command::new(path).arg("--version").output().await
+        if let Ok(output) = detection_command(path).arg("--version").output().await
             && output.status.success()
         {
             let version_str = String::from_utf8_lossy(&output.stdout);
@@ -548,7 +544,7 @@ pub async fn detect_passbolt() -> PasswordManagerInfo {
 
     if !info.installed {
         for path in &extra_paths {
-            if let Ok(output) = Command::new(path).arg("--version").output().await
+            if let Ok(output) = detection_command(path).arg("--version").output().await
                 && output.status.success()
             {
                 let version_str = String::from_utf8_lossy(&output.stdout);
@@ -562,7 +558,7 @@ pub async fn detect_passbolt() -> PasswordManagerInfo {
 
     // Check if configured by listing users
     if let Some(ref cmd) = pb_cmd {
-        if let Ok(output) = Command::new(cmd)
+        if let Ok(output) = detection_command(cmd)
             .args(["list", "user", "--json"])
             .output()
             .await
@@ -586,13 +582,13 @@ pub async fn detect_passbolt() -> PasswordManagerInfo {
 
     // Try which as fallback
     if !info.installed
-        && let Ok(output) = Command::new("which").arg("passbolt").output().await
+        && let Ok(output) = detection_command("which").arg("passbolt").output().await
         && output.status.success()
     {
         let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
         if !path.is_empty() {
             info.path = Some(PathBuf::from(&path));
-            if let Ok(ver_output) = Command::new(&path).arg("--version").output().await
+            if let Ok(ver_output) = detection_command(&path).arg("--version").output().await
                 && ver_output.status.success()
             {
                 let version_str = String::from_utf8_lossy(&ver_output.stdout);
@@ -641,7 +637,7 @@ pub async fn detect_pass() -> PasswordManagerInfo {
         .map(std::string::ToString::to_string)
         .chain(extra_paths.iter().cloned())
     {
-        if let Ok(output) = Command::new(&path).arg("--version").output().await
+        if let Ok(output) = detection_command(&path).arg("--version").output().await
             && output.status.success()
         {
             let version_str = String::from_utf8_lossy(&output.stdout);
@@ -677,13 +673,13 @@ pub async fn detect_pass() -> PasswordManagerInfo {
 
     // Try which as fallback
     if !info.installed
-        && let Ok(output) = Command::new("which").arg("pass").output().await
+        && let Ok(output) = detection_command("which").arg("pass").output().await
         && output.status.success()
     {
         let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
         if !path.is_empty() {
             info.path = Some(PathBuf::from(&path));
-            if let Ok(ver_output) = Command::new(&path).arg("--version").output().await
+            if let Ok(ver_output) = detection_command(&path).arg("--version").output().await
                 && ver_output.status.success()
             {
                 let version_str = String::from_utf8_lossy(&ver_output.stdout);
@@ -737,11 +733,14 @@ pub fn get_password_manager_launch_command(
     backend: &crate::config::SecretBackendType,
     passbolt_server_url: Option<&str>,
 ) -> Option<(String, Vec<String>)> {
+    let extended_path = crate::cli_download::get_extended_path();
+
     match backend {
         crate::config::SecretBackendType::KeePassXc
         | crate::config::SecretBackendType::KdbxFile => {
             // Try KeePassXC first
             if std::process::Command::new("which")
+                .env("PATH", &extended_path)
                 .arg("keepassxc")
                 .output()
                 .is_ok_and(|o| o.status.success())
@@ -750,6 +749,7 @@ pub fn get_password_manager_launch_command(
             }
             // Try GNOME Secrets (flatpak)
             if std::process::Command::new("flatpak")
+                .env("PATH", &extended_path)
                 .args(["info", "org.gnome.World.Secrets"])
                 .output()
                 .is_ok_and(|o| o.status.success())
@@ -761,6 +761,7 @@ pub fn get_password_manager_launch_command(
             }
             // Try gnome-secrets native
             if std::process::Command::new("which")
+                .env("PATH", &extended_path)
                 .arg("gnome-secrets")
                 .output()
                 .is_ok_and(|o| o.status.success())
@@ -769,6 +770,7 @@ pub fn get_password_manager_launch_command(
             }
             // Try KeePass 2
             if std::process::Command::new("which")
+                .env("PATH", &extended_path)
                 .arg("keepass2")
                 .output()
                 .is_ok_and(|o| o.status.success())
@@ -780,6 +782,7 @@ pub fn get_password_manager_launch_command(
         crate::config::SecretBackendType::LibSecret => {
             // Open Seahorse (GNOME Passwords and Keys)
             if std::process::Command::new("which")
+                .env("PATH", &extended_path)
                 .arg("seahorse")
                 .output()
                 .is_ok_and(|o| o.status.success())
@@ -788,6 +791,7 @@ pub fn get_password_manager_launch_command(
             }
             // Try GNOME Settings privacy section
             if std::process::Command::new("which")
+                .env("PATH", &extended_path)
                 .arg("gnome-control-center")
                 .output()
                 .is_ok_and(|o| o.status.success())
@@ -799,6 +803,7 @@ pub fn get_password_manager_launch_command(
             }
             // Try KDE Wallet Manager
             if std::process::Command::new("which")
+                .env("PATH", &extended_path)
                 .arg("kwalletmanager5")
                 .output()
                 .is_ok_and(|o| o.status.success())
@@ -817,6 +822,7 @@ pub fn get_password_manager_launch_command(
         crate::config::SecretBackendType::OnePassword => {
             // Try 1Password desktop app first
             if std::process::Command::new("which")
+                .env("PATH", &extended_path)
                 .arg("1password")
                 .output()
                 .is_ok_and(|o| o.status.success())
@@ -825,6 +831,7 @@ pub fn get_password_manager_launch_command(
             }
             // Try flatpak version
             if std::process::Command::new("flatpak")
+                .env("PATH", &extended_path)
                 .args(["info", "com.onepassword.OnePassword"])
                 .output()
                 .is_ok_and(|o| o.status.success())
@@ -850,6 +857,7 @@ pub fn get_password_manager_launch_command(
         crate::config::SecretBackendType::Pass => {
             // Try qtpass first (popular GUI for pass)
             if std::process::Command::new("which")
+                .env("PATH", &extended_path)
                 .arg("qtpass")
                 .output()
                 .is_ok_and(|o| o.status.success())
@@ -888,6 +896,7 @@ pub fn open_password_manager(
     };
 
     std::process::Command::new(&cmd)
+        .env("PATH", crate::cli_download::get_extended_path())
         .args(&args)
         .spawn()
         .map_err(|e| format!("Failed to launch {cmd}: {e}"))?;
