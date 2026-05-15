@@ -136,14 +136,11 @@
   <releases>
     <release version="0.13.16" date="2026-05-15">
       <description>
-        <p>Version 0.13.16 — macOS port:</p>
+        <p>Version 0.13.16 — RDP error messages, SFTP fix, settings UX:</p>
         <ul>
-          <li>Added macOS port with native PTY, tray icon, Keychain backend, Homebrew formula, DMG packaging</li>
-          <li>Added macOS tray icon (tray-macos feature) with dynamic menu updates</li>
-          <li>Added macOS Keychain backend for native credential storage</li>
-          <li>Fixed macOS tray main-thread initialization and dynamic menu rebuild</li>
-          <li>Fixed X11 renderer fallback skipped on macOS</li>
-          <li>Fixed cross-platform statvfs types, secret backend detection, PTY cleanup</li>
+          <li>RDP error messages now show specific cause (invalid credentials, account locked, password expired) instead of generic "Connection failed"</li>
+          <li>Fixed SFTP file manager ignoring "Disable MC" setting in Flatpak — now respects the saved toggle; shows warning when external file manager cannot access sandbox SSH agent</li>
+          <li>Settings dialog width increased to 800px to prevent tab label truncation on localized builds</li>
         </ul>
       </description>
     </release>

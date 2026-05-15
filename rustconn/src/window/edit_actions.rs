@@ -622,8 +622,7 @@ impl MainWindow {
             let Some(conn) = state_ref.get_connection(conn_id) else {
                 return;
             };
-            let use_mc =
-                state_ref.settings().terminal.sftp_use_mc || rustconn_core::flatpak::is_flatpak();
+            let use_mc = state_ref.settings().terminal.sftp_use_mc;
 
             // Collect groups for SSH inheritance resolution
             let groups: Vec<rustconn_core::models::ConnectionGroup> =
@@ -777,6 +776,19 @@ impl MainWindow {
                     return;
                 };
                 drop(state_ref);
+
+                // Warn in Flatpak: external file managers cannot access
+                // the sandbox's SSH agent, so authentication will likely fail.
+                if rustconn_core::flatpak::is_flatpak() {
+                    tracing::warn!(
+                        "Flatpak: external file manager may not authenticate \
+                         (no access to sandbox SSH_AUTH_SOCK)"
+                    );
+                    toast_clone.show_warning(&crate::i18n::i18n(
+                        "External file managers cannot access SSH agent in Flatpak. \
+                         Enable \"SFTP via mc\" in Settings for reliable access.",
+                    ));
+                }
 
                 tracing::info!(%uri, "Opening SFTP file browser");
                 toast_clone.show_toast(&crate::i18n::i18n("Opening SFTP..."));
@@ -989,8 +1001,7 @@ impl MainWindow {
         let Some(conn) = state_ref.get_connection(connection_id) else {
             return;
         };
-        let use_mc =
-            state_ref.settings().terminal.sftp_use_mc || rustconn_core::flatpak::is_flatpak();
+        let use_mc = state_ref.settings().terminal.sftp_use_mc;
         let groups: Vec<rustconn_core::models::ConnectionGroup> =
             state_ref.list_groups().into_iter().cloned().collect();
         let key_path = rustconn_core::sftp::get_ssh_key_path(conn, &groups)
@@ -1102,6 +1113,27 @@ impl MainWindow {
                 return;
             };
             drop(state_ref);
+
+            // Warn in Flatpak: external file managers cannot access
+            // the sandbox's SSH agent, so authentication will likely fail.
+            if rustconn_core::flatpak::is_flatpak() {
+                tracing::warn!(
+                    "Flatpak: external file manager may not authenticate \
+                     (no access to sandbox SSH_AUTH_SOCK)"
+                );
+                if let Some(root) = notebook.widget().root()
+                    && let Some(window) = root.downcast_ref::<gtk4::Window>()
+                {
+                    crate::toast::show_toast_on_window(
+                        window,
+                        &crate::i18n::i18n(
+                            "External file managers cannot access SSH agent in Flatpak. \
+                             Enable \"SFTP via mc\" in Settings for reliable access.",
+                        ),
+                        crate::toast::ToastType::Warning,
+                    );
+                }
+            }
 
             tracing::info!(%uri, "SFTP connect: opening file browser");
 

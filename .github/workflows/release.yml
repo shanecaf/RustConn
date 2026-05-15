@@ -736,3 +736,70 @@ jobs:
       - name: Trigger OBS rebuild
         run: |
           osc rebuild home:totoshko88:rustconn rustconn
+
+  update-homebrew:
+    name: Update Homebrew Tap
+    needs: [release]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Checkout RustConn
+        uses: actions/checkout@v6
+
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Download source tarball and compute SHA256
+        id: sha
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          URL="https://github.com/totoshko88/RustConn/archive/refs/tags/v${VERSION}.tar.gz"
+          curl -sL "$URL" -o source.tar.gz
+          SHA256=$(sha256sum source.tar.gz | cut -d' ' -f1)
+          echo "SHA256=${SHA256}" >> $GITHUB_OUTPUT
+          echo "Source tarball SHA256: ${SHA256}"
+
+      - name: Checkout Homebrew tap
+        uses: actions/checkout@v6
+        with:
+          repository: totoshko88/homebrew-rustconn
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+
+      - name: Update formula
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          SHA256=${{ steps.sha.outputs.SHA256 }}
+          FORMULA="homebrew-tap/Formula/rustconn.rb"
+
+          # Update version in url
+          sed -i "s|url \"https://github.com/totoshko88/RustConn/archive/refs/tags/v[^\"]*\.tar\.gz\"|url \"https://github.com/totoshko88/RustConn/archive/refs/tags/v${VERSION}.tar.gz\"|" "$FORMULA"
+
+          # Update or insert sha256
+          if grep -q '# sha256' "$FORMULA"; then
+            # Replace commented-out sha256 with real one
+            sed -i "s|# sha256 \".*\"|sha256 \"${SHA256}\"|" "$FORMULA"
+          elif grep -q 'sha256 "' "$FORMULA"; then
+            # Update existing sha256
+            sed -i "s|sha256 \"[^\"]*\"|sha256 \"${SHA256}\"|" "$FORMULA"
+          else
+            # Insert sha256 after url line
+            sed -i "/^  url /a\\  sha256 \"${SHA256}\"" "$FORMULA"
+          fi
+
+          echo "=== Updated formula ==="
+          head -10 "$FORMULA"
+
+      - name: Commit and push
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          cd homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/rustconn.rb
+          git commit -m "rustconn ${VERSION}
+
+          Automated update from RustConn release v${VERSION}
+          https://github.com/totoshko88/RustConn/releases/tag/v${VERSION}"
+          git push

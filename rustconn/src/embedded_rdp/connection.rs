@@ -1273,9 +1273,7 @@ impl super::EmbeddedRdpWidget {
         }
         // STATUS_LOGON_TYPE_NOT_GRANTED (0xc000015b)
         if msg.contains("0xc000015b") {
-            return i18n(
-                "Authentication failed: user is not allowed to log on to this computer.",
-            );
+            return i18n("Authentication failed: user is not allowed to log on to this computer.");
         }
         // Generic CredSSP error
         if msg.contains("CredSSP") || msg.contains("Credssp") {

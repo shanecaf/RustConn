@@ -5,7 +5,7 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.13.16] - 2026-05-15
+## [0.13.16] - 2026-05-16
 
 ### Added — macOS Port
 
@@ -32,6 +32,7 @@ First macOS release with full native support:
 
 - **RDP error messages** — IronRDP CredSSP/NLA errors now show specific cause (invalid credentials, account locked, password expired) instead of generic "Connection failed"
 - **Settings dialog width** — increased to 800px to prevent tab label truncation on localized builds
+- **SFTP file manager ignores "Disable MC" setting** — in Flatpak, `is_flatpak()` override forced Midnight Commander regardless of user preference; now respects the saved `sftp_use_mc` toggle (default remains `true` in Flatpak for new installs); shows a warning toast when using external file manager in Flatpak since it cannot access the sandbox SSH agent
 
 ### Dependencies
 - **Updated**: tray-icon 0.19→0.20 (fixes muda version conflict), winnow 1.0.2→1.0.3

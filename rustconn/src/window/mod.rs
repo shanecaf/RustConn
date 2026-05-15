@@ -3258,18 +3258,14 @@ impl MainWindow {
                             .map(|p| p.join("Resources/share/icons"));
                         if let Some(ref icons_path) = bundle_icons {
                             if icons_path.exists() {
-                                icon_theme
-                                    .add_search_path(icons_path.to_string_lossy().as_ref());
+                                icon_theme.add_search_path(icons_path.to_string_lossy().as_ref());
                             }
                         }
                     }
                 }
 
                 // Also add Homebrew icon paths (for non-bundled runs)
-                let homebrew_icons = [
-                    "/opt/homebrew/share/icons",
-                    "/usr/local/share/icons",
-                ];
+                let homebrew_icons = ["/opt/homebrew/share/icons", "/usr/local/share/icons"];
                 for path in &homebrew_icons {
                     if std::path::Path::new(path).exists() {
                         icon_theme.add_search_path(path);

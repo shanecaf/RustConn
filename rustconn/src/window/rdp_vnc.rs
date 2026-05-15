@@ -610,11 +610,7 @@ fn start_embedded_rdp_session(
             .ancestor(gtk4::Window::static_type())
             .and_then(|w| w.downcast::<gtk4::Window>().ok())
         {
-            crate::toast::show_toast_on_window(
-                &window,
-                error_msg,
-                crate::toast::ToastType::Error,
-            );
+            crate::toast::show_toast_on_window(&window, error_msg, crate::toast::ToastType::Error);
         }
     });
 

@@ -42,6 +42,14 @@ bash po/update-pot.sh              # Regenerate POT after new i18n strings
 Delegate to `rust-quality-check` sub-agent for fmt+clippy+tests instead of running in main context.
 For quick single-file validation → `getDiagnostics`.
 
+### Test Run Rules (CRITICAL)
+
+- **NEVER** pipe `cargo test` through `tail`, `grep`, or any filter — run directly to see progress.
+- **NEVER** start `cargo test` if another instance is already running (`pgrep -f 'cargo test'`).
+- Tests take ~120s (argon2 property tests). This is normal — wait for completion, do NOT assume timeout.
+- If a hook or sub-agent already ran tests in this turn, do NOT re-run them.
+- Use timeout 180s for test commands.
+
 ## 16 Translation Languages
 
 be, cs, da, de, es, fr, it, kk, nl, pl, pt, sk, sv, uk, uz, zh-cn

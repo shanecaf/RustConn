@@ -382,6 +382,22 @@ pub fn create_terminal_page() -> (
         .activatable_widget(&sftp_use_mc_check)
         .build();
     sftp_use_mc_row.add_prefix(&sftp_use_mc_check);
+
+    // In Flatpak, warn when user disables mc — external file managers
+    // cannot access the sandbox SSH agent.
+    if rustconn_core::flatpak::is_flatpak() {
+        let row_clone = sftp_use_mc_row.clone();
+        sftp_use_mc_check.connect_toggled(move |check| {
+            if check.is_active() {
+                row_clone.set_subtitle(&i18n("Open SFTP in Midnight Commander (local shell tab)"));
+            } else {
+                row_clone.set_subtitle(&i18n(
+                    "⚠ External file managers cannot access SSH agent in Flatpak sandbox",
+                ));
+            }
+        });
+    }
+
     behavior_group.add(&sftp_use_mc_row);
 
     // Copy on select (X11-style)

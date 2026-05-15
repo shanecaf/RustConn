@@ -1502,7 +1502,7 @@ impl SplitViewBridge {
         columns.set_halign(gtk4::Align::Fill);
         columns.set_hexpand(true);
         columns.set_homogeneous(true);
-        columns.set_margin_top(12);
+        columns.set_margin_top(24);
         columns.append(&col1);
         columns.append(&col2);
         columns.append(&col3);
@@ -1511,7 +1511,7 @@ impl SplitViewBridge {
         let narrow = GtkBox::new(Orientation::Vertical, 12);
         narrow.set_halign(gtk4::Align::Fill);
         narrow.set_hexpand(true);
-        narrow.set_margin_top(12);
+        narrow.set_margin_top(24);
         narrow.set_visible(false);
 
         let narrow_col1 = Self::build_welcome_features_column();
@@ -1585,14 +1585,17 @@ impl SplitViewBridge {
             ),
             ("security-high-symbolic", i18n("Secure credential storage")),
             ("speedometer-symbolic", i18n("Remote host monitoring")),
-            ("view-refresh-symbolic", i18n("Session restore & reconnect")),
+            (
+                "emblem-synchronizing-symbolic",
+                i18n("Cloud Sync across devices"),
+            ),
             ("system-run-symbolic", i18n("Expect automation & tasks")),
             ("folder-symbolic", i18n("Groups, tags, and templates")),
             ("network-workgroup-symbolic", i18n("Zero Trust tunnels")),
             ("edit-paste-symbolic", i18n("Command snippets & clusters")),
             (
-                "preferences-system-symbolic",
-                i18n("Customizable keybindings"),
+                "mail-attachment-symbolic",
+                i18n("Drag & drop files to sessions"),
             ),
         ];
 
@@ -1656,7 +1659,10 @@ impl SplitViewBridge {
             ("edit-find-symbolic", i18n("Fuzzy search & command palette")),
             ("starred-symbolic", i18n("Pin favorites to sidebar")),
             ("view-dual-symbolic", i18n("Split view for terminals")),
-            ("document-open-symbolic", i18n("Open .rdp files directly")),
+            (
+                "view-grid-symbolic",
+                i18n("Tab Overview grid (Ctrl+Shift+O)"),
+            ),
         ];
 
         for (icon, description) in &quick_features {
