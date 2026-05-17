@@ -5,6 +5,43 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.0] - 2026-05-18
+
+### Added
+
+- **Connection Wizard (Ctrl+N)** — new step-by-step dialog for creating connections; 3 steps: protocol selection → connection details → authentication/finish; all 11 protocols supported; "Advanced…" escape hatch on every step opens the full ConnectionDialog; "Save" and "Save & Connect" final actions (#0140)
+  - **Step 1: 4-column protocol grid** — protocols grouped into Secure Shell, Remote Desktop, Terminal, Other columns with icon + label + descriptive subtitle for each protocol
+  - **Step 2: Adaptive fields** — form adapts per protocol (host/port/username for SSH, device/baud for Serial, pod/namespace for Kubernetes, provider fields for Zero Trust, URL for Web)
+  - **Step 3: Auth + Appearance** — SSH auth method selection (password/key/agent), VTE color profile for terminal protocols, connection icon
+  - **Jump Host** — SSH tunnel dropdown on Step 2 for SSH, MOSH, SFTP, RDP, VNC, SPICE
+  - **VTE Color Profile** — terminal theme selector on Step 3 for VTE-based protocols; maps to per-connection `ConnectionThemeOverride`
+  - **Wizard → Advanced pre-fill** — "Advanced…" transfers all entered data into the full ConnectionDialog
+  - **Duplicate via Wizard** — "Duplicate via Wizard…" context menu in sidebar; pre-fills wizard from existing connection for clone & modify workflows
+- **`win.new-connection-advanced` action** — opens the full ConnectionDialog directly (Ctrl+Shift+N)
+- **Quick Connect runtime history** — last 15 sessions remembered during app lifetime; "Recent" section with type-ahead filtering; one-click fills protocol, host, port, username
+- **Zero Trust: Custom Command shortcut** — dedicated button on Step 1 for running any CLI tool as a connection, without navigating Zero Trust provider list
+
+### Fixed
+
+- **Highlight overlay: colored underlines not removed by `clear`** — added `cursor-moved` signal as additional repaint trigger; `contents-changed` alone did not fire reliably for erase-display escape sequences, leaving ghost underlines until the next output (#154)
+- **Wizard: Zero Trust provider fields lost** — `PartialConnection::to_connection()` now correctly maps all provider-specific fields for all 10 Zero Trust providers
+- **Wizard: Mosh ssh_port ignored** — `MoshConfig::ssh_port` now populated from wizard's port field
+- **Wizard: Serial baud rate defaulted to 115200** — baud rate selection (9600–460800) now correctly maps to `SerialBaudRate` enum
+- **Quick Connect: port always shown in history** — now displays port only when it differs from protocol default
+
+### Changed
+
+- **Ctrl+N** — opens Connection Wizard instead of full ConnectionDialog
+- **Wizard: `adw::Dialog`** — migrated from `adw::Window` for better focus management, bottom-sheet on narrow windows, auto close-on-Escape
+- **Wizard Step 1: true 4-column layout** — horizontal columns with centered headers, equal spacing, buttons expand to fill vertical space; subtitles under each protocol for discoverability
+- **Highlight Rules in Settings** — collapsed into `adw::ExpanderRow`, hidden by default
+- **`build_zt_provider_config` refactored** — moved to `ZeroTrustProviderConfig::from_wizard_fields()` in `rustconn-core`; signature uses `Option<&str>` instead of `&Option<String>`
+
+### Improved
+
+- **Web protocol: URL validation** — "Next" disabled until valid URL entered; red border on invalid input
+
+
 ## [0.13.17] - 2026-05-16
 
 ### Added

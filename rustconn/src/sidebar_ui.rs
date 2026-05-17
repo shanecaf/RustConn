@@ -145,6 +145,10 @@ pub fn show_context_menu_for_item(
             "duplicate-connection",
         ));
         items.push(ContextMenuItem::action(
+            &i18n("Duplicate via Wizard\u{2026}"),
+            "duplicate-via-wizard",
+        ));
+        items.push(ContextMenuItem::action(
             &i18n("Move to Group..."),
             "move-to-group",
         ));

@@ -2307,6 +2307,90 @@ pub enum ZeroTrustProviderConfig {
     Generic(GenericZeroTrustConfig),
 }
 
+impl ZeroTrustProviderConfig {
+    /// Build a `ZeroTrustProviderConfig` from wizard-style positional fields.
+    ///
+    /// Maps the provider enum + up to 3 string fields into the correct config struct.
+    /// Used by the Connection Wizard and property tests.
+    ///
+    /// # Field mapping per provider
+    ///
+    /// | Provider | field1 | field2 | field3 |
+    /// |----------|--------|--------|--------|
+    /// | Generic | — (uses `command`) | — | — |
+    /// | AwsSsm | target | region | profile |
+    /// | GcpIap | instance | zone | project |
+    /// | AzureBastion | resource_id | resource_group | bastion_name |
+    /// | AzureSsh | vm_name | resource_group | — |
+    /// | CloudflareAccess | hostname | — | — |
+    /// | Teleport | host | cluster | — |
+    /// | TailscaleSsh | host | — | — |
+    /// | Boundary | target | addr | — |
+    /// | HoopDev | connection_name | gateway_url | — |
+    /// | OciBastion | — (uses `command` fallback) | — | — |
+    #[must_use]
+    pub fn from_wizard_fields(
+        provider: ZeroTrustProvider,
+        command: Option<&str>,
+        field1: Option<&str>,
+        field2: Option<&str>,
+        field3: Option<&str>,
+    ) -> Self {
+        match provider {
+            ZeroTrustProvider::Generic => Self::Generic(GenericZeroTrustConfig {
+                command_template: command.unwrap_or_default().to_string(),
+            }),
+            ZeroTrustProvider::AwsSsm => Self::AwsSsm(AwsSsmConfig {
+                target: field1.unwrap_or_default().to_string(),
+                region: field2.map(String::from),
+                profile: field3.unwrap_or("default").to_string(),
+            }),
+            ZeroTrustProvider::GcpIap => Self::GcpIap(GcpIapConfig {
+                instance: field1.unwrap_or_default().to_string(),
+                zone: field2.unwrap_or_default().to_string(),
+                project: field3.map(String::from),
+            }),
+            ZeroTrustProvider::AzureBastion => Self::AzureBastion(AzureBastionConfig {
+                target_resource_id: field1.unwrap_or_default().to_string(),
+                resource_group: field2.unwrap_or_default().to_string(),
+                bastion_name: field3.unwrap_or_default().to_string(),
+            }),
+            ZeroTrustProvider::AzureSsh => Self::AzureSsh(AzureSshConfig {
+                vm_name: field1.unwrap_or_default().to_string(),
+                resource_group: field2.unwrap_or_default().to_string(),
+            }),
+            ZeroTrustProvider::CloudflareAccess => Self::CloudflareAccess(CloudflareAccessConfig {
+                hostname: field1.unwrap_or_default().to_string(),
+                username: None,
+            }),
+            ZeroTrustProvider::Teleport => Self::Teleport(TeleportConfig {
+                host: field1.unwrap_or_default().to_string(),
+                username: None,
+                cluster: field2.map(String::from),
+            }),
+            ZeroTrustProvider::TailscaleSsh => Self::TailscaleSsh(TailscaleSshConfig {
+                host: field1.unwrap_or_default().to_string(),
+                username: None,
+            }),
+            ZeroTrustProvider::Boundary => Self::Boundary(BoundaryConfig {
+                target: field1.unwrap_or_default().to_string(),
+                addr: field2.map(String::from),
+            }),
+            ZeroTrustProvider::HoopDev => Self::HoopDev(HoopDevConfig {
+                connection_name: field1.unwrap_or_default().to_string(),
+                gateway_url: field2.map(String::from),
+                grpc_url: None,
+            }),
+            ZeroTrustProvider::OciBastion => {
+                // OCI Bastion not in wizard (too many fields) — use Generic fallback
+                Self::Generic(GenericZeroTrustConfig {
+                    command_template: command.unwrap_or_default().to_string(),
+                })
+            }
+        }
+    }
+}
+
 /// AWS Systems Manager Session Manager configuration
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AwsSsmConfig {

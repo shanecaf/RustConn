@@ -179,28 +179,47 @@ impl HighlightOverlay {
                 }
             });
 
-        // Redraw on contents-changed using idle callback.
+        // Redraw on contents-changed and cursor-moved using idle callback.
         //
-        // Previous implementation used a 32ms timeout throttle which caused
-        // stale highlights to linger after `clear` (issue #154): VTE repaints
-        // itself immediately but the overlay redraw was deferred, leaving
-        // ghost underlines visible until the next contents-changed.
+        // Both signals are needed because `contents-changed` alone does not
+        // fire reliably for all escape sequences (e.g. `\033[2J` erase
+        // display).  The `cursor-moved` signal fires on `\033[H` (cursor
+        // home) which is always part of `clear`, ensuring the overlay
+        // repaints even when `contents-changed` is not emitted (issue #154).
         //
         // `idle_add_local_once` schedules the redraw in the same main-loop
         // iteration — after VTE finishes processing the current input batch
         // but before the next frame is composited.  Coalescing is still
         // effective: rapid signals within one iteration share a single
         // pending flag, so only one `queue_draw()` fires per frame.
-        let da_weak = da.downgrade();
         let redraw_pending = Rc::new(std::cell::Cell::new(false));
-        let redraw_pending_signal = redraw_pending.clone();
+
+        let da_weak_contents = da.downgrade();
+        let redraw_pending_contents = redraw_pending.clone();
         terminal.connect_contents_changed(move |_| {
-            if redraw_pending_signal.get() {
+            if redraw_pending_contents.get() {
                 return; // Already scheduled
             }
-            redraw_pending_signal.set(true);
-            let da_weak_idle = da_weak.clone();
-            let pending = redraw_pending_signal.clone();
+            redraw_pending_contents.set(true);
+            let da_weak_idle = da_weak_contents.clone();
+            let pending = redraw_pending_contents.clone();
+            gtk4::glib::idle_add_local_once(move || {
+                pending.set(false);
+                if let Some(da_ref) = da_weak_idle.upgrade() {
+                    da_ref.queue_draw();
+                }
+            });
+        });
+
+        let da_weak_cursor = da.downgrade();
+        let redraw_pending_cursor = redraw_pending;
+        terminal.connect_cursor_moved(move |_| {
+            if redraw_pending_cursor.get() {
+                return; // Already scheduled
+            }
+            redraw_pending_cursor.set(true);
+            let da_weak_idle = da_weak_cursor.clone();
+            let pending = redraw_pending_cursor.clone();
             gtk4::glib::idle_add_local_once(move || {
                 pending.set(false);
                 if let Some(da_ref) = da_weak_idle.upgrade() {

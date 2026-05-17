@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.13.17
+Version:        0.14.0
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -238,6 +238,16 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Sun May 18 2026 Anton Isaiev <totoshko88@gmail.com> - 0.14.0-0
+- Update to version 0.14.0
+- [Added] Connection Wizard (Ctrl+N) — step-by-step dialog for creating
+  connections with 4-column protocol grid, adaptive fields, auth/appearance
+- [Added] Quick Connect runtime history — last 15 sessions with filtering
+- [Added] Duplicate via Wizard — clone and modify existing connections
+- [Fixed] Wizard: Zero Trust provider fields, Mosh port, Serial baud rate
+- [Changed] Ctrl+N opens Wizard; Ctrl+Shift+N opens full dialog
+- [Changed] Highlight Rules collapsed into ExpanderRow
+
 * Fri May 16 2026 Anton Isaiev <totoshko88@gmail.com> - 0.13.17-1
 - Update to version 0.13.17
 - [Fixed] Cloud Sync in Flatpak — detect XDG Document Portal paths when

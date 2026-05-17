@@ -63,6 +63,19 @@ impl MainWindow {
         });
         window.add_action(&duplicate_action);
 
+        // Duplicate via Wizard action — opens wizard pre-filled with existing connection data
+        let duplicate_wizard_action = gio::SimpleAction::new("duplicate-via-wizard", None);
+        let window_weak = window.downgrade();
+        let state_clone = state.clone();
+        let sidebar_clone = sidebar.clone();
+        let toast_clone = self.toast_overlay.clone();
+        duplicate_wizard_action.connect_activate(move |_, _| {
+            if let Some(win) = window_weak.upgrade() {
+                Self::duplicate_via_wizard(&win, &state_clone, &sidebar_clone, &toast_clone);
+            }
+        });
+        window.add_action(&duplicate_wizard_action);
+
         // Toggle pin action
         let toggle_pin_action = gio::SimpleAction::new("toggle-pin", None);
         let state_clone = state.clone();

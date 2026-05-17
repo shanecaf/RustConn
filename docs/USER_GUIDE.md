@@ -1,6 +1,6 @@
 # RustConn User Guide
 
-**Version 0.13.17** | GTK4/libadwaita Connection Manager for Linux
+**Version 0.14.0** | GTK4/libadwaita Connection Manager for Linux
 
 RustConn is a modern connection manager designed for Linux with Wayland-first approach. It supports SSH, RDP, VNC, SPICE, MOSH, SFTP, Telnet, Serial, Kubernetes, Web protocols and Zero Trust integrations through a native GTK4/libadwaita interface.
 
@@ -92,12 +92,12 @@ RustConn is a modern connection manager designed for Linux with Wayland-first ap
 
 ### First Connection
 
-1. Press **Ctrl+N** or click **+** in header bar
-2. Enter connection name and host
-3. Select protocol (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes)
-4. Configure authentication (password or SSH key)
-5. Click **Create**
-6. Double-click the connection to connect
+1. Press **Ctrl+N** or click **+** in header bar — the **Connection Wizard** opens
+2. Select a protocol (SSH, RDP, VNC, SPICE, MOSH, SFTP, Telnet, Serial, Kubernetes, Zero Trust, Web)
+3. Enter host and connection details
+4. Configure authentication (password, SSH key, or SSH Agent) and terminal theme
+5. Click **Save & Connect**
+6. For advanced options, click **Advanced…** at any step to open the full connection editor
 
 ---
 
@@ -154,9 +154,38 @@ Shows integration status in sidebar toolbar:
 
 ## Connections
 
-### Create Connection (Ctrl+N)
+### Connection Wizard (Ctrl+N)
 
-**Basic Tab:**
+The Connection Wizard provides a streamlined 3-step flow for creating connections:
+
+**Step 1 — Protocol Selection:**
+Protocols are displayed in a grouped FlowBox layout that wraps adaptively on narrow windows:
+- **Secure Shell:** SSH, MOSH, SFTP
+- **Remote Desktop:** RDP, VNC, SPICE
+- **Terminal:** Telnet, Serial, Custom Command
+- **Other:** Kubernetes, Zero Trust, Web
+
+**Step 2 — Connection Details:**
+Adaptive form based on the selected protocol:
+- Host, Port, Username (for network protocols)
+- Jump Host dropdown for SSH tunneling (SSH, MOSH, SFTP, RDP, VNC, SPICE)
+- Device and Baud Rate (Serial)
+- Context, Namespace, Pod, Container (Kubernetes)
+- Provider-specific fields (Zero Trust)
+- URL (Web)
+
+**Step 3 — Authentication & Finish:**
+- Authentication method: Password, Key File, or SSH Agent (SSH family)
+- Password only (RDP, VNC, SPICE)
+- Terminal theme selector for VTE-based protocols
+- Custom icon (emoji or icon name)
+- **Save** or **Save & Connect** buttons
+
+Click **Advanced…** at any step to open the full connection editor with all entered data pre-filled.
+
+### Full Connection Editor (Ctrl+Shift+N)
+
+The full editor provides access to all connection options:**Basic Tab:**
 - Name, Host, Port
 - Protocol selection
 - Parent group
@@ -293,6 +322,7 @@ Temporary connection without saving:
 - Supports SSH, RDP, VNC, Telnet
 - Optional template selection for pre-filling
 - Password field for RDP/VNC
+- **Runtime history** — last 15 Quick Connect sessions are remembered during the app lifetime (not persisted to disk); shown as a "Recent" section with type-ahead filtering by host/username; clicking an entry fills protocol, host, port, and username fields instantly
 
 ### Connection Actions
 
@@ -2565,8 +2595,8 @@ Note: Sidebar-scoped shortcuts (F2, Delete, Ctrl+E, Ctrl+D, Ctrl+C, Ctrl+V, Ctrl
 
 | Shortcut | Action |
 |----------|--------|
-| Ctrl+N | New Connection |
-| Ctrl+Shift+N | New Group |
+| Ctrl+N | New Connection (Wizard) |
+| Ctrl+Shift+N | New Connection (Advanced) |
 | Ctrl+Shift+Q | Quick Connect |
 | Ctrl+I | Import |
 | Ctrl+Shift+E | Export |
