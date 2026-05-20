@@ -473,9 +473,7 @@ pub fn cmd_update(config_path: Option<&Path>, params: UpdateParams<'_>) -> Resul
         {
             apply_vnc_fields_update(cfg, &params)?;
         } else {
-            tracing::warn!(
-                "VNC-specific options (--vnc-*) are only applicable to VNC connections"
-            );
+            tracing::warn!("VNC-specific options (--vnc-*) are only applicable to VNC connections");
         }
     }
 
@@ -507,8 +505,7 @@ pub fn cmd_update(config_path: Option<&Path>, params: UpdateParams<'_>) -> Resul
         || params.mosh_predict.is_some()
         || !params.mosh_custom_arg.is_empty()
     {
-        if let rustconn_core::models::ProtocolConfig::Mosh(ref mut cfg) =
-            connection.protocol_config
+        if let rustconn_core::models::ProtocolConfig::Mosh(ref mut cfg) = connection.protocol_config
         {
             apply_mosh_fields_update(cfg, &params)?;
         } else {
