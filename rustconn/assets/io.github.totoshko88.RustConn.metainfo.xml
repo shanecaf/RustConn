@@ -142,11 +142,16 @@
   <releases>
     <release version="0.14.4" date="2026-05-20">
       <description>
-        <p>Bug fixes for CLI version detection in Settings:</p>
+        <p>CLI full parity with GUI, architecture improvements:</p>
         <ul>
-          <li>Azure CLI version not detected in Flatpak — az --version now receives AZURE_CONFIG_DIR</li>
-          <li>Hoop.dev CLI version not displayed — added .version file fallback for all CLI tools installed via Components dialog</li>
-          <li>SSH/RDP/Waypipe version strings too verbose — parser now extracts only the version token</li>
+          <li>CLI: history, pin/unpin, tag, move, monitor commands for full connection management</li>
+          <li>CLI: import --auto / --dry-run for auto-detect sources and preview imports</li>
+          <li>CLI: add/update — all advanced fields for SSH, RDP, VNC, SPICE, MOSH, Serial</li>
+          <li>Config file locking — GUI + CLI no longer conflict on concurrent writes</li>
+          <li>Quick Connect history persisted across sessions (up to 15 entries)</li>
+          <li>RDP Quick Actions: 3 new Windows admin tools (9 total)</li>
+          <li>SSH agent: add_key() accepts SecretString for better credential security</li>
+          <li>Fixed: Command Palette shortcut display, Flatpak CLI detection</li>
         </ul>
       </description>
     </release>
