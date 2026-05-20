@@ -8,6 +8,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [0.14.4] - 2026-05-20
+
+### Fixed
+
+- **Settings: Azure CLI version not detected in Flatpak** — `az --version` now receives `AZURE_CONFIG_DIR` (also `CLOUDSDK_CONFIG` for gcloud, `OCI_CLI_CONFIG_FILE` for oci) so pip-based CLIs no longer hang or error in the sandbox
+- **Settings: Hoop.dev CLI version not displayed** — added `.version` file fallback for all CLI tools installed via the Components dialog; if the CLI command times out or outputs unparseable text, the version recorded at install time is shown
+- **Settings: SSH/RDP/Waypipe version strings too verbose** — version parser now extracts only the version token:
+  - SSH: `OpenSSH_10.3p1, OpenSSL 3.5.6 7 Apr 2026` → `OpenSSH_10.3p1`
+  - RDP: `This is FreeRDP version 3.26.0 (3.26.0)` → `3.26.0`
+  - Waypipe: `waypipe 0.11.0` → `0.11.0`
+- **Command Palette: wrong shortcut for "New Group"** — displayed "Ctrl+Shift+N" instead of the actual keybinding "Ctrl+Shift+G"
+
+### Added
+
+- **Config file locking** — `ConfigManager` now acquires an exclusive advisory lock (via `fs2`) before every write operation; concurrent GUI + CLI processes no longer cause lost-update races — the second writer waits until the first releases the lock
+- **SSH agent: `add_key()` accepts `&SecretString`** — passphrase parameter changed from `Option<&str>` to `Option<&secrecy::SecretString>`; intermediate strings (shell-escaped passphrase, askpass script content) wrapped in `Zeroizing` for automatic cleanup on drop
+- **Quick Connect: history persisted across sessions** — recent Quick Connect entries (protocol/host/port/username, no passwords) are now stored in `~/.config/rustconn/config.toml` and restored on next launch; max 15 entries, LIFO order, deduplicated; previously runtime-only and lost on app restart
+- **CLI: `add`/`update` — common metadata fields** — new flags for both commands: `--tags`, `--description`, `--group` (auto-creates if missing), `--domain`, `--window-mode`, `--skip-port-check`; `update` additionally supports `--add-tag`, `--remove-tag` for incremental tag editing
+
+### Dependencies
+
+- `fs2` 0.4 (new — advisory file locking)
+
+
 ## [0.14.3] - 2026-05-20
 
 ### Fixed

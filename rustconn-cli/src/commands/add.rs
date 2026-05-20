@@ -51,6 +51,12 @@ pub struct AddParams<'a> {
     pub keep_alive_count: Option<u32>,
     pub ssh_verbose: bool,
     pub ignore_certificate: bool,
+    pub tags: Option<&'a str>,
+    pub description: Option<&'a str>,
+    pub group: Option<&'a str>,
+    pub domain: Option<&'a str>,
+    pub window_mode: Option<&'a str>,
+    pub skip_port_check: bool,
 }
 
 /// Add connection command handler
@@ -164,7 +170,52 @@ pub fn cmd_add(config_path: Option<&Path>, params: AddParams<'_>) -> Result<(), 
         }
     }
 
+    // Apply common metadata: tags, description, domain, window_mode, skip_port_check
+    if let Some(tags_str) = params.tags {
+        connection.tags = tags_str
+            .split(',')
+            .map(|t| t.trim().to_string())
+            .filter(|t| !t.is_empty())
+            .collect();
+    }
+
+    if let Some(desc) = params.description {
+        connection.description = Some(desc.to_string());
+    }
+
+    if let Some(domain) = params.domain {
+        connection.domain = Some(domain.to_string());
+    }
+
+    if let Some(mode_str) = params.window_mode {
+        connection.window_mode = match mode_str {
+            "external" => rustconn_core::models::WindowMode::External,
+            "fullscreen" => rustconn_core::models::WindowMode::Fullscreen,
+            _ => rustconn_core::models::WindowMode::Embedded,
+        };
+    }
+
+    if params.skip_port_check {
+        connection.skip_port_check = true;
+    }
+
     let config_manager = create_config_manager(config_path)?;
+
+    // Resolve --group: find or create the group, then assign group_id
+    if let Some(group_name) = params.group {
+        let mut groups = config_manager
+            .load_groups()
+            .map_err(|e| CliError::Config(format!("Failed to load groups: {e}")))?;
+        let groups_before = groups.len();
+        let group_id = crate::util::find_or_create_group_id(&mut groups, group_name)?;
+        if groups.len() > groups_before {
+            config_manager
+                .save_groups(&groups)
+                .map_err(|e| CliError::Config(format!("Failed to save groups: {e}")))?;
+            println!("Created group '{group_name}'");
+        }
+        connection.group_id = Some(group_id);
+    }
 
     let mut connections = config_manager
         .load_connections()

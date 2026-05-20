@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.14.3
+Version:        0.14.4
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -238,6 +238,11 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Tue May 20 2026 Anton Isaiev <totoshko88@gmail.com> - 0.14.4-1
+- Settings: Azure CLI version not detected in Flatpak — az --version now receives AZURE_CONFIG_DIR
+- Settings: Hoop.dev CLI version not displayed — added .version file fallback for CLI tools
+- Settings: SSH/RDP/Waypipe version strings too verbose — parser extracts only version token
+
 * Tue May 20 2026 Anton Isaiev <totoshko88@gmail.com> - 0.14.3-1
 - Settings: removed duplicate group titles above collapsible sections
 - CLI: secret set --password wrapped in Zeroizing immediately, added --password-stdin

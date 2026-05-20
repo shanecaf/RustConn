@@ -44,6 +44,14 @@ pub struct UpdateParams<'a> {
     pub keep_alive_count: Option<u32>,
     pub ssh_verbose: bool,
     pub ignore_certificate: bool,
+    pub tags: Option<&'a str>,
+    pub add_tag: &'a [String],
+    pub remove_tag: &'a [String],
+    pub description: Option<&'a str>,
+    pub group: Option<&'a str>,
+    pub domain: Option<&'a str>,
+    pub window_mode: Option<&'a str>,
+    pub skip_port_check: Option<bool>,
 }
 
 /// Update connection command handler
@@ -320,11 +328,85 @@ pub fn cmd_update(config_path: Option<&Path>, params: UpdateParams<'_>) -> Resul
         connection.icon = Some(icon.to_string());
     }
 
+    // Apply common metadata: tags, description, domain, window_mode, skip_port_check
+    if let Some(tags_str) = params.tags {
+        connection.tags = tags_str
+            .split(',')
+            .map(|t| t.trim().to_string())
+            .filter(|t| !t.is_empty())
+            .collect();
+    }
+
+    for tag in params.add_tag {
+        let trimmed = tag.trim();
+        if !trimmed.is_empty() && !connection.tags.iter().any(|t| t == trimmed) {
+            connection.tags.push(trimmed.to_string());
+        }
+    }
+
+    if !params.remove_tag.is_empty() {
+        connection
+            .tags
+            .retain(|t| !params.remove_tag.iter().any(|r| r.trim() == t));
+    }
+
+    if let Some(desc) = params.description {
+        connection.description = if desc.is_empty() {
+            None
+        } else {
+            Some(desc.to_string())
+        };
+    }
+
+    if let Some(domain) = params.domain {
+        connection.domain = if domain.is_empty() {
+            None
+        } else {
+            Some(domain.to_string())
+        };
+    }
+
+    if let Some(mode_str) = params.window_mode {
+        connection.window_mode = match mode_str {
+            "external" => rustconn_core::models::WindowMode::External,
+            "fullscreen" => rustconn_core::models::WindowMode::Fullscreen,
+            _ => rustconn_core::models::WindowMode::Embedded,
+        };
+    }
+
+    if let Some(flag) = params.skip_port_check {
+        connection.skip_port_check = flag;
+    }
+
+    // Resolve --group: find or create the group, then assign group_id (defer save)
+    let group_to_save = if let Some(group_name) = params.group {
+        let mut groups = config_manager
+            .load_groups()
+            .map_err(|e| CliError::Config(format!("Failed to load groups: {e}")))?;
+        let groups_before = groups.len();
+        let group_id = crate::util::find_or_create_group_id(&mut groups, group_name)?;
+        connection.group_id = Some(group_id);
+        if groups.len() > groups_before {
+            Some((groups, group_name.to_string()))
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
     ConfigManager::validate_connection(connection)
         .map_err(|e| CliError::Config(format!("Invalid connection: {e}")))?;
 
     let id = connection.id;
     let name = connection.name.clone();
+
+    if let Some((groups, new_group_name)) = group_to_save {
+        config_manager
+            .save_groups(&groups)
+            .map_err(|e| CliError::Config(format!("Failed to save groups: {e}")))?;
+        println!("Created group '{new_group_name}'");
+    }
 
     config_manager
         .save_connections(&connections)

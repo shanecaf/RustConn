@@ -217,6 +217,35 @@ pub enum Commands {
         /// Accept any RDP server certificate (skip TOFU verification)
         #[arg(long)]
         ignore_certificate: bool,
+
+        /// Comma-separated tags (e.g. "production,linux,critical")
+        #[arg(long, value_name = "TAG[,TAG...]")]
+        tags: Option<String>,
+
+        /// Description text for the connection
+        #[arg(long, value_name = "TEXT")]
+        description: Option<String>,
+
+        /// Group name to assign the connection to (creates the group if missing)
+        #[arg(long, value_name = "NAME")]
+        group: Option<String>,
+
+        /// Windows domain for RDP/SPICE authentication
+        #[arg(long, value_name = "DOMAIN")]
+        domain: Option<String>,
+
+        /// Window mode: embedded (default), external, or fullscreen.
+        /// Currently honored only for RDP and VNC; ignored for other protocols.
+        #[arg(
+            long,
+            value_name = "MODE",
+            value_parser = ["embedded", "external", "fullscreen"]
+        )]
+        window_mode: Option<String>,
+
+        /// Skip pre-connect TCP port check for this connection
+        #[arg(long)]
+        skip_port_check: bool,
     },
 
     /// Export connections to external format
@@ -423,6 +452,43 @@ pub enum Commands {
         /// Accept any RDP server certificate (skip TOFU verification)
         #[arg(long)]
         ignore_certificate: bool,
+
+        /// Comma-separated tags (replaces existing tags; use --add-tag/--remove-tag for incremental edits)
+        #[arg(long, value_name = "TAG[,TAG...]")]
+        tags: Option<String>,
+
+        /// Add a single tag (repeatable; preserves existing tags)
+        #[arg(long, value_name = "TAG")]
+        add_tag: Vec<String>,
+
+        /// Remove a single tag (repeatable; no error if missing)
+        #[arg(long, value_name = "TAG")]
+        remove_tag: Vec<String>,
+
+        /// New description text
+        #[arg(long, value_name = "TEXT")]
+        description: Option<String>,
+
+        /// Move connection to a different group (creates the group if missing)
+        #[arg(long, value_name = "NAME")]
+        group: Option<String>,
+
+        /// Windows domain for RDP/SPICE authentication
+        #[arg(long, value_name = "DOMAIN")]
+        domain: Option<String>,
+
+        /// Window mode: embedded, external, or fullscreen.
+        /// Currently honored only for RDP and VNC; ignored for other protocols.
+        #[arg(
+            long,
+            value_name = "MODE",
+            value_parser = ["embedded", "external", "fullscreen"]
+        )]
+        window_mode: Option<String>,
+
+        /// Set skip-port-check flag (use --skip-port-check=false to clear)
+        #[arg(long, num_args = 0..=1, default_missing_value = "true")]
+        skip_port_check: Option<bool>,
     },
 
     /// Send Wake-on-LAN magic packet

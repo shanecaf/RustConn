@@ -140,6 +140,16 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.14.4" date="2026-05-20">
+      <description>
+        <p>Bug fixes for CLI version detection in Settings:</p>
+        <ul>
+          <li>Azure CLI version not detected in Flatpak — az --version now receives AZURE_CONFIG_DIR</li>
+          <li>Hoop.dev CLI version not displayed — added .version file fallback for all CLI tools installed via Components dialog</li>
+          <li>SSH/RDP/Waypipe version strings too verbose — parser now extracts only the version token</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.14.3" date="2026-05-20">
       <description>
         <p>UI polish and GNOME HIG compliance:</p>
