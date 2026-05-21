@@ -63,15 +63,9 @@ impl NewDocumentDialog {
             .build();
 
         // Header bar (GNOME HIG)
-        let (header, cancel_btn, create_btn) =
-            crate::dialogs::widgets::dialog_header("Cancel", "Create");
+        let (header, create_btn) =
+            crate::dialogs::widgets::dialog_header("Create");
         create_btn.set_sensitive(false);
-
-        // Cancel button handler
-        let dialog_clone = dialog.clone();
-        cancel_btn.connect_clicked(move |_| {
-            dialog_clone.close();
-        });
 
         // Content
         let content = GtkBox::new(Orientation::Vertical, 12);
@@ -181,14 +175,12 @@ impl NewDocumentDialog {
         let validate_clone = validate;
         password_check.connect_toggled(move |_| validate_clone());
 
-        // Cancel button
-        let dialog_clone = dialog.clone();
+        // On dialog closed (Escape or programmatic close) → notify callback
         let on_complete_clone = on_complete.clone();
-        cancel_btn.connect_clicked(move |_| {
+        dialog.connect_closed(move |_| {
             if let Some(ref cb) = *on_complete_clone.borrow() {
                 cb(None);
             }
-            dialog_clone.close();
         });
 
         // Create button
@@ -320,8 +312,8 @@ impl OpenDocumentDialog {
             .content_width(350)
             .build();
 
-        let (header, cancel_btn, open_btn) =
-            crate::dialogs::widgets::dialog_header("Cancel", "Open");
+        let (header, open_btn) =
+            crate::dialogs::widgets::dialog_header("Open");
 
         let content = GtkBox::new(Orientation::Vertical, 12);
         content.set_margin_top(12);
@@ -347,14 +339,12 @@ impl OpenDocumentDialog {
         toolbar_view.set_content(Some(&content));
         dialog.set_child(Some(&toolbar_view));
 
-        // Cancel
-        let dialog_clone = dialog.clone();
+        // On dialog closed (Escape) → notify callback with None
         let on_complete_clone = on_complete.clone();
-        cancel_btn.connect_clicked(move |_| {
+        dialog.connect_closed(move |_| {
             if let Some(ref cb) = *on_complete_clone.borrow() {
                 cb(None);
             }
-            dialog_clone.close();
         });
 
         // Open
@@ -546,7 +536,7 @@ impl DocumentProtectionDialog {
             .build();
 
         // Header bar (GNOME HIG)
-        let (header, cancel_btn, apply_btn) = super::widgets::dialog_header("Cancel", "Apply");
+        let (header, apply_btn) = super::widgets::dialog_header("Apply");
 
         // Content
         let content = GtkBox::new(Orientation::Vertical, 12);
@@ -656,14 +646,12 @@ impl DocumentProtectionDialog {
         let validate_clone = validate;
         enable_check.connect_toggled(move |_| validate_clone());
 
-        // Cancel button
-        let dialog_clone = dialog.clone();
+        // On dialog closed (Escape) → notify callback with None
         let on_complete_clone = on_complete.clone();
-        cancel_btn.connect_clicked(move |_| {
+        dialog.connect_closed(move |_| {
             if let Some(ref cb) = *on_complete_clone.borrow() {
                 cb(None);
             }
-            dialog_clone.close();
         });
 
         // Apply button

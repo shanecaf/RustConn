@@ -84,8 +84,8 @@ pub fn show_snippets_manager(
 ) {
     let manager_dialog = adw::Dialog::builder()
         .title(i18n("Manage Snippets"))
-        .content_width(500)
-        .content_height(400)
+        .content_width(600)
+        .content_height(500)
         .build();
 
     // Header bar with Add button (GNOME HIG)
@@ -458,8 +458,8 @@ pub fn show_snippet_picker(
 ) {
     let picker_dialog = adw::Dialog::builder()
         .title(i18n("Execute Snippet"))
-        .content_width(500)
-        .content_height(400)
+        .content_width(600)
+        .content_height(500)
         .build();
 
     let header = adw::HeaderBar::new();
@@ -616,8 +616,8 @@ pub fn show_variable_input_dialog(
         .content_width(450)
         .build();
 
-    let (header, cancel_btn, execute_btn) =
-        crate::dialogs::widgets::dialog_header("Cancel", "Execute");
+    let (header, execute_btn) =
+        crate::dialogs::widgets::dialog_header("Execute");
 
     let content = gtk4::Box::new(Orientation::Vertical, 8);
     content.set_margin_top(12);
@@ -671,12 +671,6 @@ pub fn show_variable_input_dialog(
     toolbar_view.add_top_bar(&header);
     toolbar_view.set_content(Some(&content));
     var_dialog.set_child(Some(&toolbar_view));
-
-    // Connect cancel
-    let dialog_clone = var_dialog.clone();
-    cancel_btn.connect_clicked(move |_| {
-        dialog_clone.close();
-    });
 
     // Connect execute
     let dialog_clone = var_dialog.clone();

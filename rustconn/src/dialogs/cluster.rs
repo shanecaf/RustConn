@@ -55,8 +55,8 @@ impl ClusterDialog {
     pub fn new(parent: Option<&gtk4::Window>) -> Self {
         let dialog = adw::Dialog::builder()
             .title(i18n("New Cluster"))
-            .content_width(500)
-            .content_height(400)
+            .content_width(600)
+            .content_height(580)
             .build();
 
         // Header bar with Create icon button (GNOME HIG)
@@ -377,8 +377,8 @@ impl ClusterListDialog {
     pub fn new(parent: Option<&gtk4::Window>) -> Self {
         let dialog = adw::Dialog::builder()
             .title(i18n("Manage Clusters"))
-            .content_width(500)
-            .content_height(400)
+            .content_width(600)
+            .content_height(500)
             .build();
 
         // Header bar with Add button and standard window buttons (GNOME HIG)

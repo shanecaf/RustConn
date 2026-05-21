@@ -1732,6 +1732,9 @@ impl ConnectionDialog {
             .content_width(600)
             .content_height(730)
             .build();
+        // Set minimum size on the dialog widget to suppress AdwDialog warnings
+        dialog.set_width_request(360);
+        dialog.set_height_request(400);
 
         // Header bar with Test icon and Create icon button (GNOME HIG)
         let header = adw::HeaderBar::new();
@@ -1748,20 +1751,36 @@ impl ConnectionDialog {
         (dialog, header, save_btn, test_btn)
     }
 
-    /// Creates the view stack widget and adds it to the dialog with view switcher bar
+    /// Creates the view stack widget and adds it to the dialog with adaptive switcher.
+    ///
+    /// Uses an `adw::Breakpoint` to reveal the `ViewSwitcherBar` at the bottom
+    /// on narrow screens (<500sp). On wide screens the bar is always visible
+    /// since `adw::Dialog` has limited header space for a full switcher.
     fn create_view_stack(dialog: &adw::Dialog, header: &adw::HeaderBar) -> adw::ViewStack {
         let view_stack = adw::ViewStack::new();
 
-        // Create view switcher bar for the bottom of the dialog
+        // Bottom bar switcher (always visible, but breakpoint can adjust layout)
         let view_switcher_bar = adw::ViewSwitcherBar::builder()
             .stack(&view_stack)
             .reveal(true)
             .build();
 
+        // Breakpoint: narrow (<500sp) → ensure bar stays revealed
+        // (future-proofing for when we might hide it on wide screens)
+        let breakpoint = adw::Breakpoint::new(adw::BreakpointCondition::new_length(
+            adw::BreakpointConditionLengthType::MaxWidth,
+            500.0,
+            adw::LengthUnit::Sp,
+        ));
+        breakpoint.add_setter(&view_switcher_bar, "reveal", Some(&true.to_value()));
+        dialog.add_breakpoint(breakpoint);
+
         // Each tab provides its own ScrolledWindow, so the ViewStack sits
         // directly in the layout — no outer ScrolledWindow that would steal
         // height allocation from the per-tab scrollers.
         let main_box = GtkBox::new(Orientation::Vertical, 0);
+        main_box.set_width_request(360);
+        main_box.set_height_request(400);
         main_box.append(header);
         view_stack.set_vexpand(true);
         main_box.append(&view_stack);

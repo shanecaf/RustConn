@@ -80,7 +80,7 @@ impl RecordingsDialog {
         let dialog = adw::Dialog::builder()
             .title(i18n("Recordings"))
             .content_width(600)
-            .content_height(450)
+            .content_height(500)
             .build();
 
         let parent_widget = parent.map(|p| p.clone().upcast::<gtk4::Widget>());

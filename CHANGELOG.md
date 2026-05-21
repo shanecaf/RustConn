@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Improved
 
+- **UX-3: Edit Group → tabbed dialog** — refactored monolithic Edit Group dialog into 5 tabs using `adw::ViewStack` + `adw::ViewSwitcherBar`: Identity (name, icon, parent, description, credentials), SSH Inheritance (auth method, key path, ProxyJump, agent socket), Cloud Sync (sync mode, file, last synced), Dynamic Folder (script, workdir, timeout, refresh), Automation (expect rules, pattern tester, post-login scripts); each tab has its own scrollable content with `adw::Clamp`; Cloud Sync tab auto-hides for non-root groups
+- **UX-2: ConnectionDialog adaptive** — added `adw::Breakpoint` for narrow screens (<500sp); all tabs already use `adw::Clamp` (max 600px) for consistent width
+- **UX-5: Wizard Security Key (FIDO2)** — added "Security Key (FIDO2)" auth method radio button in Connection Wizard step 3; visible for SSH/Mosh/SFTP protocols
+- **UX-5: Wizard back button + compact layout** — removed top-level header bar; each NavigationPage now has its own HeaderBar so `adw::NavigationView` shows automatic back buttons (GNOME HIG); increased dialog height to 580px; removed redundant "Quick-start from a predefined command" subtitle to reduce scrolling in Custom Command mode
+- **UX-6: Removed Cancel from `dialog_header()`** — `adw::Dialog` natively handles Escape to close; removed redundant Cancel buttons from password, document, and snippet variable dialogs; callers with callbacks now use `dialog.connect_closed()`
+- **UX-8: Color scheme selector modernized** — replaced 3 linked `ToggleButton` with `AdwToggleGroup` (libadwaita 1.7+) or `AdwComboRow` (fallback); cleaner code, no manual child iteration
+- **Dialog sizes unified** — standardized dialog dimensions across the app: New object with tabs 600×730 (Snippet, Template, Connection), New object simple 600×580 (Cluster, Variables, Wizard), List/manage 600×500 (Manage Snippets/Clusters/Templates, History, Statistics, Sessions, Recordings, Shortcuts, Flatpak Components), Tunnel Manager 600×600; fixed `AdwDialog` minimum size warnings by setting `width-request`/`height-request`
 - **UX-1: Snippet dialogs migrated to `adw::Dialog`** — New/Edit Snippet, Manage Snippets, Execute Snippet (picker), Enter Variable Values now use `adw::Dialog` instead of `adw::Window`; enables bottom-sheet on narrow screens, auto-close on Escape, drag-to-close
 - **UX-1: Variables dialog migrated to `adw::Dialog`** — Global Variables dialog uses `adw::Dialog` for consistent GNOME HIG behavior
 - **UX-1: Recordings dialog migrated to `adw::Dialog`** — list, play, rename, delete, import recordings

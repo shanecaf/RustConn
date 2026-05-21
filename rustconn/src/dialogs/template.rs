@@ -127,7 +127,7 @@ impl TemplateDialog {
         let dialog = adw::Dialog::builder()
             .title(i18n("New Template"))
             .content_width(600)
-            .content_height(500)
+            .content_height(730)
             .build();
 
         let parent_widget: Option<gtk4::Widget> =
@@ -3050,8 +3050,8 @@ impl TemplateManagerDialog {
     pub fn new(parent: Option<&impl IsA<gtk4::Widget>>) -> Self {
         let dialog = adw::Dialog::builder()
             .title(i18n("Manage Templates"))
-            .content_width(500)
-            .content_height(400)
+            .content_width(600)
+            .content_height(500)
             .build();
 
         let parent_widget: Option<gtk4::Widget> =

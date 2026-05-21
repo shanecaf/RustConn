@@ -402,16 +402,17 @@ impl ConnectionWizard {
         let dialog = adw::Dialog::builder()
             .title(i18n("New Connection"))
             .content_width(600)
-            .content_height(520)
+            .content_height(580)
             .build();
 
         let nav_view = adw::NavigationView::new();
 
-        let toolbar_view = adw::ToolbarView::new();
-        let header = adw::HeaderBar::new();
-        toolbar_view.add_top_bar(&header);
-        toolbar_view.set_content(Some(&nav_view));
-        dialog.set_child(Some(&toolbar_view));
+        // NavigationView as direct child — each NavigationPage gets its own
+        // header bar with automatic back button (GNOME HIG)
+        // Set minimum size to avoid AdwDialog warnings
+        nav_view.set_width_request(360);
+        nav_view.set_height_request(400);
+        dialog.set_child(Some(&nav_view));
 
         let protocol_page = ProtocolPage::new();
         let connection_page = ConnectionPage::new(state.clone());

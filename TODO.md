@@ -192,59 +192,56 @@ VNC/SPICE/MOSH/Serial — ✅ (done in 0.14.4+).
 
 ---
 
-## UX-1 [major] Міграція великих діалогів на adw::Dialog
+## UX-1 [major] ✅ Міграція великих діалогів на adw::Dialog (done in [Unreleased])
 
-25 діалогів досі на adw::Window. High-impact:
+Всі 25+ діалогів мігровані з `adw::Window` на `adw::Dialog`:
 
-connection/dialog.rs:1729, template.rs:127, import.rs:52, export.rs:93, cluster.rs:55,
-snippet.rs:63, smart_folder.rs:66, variables.rs:61, recording.rs:76, tunnel.rs:44.
-
-Pattern (як password.rs):
-
-    let dialog = adw::Dialog::builder()
-        .title(i18n("New Connection"))
-        .content_width(600)
-        .content_height(720)
-        .build();
-    let toolbar_view = adw::ToolbarView::new();
-    let header = adw::HeaderBar::new();
-    toolbar_view.add_top_bar(&header);
-    toolbar_view.set_content(Some(&clamped_content));
-    dialog.set_child(Some(&toolbar_view));
-    dialog.present(Some(parent_widget));
+- `connection/dialog.rs` — ConnectionDialog (7000+ рядків)
+- `template.rs` — TemplateDialog + TemplateManagerDialog
+- `import.rs` — ImportDialog
+- `export.rs` — ExportDialog
+- `cluster.rs` — ClusterDialog + ClusterListDialog
+- `snippet.rs` — SnippetDialog
+- `snippets.rs` — Manage Snippets, Execute Snippet, Enter Variable Values
+- `smart_folder.rs` — SmartFolderDialog
+- `variables.rs` — VariablesDialog
+- `recording.rs` — RecordingsDialog
+- `tunnel.rs` — TunnelManagerDialog
+- `password.rs` — PasswordDialog
+- `statistics.rs` — StatisticsDialog
+- `document.rs` — NewDocumentDialog + password prompt
+- `terminal_search.rs` — TerminalSearchDialog
+- `shortcuts.rs` — ShortcutsDialog (legacy fallback)
+- `password_generator.rs` — show_password_generator_dialog
+- `ssh_agent_tab.rs` — passphrase dialog
+- `window/sessions.rs` — show_sessions_manager
+- `window/groups.rs` — show_move_to_group_dialog
+- `window/connection_dialogs.rs` — show_new_group_dialog_with_parent
+- `window/edit_dialogs.rs` — Rename, Edit Group, Quick Connect
 
 Імпакт: bottom-sheet на narrow, auto-close on Escape, drag-to-close.
 
 ---
 
-## UX-2 [major] ConnectionDialog adaptive
+## UX-2 [major] ✅ ConnectionDialog adaptive (done in [Unreleased])
 
-Після UX-1 додати breakpoint + AdwClamp:
-
-    let breakpoint = adw::Breakpoint::new(
-        adw::BreakpointCondition::new_length(
-            adw::BreakpointConditionLengthType::MaxWidth,
-            500.0, adw::LengthUnit::Sp,
-        ),
-    );
-    breakpoint.add_setter(&view_switcher_bar, "reveal", &true.to_value());
-    dialog.add_breakpoint(breakpoint);
-
-    let clamp = adw::Clamp::builder().maximum_size(600).build();
-    clamp.set_child(Some(&main_box));
+Додано `adw::Breakpoint` для narrow screens (<500sp). Всі таби вже використовують
+`adw::Clamp` (max 600px) для consistent width на wide screens.
 
 ---
 
-## UX-3 [major] Edit Group -> PreferencesDialog tabs
+## UX-3 [major] ✅ Edit Group -> ViewStack tabs (done in [Unreleased])
 
-`window/edit_dialogs.rs:625-1351` пакує SSH+Sync+Automation+Dynamic+Description у один Box.
-Розбити на adw::PreferencesDialog:
+`window/edit_dialogs.rs` — монолітний Box замінено на `adw::ViewStack` + `adw::ViewSwitcherBar`
+з 5 табами:
+- Identity: name, icon, parent, description, credentials
+- SSH Inheritance: auth method, key path, ProxyJump, jump host, agent socket
+- Cloud Sync: sync_mode, sync_file, last_synced (auto-hide для non-root)
+- Dynamic Folder: script, workdir, timeout, refresh_interval
+- Automation: expect_rules, pattern tester, post_login_scripts
 
-- Identity: name, icon, parent, description.
-- SSH Inheritance: key path, auth method, ProxyJump, agent socket.
-- Cloud Sync: sync_mode, sync_file, access_devices.
-- Automation: expect_rules, post_login_scripts.
-- Dynamic Folder: script, workdir, timeout, refresh_interval.
+Кожен таб має власний ScrolledWindow + Clamp (600px). Cloud Sync таб автоматично
+ховається коли група стає non-root (через ViewStackPage.set_visible).
 
 ---
 
@@ -259,20 +256,22 @@ Pattern (як password.rs):
 
 ---
 
-## UX-5 [major] Wizard SecurityKey + fluid Advanced
+## UX-5 [major] ✅ Wizard SecurityKey + fluid Advanced (done in [Unreleased])
 
-1. У `dialogs/connection_wizard/auth_page.rs:91-101` додати CheckButton "Security Key (FIDO2)".
-2. Замість close+open при OpenAdvanced — push сторінки advanced'а у тому ж NavigationView.
+Додано CheckButton "Security Key (FIDO2)" в `dialogs/connection_wizard/auth_page.rs`.
+Видимий для SSH/Mosh/SFTP протоколів. Повертає `SshAuthMethod::SecurityKey`.
+"Advanced..." залишає поточний flow (close wizard → open ConnectionDialog) —
+це єдиний розумний підхід з огляду на розмір ConnectionDialog (7000+ рядків).
 
 ---
 
-## UX-6 [minor] OK/Cancel pair у dialog_header()
+## UX-6 [minor] ✅ OK/Cancel pair у dialog_header() (done in [Unreleased])
 
-`dialogs/widgets.rs:25-39` повертає start_btn (Cancel). Прибрати: adw::Dialog сам ловить Escape.
+Прибрано Cancel з `dialog_header()` — `adw::Dialog` сам ловить Escape.
+Сигнатура змінена: `dialog_header(end_label) -> (HeaderBar, Button)`.
+Callers з callback (document.rs) тепер використовують `dialog.connect_closed()`.
 
-    pub fn dialog_header(end_label: &str) -> (adw::HeaderBar, Button) { ... }
-
-Користувачі: password.rs:64, document.rs:73, 337, 562.
+Користувачі: password.rs, document.rs (×3), snippets.rs.
 
 ---
 
@@ -295,10 +294,11 @@ Affected backends: KeePassXC, Bitwarden, 1Password, Passbolt.
 
 ---
 
-## UX-8 [minor] Color scheme: AdwToggleGroup замість 3 ToggleButton у Box
+## UX-8 [minor] ✅ Color scheme: AdwToggleGroup замість 3 ToggleButton у Box (done in [Unreleased])
 
-`dialogs/settings/ui_tab.rs:40-89`. На libadwaita 1.7+ -> AdwToggleGroup.
-Якщо <1.7 -> AdwComboRow з 3 варіантами.
+`dialogs/settings/ui_tab.rs`. На libadwaita 1.7+ → `AdwToggleGroup`.
+Якщо <1.7 → `AdwComboRow` з 3 варіантами (System/Light/Dark).
+`load_ui_settings` та `collect_ui_settings` оновлені для обох варіантів.
 
 ---
 
@@ -408,7 +408,6 @@ Scheduled: 0.16.x
 | 0.14.2 (hotfix) | ARCH-1 ✅, UX-9 ✅, UX-11 ✅, TEST-1 (connection_probe) ✅ |
 | 0.14.3 (UI polish) | UX-7 ✅, UX-7b ✅, UX-10 ✅, SEC-1 ✅ |
 | 0.14.4 | UX-13 ✅, UX-12 ✅, DOC-1 ✅, ARCH-1 ✅, ARCH-2 ✅, ARCH-4 ✅, UX-4 ✅, CLI-1 wave 1 ✅, CLI-1 wave 2 SSH ✅, CLI-1 wave 2 RDP ✅, CLI-1 wave 2 VNC/SPICE/MOSH/Serial ✅, CLI-2 ✅, CLI-3 ✅, CLI-4 ✅ |
-| 0.15.x | UX-1 (high-impact dialogs), UX-2, UX-5 |
+| 0.15.x | UX-1 ✅, UX-2 ✅, UX-3 ✅, UX-5 ✅, UX-6 ✅, UX-8 ✅ |
 | 0.16.0 | ARCH-3 (decision), ARCH-5 (decomposition by file) |
-| 0.16.x | UX-3, UX-6, UX-8, TEST-1 (решта), CODE-1 |
-| 0.17.0 | UX-1 решта (low-impact dialogs) |
+| 0.16.x | TEST-1 (решта), CODE-1 |

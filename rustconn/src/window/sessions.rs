@@ -32,7 +32,7 @@ pub fn show_sessions_manager(
 ) {
     let manager_dialog = adw::Dialog::builder()
         .title(i18n("Active Sessions"))
-        .content_width(500)
+        .content_width(600)
         .content_height(500)
         .build();
 

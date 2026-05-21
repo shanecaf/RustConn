@@ -67,7 +67,7 @@ impl SmartFolderDialog {
 
         let dialog = adw::Dialog::builder()
             .title(title)
-            .content_width(460)
+            .content_width(600)
             .build();
 
         let parent_widget: Option<gtk4::Widget> =

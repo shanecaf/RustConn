@@ -436,15 +436,12 @@ pub fn show_edit_group_dialog(
     };
     drop(state_ref);
 
-    // Create group window with Adwaita
+    // Create group dialog with tabbed layout (ViewStack + ViewSwitcherBar)
     let group_dialog = adw::Dialog::builder()
         .title(i18n("Edit Group"))
         .content_width(600)
-        .content_height(750)
+        .content_height(730)
         .build();
-    // Fix minimum width to prevent the window from resizing when content
-    // changes (e.g., adding/removing expect rules). The minimum matches
-    // the Clamp maximum_size so the layout is always stable.
     group_dialog.set_size_request(600, -1);
 
     let header = adw::HeaderBar::new();
@@ -454,36 +451,52 @@ pub fn show_edit_group_dialog(
     save_btn.add_css_class("suggested-action");
     header.pack_start(&save_btn);
 
-    // Scrollable content with clamp
-    let clamp = adw::Clamp::builder()
-        .maximum_size(600)
-        .tightening_threshold(600)
+    // ViewStack for tabbed pages
+    let view_stack = adw::ViewStack::new();
+    view_stack.set_vexpand(true);
+
+    // Bottom switcher bar for tab navigation
+    let view_switcher_bar = adw::ViewSwitcherBar::builder()
+        .stack(&view_stack)
+        .reveal(true)
         .build();
 
-    let content = gtk4::Box::new(gtk4::Orientation::Vertical, 12);
-    content.set_margin_top(12);
-    content.set_margin_bottom(12);
-    content.set_margin_start(12);
-    content.set_margin_end(12);
-
-    clamp.set_child(Some(&content));
-
-    let scrolled = gtk4::ScrolledWindow::builder()
-        .hscrollbar_policy(gtk4::PolicyType::Never)
-        .vscrollbar_policy(gtk4::PolicyType::Automatic)
-        .vexpand(true)
-        .child(&clamp)
-        .build();
-    // Overlay scrolling draws the scrollbar on top of content instead of
-    // beside it, preventing layout width shifts when the scrollbar appears
-    // or disappears as content height changes.
-    scrolled.set_overlay_scrolling(true);
-
-    // Use ToolbarView for proper adw::Window layout
+    // Layout: HeaderBar on top, ViewStack in center, ViewSwitcherBar at bottom
     let toolbar_view = adw::ToolbarView::new();
     toolbar_view.add_top_bar(&header);
-    toolbar_view.set_content(Some(&scrolled));
+    toolbar_view.set_content(Some(&view_stack));
+    toolbar_view.add_bottom_bar(&view_switcher_bar);
     group_dialog.set_child(Some(&toolbar_view));
+
+    // === Helper: create a scrollable page container ===
+    let make_page_content = || -> gtk4::Box {
+        let content = gtk4::Box::new(gtk4::Orientation::Vertical, 12);
+        content.set_margin_top(12);
+        content.set_margin_bottom(12);
+        content.set_margin_start(12);
+        content.set_margin_end(12);
+        content
+    };
+    let wrap_in_scrolled = |content: &gtk4::Box| -> gtk4::ScrolledWindow {
+        let clamp = adw::Clamp::builder()
+            .maximum_size(600)
+            .tightening_threshold(600)
+            .build();
+        clamp.set_child(Some(content));
+        let scrolled = gtk4::ScrolledWindow::builder()
+            .hscrollbar_policy(gtk4::PolicyType::Never)
+            .vscrollbar_policy(gtk4::PolicyType::Automatic)
+            .vexpand(true)
+            .child(&clamp)
+            .build();
+        scrolled.set_overlay_scrolling(true);
+        scrolled
+    };
+
+    // ══════════════════════════════════════════════════════════════════
+    // PAGE 1: Identity (name, icon, parent, description, credentials)
+    // ══════════════════════════════════════════════════════════════════
+    let identity_content = make_page_content();
 
     // === Group Details ===
     let details_group = adw::PreferencesGroup::builder()
@@ -604,7 +617,7 @@ pub fn show_edit_group_dialog(
         .build();
     details_group.add(&parent_row);
 
-    content.append(&details_group);
+    identity_content.append(&details_group);
 
     // === Inheritable Credentials (collapsible with enable switch) ===
     let credentials_group = adw::PreferencesGroup::new();
@@ -901,7 +914,7 @@ pub fn show_edit_group_dialog(
         .build();
     credentials_expander.add_row(&domain_row);
 
-    content.append(&credentials_group);
+    identity_content.append(&credentials_group);
 
     // === SSH Settings Section (progressive disclosure per GNOME HIG) ===
     let ssh_settings_group = adw::PreferencesGroup::new();
@@ -1122,7 +1135,7 @@ pub fn show_edit_group_dialog(
         .build();
     ssh_expander.add_row(&ssh_agent_socket_row);
 
-    content.append(&ssh_settings_group);
+    // SSH settings go on their own page (Page 2)
 
     // --- Dynamic visibility of SSH detail rows based on auth method ---
     // Helper: update visibility of SSH fields based on selected auth method index
@@ -1154,6 +1167,7 @@ pub fn show_edit_group_dialog(
     });
 
     // === Cloud Sync Section (root groups only) ===
+    let sync_content = make_page_content();
     let sync_mode_list =
         gtk4::StringList::new(&[&i18n("Not synced"), &i18n("Master"), &i18n("Import")]);
     let sync_mode_row = adw::ComboRow::builder()
@@ -1239,20 +1253,29 @@ pub fn show_edit_group_dialog(
         }
     }
 
-    // Only show for root groups — subgroups inherit sync mode from their root
+    sync_content.append(&sync_group_widget);
+
+    // Only show Cloud Sync page for root groups — subgroups inherit sync mode
     let is_root_group = group.parent_id.is_none();
-    sync_group_widget.set_visible(is_root_group);
 
-    content.append(&sync_group_widget);
+    let sync_scrolled = wrap_in_scrolled(&sync_content);
+    let sync_page = view_stack.add_titled_with_icon(
+        &sync_scrolled,
+        Some("sync"),
+        &i18n("Cloud Sync"),
+        "emblem-synchronizing-symbolic",
+    );
+    sync_page.set_visible(is_root_group);
 
-    // Hide Cloud Sync section when parent changes to non-root
-    let sync_group_for_parent = sync_group_widget.clone();
+    // Hide Cloud Sync page when parent changes to non-root
+    let sync_page_for_parent = sync_page.clone();
     parent_row.connect_selected_notify(move |row| {
         // Index 0 = "(None - Root Level)" means this group becomes/stays root
-        sync_group_for_parent.set_visible(row.selected() == 0);
+        sync_page_for_parent.set_visible(row.selected() == 0);
     });
 
     // === Dynamic Folder Section ===
+    let dynamic_content = make_page_content();
     let dynamic_expander = adw::ExpanderRow::builder()
         .title(i18n("Dynamic Folder"))
         .subtitle(i18n("Generate connections from a script"))
@@ -1321,9 +1344,18 @@ pub fn show_edit_group_dialog(
 
     let dynamic_group = adw::PreferencesGroup::new();
     dynamic_group.add(&dynamic_expander);
-    content.append(&dynamic_group);
+    dynamic_content.append(&dynamic_group);
+
+    let dynamic_scrolled = wrap_in_scrolled(&dynamic_content);
+    view_stack.add_titled_with_icon(
+        &dynamic_scrolled,
+        Some("dynamic"),
+        &i18n("Dynamic"),
+        "folder-new-symbolic",
+    );
 
     // === Automation Section (Expect Rules + Post-login Scripts) ===
+    let automation_content = make_page_content();
     let has_automation = !group.expect_rules.is_empty() || !group.post_login_scripts.is_empty();
 
     let automation_expander = adw::ExpanderRow::builder()
@@ -1338,7 +1370,7 @@ pub fn show_edit_group_dialog(
 
     let automation_group = adw::PreferencesGroup::new();
     automation_group.add(&automation_expander);
-    content.append(&automation_group);
+    automation_content.append(&automation_group);
 
     // Confirm before clearing automation when the enable switch is toggled off
     {
@@ -1525,12 +1557,12 @@ pub fn show_edit_group_dialog(
     }
 
     expect_rules_group.set_visible(has_automation);
-    content.append(&expect_rules_group);
+    automation_content.append(&expect_rules_group);
     // Button box is a plain gtk4::Box appended directly to content (not inside
     // PreferencesGroup) so that MenuButton popover and Button clicks work
     // without being swallowed by ListBoxRow selection handling.
     expect_button_box.set_visible(has_automation);
-    content.append(&expect_button_box);
+    automation_content.append(&expect_button_box);
 
     // --- Pattern Tester (collapsible) ---
     let tester_expander = adw::ExpanderRow::builder()
@@ -1602,7 +1634,7 @@ pub fn show_edit_group_dialog(
     let tester_group = adw::PreferencesGroup::new();
     tester_group.add(&tester_expander);
     tester_group.set_visible(has_automation);
-    content.append(&tester_group);
+    automation_content.append(&tester_group);
 
     // --- Post-login Scripts (list with Add/Delete) ---
     let scripts_group = adw::PreferencesGroup::builder()
@@ -1647,9 +1679,9 @@ pub fn show_edit_group_dialog(
     }
 
     scripts_group.set_visible(has_automation);
-    content.append(&scripts_group);
+    automation_content.append(&scripts_group);
     scripts_button_box.set_visible(has_automation);
-    content.append(&scripts_button_box);
+    automation_content.append(&scripts_button_box);
 
     // Show/hide all automation sub-sections based on automation expander state
     {
@@ -1668,7 +1700,7 @@ pub fn show_edit_group_dialog(
         });
     }
 
-    // === Description Section ===
+    // === Description Section (on Identity page) ===
     let description_group = adw::PreferencesGroup::builder()
         .title(i18n("Description"))
         .description(i18n("Notes, contacts, project info"))
@@ -1696,7 +1728,36 @@ pub fn show_edit_group_dialog(
     description_scroll.add_css_class("card");
 
     description_group.add(&description_scroll);
-    content.append(&description_group);
+    identity_content.append(&description_group);
+
+    // Register Identity page in ViewStack
+    let identity_scrolled = wrap_in_scrolled(&identity_content);
+    view_stack.add_titled_with_icon(
+        &identity_scrolled,
+        Some("identity"),
+        &i18n("Identity"),
+        "avatar-default-symbolic",
+    );
+
+    // Register SSH Inheritance page in ViewStack
+    let ssh_content = make_page_content();
+    ssh_content.append(&ssh_settings_group);
+    let ssh_scrolled = wrap_in_scrolled(&ssh_content);
+    view_stack.add_titled_with_icon(
+        &ssh_scrolled,
+        Some("ssh"),
+        &i18n("SSH"),
+        "network-server-symbolic",
+    );
+
+    // Register Automation page in ViewStack
+    let automation_scrolled = wrap_in_scrolled(&automation_content);
+    view_stack.add_titled_with_icon(
+        &automation_scrolled,
+        Some("automation"),
+        &i18n("Automation"),
+        "system-run-symbolic",
+    );
 
     // Connect handlers
     let state_clone = state.clone();

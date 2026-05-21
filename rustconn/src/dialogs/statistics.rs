@@ -28,8 +28,8 @@ impl StatisticsDialog {
     pub fn new(parent: Option<&impl IsA<gtk4::Window>>) -> Self {
         let dialog = adw::Dialog::builder()
             .title(i18n("Connection Statistics"))
-            .content_width(500)
-            .content_height(400)
+            .content_width(600)
+            .content_height(500)
             .build();
 
         // Header bar with Reset icon button on the left (GNOME HIG)
