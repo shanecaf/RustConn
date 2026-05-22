@@ -245,6 +245,103 @@ const fn char_to_scancode(ch: char) -> Option<(u16, bool)> {
     }
 }
 
+/// Configuration for script execution delays in RDP sessions.
+///
+/// When executing a script via clipboard+paste, multiple steps require
+/// timing delays to allow the remote Windows OS to process each action.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ScriptExecutionConfig {
+    /// Delay after setting clipboard before sending keys (ms)
+    pub clipboard_settle_ms: u32,
+    /// Delay after opening Run dialog before typing (ms)
+    pub run_dialog_delay_ms: u32,
+    /// Delay after launching PowerShell before paste (ms)
+    pub shell_startup_delay_ms: u32,
+}
+
+impl Default for ScriptExecutionConfig {
+    fn default() -> Self {
+        Self {
+            clipboard_settle_ms: 200,
+            run_dialog_delay_ms: 300,
+            shell_startup_delay_ms: 500,
+        }
+    }
+}
+
+/// A built-in Windows PowerShell snippet definition.
+///
+/// These are used to seed the snippet library with useful Windows admin scripts
+/// that can be executed via the RDP clipboard+paste mechanism.
+pub struct BuiltinWindowsSnippet {
+    /// Unique identifier
+    pub id: &'static str,
+    /// Display name (English, wrapped with i18n on GUI side)
+    pub label: &'static str,
+    /// Description of what the script does
+    pub description: &'static str,
+    /// PowerShell command to execute
+    pub command: &'static str,
+    /// Icon name (symbolic, GNOME icon theme)
+    pub icon: &'static str,
+}
+
+/// Built-in Windows PowerShell scripts for RDP sessions.
+///
+/// These scripts are executed via clipboard→paste into a PowerShell window.
+pub static BUILTIN_WINDOWS_SNIPPETS: &[BuiltinWindowsSnippet] = &[
+    BuiltinWindowsSnippet {
+        id: "clear-temp-files",
+        label: "Clear Temp Files",
+        description: "Remove temporary files from the current user's temp directory",
+        command: "Remove-Item -Path $env:TEMP\\* -Recurse -Force -ErrorAction SilentlyContinue; Write-Host 'Temp files cleared'",
+        icon: "edit-clear-all-symbolic",
+    },
+    BuiltinWindowsSnippet {
+        id: "iis-log-rotation",
+        label: "IIS Log Rotation",
+        description: "Remove IIS log files older than 30 days",
+        command: "Get-ChildItem C:\\inetpub\\logs -Recurse -Filter *.log | Where-Object {$_.LastWriteTime -lt (Get-Date).AddDays(-30)} | Remove-Item -Force; Write-Host 'Old IIS logs removed'",
+        icon: "document-open-recent-symbolic",
+    },
+    BuiltinWindowsSnippet {
+        id: "system-info",
+        label: "System Info",
+        description: "Display basic system information (hostname, OS, memory)",
+        command: "Get-ComputerInfo | Select-Object CsName, OsName, OsVersion, CsTotalPhysicalMemory | Format-List",
+        icon: "computer-symbolic",
+    },
+];
+
+/// Builds the key sequence to open PowerShell via Win+R.
+///
+/// This is used as the first step before pasting a script via Ctrl+V.
+/// The sequence is: Win+R → type "powershell" → Enter.
+#[must_use]
+pub fn build_open_powershell_sequence() -> Vec<(u16, bool, bool)> {
+    build_run_command("powershell")
+}
+
+/// Builds the Ctrl+V key sequence for pasting clipboard content.
+#[must_use]
+pub fn build_paste_sequence() -> Vec<(u16, bool, bool)> {
+    vec![
+        (scancodes::CTRL, true, false),  // Ctrl down
+        (0x2F, true, false),             // V down
+        (0x2F, false, false),            // V up
+        (scancodes::CTRL, false, false), // Ctrl up
+    ]
+}
+
+/// Builds the Enter key sequence for executing pasted content.
+#[must_use]
+pub fn build_enter_sequence() -> Vec<(u16, bool, bool)> {
+    vec![
+        (scancodes::ENTER, true, false),
+        (scancodes::ENTER, false, false),
+    ]
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

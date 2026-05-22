@@ -55,12 +55,10 @@ pub fn show_move_to_group_dialog(
         .build();
 
     let header = adw::HeaderBar::new();
-    let cancel_btn = Button::builder().label(i18n("Cancel")).build();
     let move_btn = Button::builder()
         .label(i18n("Move"))
         .css_classes(["suggested-action"])
         .build();
-    header.pack_start(&cancel_btn);
     header.pack_end(&move_btn);
 
     let content = gtk4::Box::new(Orientation::Vertical, 12);
@@ -145,12 +143,6 @@ pub fn show_move_to_group_dialog(
     toolbar_view.add_top_bar(&header);
     toolbar_view.set_content(Some(&content));
     move_dialog.set_child(Some(&toolbar_view));
-
-    // Connect cancel
-    let window_clone = move_dialog.clone();
-    cancel_btn.connect_clicked(move |_| {
-        window_clone.close();
-    });
 
     // Connect move
     let state_clone = state.clone();

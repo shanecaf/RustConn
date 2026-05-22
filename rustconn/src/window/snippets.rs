@@ -388,7 +388,9 @@ fn populate_snippets_manager_list(
     }
 }
 
-/// Populates the snippets list with filtered results
+/// Populates the snippets list with filtered results.
+///
+/// Only shows snippets compatible with VTE terminals (`Terminal` or `Any` target).
 pub fn populate_snippets_list(state: &SharedAppState, list: &gtk4::ListBox, query: &str) {
     // Clear existing rows
     while let Some(row) = list.row_at_index(0) {
@@ -402,7 +404,10 @@ pub fn populate_snippets_list(state: &SharedAppState, list: &gtk4::ListBox, quer
         state_ref.search_snippets(query)
     };
 
-    for snippet in snippets {
+    for snippet in snippets
+        .iter()
+        .filter(|s| s.target.is_terminal_compatible())
+    {
         let row = gtk4::ListBoxRow::new();
         row.set_widget_name(&format!("snippet-{}", snippet.id));
 
@@ -484,6 +489,13 @@ pub fn show_snippet_picker(
         .selection_mode(gtk4::SelectionMode::Single)
         .css_classes(["boxed-list"])
         .build();
+    snippets_list.set_placeholder(Some(
+        &adw::StatusPage::builder()
+            .icon_name("edit-paste-symbolic")
+            .title(i18n("No snippets available"))
+            .description(i18n("Create snippets in the Manage Snippets dialog"))
+            .build(),
+    ));
     scrolled.set_child(Some(&snippets_list));
     content.append(&scrolled);
 
@@ -616,8 +628,7 @@ pub fn show_variable_input_dialog(
         .content_width(450)
         .build();
 
-    let (header, execute_btn) =
-        crate::dialogs::widgets::dialog_header("Execute");
+    let (header, execute_btn) = crate::dialogs::widgets::dialog_header("Execute");
 
     let content = gtk4::Box::new(Orientation::Vertical, 8);
     content.set_margin_top(12);

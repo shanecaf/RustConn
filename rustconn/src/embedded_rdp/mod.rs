@@ -304,6 +304,26 @@ impl EmbeddedRdpWidget {
         }
         toolbar.append(&quick_actions_button);
 
+        // Scripts dropdown menu — run PowerShell scripts via clipboard+paste
+        let scripts_button = gtk4::MenuButton::new();
+        scripts_button.set_icon_name("utilities-terminal-symbolic");
+        scripts_button.set_tooltip_text(Some(&i18n("Run PowerShell script on remote")));
+        scripts_button.add_css_class("flat");
+        scripts_button.update_property(&[gtk4::accessible::Property::Label(&i18n(
+            "Run script on remote",
+        ))]);
+        {
+            let menu = gtk4::gio::Menu::new();
+            for snippet in rustconn_core::BUILTIN_WINDOWS_SNIPPETS {
+                menu.append(
+                    Some(&i18n(snippet.label)),
+                    Some(&format!("rdp-script.{}", snippet.id)),
+                );
+            }
+            scripts_button.set_menu_model(Some(&menu));
+        }
+        toolbar.append(&scripts_button);
+
         // Save Files button (shown when files available on remote clipboard)
         #[cfg(feature = "rdp-embedded")]
         let save_files_button = Button::with_label(&i18n("Save Files"));
@@ -440,6 +460,7 @@ impl EmbeddedRdpWidget {
         #[cfg(feature = "rdp-embedded")]
         widget.setup_autotype_dialog_button(&type_text_button);
         widget.setup_quick_actions();
+        widget.setup_script_actions();
         widget.setup_reconnect_button();
         widget.setup_visibility_handler();
         #[cfg(feature = "rdp-embedded")]
@@ -618,6 +639,151 @@ impl EmbeddedRdpWidget {
 
         self.container
             .insert_action_group("rdp", Some(&action_group));
+    }
+
+    /// Sets up the RDP script execution actions (clipboard+paste workflow).
+    ///
+    /// Registers a GIO action for each built-in Windows snippet. When triggered,
+    /// the action:
+    /// 1. Sends the script text to the server clipboard via CLIPRDR
+    /// 2. Opens PowerShell via Win+R
+    /// 3. After a delay, pastes (Ctrl+V) and executes (Enter)
+    fn setup_script_actions(&self) {
+        use gtk4::gio;
+
+        let action_group = gio::SimpleActionGroup::new();
+
+        for snippet_def in rustconn_core::BUILTIN_WINDOWS_SNIPPETS {
+            let action = gio::SimpleAction::new(snippet_def.id, None);
+
+            #[cfg(feature = "rdp-embedded")]
+            {
+                let tx = self.ironrdp_command_tx.clone();
+                let script_text = snippet_def.command;
+                let snippet_id = snippet_def.id;
+                let status_label = self.status_label.clone();
+
+                action.connect_activate(move |_, _| {
+                    let Some(ref sender) = *tx.borrow() else {
+                        return;
+                    };
+
+                    let config = rustconn_core::ScriptExecutionConfig::default();
+
+                    // Step 1: Send script text to server clipboard
+                    if let Err(e) = sender
+                        .send(rustconn_core::RdpClientCommand::ClipboardText(
+                            script_text.to_string(),
+                        ))
+                    {
+                        use crate::i18n::i18n;
+                        tracing::warn!(
+                            protocol = "rdp",
+                            script = snippet_id,
+                            error = %e,
+                            "Script execution aborted: CLIPRDR channel not ready"
+                        );
+                        status_label.set_text(&i18n("Clipboard channel not ready"));
+                        status_label.set_visible(true);
+                        let hide = status_label.clone();
+                        glib::timeout_add_local_once(
+                            std::time::Duration::from_secs(3),
+                            move || {
+                                hide.set_visible(false);
+                            },
+                        );
+                        return;
+                    }
+
+                    tracing::info!(
+                        protocol = "rdp",
+                        script = snippet_id,
+                        "Script execution: clipboard set"
+                    );
+
+                    // Step 2: After clipboard settles, open PowerShell via Win+R
+                    let tx_step2 = tx.clone();
+                    let status = status_label.clone();
+                    glib::timeout_add_local_once(
+                        std::time::Duration::from_millis(u64::from(config.clipboard_settle_ms)),
+                        move || {
+                            let Some(ref sender) = *tx_step2.borrow() else {
+                                return;
+                            };
+
+                            let keys = rustconn_core::build_open_powershell_sequence();
+                            let _ = sender.send(
+                                rustconn_core::RdpClientCommand::SendKeySequence { keys },
+                            );
+
+                            tracing::debug!(
+                                protocol = "rdp",
+                                "Script execution: PowerShell opening"
+                            );
+
+                            // Step 3: After PowerShell starts, paste + enter
+                            let tx_step3 = tx_step2.clone();
+                            glib::timeout_add_local_once(
+                                std::time::Duration::from_millis(
+                                    u64::from(config.shell_startup_delay_ms),
+                                ),
+                                move || {
+                                    let Some(ref sender) = *tx_step3.borrow() else {
+                                        return;
+                                    };
+
+                                    // Ctrl+V to paste
+                                    let paste_keys = rustconn_core::build_paste_sequence();
+                                    let _ = sender.send(
+                                        rustconn_core::RdpClientCommand::SendKeySequence {
+                                            keys: paste_keys,
+                                        },
+                                    );
+
+                                    // After a short delay, press Enter to execute
+                                    let tx_step4 = tx_step3.clone();
+                                    glib::timeout_add_local_once(
+                                        std::time::Duration::from_millis(150),
+                                        move || {
+                                            if let Some(ref sender) = *tx_step4.borrow() {
+                                                let enter_keys =
+                                                    rustconn_core::build_enter_sequence();
+                                                let _ = sender.send(
+                                                    rustconn_core::RdpClientCommand::SendKeySequence {
+                                                        keys: enter_keys,
+                                                    },
+                                                );
+                                                tracing::info!(
+                                                    protocol = "rdp",
+                                                    "Script execution: paste + enter sent"
+                                                );
+                                            }
+                                        },
+                                    );
+                                },
+                            );
+
+                            // Show status feedback
+                            use crate::i18n::i18n;
+                            status.set_text(&i18n("Script sent"));
+                            status.set_visible(true);
+                            let hide = status.clone();
+                            glib::timeout_add_local_once(
+                                std::time::Duration::from_secs(3),
+                                move || {
+                                    hide.set_visible(false);
+                                },
+                            );
+                        },
+                    );
+                });
+            }
+
+            action_group.add_action(&action);
+        }
+
+        self.container
+            .insert_action_group("rdp-script", Some(&action_group));
     }
 
     /// Sets up the Save Files button click handler for clipboard file transfer

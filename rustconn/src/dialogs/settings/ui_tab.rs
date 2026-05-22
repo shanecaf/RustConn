@@ -40,9 +40,9 @@ pub fn create_ui_page() -> (
     #[cfg(feature = "adw-1-7")]
     let color_scheme_box = {
         let toggle_group = adw::ToggleGroup::new();
-        toggle_group.add_toggle(&adw::Toggle::builder().label(i18n("System")).build());
-        toggle_group.add_toggle(&adw::Toggle::builder().label(i18n("Light")).build());
-        toggle_group.add_toggle(&adw::Toggle::builder().label(i18n("Dark")).build());
+        toggle_group.toggle(&adw::Toggle::builder().label(i18n("System")).build());
+        toggle_group.toggle(&adw::Toggle::builder().label(i18n("Light")).build());
+        toggle_group.toggle(&adw::Toggle::builder().label(i18n("Dark")).build());
         toggle_group.set_active(0);
 
         toggle_group.connect_active_notify(|tg| {

@@ -487,13 +487,11 @@ fn add_key_with_passphrase_dialog(
         .halign(gtk4::Align::End)
         .build();
 
-    let cancel_button = Button::builder().label(i18n("Cancel")).build();
     let add_button = Button::builder()
         .label(i18n("Add Key"))
         .css_classes(["suggested-action"])
         .build();
 
-    button_box.append(&cancel_button);
     button_box.append(&add_button);
 
     content.append(&body_label);
@@ -503,12 +501,6 @@ fn add_key_with_passphrase_dialog(
     toolbar_view.add_top_bar(&header);
     toolbar_view.set_content(Some(&content));
     dialog.set_child(Some(&toolbar_view));
-
-    // Connect cancel button
-    let dialog_clone = dialog.clone();
-    cancel_button.connect_clicked(move |_| {
-        dialog_clone.close();
-    });
 
     // Connect add button
     let manager_clone = ssh_agent_manager.clone();

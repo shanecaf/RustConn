@@ -82,7 +82,11 @@ pub use graphics::{
 pub use multimonitor::{MonitorArrangement, MonitorDefinition, MonitorLayout};
 pub use reconnect::{ConnectionQuality, DisconnectReason, ReconnectPolicy, ReconnectState};
 
-pub use quick_actions::{QUICK_ACTIONS, QuickAction, build_key_sequence};
+pub use quick_actions::{
+    BUILTIN_WINDOWS_SNIPPETS, BuiltinWindowsSnippet, QUICK_ACTIONS, QuickAction,
+    ScriptExecutionConfig, build_enter_sequence, build_key_sequence,
+    build_open_powershell_sequence, build_paste_sequence,
+};
 
 pub use keyboard_layout::{LAYOUT_US_ENGLISH, detect_keyboard_layout, xkb_name_to_klid};
 

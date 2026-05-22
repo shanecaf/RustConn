@@ -5,36 +5,29 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.14.5] - 2026-05-22
+
+### Added
+
+- **RDP Scripts** — new "Scripts" dropdown in the RDP toolbar lets you run PowerShell scripts on remote Windows machines via clipboard-paste; ships with 3 built-in scripts (Clear Temp Files, IIS Log Rotation, System Info) and supports configurable delays between steps
+- **Snippet target platform** — snippets can now be marked as "Terminal", "Windows", or "Any"; the terminal context menu hides Windows-only snippets, and RDP sessions show only Windows-compatible ones
 
 ### Improved
 
-- **UX-3: Edit Group → tabbed dialog** — refactored monolithic Edit Group dialog into 5 tabs using `adw::ViewStack` + `adw::ViewSwitcherBar`: Identity (name, icon, parent, description, credentials), SSH Inheritance (auth method, key path, ProxyJump, agent socket), Cloud Sync (sync mode, file, last synced), Dynamic Folder (script, workdir, timeout, refresh), Automation (expect rules, pattern tester, post-login scripts); each tab has its own scrollable content with `adw::Clamp`; Cloud Sync tab auto-hides for non-root groups
-- **UX-2: ConnectionDialog adaptive** — added `adw::Breakpoint` for narrow screens (<500sp); all tabs already use `adw::Clamp` (max 600px) for consistent width
-- **UX-5: Wizard Security Key (FIDO2)** — added "Security Key (FIDO2)" auth method radio button in Connection Wizard step 3; visible for SSH/Mosh/SFTP protocols
-- **UX-5: Wizard back button + compact layout** — removed top-level header bar; each NavigationPage now has its own HeaderBar so `adw::NavigationView` shows automatic back buttons (GNOME HIG); increased dialog height to 580px; removed redundant "Quick-start from a predefined command" subtitle to reduce scrolling in Custom Command mode
-- **UX-6: Removed Cancel from `dialog_header()`** — `adw::Dialog` natively handles Escape to close; removed redundant Cancel buttons from password, document, and snippet variable dialogs; callers with callbacks now use `dialog.connect_closed()`
-- **UX-8: Color scheme selector modernized** — replaced 3 linked `ToggleButton` with `AdwToggleGroup` (libadwaita 1.7+) or `AdwComboRow` (fallback); cleaner code, no manual child iteration
-- **Dialog sizes unified** — standardized dialog dimensions across the app: New object with tabs 600×730 (Snippet, Template, Connection), New object simple 600×580 (Cluster, Variables, Wizard), List/manage 600×500 (Manage Snippets/Clusters/Templates, History, Statistics, Sessions, Recordings, Shortcuts, Flatpak Components), Tunnel Manager 600×600; fixed `AdwDialog` minimum size warnings by setting `width-request`/`height-request`
-- **UX-1: Snippet dialogs migrated to `adw::Dialog`** — New/Edit Snippet, Manage Snippets, Execute Snippet (picker), Enter Variable Values now use `adw::Dialog` instead of `adw::Window`; enables bottom-sheet on narrow screens, auto-close on Escape, drag-to-close
-- **UX-1: Variables dialog migrated to `adw::Dialog`** — Global Variables dialog uses `adw::Dialog` for consistent GNOME HIG behavior
-- **UX-1: Recordings dialog migrated to `adw::Dialog`** — list, play, rename, delete, import recordings
-- **UX-1: Cluster dialogs migrated to `adw::Dialog`** — New/Edit Cluster and Manage Clusters
-- **UX-1: Statistics dialog migrated to `adw::Dialog`** — Connection Statistics overview
-- **UX-1: Smart Folder dialog migrated to `adw::Dialog`** — New/Edit Smart Folder
-- **UX-1: Password Generator migrated to `adw::Dialog`** — password generation dialog
-- **UX-1: Export dialog migrated to `adw::Dialog`** — Export Connections with format selection
-- **UX-1: Shortcuts dialog migrated to `adw::Dialog`** — Keyboard Shortcuts (legacy fallback)
-- **UX-1: Terminal Search dialog migrated to `adw::Dialog`** — Search in Terminal
-- **UX-1: Document dialogs migrated to `adw::Dialog`** — New Document, Enter Password (open encrypted)
-- **UX-1: Import dialog migrated to `adw::Dialog`** — Import Connections with source selection
-- **UX-1: Sessions Manager migrated to `adw::Dialog`** — Active Sessions list
-- **UX-1: Move to Group dialog migrated to `adw::Dialog`** — move connections/groups
-- **UX-1: New Group dialog migrated to `adw::Dialog`** — create group with credentials
-- **UX-1: Edit dialogs migrated to `adw::Dialog`** — Rename, Edit Group, Quick Connect
-- **UX-1: SSH Agent passphrase dialog migrated to `adw::Dialog`** — Add Key with passphrase
-- **UX-1: Template dialogs migrated to `adw::Dialog`** — TemplateDialog + TemplateManagerDialog
-- **UX-1: ConnectionDialog migrated to `adw::Dialog`** — New/Edit Connection (largest dialog, 7000+ lines)
+- **Edit Group dialog redesigned** — the single-page Edit Group form is now split into 5 tabs: Identity, SSH Inheritance, Cloud Sync, Dynamic Folder, and Automation; Cloud Sync tab auto-hides for non-root groups
+- **Connection dialog adapts to narrow windows** — the New/Edit Connection dialog now responds to window width and keeps content readable on small screens
+- **Connection Wizard: Security Key (FIDO2)** — added "Security Key (FIDO2)" authentication option in the wizard for SSH, Mosh, and SFTP protocols
+- **Connection Wizard: back navigation** — each wizard page now has its own header bar with a back button (GNOME HIG); dialog height increased to reduce scrolling
+- **Redundant Cancel buttons removed** — dialogs that already close on Escape no longer show a separate Cancel button (password, document, snippet variable dialogs)
+- **Color scheme selector modernized** — the Light/Dark/System toggle in Settings now uses the native libadwaita toggle group widget (or a combo row on older versions)
+- **Dialog sizes unified** — all dialogs now use consistent dimensions; fixed minimum-size warnings on some screens
+- **All dialogs migrated to modern adaptive style** — 25+ dialogs (Connection, Snippets, Templates, Clusters, Recordings, Import, Export, Statistics, Variables, Smart Folder, Password Generator, Sessions, Shortcuts, Terminal Search, Documents, Groups, SSH Agent passphrase) now support bottom-sheet on narrow screens, close on Escape, and drag-to-close
+- **`--window-mode` CLI flag scoped to RDP/VNC** — using `--window-mode` with protocols that don't support it (SSH, Telnet, etc.) now shows a warning instead of silently ignoring the value
+- **SSH Agent passphrase no longer written to disk** — the askpass helper now passes the passphrase via an environment variable instead of a temporary file; safe on copy-on-write filesystems (btrfs, APFS, ZFS)
+
+### Fixed
+
+- **Quick Connect: user's color theme not applied ([#156](https://github.com/totoshko88/RustConn/issues/156))** — new connections from Quick Connect now use the configured terminal theme instead of always defaulting to "Dark"
 
 ## [0.14.4] - 2026-05-20
 

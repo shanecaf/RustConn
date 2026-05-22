@@ -63,8 +63,7 @@ impl NewDocumentDialog {
             .build();
 
         // Header bar (GNOME HIG)
-        let (header, create_btn) =
-            crate::dialogs::widgets::dialog_header("Create");
+        let (header, create_btn) = crate::dialogs::widgets::dialog_header("Create");
         create_btn.set_sensitive(false);
 
         // Content
@@ -312,8 +311,7 @@ impl OpenDocumentDialog {
             .content_width(350)
             .build();
 
-        let (header, open_btn) =
-            crate::dialogs::widgets::dialog_header("Open");
+        let (header, open_btn) = crate::dialogs::widgets::dialog_header("Open");
 
         let content = GtkBox::new(Orientation::Vertical, 12);
         content.set_margin_top(12);

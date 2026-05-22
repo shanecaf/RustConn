@@ -92,9 +92,7 @@ impl RecordingsDialog {
             .icon_name("document-open-symbolic")
             .tooltip_text(i18n("Import recording"))
             .build();
-        import_btn.update_property(&[gtk4::accessible::Property::Label(
-            &i18n("Import recording"),
-        )]);
+        import_btn.update_property(&[gtk4::accessible::Property::Label(&i18n("Import recording"))]);
         header.pack_start(&import_btn);
 
         // Main content box
@@ -153,14 +151,12 @@ impl RecordingsDialog {
         dialog.set_child(Some(&toolbar_view));
 
         // Callbacks
-        let on_play: Rc<RefCell<Option<Box<dyn Fn(RecordingEntry)>>>> =
-            Rc::new(RefCell::new(None));
+        let on_play: Rc<RefCell<Option<Box<dyn Fn(RecordingEntry)>>>> = Rc::new(RefCell::new(None));
         let on_delete: Rc<RefCell<Option<Box<dyn Fn(PathBuf)>>>> = Rc::new(RefCell::new(None));
         let on_rename: Rc<RefCell<Option<Box<dyn Fn(PathBuf, String)>>>> =
             Rc::new(RefCell::new(None));
         let on_import: Rc<RefCell<Option<Box<dyn Fn()>>>> = Rc::new(RefCell::new(None));
-        let recording_rows: Rc<RefCell<Vec<RecordingListRow>>> =
-            Rc::new(RefCell::new(Vec::new()));
+        let recording_rows: Rc<RefCell<Vec<RecordingListRow>>> = Rc::new(RefCell::new(Vec::new()));
 
         // Build the shared context for import refresh
         let list_ctx = RecordingListContext {
@@ -631,7 +627,8 @@ impl RecordingsDialog {
             .modal(true)
             .build();
 
-        let parent_win = parent.and_then(|w| w.root())
+        let parent_win = parent
+            .and_then(|w| w.root())
             .and_then(|r| r.downcast::<gtk4::Window>().ok());
 
         let parent_clone = parent_win.clone();
@@ -702,7 +699,9 @@ impl RecordingsDialog {
             .filters(&filters)
             .build();
 
-        let parent_win = ctx.parent.as_ref()
+        let parent_win = ctx
+            .parent
+            .as_ref()
             .and_then(|w| w.root())
             .and_then(|r| r.downcast::<gtk4::Window>().ok());
 
@@ -734,7 +733,9 @@ impl RecordingsDialog {
                     .filters(&timing_filters)
                     .build();
 
-                let parent_win_inner = ctx_clone.parent.as_ref()
+                let parent_win_inner = ctx_clone
+                    .parent
+                    .as_ref()
                     .and_then(|w| w.root())
                     .and_then(|r| r.downcast::<gtk4::Window>().ok());
 
@@ -772,14 +773,16 @@ impl RecordingsDialog {
         let mgr = RecordingManager::new(dir);
         match mgr.import(data_path, timing_path) {
             Ok(_entry) => {
-                if let Some(ref parent) = ctx.parent {
-                    if let Some(win) = parent.root().and_then(|r| r.downcast::<gtk4::Window>().ok()) {
-                        crate::toast::show_toast_on_window(
-                            &win,
-                            &i18n("Recording imported successfully"),
-                            crate::toast::ToastType::Info,
-                        );
-                    }
+                if let Some(ref parent) = ctx.parent
+                    && let Some(win) = parent
+                        .root()
+                        .and_then(|r| r.downcast::<gtk4::Window>().ok())
+                {
+                    crate::toast::show_toast_on_window(
+                        &win,
+                        &i18n("Recording imported successfully"),
+                        crate::toast::ToastType::Info,
+                    );
                 }
                 // Refresh the list so the imported recording appears immediately
                 Self::refresh_list_with_ctx(ctx);
