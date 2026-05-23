@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.14.5
+Version:        0.14.6
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -238,6 +238,13 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Sat May 23 2026 Anton Isaiev <totoshko88@gmail.com> - 0.14.6-0
+- Version bump to 0.14.6
+- Variables dialog: collapsible rows, duplicate name validation
+- RDP toolbar: Registry Editor and Device Manager replace PowerShell/CMD
+- RDP scripts: instant clipboard paste
+- Snippet delivery mode
+
 * Thu May 22 2026 Anton Isaiev <totoshko88@gmail.com> - 0.14.5-0
 - Version bump to 0.14.5
 - All dialogs migrated to adw::Dialog

@@ -1,6 +1,6 @@
 # RustConn User Guide
 
-**Version 0.14.5** | GTK4/libadwaita Connection Manager for Linux
+**Version 0.14.6** | GTK4/libadwaita Connection Manager for Linux
 
 RustConn is a modern connection manager designed for Linux with Wayland-first approach. It supports SSH, RDP, VNC, SPICE, MOSH, SFTP, Telnet, Serial, Kubernetes, Web protocols and Zero Trust integrations through a native GTK4/libadwaita interface.
 
@@ -1719,9 +1719,19 @@ Global variables allow you to use placeholders in connection fields that are res
 
 **Define Variables:**
 1. Menu → Tools → **Variables...**
-2. Click **Add Variable** → enter name and value
-3. Optionally mark as **Secret** (value hidden, stored in vault)
-4. Click **Save**
+2. Click **+** (Add Variable) in the header bar → a new expanded row appears with focus on the name field
+3. Enter name and value
+4. Optionally mark as **Secret** (value hidden, stored in vault)
+5. Add a description for documentation purposes
+6. Click **Save**
+
+**Collapsible Rows:**
+
+When you have many variables, each one is displayed as a collapsed row showing only its name. Click the expander arrow to reveal the full editing form. When you add a new variable, all existing rows collapse automatically so you can focus on the new entry.
+
+**Duplicate Name Protection:**
+
+Variable names must be unique (case-insensitive). If you try to save with duplicate names, the dialog highlights the conflicting entries in red and expands them — saving is blocked until you rename or delete the duplicates.
 
 **Secret Variables:** Toggle visibility with the eye icon. Secret values are auto-saved to the configured vault backend on dialog save and cleared from the settings file.
 

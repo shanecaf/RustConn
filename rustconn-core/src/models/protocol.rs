@@ -1462,6 +1462,13 @@ pub struct RdpConfig {
     #[serde(default)]
     pub reconnect_on_resize: bool,
 
+    /// Send scripts via clipboard paste (Ctrl+V) instead of character-by-character
+    /// autotype. Clipboard paste is instant regardless of script length, while
+    /// autotype at 5ms/char takes ~10s for a 2000-char script.
+    /// Default: true (use clipboard paste for speed).
+    #[serde(default = "default_true")]
+    pub script_paste_via_clipboard: bool,
+
     /// RemoteApp program path or alias.
     /// When set, the RDP session launches a single application instead of a full desktop.
     /// Forces FreeRDP fallback (IronRDP does not support RAIL protocol).

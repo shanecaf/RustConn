@@ -532,6 +532,7 @@ fn start_embedded_rdp_session(
     // Pass autotype timing settings
     embedded_config.autotype_delay_ms = rdp_config.autotype_delay_ms;
     embedded_config.autotype_initial_delay_ms = rdp_config.autotype_initial_delay_ms;
+    embedded_config.script_paste_via_clipboard = rdp_config.script_paste_via_clipboard;
 
     // Pass reconnect-on-resize preference (legacy server compatibility)
     embedded_config.reconnect_on_resize = rdp_config.reconnect_on_resize;

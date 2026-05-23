@@ -1236,6 +1236,7 @@ impl ConnectionDialogData<'_> {
             autotype_delay_ms: self.rdp_autotype_delay_spin.value() as u32,
             autotype_initial_delay_ms: self.rdp_autotype_initial_delay_spin.value() as u32,
             reconnect_on_resize: self.rdp_reconnect_on_resize_check.is_active(),
+            script_paste_via_clipboard: true,
             remote_app_program: {
                 let text = self.rdp_remote_app_program_entry.text();
                 if text.trim().is_empty() {

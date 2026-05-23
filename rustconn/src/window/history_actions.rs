@@ -24,8 +24,9 @@ impl MainWindow {
                 let settings_snapshot = state_ref.settings().clone();
                 drop(state_ref);
 
-                // Restore secret variable values from vault before showing dialog
-                let current_vars = crate::state::resolve_global_variables(&settings_snapshot);
+                // Get current global variables without loading secrets from vault.
+                // Secret values are loaded on-demand via the "Load from vault" button.
+                let current_vars = settings_snapshot.global_variables.clone();
 
                 let dialog = VariablesDialog::new(Some(win.upcast_ref()));
                 dialog.set_variables(&current_vars);

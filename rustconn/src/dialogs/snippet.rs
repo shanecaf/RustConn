@@ -32,6 +32,7 @@ pub struct SnippetDialog {
     add_var_button: Button,
     save_btn: Button,
     target_row: adw::ComboRow,
+    delivery_row: adw::ComboRow,
     editing_id: Rc<RefCell<Option<Uuid>>>,
     variables: Rc<RefCell<Vec<VariableRow>>>,
     on_save: super::SnippetCallback,
@@ -102,8 +103,15 @@ impl SnippetDialog {
         dialog.set_child(Some(&toolbar_view));
 
         // === Basic Info Section ===
-        let (basic_frame, name_entry, description_entry, category_entry, tags_entry, target_row) =
-            Self::create_basic_section();
+        let (
+            basic_frame,
+            name_entry,
+            description_entry,
+            category_entry,
+            tags_entry,
+            target_row,
+            delivery_row,
+        ) = Self::create_basic_section();
         content.append(&basic_frame);
 
         // === Command Section ===
@@ -141,6 +149,7 @@ impl SnippetDialog {
             add_var_button,
             save_btn: new_btn,
             target_row,
+            delivery_row,
             editing_id: Rc::new(RefCell::new(None)),
             variables,
             on_save,
@@ -154,6 +163,7 @@ impl SnippetDialog {
         Entry,
         Entry,
         Entry,
+        adw::ComboRow,
         adw::ComboRow,
     ) {
         use super::widgets::EntryRowBuilder;
@@ -205,6 +215,20 @@ impl SnippetDialog {
             .build();
         group.add(&target_row);
 
+        // Delivery method (RDP only)
+        let delivery_model = gtk4::StringList::new(&[
+            &i18n("Auto"),
+            &i18n("Clipboard (fast)"),
+            &i18n("Autotype (reliable)"),
+        ]);
+        let delivery_row = adw::ComboRow::builder()
+            .title(i18n("Delivery"))
+            .subtitle(i18n("How to send the script to the remote session"))
+            .model(&delivery_model)
+            .selected(0)
+            .build();
+        group.add(&delivery_row);
+
         (
             group,
             name_entry,
@@ -212,6 +236,7 @@ impl SnippetDialog {
             category_entry,
             tags_entry,
             target_row,
+            delivery_row,
         )
     }
 
@@ -390,6 +415,13 @@ impl SnippetDialog {
             SnippetTarget::Any => 2,
         });
 
+        // Set delivery method: 0=Auto, 1=Clipboard, 2=Autotype
+        self.delivery_row.set_selected(match snippet.delivery {
+            rustconn_core::models::ScriptDelivery::Auto => 0,
+            rustconn_core::models::ScriptDelivery::Clipboard => 1,
+            rustconn_core::models::ScriptDelivery::Autotype => 2,
+        });
+
         // Set command
         self.command_view.buffer().set_text(&snippet.command);
 
@@ -487,6 +519,7 @@ impl SnippetDialog {
             &self.variables,
             &self.editing_id,
             &self.target_row,
+            &self.delivery_row,
         )
     }
 
@@ -512,6 +545,7 @@ impl SnippetDialog {
         let variables = self.variables.clone();
         let editing_id = self.editing_id.clone();
         let target_row = self.target_row.clone();
+        let delivery_row = self.delivery_row.clone();
 
         self.save_btn.connect_clicked(move |_| {
             // Validate
@@ -543,6 +577,7 @@ impl SnippetDialog {
                 &variables,
                 &editing_id,
                 &target_row,
+                &delivery_row,
             );
 
             if let Some(ref cb) = *on_save.borrow() {
@@ -568,8 +603,9 @@ impl SnippetDialog {
         variables: &Rc<RefCell<Vec<VariableRow>>>,
         editing_id: &Rc<RefCell<Option<Uuid>>>,
         target_row: &adw::ComboRow,
+        delivery_row: &adw::ComboRow,
     ) -> Option<Snippet> {
-        use rustconn_core::models::SnippetTarget;
+        use rustconn_core::models::{ScriptDelivery, SnippetTarget};
 
         let name = name_entry.text().trim().to_string();
         let buffer = command_view.buffer();
@@ -605,6 +641,13 @@ impl SnippetDialog {
             1 => SnippetTarget::Windows,
             2 => SnippetTarget::Any,
             _ => SnippetTarget::Terminal,
+        };
+
+        // Delivery method: 0=Auto, 1=Clipboard, 2=Autotype
+        snippet.delivery = match delivery_row.selected() {
+            1 => ScriptDelivery::Clipboard,
+            2 => ScriptDelivery::Autotype,
+            _ => ScriptDelivery::Auto,
         };
 
         // Variables

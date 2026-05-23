@@ -57,16 +57,16 @@ pub static QUICK_ACTIONS: &[QuickAction] = &[
         icon: "emblem-system-symbolic",
     },
     QuickAction {
-        id: "powershell",
-        label: "PowerShell",
-        tooltip: "Open PowerShell via Run dialog",
-        icon: "utilities-terminal-symbolic",
+        id: "registry-editor",
+        label: "Registry Editor",
+        tooltip: "Open Windows Registry Editor",
+        icon: "preferences-other-symbolic",
     },
     QuickAction {
-        id: "cmd",
-        label: "CMD",
-        tooltip: "Open Command Prompt via Run dialog",
-        icon: "utilities-terminal-symbolic",
+        id: "device-manager",
+        label: "Device Manager",
+        tooltip: "Open Windows Device Manager",
+        icon: "preferences-desktop-peripherals-symbolic",
     },
     QuickAction {
         id: "event-viewer",
@@ -108,8 +108,8 @@ pub fn build_key_sequence(action_id: &str) -> Option<Vec<(u16, bool, bool)>> {
     match action_id {
         "task-manager" => Some(build_ctrl_shift_esc()),
         "settings" => Some(build_win_i()),
-        "powershell" => Some(build_run_command("powershell")),
-        "cmd" => Some(build_run_command("cmd")),
+        "registry-editor" => Some(build_run_command("regedit")),
+        "device-manager" => Some(build_run_command("devmgmt.msc")),
         "event-viewer" => Some(build_run_command("eventvwr.msc")),
         "services" => Some(build_run_command("services.msc")),
         "disk-management" => Some(build_run_command("diskmgmt.msc")),
@@ -305,8 +305,8 @@ mod tests {
     fn char_to_scancode_covers_admin_commands() {
         // All characters used in our admin commands must be mappable
         for cmd in [
-            "powershell",
-            "cmd",
+            "regedit",
+            "devmgmt.msc",
             "eventvwr.msc",
             "services.msc",
             "diskmgmt.msc",

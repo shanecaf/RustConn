@@ -235,13 +235,17 @@ fn _extract_builtin_labels() {
     // Quick Actions labels
     i18n("Task Manager");
     i18n("Settings");
-    i18n("PowerShell");
-    i18n("CMD");
+    i18n("Registry Editor");
+    i18n("Device Manager");
     i18n("Event Viewer");
     i18n("Services");
     i18n("Disk Management");
     i18n("Resource Monitor");
     i18n("Computer Management");
+    // ScriptDelivery display names (defined in rustconn-core)
+    i18n("Auto");
+    i18n("Clipboard (fast)");
+    i18n("Autotype (reliable)");
     // Shell Launchers section header
     i18n("Shell Launchers");
     // Scripts section header
@@ -682,66 +686,150 @@ impl EmbeddedRdpWidget {
                 let script_text = snippet.command.clone();
                 let snippet_name = snippet.name.clone();
                 let status_label = self.status_label.clone();
+                let config = self.config.clone();
+                let snippet_delivery = snippet.delivery;
 
                 action.connect_activate(move |_, _| {
                     let Some(ref sender) = *tx.borrow() else {
                         return;
                     };
 
-                    // Send script text as keystrokes (shell already open)
-                    if let Err(e) = sender.send(rustconn_core::RdpClientCommand::AutotypeText {
-                        text: script_text.clone(),
-                        inter_char_delay_ms: 5,
-                        initial_delay_ms: 0,
-                    }) {
-                        tracing::warn!(
-                            protocol = "rdp",
-                            snippet = %snippet_name,
-                            error = %e,
-                            "User script execution aborted: channel not ready"
-                        );
-                        status_label.set_text(&i18n("Channel not ready"));
-                        status_label.set_visible(true);
-                        let hide = status_label.clone();
-                        glib::timeout_add_local_once(
-                            std::time::Duration::from_secs(3),
-                            move || {
-                                hide.set_visible(false);
-                            },
-                        );
-                        return;
-                    }
+                    let use_clipboard = match snippet_delivery {
+                        rustconn_core::models::ScriptDelivery::Clipboard => true,
+                        rustconn_core::models::ScriptDelivery::Autotype => false,
+                        rustconn_core::models::ScriptDelivery::Auto => config
+                            .borrow()
+                            .as_ref()
+                            .is_none_or(|c| c.script_paste_via_clipboard),
+                    };
 
-                    // After 500ms send Enter to execute
-                    let tx_enter = tx.clone();
-                    let status = status_label.clone();
-                    glib::timeout_add_local_once(
-                        std::time::Duration::from_millis(500),
-                        move || {
-                            if let Some(ref sender) = *tx_enter.borrow() {
-                                let enter_keys = rustconn_core::build_enter_sequence();
-                                let _ =
-                                    sender.send(rustconn_core::RdpClientCommand::SendKeySequence {
-                                        keys: enter_keys,
-                                    });
-                            }
-
-                            status.set_text(&i18n("Script sent"));
-                            status.set_visible(true);
-                            let hide = status.clone();
+                    if use_clipboard {
+                        // Fast path: send via clipboard + Ctrl+V (instant)
+                        if let Err(e) = sender.send(rustconn_core::RdpClientCommand::ClipboardText(
+                            script_text.clone(),
+                        )) {
+                            tracing::warn!(
+                                protocol = "rdp",
+                                snippet = %snippet_name,
+                                error = %e,
+                                "Script clipboard send failed: channel not ready"
+                            );
+                            status_label.set_text(&i18n("Channel not ready"));
+                            status_label.set_visible(true);
+                            let hide = status_label.clone();
                             glib::timeout_add_local_once(
                                 std::time::Duration::from_secs(3),
                                 move || {
                                     hide.set_visible(false);
                                 },
                             );
-                        },
-                    );
+                            return;
+                        }
+
+                        // After 150ms (let server process clipboard), send Ctrl+V
+                        let tx_paste = tx.clone();
+                        let tx_enter = tx.clone();
+                        let status = status_label.clone();
+                        glib::timeout_add_local_once(
+                            std::time::Duration::from_millis(150),
+                            move || {
+                                if let Some(ref sender) = *tx_paste.borrow() {
+                                    // Ctrl+V: paste from clipboard
+                                    let keys = vec![
+                                        (0x1D_u16, true, false),  // Ctrl down
+                                        (0x2F_u16, true, false),  // V down
+                                        (0x2F_u16, false, false), // V up
+                                        (0x1D_u16, false, false), // Ctrl up
+                                    ];
+                                    let _ = sender.send(
+                                        rustconn_core::RdpClientCommand::SendKeySequence { keys },
+                                    );
+                                }
+
+                                // After 200ms send Enter to execute
+                                glib::timeout_add_local_once(
+                                    std::time::Duration::from_millis(200),
+                                    move || {
+                                        if let Some(ref sender) = *tx_enter.borrow() {
+                                            let enter_keys = rustconn_core::build_enter_sequence();
+                                            let _ = sender.send(
+                                                rustconn_core::RdpClientCommand::SendKeySequence {
+                                                    keys: enter_keys,
+                                                },
+                                            );
+                                        }
+
+                                        status.set_text(&i18n("Script sent"));
+                                        status.set_visible(true);
+                                        let hide = status.clone();
+                                        glib::timeout_add_local_once(
+                                            std::time::Duration::from_secs(3),
+                                            move || {
+                                                hide.set_visible(false);
+                                            },
+                                        );
+                                    },
+                                );
+                            },
+                        );
+                    } else {
+                        // Slow path: character-by-character autotype (reliable fallback)
+                        if let Err(e) = sender.send(rustconn_core::RdpClientCommand::AutotypeText {
+                            text: script_text.clone(),
+                            inter_char_delay_ms: 5,
+                            initial_delay_ms: 0,
+                        }) {
+                            tracing::warn!(
+                                protocol = "rdp",
+                                snippet = %snippet_name,
+                                error = %e,
+                                "User script execution aborted: channel not ready"
+                            );
+                            status_label.set_text(&i18n("Channel not ready"));
+                            status_label.set_visible(true);
+                            let hide = status_label.clone();
+                            glib::timeout_add_local_once(
+                                std::time::Duration::from_secs(3),
+                                move || {
+                                    hide.set_visible(false);
+                                },
+                            );
+                            return;
+                        }
+
+                        // After 500ms send Enter to execute
+                        let tx_enter = tx.clone();
+                        let status = status_label.clone();
+                        glib::timeout_add_local_once(
+                            std::time::Duration::from_millis(500),
+                            move || {
+                                if let Some(ref sender) = *tx_enter.borrow() {
+                                    let enter_keys = rustconn_core::build_enter_sequence();
+                                    let _ = sender.send(
+                                        rustconn_core::RdpClientCommand::SendKeySequence {
+                                            keys: enter_keys,
+                                        },
+                                    );
+                                }
+
+                                status.set_text(&i18n("Script sent"));
+                                status.set_visible(true);
+                                let hide = status.clone();
+                                glib::timeout_add_local_once(
+                                    std::time::Duration::from_secs(3),
+                                    move || {
+                                        hide.set_visible(false);
+                                    },
+                                );
+                            },
+                        );
+                    }
 
                     tracing::info!(
                         protocol = "rdp",
                         snippet = %snippet_name,
-                        "User script sent via autotype"
+                        clipboard = use_clipboard,
+                        "User script sent"
                     );
                 });
             }

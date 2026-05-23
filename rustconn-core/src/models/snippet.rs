@@ -22,6 +22,40 @@ pub enum SnippetTarget {
     Any,
 }
 
+/// Delivery method for sending a snippet to the remote session.
+///
+/// Controls whether the snippet text is sent via clipboard paste (fast) or
+/// character-by-character autotype (reliable for problematic environments).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum ScriptDelivery {
+    /// Use the connection-level default (`script_paste_via_clipboard` setting)
+    #[default]
+    Auto,
+    /// Always send via clipboard + Ctrl+V (instant, even for large scripts)
+    Clipboard,
+    /// Always send character-by-character (reliable for Citrix, old CMD, OTP fields)
+    Autotype,
+}
+
+impl ScriptDelivery {
+    /// All variants for UI dropdowns.
+    #[must_use]
+    pub const fn all() -> &'static [Self] {
+        &[Self::Auto, Self::Clipboard, Self::Autotype]
+    }
+
+    /// Display name for UI (English, wrapped in i18n at call site).
+    #[must_use]
+    pub const fn display_name(self) -> &'static str {
+        match self {
+            Self::Auto => "Auto",
+            Self::Clipboard => "Clipboard (fast)",
+            Self::Autotype => "Autotype (reliable)",
+        }
+    }
+}
+
 impl SnippetTarget {
     /// Returns `true` if this snippet is available for VTE terminal sessions.
     #[must_use]
@@ -60,6 +94,9 @@ pub struct Snippet {
     /// Target execution platform (terminal, windows, or any)
     #[serde(default)]
     pub target: SnippetTarget,
+    /// Delivery method for RDP sessions (auto, clipboard, or autotype)
+    #[serde(default, skip_serializing_if = "is_default_delivery")]
+    pub delivery: ScriptDelivery,
     /// When the snippet was created
     #[serde(default = "Utc::now")]
     pub created_at: DateTime<Utc>,
@@ -82,6 +119,7 @@ impl Snippet {
             category: None,
             tags: Vec::new(),
             target: SnippetTarget::default(),
+            delivery: ScriptDelivery::default(),
             created_at: now,
             updated_at: now,
         }
@@ -121,6 +159,18 @@ impl Snippet {
         self.target = target;
         self
     }
+
+    /// Sets the delivery method for this snippet
+    #[must_use]
+    pub const fn with_delivery(mut self, delivery: ScriptDelivery) -> Self {
+        self.delivery = delivery;
+        self
+    }
+}
+
+/// Helper for serde `skip_serializing_if` — skips when delivery is `Auto`.
+fn is_default_delivery(d: &ScriptDelivery) -> bool {
+    matches!(d, ScriptDelivery::Auto)
 }
 
 /// A variable placeholder in a snippet command

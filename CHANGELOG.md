@@ -5,6 +5,20 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.6] - 2026-05-23
+
+### Improved
+
+- **Variables dialog: collapsible rows** — each variable is now shown as a collapsible expander displaying only the name; when adding a new variable, all existing rows collapse and the new one opens expanded with focus on the name field; improves usability with many variables
+- **Variables dialog: duplicate name validation** — saving is blocked when two or more variables share the same name (case-insensitive); duplicate entries are highlighted with error styling and auto-expanded so the user can fix them
+- **RDP toolbar: deduplicated admin menu** — removed PowerShell and CMD from the quick actions menu (⋮) since they are already available in Shell Launchers (+); replaced with Registry Editor and Device Manager for better coverage of Windows admin tools without duplication
+- **RDP scripts: instant clipboard paste** — scripts/snippets are now sent via clipboard + Ctrl+V instead of character-by-character autotype; a 2000-char script that took ~16s now executes instantly; controlled by `script_paste_via_clipboard` in RDP connection config (enabled by default)
+- **Snippet delivery mode** — each snippet now has a "Delivery" setting (Auto / Clipboard / Autotype) allowing per-snippet control over how it's sent to the remote session; "Clipboard" is instant for large scripts, "Autotype" is reliable for Citrix or legacy consoles
+
+### Dependencies
+
+- **Updated**: rpassword 7.5.2→7.5.3
+
 ## [0.14.5] - 2026-05-22
 
 ### Added

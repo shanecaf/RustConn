@@ -17,6 +17,7 @@ use libadwaita as adw;
 use rustconn_core::config::AppSettings;
 use rustconn_core::variables::Variable;
 use std::cell::RefCell;
+use std::collections::HashSet;
 use std::rc::Rc;
 
 use super::VariablesCallback;
@@ -39,6 +40,8 @@ pub struct VariablesDialog {
 struct VariableRow {
     /// The row widget
     row: ListBoxRow,
+    /// The expander that collapses/expands the row content
+    expander: gtk4::Expander,
     /// Entry for variable name
     name_entry: Entry,
     /// Entry for variable value (regular, visible)
@@ -124,11 +127,13 @@ impl VariablesDialog {
         let on_save_clone = on_save.clone();
         let variables_clone = variables.clone();
         save_btn.connect_clicked(move |_| {
-            let vars = Self::collect_variables(&variables_clone);
-            if let Some(ref cb) = *on_save_clone.borrow() {
-                cb(Some(vars));
+            if Self::validate_duplicates(&variables_clone) {
+                let vars = Self::collect_variables(&variables_clone);
+                if let Some(ref cb) = *on_save_clone.borrow() {
+                    cb(Some(vars));
+                }
+                dialog_clone.close();
             }
-            dialog_clone.close();
         });
 
         let parent_widget = parent.map(|p| p.clone().upcast::<gtk4::Widget>());
@@ -172,21 +177,39 @@ impl VariablesDialog {
         (group, variables_list)
     }
 
-    /// Creates a variable row widget
-    fn create_variable_row(variable: Option<&Variable>, settings: &SharedSettings) -> VariableRow {
-        let main_box = GtkBox::new(Orientation::Vertical, 8);
-        main_box.set_margin_top(8);
-        main_box.set_margin_bottom(8);
+    /// Creates a variable row widget with collapsible expander
+    fn create_variable_row(
+        variable: Option<&Variable>,
+        settings: &SharedSettings,
+        expanded: bool,
+    ) -> VariableRow {
+        let main_box = GtkBox::new(Orientation::Vertical, 0);
+        main_box.set_margin_top(4);
+        main_box.set_margin_bottom(4);
         main_box.set_margin_start(8);
         main_box.set_margin_end(8);
 
+        // Header row: expander label + delete button
+        let header_box = GtkBox::new(Orientation::Horizontal, 8);
+        header_box.set_margin_bottom(4);
+
+        let delete_button = Button::builder()
+            .icon_name("user-trash-symbolic")
+            .css_classes(["destructive-action", "flat"])
+            .tooltip_text(i18n("Delete variable"))
+            .valign(gtk4::Align::Center)
+            .build();
+        delete_button
+            .update_property(&[gtk4::accessible::Property::Label(&i18n("Delete variable"))]);
+
+        // Content grid (shown when expanded)
         let grid = Grid::builder()
             .row_spacing(6)
             .column_spacing(8)
             .hexpand(true)
             .build();
 
-        // Row 0: Name and Delete button
+        // Row 0: Name
         let name_label = Label::builder()
             .label(i18n("Name:"))
             .halign(gtk4::Align::End)
@@ -195,17 +218,9 @@ impl VariablesDialog {
             .hexpand(true)
             .placeholder_text(i18n("variable_name"))
             .build();
-        let delete_button = Button::builder()
-            .icon_name("user-trash-symbolic")
-            .css_classes(["destructive-action", "flat"])
-            .tooltip_text(i18n("Delete variable"))
-            .build();
-        delete_button
-            .update_property(&[gtk4::accessible::Property::Label(&i18n("Delete variable"))]);
 
         grid.attach(&name_label, 0, 0, 1, 1);
         grid.attach(&name_entry, 1, 0, 1, 1);
-        grid.attach(&delete_button, 2, 0, 1, 1);
 
         // Row 1: Value — single row, switches between plain and secret mode
         let value_label = Label::builder()
@@ -248,15 +263,15 @@ impl VariablesDialog {
         secret_buttons_box.set_visible(false);
 
         grid.attach(&value_label, 0, 1, 1, 1);
-        grid.attach(&value_entry, 1, 1, 2, 1);
-        grid.attach(&secret_buttons_box, 1, 1, 2, 1);
+        grid.attach(&value_entry, 1, 1, 1, 1);
+        grid.attach(&secret_buttons_box, 1, 1, 1, 1);
 
         // Row 2: Is Secret checkbox
         let is_secret_check = CheckButton::builder()
             .label(i18n("Secret (mask value)"))
             .build();
 
-        grid.attach(&is_secret_check, 1, 2, 2, 1);
+        grid.attach(&is_secret_check, 1, 2, 1, 1);
 
         // Row 3: Description
         let desc_label = Label::builder()
@@ -269,7 +284,7 @@ impl VariablesDialog {
             .build();
 
         grid.attach(&desc_label, 0, 3, 1, 1);
-        grid.attach(&description_entry, 1, 3, 2, 1);
+        grid.attach(&description_entry, 1, 3, 1, 1);
 
         // Row 4: KeePass entry path (visible only for secret variables with KeePass backend)
         let kdbx_path_label = Label::builder()
@@ -288,9 +303,80 @@ impl VariablesDialog {
         kdbx_path_entry.set_visible(false);
 
         grid.attach(&kdbx_path_label, 0, 4, 1, 1);
-        grid.attach(&kdbx_path_entry, 1, 4, 2, 1);
+        grid.attach(&kdbx_path_entry, 1, 4, 1, 1);
 
-        main_box.append(&grid);
+        // Build expander with custom label widget showing name + value preview
+        let label_box = GtkBox::new(Orientation::Horizontal, 8);
+        label_box.set_hexpand(true);
+
+        let name_label_widget = Label::builder()
+            .label(&Self::build_expander_name(variable))
+            .css_classes(["heading"])
+            .halign(gtk4::Align::Start)
+            .build();
+
+        let value_preview_widget = Label::builder()
+            .label(&Self::build_expander_value_preview(variable))
+            .css_classes(["dim-label"])
+            .halign(gtk4::Align::Start)
+            .hexpand(true)
+            .ellipsize(gtk4::pango::EllipsizeMode::End)
+            .build();
+
+        label_box.append(&name_label_widget);
+        label_box.append(&value_preview_widget);
+
+        let expander = gtk4::Expander::builder()
+            .label_widget(&label_box)
+            .expanded(expanded)
+            .hexpand(true)
+            .build();
+        expander.set_child(Some(&grid));
+
+        header_box.append(&expander);
+        header_box.append(&delete_button);
+        main_box.append(&header_box);
+
+        // Update expander label when name or value changes
+        let name_label_for_update = name_label_widget.clone();
+        name_entry.connect_changed(move |entry| {
+            let name = entry.text().to_string();
+            let label = if name.trim().is_empty() {
+                i18n("New variable")
+            } else {
+                name
+            };
+            name_label_for_update.set_label(&label);
+        });
+
+        // Update value preview when value entry changes
+        let value_preview_for_plain = value_preview_widget.clone();
+        value_entry.connect_changed(move |entry| {
+            let val = entry.text().to_string();
+            let preview = if val.is_empty() {
+                String::new()
+            } else {
+                format!("= {val}")
+            };
+            value_preview_for_plain.set_label(&preview);
+        });
+
+        // Update value preview when secret checkbox toggles
+        let value_preview_for_secret = value_preview_widget.clone();
+        let value_entry_for_preview = value_entry.clone();
+        is_secret_check.connect_toggled(move |check| {
+            if check.is_active() {
+                value_preview_for_secret.set_label("= ••••••");
+            } else {
+                let val = value_entry_for_preview.text().to_string();
+                let preview = if val.is_empty() {
+                    String::new()
+                } else {
+                    format!("= {val}")
+                };
+                value_preview_for_secret.set_label(&preview);
+            }
+        });
 
         // Wire Show/Hide toggle — track visibility state in Rc
         let secret_visible = Rc::new(RefCell::new(false));
@@ -457,8 +543,28 @@ impl VariablesDialog {
 
         let row = ListBoxRow::builder().child(&main_box).build();
 
+        // Show description as tooltip on the row (visible on hover)
+        if let Some(var) = variable
+            && let Some(ref desc) = var.description
+            && !desc.trim().is_empty()
+        {
+            row.set_tooltip_text(Some(desc));
+        }
+
+        // Update tooltip when description changes
+        let row_for_tooltip = row.clone();
+        description_entry.connect_changed(move |entry| {
+            let desc = entry.text().to_string();
+            if desc.trim().is_empty() {
+                row_for_tooltip.set_tooltip_text(None);
+            } else {
+                row_for_tooltip.set_tooltip_text(Some(&desc));
+            }
+        });
+
         VariableRow {
             row,
+            expander,
             name_entry,
             value_entry,
             secret_entry,
@@ -467,6 +573,59 @@ impl VariablesDialog {
             kdbx_path_entry,
             delete_button,
         }
+    }
+
+    /// Builds the expander name label from a variable
+    fn build_expander_name(variable: Option<&Variable>) -> String {
+        match variable {
+            Some(var) if !var.name.trim().is_empty() => var.name.clone(),
+            _ => i18n("New variable"),
+        }
+    }
+
+    /// Builds the value preview for the expander (shown in collapsed state)
+    fn build_expander_value_preview(variable: Option<&Variable>) -> String {
+        match variable {
+            Some(var) if var.is_secret => "= ••••••".to_string(),
+            Some(var) if !var.value.is_empty() => format!("= {}", var.value),
+            _ => String::new(),
+        }
+    }
+
+    /// Validates that there are no duplicate variable names.
+    /// Returns `true` if validation passes (no duplicates).
+    /// Highlights duplicate name entries with error styling.
+    fn validate_duplicates(variables: &Rc<RefCell<Vec<VariableRow>>>) -> bool {
+        let vars = variables.borrow();
+        let mut seen: HashSet<String> = HashSet::new();
+        let mut duplicates: HashSet<String> = HashSet::new();
+
+        // First pass: find duplicate names
+        for row in vars.iter() {
+            let name = row.name_entry.text().trim().to_string();
+            if name.is_empty() {
+                continue;
+            }
+            let lower = name.to_lowercase();
+            if !seen.insert(lower.clone()) {
+                duplicates.insert(lower);
+            }
+        }
+
+        // Second pass: apply/remove error styling
+        for row in vars.iter() {
+            let name = row.name_entry.text().trim().to_string();
+            let lower = name.to_lowercase();
+            if !name.is_empty() && duplicates.contains(&lower) {
+                row.name_entry.add_css_class("error");
+                // Expand the row so user can see the error
+                row.expander.set_expanded(true);
+            } else {
+                row.name_entry.remove_css_class("error");
+            }
+        }
+
+        duplicates.is_empty()
     }
 
     /// Collects all variables from the dialog
@@ -514,7 +673,7 @@ impl VariablesDialog {
         *self.settings.borrow_mut() = Some(settings.clone());
     }
 
-    /// Sets the initial variables to display
+    /// Sets the initial variables to display (all collapsed)
     pub fn set_variables(&self, variables: &[Variable]) {
         // Clear existing rows
         while let Some(row) = self.variables_list.row_at_index(0) {
@@ -522,15 +681,15 @@ impl VariablesDialog {
         }
         self.variables.borrow_mut().clear();
 
-        // Add rows for each variable
+        // Add rows for each variable (collapsed)
         for var in variables {
-            self.add_variable_row(Some(var));
+            self.add_variable_row(Some(var), false);
         }
     }
 
     /// Adds a new variable row to the list
-    fn add_variable_row(&self, variable: Option<&Variable>) {
-        let var_row = Self::create_variable_row(variable, &self.settings);
+    fn add_variable_row(&self, variable: Option<&Variable>, expanded: bool) {
+        let var_row = Self::create_variable_row(variable, &self.settings, expanded);
 
         // Connect delete button
         let variables_list = self.variables_list.clone();
@@ -556,7 +715,13 @@ impl VariablesDialog {
         let settings = self.settings.clone();
 
         self.add_header_btn.connect_clicked(move |_| {
-            let var_row = Self::create_variable_row(None, &settings);
+            // Collapse all existing rows
+            for row in variables.borrow().iter() {
+                row.expander.set_expanded(false);
+            }
+
+            // Create new row expanded
+            let var_row = Self::create_variable_row(None, &settings, true);
 
             // Connect delete button
             let list_clone = variables_list.clone();
@@ -569,6 +734,10 @@ impl VariablesDialog {
             });
 
             variables_list.append(&var_row.row);
+
+            // Focus the name entry of the new row
+            var_row.name_entry.grab_focus();
+
             variables.borrow_mut().push(var_row);
         });
     }

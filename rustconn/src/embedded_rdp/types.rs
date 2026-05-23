@@ -153,6 +153,8 @@ pub struct RdpConfig {
     pub autotype_delay_ms: u32,
     /// Initial delay before autotype starts in milliseconds (default: 0ms)
     pub autotype_initial_delay_ms: u32,
+    /// Send scripts via clipboard paste instead of autotype (default: true)
+    pub script_paste_via_clipboard: bool,
     /// Force full reconnect on resize instead of Display Control Channel.
     /// Useful for legacy servers that don't support MS-RDPEDISP.
     pub reconnect_on_resize: bool,
@@ -194,6 +196,7 @@ impl Default for RdpConfig {
             jiggler_interval_secs: 60,
             autotype_delay_ms: 20,
             autotype_initial_delay_ms: 0,
+            script_paste_via_clipboard: true,
             reconnect_on_resize: false,
             remote_app_program: None,
             remote_app_args: None,
