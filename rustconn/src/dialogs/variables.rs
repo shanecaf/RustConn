@@ -326,14 +326,14 @@ impl VariablesDialog {
         label_box.append(&name_label_widget);
         label_box.append(&value_preview_widget);
 
-        let expander = gtk4::Expander::builder()
+        let row_expander = gtk4::Expander::builder()
             .label_widget(&label_box)
             .expanded(expanded)
             .hexpand(true)
             .build();
-        expander.set_child(Some(&grid));
+        row_expander.set_child(Some(&grid));
 
-        header_box.append(&expander);
+        header_box.append(&row_expander);
         header_box.append(&delete_button);
         main_box.append(&header_box);
 
@@ -564,7 +564,7 @@ impl VariablesDialog {
 
         VariableRow {
             row,
-            expander,
+            expander: row_expander,
             name_entry,
             value_entry,
             secret_entry,
