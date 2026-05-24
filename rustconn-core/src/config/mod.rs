@@ -9,7 +9,7 @@ pub mod settings;
 
 pub use keybindings::{
     KeybindingCategory, KeybindingDef, KeybindingSettings, default_keybindings,
-    is_valid_accelerator,
+    default_passthrough_exceptions, is_valid_accelerator,
 };
 pub use manager::ConfigManager;
 pub use settings::{

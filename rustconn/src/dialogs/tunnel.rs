@@ -1,9 +1,13 @@
-//! SSH Tunnel Manager window and Add/Edit tunnel dialog
+//! SSH Tunnel Manager window
 //!
 //! Provides a standalone window for managing SSH port-forwarding tunnels
 //! that run independently of terminal sessions. Each tunnel references
 //! an existing SSH connection for host/key/password configuration.
+//!
+//! The add/edit functionality is delegated to `TunnelBuilderDialog`
+//! (see `tunnel_builder` module).
 
+use crate::dialogs::tunnel_builder::{TunnelBuilderContext, TunnelBuilderDialog};
 use crate::i18n::i18n;
 use crate::state::{SharedAppState, with_state, with_state_mut};
 use crate::window::SharedTunnelManager;
@@ -11,9 +15,7 @@ use adw::prelude::*;
 use gtk4::glib;
 use gtk4::prelude::*;
 use libadwaita as adw;
-use rustconn_core::models::{
-    Connection, PortForward, PortForwardDirection, ProtocolConfig, StandaloneTunnel,
-};
+use rustconn_core::models::{Connection, StandaloneTunnel};
 use std::cell::RefCell;
 use std::rc::Rc;
 use uuid::Uuid;
@@ -45,7 +47,7 @@ impl TunnelManagerWindow {
             .title(i18n("SSH Tunnels"))
             .modal(true)
             .default_width(600)
-            .default_height(500)
+            .default_height(700)
             .build();
 
         if let Some(p) = parent {
@@ -144,7 +146,7 @@ impl TunnelManagerWindow {
             let stack_c = manager.content_stack.clone();
             let page_c = manager.prefs_page.clone();
             add_button.connect_clicked(move |_| {
-                show_add_edit_dialog(
+                open_tunnel_builder(
                     &window_c, &state_c, None, &tm_c, &active_g, &stopped_g, &stack_c, &page_c,
                 );
             });
@@ -158,7 +160,7 @@ impl TunnelManagerWindow {
             let stack_c = manager.content_stack.clone();
             let page_c = manager.prefs_page.clone();
             empty_add_button.connect_clicked(move |_| {
-                show_add_edit_dialog(
+                open_tunnel_builder(
                     &window_c, &state_c, None, &tm_c, &active_g, &stopped_g, &stack_c, &page_c,
                 );
             });
@@ -420,7 +422,7 @@ fn wire_tunnel_row_actions(
         let ctx_c = ctx.clone();
         let tunnel_c = tunnel_clone.clone();
         edit_btn.connect_clicked(move |_| {
-            show_add_edit_dialog(
+            open_tunnel_builder(
                 &ctx_c.window,
                 &ctx_c.state,
                 Some(&tunnel_c),
@@ -575,15 +577,15 @@ fn refresh_from_context(ctx: &TunnelRowContext) {
 }
 
 // ---------------------------------------------------------------------------
-// Add / Edit Tunnel Dialog
+// Open Tunnel Builder Dialog
 // ---------------------------------------------------------------------------
 
-/// Shows the add/edit tunnel dialog as a modal `adw::Dialog`
+/// Opens the `TunnelBuilderDialog` wizard for creating or editing a tunnel.
 ///
-/// When `existing` is `Some`, the dialog is pre-populated for editing.
-/// When `None`, a blank dialog is shown for creating a new tunnel.
-#[allow(clippy::too_many_lines, clippy::too_many_arguments)]
-fn show_add_edit_dialog(
+/// When `existing` is `Some`, the wizard is pre-populated for editing (preserves UUID).
+/// When `None`, a blank wizard is shown for creating a new tunnel.
+#[allow(clippy::too_many_arguments)]
+fn open_tunnel_builder(
     parent: &adw::Window,
     state: &SharedAppState,
     existing: Option<&StandaloneTunnel>,
@@ -593,600 +595,34 @@ fn show_add_edit_dialog(
     content_stack: &gtk4::Stack,
     prefs_page: &adw::PreferencesPage,
 ) {
-    let is_edit = existing.is_some();
-    let dialog_title = if is_edit {
-        i18n("Edit Tunnel")
-    } else {
-        i18n("Add Tunnel")
+    // Build the on_save callback that refreshes the tunnel list
+    let refresh_ctx = TunnelRowContext {
+        window: parent.clone(),
+        state: state.clone(),
+        tunnel_manager: tunnel_manager.clone(),
+        active_group: active_group.clone(),
+        stopped_group: stopped_group.clone(),
+        content_stack: content_stack.clone(),
+        prefs_page: prefs_page.clone(),
     };
 
-    let dialog = adw::Dialog::builder()
-        .title(&dialog_title)
-        .content_width(600)
-        .content_height(600)
-        .build();
+    let on_save: Rc<RefCell<Option<Box<dyn Fn()>>>> =
+        Rc::new(RefCell::new(Some(Box::new(move || {
+            refresh_from_context(&refresh_ctx);
+        }))));
 
-    let header = adw::HeaderBar::new();
-    let save_btn = gtk4::Button::from_icon_name("list-add-symbolic");
-    save_btn.set_tooltip_text(Some(&i18n("Add")));
-    save_btn.update_property(&[gtk4::accessible::Property::Label(&i18n("Add"))]);
-    save_btn.add_css_class("suggested-action");
-    header.pack_start(&save_btn);
+    let ctx = TunnelBuilderContext {
+        state: state.clone(),
+        tunnel_manager: tunnel_manager.clone(),
+        parent_window: parent.clone(),
+        on_save,
+    };
 
-    // Save button starts disabled for new tunnels (name is empty)
-    if !is_edit {
-        save_btn.set_sensitive(false);
-    }
-
-    let clamp = adw::Clamp::builder()
-        .maximum_size(600)
-        .tightening_threshold(400)
-        .build();
-
-    let scroll = gtk4::ScrolledWindow::builder()
-        .hscrollbar_policy(gtk4::PolicyType::Never)
-        .vexpand(true)
-        .build();
-
-    let page = adw::PreferencesPage::new();
-
-    // === General Group ===
-    let general_group = adw::PreferencesGroup::builder()
-        .title(i18n("General"))
-        .build();
-
-    let name_row = adw::EntryRow::builder().title(i18n("Tunnel Name")).build();
-    general_group.add(&name_row);
-
-    // Enable/disable Save button based on tunnel name (inline validation)
-    {
-        let save_btn_c = save_btn.clone();
-        name_row.connect_changed(move |entry| {
-            let has_name = !entry.text().trim().is_empty();
-            save_btn_c.set_sensitive(has_name);
-        });
-    }
-
-    // SSH connection combo
-    let ssh_connections = with_state(state, |s| {
-        s.list_connections()
-            .into_iter()
-            .filter(|c| matches!(c.protocol_config, ProtocolConfig::Ssh(_)))
-            .cloned()
-            .collect::<Vec<_>>()
-    });
-
-    let conn_labels: Vec<String> = ssh_connections
-        .iter()
-        .map(|c| {
-            let user = c.username.as_deref().unwrap_or("?");
-            // Escape markup-sensitive characters (<, >, &) in connection names
-            // to prevent GTK Pango markup parsing errors
-            let escaped_name = glib::markup_escape_text(&c.name);
-            let escaped_user = glib::markup_escape_text(user);
-            let escaped_host = glib::markup_escape_text(&c.host);
-            format!("{escaped_name} ({escaped_user}@{escaped_host})")
-        })
-        .collect();
-
-    let conn_string_list =
-        gtk4::StringList::new(&conn_labels.iter().map(String::as_str).collect::<Vec<_>>());
-
-    let connection_combo = adw::ComboRow::builder()
-        .title(i18n("SSH Connection"))
-        .model(&conn_string_list)
-        .build();
-    general_group.add(&connection_combo);
-
-    // "New SSH Connection" button below the combo
-    let new_conn_btn = gtk4::Button::builder()
-        .label(i18n("New SSH Connection"))
-        .halign(gtk4::Align::Start)
-        .margin_top(6)
-        .css_classes(["flat"])
-        .build();
-    new_conn_btn.set_tooltip_text(Some(&i18n("Create a new SSH connection")));
-    new_conn_btn.update_property(&[gtk4::accessible::Property::Label(&i18n(
-        "Create a new SSH connection for this tunnel",
-    ))]);
-
-    // Open ConnectionDialog for creating a new SSH connection.
-    // After save, refresh the SSH connection combo to include the new one.
-    {
-        let state_c = state.clone();
-        let combo_c = connection_combo.clone();
-        let parent_c = parent.clone();
-        let ssh_conns = Rc::new(RefCell::new(ssh_connections.clone()));
-        new_conn_btn.connect_clicked(move |_| {
-            let dialog = crate::dialogs::ConnectionDialog::new(
-                Some(&parent_c.clone().upcast()),
-                state_c.clone(),
-            );
-            dialog.setup_key_file_chooser(Some(&parent_c.clone().upcast()));
-
-            // Set available groups and connections
-            if let Ok(state_ref) = state_c.try_borrow() {
-                let mut groups: Vec<_> = state_ref.list_groups().into_iter().cloned().collect();
-                groups.sort_by_key(|a| a.name.to_lowercase());
-                dialog.set_groups(&groups);
-                let connections: Vec<_> =
-                    state_ref.list_connections().into_iter().cloned().collect();
-                dialog.set_connections(&connections);
-                dialog.set_preferred_backend(state_ref.settings().secrets.preferred_backend);
-                dialog.set_global_variables(&state_ref.settings().global_variables);
-            }
-
-            dialog.connect_password_visibility_toggle();
-            dialog.connect_password_source_visibility();
-            dialog.update_password_row_visibility();
-
-            // Set up password load button
-            if let Ok(state_ref) = state_c.try_borrow() {
-                let settings = state_ref.settings();
-                let groups: Vec<rustconn_core::models::ConnectionGroup> =
-                    state_ref.list_groups().iter().cloned().cloned().collect();
-                dialog.connect_password_load_button_with_groups(
-                    settings.secrets.kdbx_enabled,
-                    settings.secrets.kdbx_path.clone(),
-                    settings.secrets.kdbx_password.as_ref(),
-                    settings.secrets.kdbx_key_file.clone(),
-                    groups.clone(),
-                    settings.secrets.clone(),
-                );
-                dialog.connect_vault_test_button(
-                    settings.secrets.kdbx_enabled,
-                    settings.secrets.kdbx_path.clone(),
-                    settings.secrets.kdbx_password.as_ref(),
-                    settings.secrets.kdbx_key_file.clone(),
-                    groups,
-                    settings.secrets.clone(),
-                );
-            }
-
-            // Pre-select SSH protocol by setting a minimal SSH connection
-            dialog.set_connection(&rustconn_core::Connection::new(
-                String::new(),
-                String::new(),
-                22,
-                ProtocolConfig::Ssh(rustconn_core::models::SshConfig::default()),
-            ));
-
-            let state_save = state_c.clone();
-            let combo_save = combo_c.clone();
-            let ssh_conns_save = ssh_conns.clone();
-            let parent_save = parent_c.clone();
-            dialog.run(move |result| {
-                if let Some(dialog_result) = result {
-                    let conn = dialog_result.connection;
-                    let password = dialog_result.password;
-
-                    if let Ok(mut state_mut) = state_save.try_borrow_mut() {
-                        let conn_name = conn.name.clone();
-                        let conn_host = conn.host.clone();
-                        let conn_username = conn.username.clone();
-                        let password_source = conn.password_source.clone();
-                        let protocol = conn.protocol;
-
-                        match state_mut.create_connection(conn) {
-                            Ok(conn_id) => {
-                                // Save password to vault if needed
-                                if password_source == rustconn_core::models::PasswordSource::Vault
-                                    && let Some(pwd) = password
-                                {
-                                    use secrecy::ExposeSecret;
-                                    let settings = state_mut.settings().clone();
-                                    let groups: Vec<_> =
-                                        state_mut.list_groups().into_iter().cloned().collect();
-                                    let conn_for_path = state_mut.get_connection(conn_id).cloned();
-                                    let username = conn_username.unwrap_or_default();
-
-                                    crate::state::save_password_to_vault(
-                                        &settings,
-                                        &groups,
-                                        conn_for_path.as_ref(),
-                                        &conn_name,
-                                        &conn_host,
-                                        protocol,
-                                        &username,
-                                        pwd.expose_secret(),
-                                        conn_id,
-                                    );
-                                }
-
-                                // Refresh the SSH connection combo
-                                let new_ssh_conns: Vec<Connection> = state_mut
-                                    .list_connections()
-                                    .into_iter()
-                                    .filter(|c| matches!(c.protocol_config, ProtocolConfig::Ssh(_)))
-                                    .cloned()
-                                    .collect();
-
-                                let labels: Vec<String> = new_ssh_conns
-                                    .iter()
-                                    .map(|c| {
-                                        let user = c.username.as_deref().unwrap_or("?");
-                                        let en = glib::markup_escape_text(&c.name);
-                                        let eu = glib::markup_escape_text(user);
-                                        let eh = glib::markup_escape_text(&c.host);
-                                        format!("{en} ({eu}@{eh})")
-                                    })
-                                    .collect();
-
-                                let label_refs: Vec<&str> =
-                                    labels.iter().map(String::as_str).collect();
-                                let new_model = gtk4::StringList::new(&label_refs);
-                                combo_save.set_model(Some(&new_model));
-
-                                // Select the newly created connection
-                                if let Some(idx) =
-                                    new_ssh_conns.iter().position(|c| c.id == conn_id)
-                                {
-                                    combo_save.set_selected(idx as u32);
-                                }
-
-                                *ssh_conns_save.borrow_mut() = new_ssh_conns;
-                            }
-                            Err(e) => {
-                                crate::alert::show_error(
-                                    parent_save.upcast_ref::<gtk4::Window>(),
-                                    &i18n("Error Creating Connection"),
-                                    &e,
-                                );
-                            }
-                        }
-                    }
-                }
-            });
-        });
-    }
-
-    let new_conn_row = adw::ActionRow::new();
-    new_conn_row.add_suffix(&new_conn_btn);
-    general_group.add(&new_conn_row);
-
-    page.add(&general_group);
-
-    // === Port Forwards Group ===
-    let forwards_group = adw::PreferencesGroup::builder()
-        .title(i18n("Port Forwards"))
-        .build();
-
-    let forwards_list: Rc<RefCell<Vec<ForwardRowWidgets>>> = Rc::new(RefCell::new(Vec::new()));
-
-    let add_forward_btn = gtk4::Button::builder()
-        .label(i18n("Add Forward"))
-        .halign(gtk4::Align::Start)
-        .css_classes(["flat"])
-        .build();
-    add_forward_btn.set_tooltip_text(Some(&i18n("Add a port forwarding rule")));
-    add_forward_btn.update_property(&[gtk4::accessible::Property::Label(&i18n(
-        "Add a new port forwarding rule",
-    ))]);
-
-    page.add(&forwards_group);
-
-    // Add forward button in its own group to keep it outside the list
-    let add_fwd_group = adw::PreferencesGroup::new();
-    let add_fwd_row = adw::ActionRow::new();
-    add_fwd_row.add_suffix(&add_forward_btn);
-    add_fwd_group.add(&add_fwd_row);
-    page.add(&add_fwd_group);
-
-    // === Options Group ===
-    let options_group = adw::PreferencesGroup::builder()
-        .title(i18n("Options"))
-        .build();
-
-    let auto_start_row = adw::SwitchRow::builder()
-        .title(i18n("Auto-start on launch"))
-        .subtitle(i18n("Start this tunnel when the application opens"))
-        .build();
-    options_group.add(&auto_start_row);
-
-    let auto_reconnect_row = adw::SwitchRow::builder()
-        .title(i18n("Auto-reconnect on failure"))
-        .subtitle(i18n("Automatically restart if the tunnel disconnects"))
-        .build();
-    options_group.add(&auto_reconnect_row);
-
-    page.add(&options_group);
-
-    // Populate fields if editing
-    let editing_id: Rc<RefCell<Option<Uuid>>> = Rc::new(RefCell::new(None));
+    let builder = TunnelBuilderDialog::new(ctx);
 
     if let Some(tunnel) = existing {
-        *editing_id.borrow_mut() = Some(tunnel.id);
-        name_row.set_text(&tunnel.name);
-        auto_start_row.set_active(tunnel.auto_start);
-        auto_reconnect_row.set_active(tunnel.auto_reconnect);
-
-        // Select the matching SSH connection in the combo
-        if let Some(idx) = ssh_connections
-            .iter()
-            .position(|c| c.id == tunnel.connection_id)
-        {
-            connection_combo.set_selected(idx as u32);
-        }
-
-        // Populate existing forwards
-        for fwd in &tunnel.forwards {
-            let row_widgets = add_forward_row(&forwards_group, &forwards_list, Some(fwd));
-            forwards_list.borrow_mut().push(row_widgets);
-        }
+        builder.set_tunnel(tunnel);
     }
 
-    // Wire "Add Forward" button
-    {
-        let fwd_group_c = forwards_group.clone();
-        let fwd_list_c = forwards_list.clone();
-        add_forward_btn.connect_clicked(move |_| {
-            let row_widgets = add_forward_row(&fwd_group_c, &fwd_list_c, None);
-            fwd_list_c.borrow_mut().push(row_widgets);
-        });
-    }
-
-    scroll.set_child(Some(&page));
-    clamp.set_child(Some(&scroll));
-
-    let toolbar_view = adw::ToolbarView::new();
-    toolbar_view.add_top_bar(&header);
-    toolbar_view.set_content(Some(&clamp));
-    dialog.set_child(Some(&toolbar_view));
-
-    // Save
-    let dialog_c = dialog.clone();
-    let state_c = state.clone();
-    let ssh_conns = ssh_connections;
-    let active_g = active_group.clone();
-    let stopped_g = stopped_group.clone();
-    let stack_c = content_stack.clone();
-    let page_c = prefs_page.clone();
-    let parent_window = parent.clone();
-    let tm_c = tunnel_manager.clone();
-    save_btn.connect_clicked(move |_| {
-        let tunnel_name = name_row.text().to_string();
-        // Save button is disabled when name is empty, but guard defensively
-        if tunnel_name.trim().is_empty() {
-            return;
-        }
-
-        let selected_idx = connection_combo.selected() as usize;
-        let Some(conn) = ssh_conns.get(selected_idx) else {
-            return;
-        };
-
-        // Collect forwards from the UI
-        let forwards: Vec<PortForward> = forwards_list
-            .borrow()
-            .iter()
-            .filter_map(|fw| fw.to_port_forward())
-            .collect();
-
-        let auto_start = auto_start_row.is_active();
-        let auto_reconnect = auto_reconnect_row.is_active();
-
-        let editing = *editing_id.borrow();
-
-        with_state_mut(&state_c, |s| {
-            if let Some(id) = editing {
-                // Update existing tunnel
-                if let Some(tunnel) = s
-                    .settings_mut()
-                    .standalone_tunnels
-                    .iter_mut()
-                    .find(|t| t.id == id)
-                {
-                    tunnel.name.clone_from(&tunnel_name);
-                    tunnel.connection_id = conn.id;
-                    tunnel.forwards.clone_from(&forwards);
-                    tunnel.auto_start = auto_start;
-                    tunnel.auto_reconnect = auto_reconnect;
-                }
-            } else {
-                // Create new tunnel
-                let mut tunnel = StandaloneTunnel::new(tunnel_name.clone(), conn.id);
-                tunnel.forwards.clone_from(&forwards);
-                tunnel.auto_start = auto_start;
-                tunnel.auto_reconnect = auto_reconnect;
-                s.settings_mut().standalone_tunnels.push(tunnel);
-            }
-
-            if let Err(e) = s.save_settings() {
-                tracing::error!(%e, "Failed to save settings after tunnel save");
-            }
-        });
-
-        dialog_c.close();
-
-        // Refresh the tunnel list
-        let ctx = TunnelRowContext {
-            window: parent_window.clone(),
-            state: state_c.clone(),
-            tunnel_manager: tm_c.clone(),
-            active_group: active_g.clone(),
-            stopped_group: stopped_g.clone(),
-            content_stack: stack_c.clone(),
-            prefs_page: page_c.clone(),
-        };
-        refresh_from_context(&ctx);
-    });
-
-    dialog.present(Some(parent));
-}
-
-// ---------------------------------------------------------------------------
-// Port Forward Row Widgets
-// ---------------------------------------------------------------------------
-
-/// Holds references to widgets in a single port-forward row
-struct ForwardRowWidgets {
-    row: adw::ExpanderRow,
-    direction_dropdown: gtk4::DropDown,
-    local_port_spin: adw::SpinRow,
-    remote_host_entry: adw::EntryRow,
-    remote_port_spin: adw::SpinRow,
-}
-
-impl ForwardRowWidgets {
-    /// Extracts a `PortForward` from the current widget values
-    fn to_port_forward(&self) -> Option<PortForward> {
-        let local_port = self.local_port_spin.value() as u16;
-        if local_port == 0 {
-            return None;
-        }
-
-        let direction = match self.direction_dropdown.selected() {
-            0 => PortForwardDirection::Local,
-            1 => PortForwardDirection::Remote,
-            2 => PortForwardDirection::Dynamic,
-            _ => PortForwardDirection::Local,
-        };
-
-        let remote_host = self.remote_host_entry.text().to_string();
-        let remote_port = self.remote_port_spin.value() as u16;
-
-        Some(PortForward {
-            direction,
-            local_port,
-            remote_host,
-            remote_port,
-        })
-    }
-}
-
-/// Adds a port-forward row to the forwards group and returns its widgets
-fn add_forward_row(
-    group: &adw::PreferencesGroup,
-    forwards_list: &Rc<RefCell<Vec<ForwardRowWidgets>>>,
-    existing: Option<&PortForward>,
-) -> ForwardRowWidgets {
-    let direction_items = [
-        i18n("Local (-L)"),
-        i18n("Remote (-R)"),
-        i18n("Dynamic (-D)"),
-    ];
-    let direction_string_list = gtk4::StringList::new(
-        &direction_items
-            .iter()
-            .map(String::as_str)
-            .collect::<Vec<_>>(),
-    );
-
-    let direction_dropdown = gtk4::DropDown::builder()
-        .model(&direction_string_list)
-        .valign(gtk4::Align::Center)
-        .build();
-
-    let summary = existing
-        .map(|f| f.display_summary())
-        .unwrap_or_else(|| i18n("New forward"));
-
-    let expander = adw::ExpanderRow::builder().title(&summary).build();
-
-    expander.add_suffix(&direction_dropdown);
-
-    // Remove button
-    let remove_btn = gtk4::Button::from_icon_name("edit-delete-symbolic");
-    remove_btn.add_css_class("flat");
-    remove_btn.add_css_class("destructive-action");
-    remove_btn.set_valign(gtk4::Align::Center);
-    remove_btn.set_tooltip_text(Some(&i18n("Remove Forward")));
-    remove_btn.update_property(&[gtk4::accessible::Property::Label(&i18n(
-        "Remove this port forwarding rule",
-    ))]);
-    expander.add_suffix(&remove_btn);
-
-    // Local port
-    let local_port_spin = adw::SpinRow::builder()
-        .title(i18n("Local Port"))
-        .adjustment(&gtk4::Adjustment::new(
-            8080.0, 1.0, 65535.0, 1.0, 100.0, 0.0,
-        ))
-        .build();
-    expander.add_row(&local_port_spin);
-
-    // Remote host
-    let remote_host_entry = adw::EntryRow::builder().title(i18n("Remote Host")).build();
-    remote_host_entry.set_text("localhost");
-    expander.add_row(&remote_host_entry);
-
-    // Remote port
-    let remote_port_spin = adw::SpinRow::builder()
-        .title(i18n("Remote Port"))
-        .adjustment(&gtk4::Adjustment::new(80.0, 0.0, 65535.0, 1.0, 100.0, 0.0))
-        .build();
-    expander.add_row(&remote_port_spin);
-
-    // Populate from existing forward
-    if let Some(fwd) = existing {
-        let dir_idx = match fwd.direction {
-            PortForwardDirection::Local => 0,
-            PortForwardDirection::Remote => 1,
-            PortForwardDirection::Dynamic => 2,
-        };
-        direction_dropdown.set_selected(dir_idx);
-        local_port_spin.set_value(f64::from(fwd.local_port));
-        remote_host_entry.set_text(&fwd.remote_host);
-        remote_port_spin.set_value(f64::from(fwd.remote_port));
-    }
-
-    // Update expander title when direction or ports change
-    {
-        let expander_c = expander.clone();
-        let dir_clone = direction_dropdown.clone();
-        let lport_clone = local_port_spin.clone();
-        let rhost_clone = remote_host_entry.clone();
-        let rport_clone = remote_port_spin.clone();
-
-        let update_title = Rc::new(move || {
-            let dir = match dir_clone.selected() {
-                0 => "L",
-                1 => "R",
-                2 => "D",
-                _ => "?",
-            };
-            let lp = lport_clone.value() as u16;
-            let rh = rhost_clone.text();
-            let rp = rport_clone.value() as u16;
-            let title = if dir == "D" {
-                format!("D {lp} (SOCKS)")
-            } else {
-                format!("{dir} {lp} → {rh}:{rp}")
-            };
-            expander_c.set_title(&title);
-        });
-
-        let u1 = update_title.clone();
-        direction_dropdown.connect_selected_notify(move |_| u1());
-
-        let u2 = update_title.clone();
-        local_port_spin.connect_changed(move |_| u2());
-
-        let u3 = update_title.clone();
-        remote_host_entry.connect_changed(move |_| u3());
-
-        let u4 = update_title;
-        remote_port_spin.connect_changed(move |_| u4());
-    }
-
-    // Wire remove button
-    {
-        let group_c = group.clone();
-        let expander_c = expander.clone();
-        let fwd_list_c = forwards_list.clone();
-        remove_btn.connect_clicked(move |_| {
-            group_c.remove(&expander_c);
-            fwd_list_c.borrow_mut().retain(|fw| fw.row != expander_c);
-        });
-    }
-
-    group.add(&expander);
-
-    ForwardRowWidgets {
-        row: expander,
-        direction_dropdown,
-        local_port_spin,
-        remote_host_entry,
-        remote_port_spin,
-    }
+    builder.present(parent);
 }

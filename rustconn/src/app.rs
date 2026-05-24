@@ -812,6 +812,38 @@ pub fn apply_keybindings(app: &adw::Application, state: &SharedAppState) {
     }
 }
 
+/// Enables or disables keyboard passthrough mode.
+///
+/// When passthrough is enabled, all keybindings are removed except those in
+/// `passthrough_exceptions` (toggle itself, quit, fullscreen by default).
+/// This allows all key combinations to reach the VTE terminal or embedded
+/// viewer without being intercepted by the application.
+///
+/// When passthrough is disabled, all keybindings are restored from settings.
+pub fn set_passthrough(app: &adw::Application, state: &SharedAppState, enable: bool) {
+    if enable {
+        let exceptions = with_state(state, |s| {
+            s.settings().keybindings.passthrough_exceptions.clone()
+        });
+        let defaults = rustconn_core::default_keybindings();
+        let keybinding_settings = with_state(state, |s| s.settings().keybindings.clone());
+
+        for def in &defaults {
+            if exceptions.contains(&def.action) {
+                // Keep exception bindings active
+                let accel_str = keybinding_settings.get_accel(def);
+                let accels: Vec<&str> = accel_str.split('|').collect();
+                app.set_accels_for_action(&def.action, &accels);
+            } else {
+                // Remove all other bindings
+                app.set_accels_for_action(&def.action, &[]);
+            }
+        }
+    } else {
+        apply_keybindings(app, state);
+    }
+}
+
 /// Shows the about dialog
 fn show_about_dialog(parent: &adw::ApplicationWindow) {
     let description = gettext(

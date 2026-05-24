@@ -226,14 +226,21 @@ async fn run_vnc_client(
     event_tx: std::sync::mpsc::Sender<VncClientEvent>,
     mut command_rx: mpsc::Receiver<VncClientCommand>,
 ) -> Result<(), VncClientError> {
-    // Connect to the server
+    // Connect to the server with timeout
     tracing::warn!(
         host = %config.host,
         port = %config.port,
         "VNC connection is unencrypted. Consider using SSH tunnel for security."
     );
-    let tcp = TcpStream::connect(config.server_address())
+    let connect_timeout = std::time::Duration::from_secs(config.timeout_secs);
+    let tcp = tokio::time::timeout(connect_timeout, TcpStream::connect(config.server_address()))
         .await
+        .map_err(|_| {
+            VncClientError::ConnectionFailed(format!(
+                "Connection timed out after {}s",
+                config.timeout_secs
+            ))
+        })?
         .map_err(|e| VncClientError::ConnectionFailed(e.to_string()))?;
 
     // Build the VNC connector

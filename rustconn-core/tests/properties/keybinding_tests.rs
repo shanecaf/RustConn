@@ -74,7 +74,7 @@ proptest! {
             0..10,
         ),
     ) {
-        let mut settings = KeybindingSettings { overrides };
+        let mut settings = KeybindingSettings { overrides, ..Default::default() };
         settings.reset_all();
         prop_assert!(settings.overrides.is_empty());
         prop_assert!(!settings.has_overrides());

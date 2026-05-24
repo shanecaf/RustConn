@@ -1626,8 +1626,8 @@ impl SplitViewBridge {
             ("Ctrl+P", i18n("Command palette")),
             ("Ctrl+Shift+T", i18n("Local shell")),
             ("Ctrl+F", i18n("Search")),
-            ("Ctrl+Shift+S", i18n("Split vertical")),
-            ("Ctrl+Shift+H", i18n("Split horizontal")),
+            ("Ctrl+Shift+S/H", i18n("Split vertical / horizontal")),
+            ("Ctrl+Shift+Backspace", i18n("Disable shortcuts")),
             ("Ctrl+I", i18n("Import connections")),
             ("Ctrl+,", i18n("Settings")),
         ];

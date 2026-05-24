@@ -5,6 +5,19 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.7] - 2026-05-25
+
+### Added
+
+- **Visual Tunnel Builder** — 3-step wizard dialog for creating and editing SSH tunnels with a visual path diagram (localhost → bastion → target), SSH command preview, and real-time status indicators. Step 1: select SSH connection, name the tunnel, optionally configure jump host. Step 2: add port forwarding rules (Local -L, Remote -R, Dynamic -D), configure auto-start/reconnect. Step 3: review configuration, see generated SSH command, copy to clipboard. Replaces the previous flat dialog in the Tunnel Manager window.
+- **Keyboard passthrough mode** — press Ctrl+Shift+Backspace to disable all application shortcuts and pass keys directly to the remote session (VTE terminal, embedded RDP/VNC/SPICE viewer). Essential for using nvim, tmux, or other TUI apps that conflict with RustConn keybindings. Toggle via shortcut, menu (☰ → Keyboard Passthrough), or command palette. Only Quit (Ctrl+Q), Fullscreen (F11), and the passthrough toggle itself remain active. A toast notification confirms the mode change. ([#159](https://github.com/totoshko88/RustConn/issues/159))
+
+### Improved
+
+- **VNC client: connection timeout** — embedded VNC client now respects the configured `timeout_secs` (default 30s) instead of relying on OS-level TCP timeout which could hang for 2+ minutes on unreachable hosts
+- **Document encryption: key zeroization** — derived encryption keys are now wrapped in `Zeroizing<[u8; 32]>` ensuring automatic memory clearing on drop (defense-in-depth hardening)
+- **Welcome screen: streamlined shortcuts** — combined "Split vertical" and "Split horizontal" into a single entry; added keyboard passthrough shortcut for discoverability
+
 ## [0.14.6] - 2026-05-23
 
 ### Improved

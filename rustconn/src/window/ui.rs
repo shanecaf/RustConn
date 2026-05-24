@@ -218,9 +218,13 @@ pub fn create_app_menu() -> gio::Menu {
     }
     menu.append_section(None, &settings_section);
 
-    // App meta section (GNOME HIG: Fullscreen, Shortcuts, About, Quit)
+    // App meta section (GNOME HIG: Fullscreen, Passthrough, Shortcuts, About, Quit)
     let app_section = gio::Menu::new();
     app_section.append(Some(&i18n("Fullscreen")), Some("win.toggle-fullscreen"));
+    app_section.append(
+        Some(&i18n("Keyboard Passthrough")),
+        Some("win.toggle-passthrough"),
+    );
     app_section.append(Some(&i18n("Keyboard Shortcuts...")), Some("app.shortcuts"));
     app_section.append(Some(&i18n("About RustConn")), Some("app.about"));
     app_section.append(Some(&i18n("Quit")), Some("app.quit"));

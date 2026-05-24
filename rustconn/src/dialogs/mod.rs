@@ -26,6 +26,7 @@ mod template;
 mod template_manager;
 mod terminal_search;
 pub mod tunnel;
+pub mod tunnel_builder;
 mod variable_setup;
 mod variables;
 pub mod widgets;

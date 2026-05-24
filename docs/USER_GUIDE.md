@@ -1,6 +1,6 @@
 # RustConn User Guide
 
-**Version 0.14.6** | GTK4/libadwaita Connection Manager for Linux
+**Version 0.14.7** | GTK4/libadwaita Connection Manager for Linux
 
 RustConn is a modern connection manager designed for Linux with Wayland-first approach. It supports SSH, RDP, VNC, SPICE, MOSH, SFTP, Telnet, Serial, Kubernetes, Web protocols and Zero Trust integrations through a native GTK4/libadwaita interface.
 
@@ -1906,6 +1906,54 @@ Each tunnel row displays the connection name, forwarding summary (e.g., "L 3306�
 - Expose a local dev server to a remote machine: `R 8080:localhost:3000`
 - Persistent tunnels that survive terminal tab closes — the tunnel keeps running until you stop it or quit RustConn
 
+#### Visual Tunnel Builder (Wizard)
+
+The Visual Tunnel Builder is a 3-step wizard dialog that guides you through creating or editing SSH tunnels. It replaces the previous flat dialog with a structured workflow and a visual path diagram showing the tunnel chain.
+
+**Open:** From the SSH Tunnel Manager window (Ctrl+T), click **Add Tunnel** to create a new tunnel, or click the **Edit** (pencil) button on an existing tunnel.
+
+**Step 1 — Connection & Name:**
+- Enter a tunnel name (1–128 characters)
+- Select an SSH connection from the dropdown (filter by typing in the search field)
+- If the selected connection has a jump host configured, the bastion is shown automatically on the path diagram
+- Optionally override the jump host by selecting a different SSH connection as the bastion
+- If no SSH connections exist, a prompt offers to create one
+- The visual path diagram updates in real time: **localhost → bastion → target**
+
+**Step 2 — Port Forwards & Options:**
+- Add port forwarding rules using the **Add Forward** button (up to 20 rules per tunnel):
+
+| Direction | Fields | Example |
+|-----------|--------|---------|
+| Local (`-L`) | Local port, remote host, remote port | `L 3306 → db.internal:3306` |
+| Remote (`-R`) | Local port, remote host, remote port | `R 9000 → localhost:3000` |
+| Dynamic (`-D`) | Local port only | `D 1080 (SOCKS)` |
+
+- Each rule is shown as a collapsible row with a dynamic summary title
+- Port validation: 1–65535 required; ports below 1024 show a privilege warning
+- Remote host is required for Local and Remote directions
+- Toggle **Auto-start** (tunnel starts with RustConn) and **Auto-reconnect** (restart on unexpected exit)
+- The path diagram reflects the current configuration
+
+**Step 3 — Review & Confirm:**
+- Full visual path diagram with status indicators (in edit mode: Running, Starting, Failed, Stopped)
+- Summary of all configured parameters
+- Monospace SSH command preview showing the exact `ssh` command that will be executed (e.g., `ssh -N -L 3306:db:3306 -J bastion user@target -p 22`)
+- **Copy** button copies the SSH command to clipboard (toast confirms "Copied")
+- If no port forwarding rules are configured, an info message is displayed
+- Click **Create** (new tunnel) or **Save** (editing) to finish
+
+**Status Indicators (Edit Mode):**
+
+When editing an existing tunnel, the path diagram shows the current tunnel status:
+
+| Status | Visual |
+|--------|--------|
+| Running | Green nodes with animated connection line |
+| Starting | Yellow/warning nodes with pulsing animation |
+| Failed | Red/error nodes with error tooltip |
+| Stopped | Dimmed/inactive nodes |
+
 **Difference from Per-connection Port Forwarding:**
 
 | Feature | Per-connection (SSH tab) | Standalone Tunnel Manager |
@@ -1988,6 +2036,23 @@ Customize all keyboard shortcuts via Settings → Interface page → Keybindings
 5. The new shortcut is saved immediately
 
 Click the ↩ button next to any shortcut to reset it to default, or **Reset All to Defaults** at the bottom.
+
+### Keyboard Passthrough Mode
+
+When working in remote sessions with TUI applications (nvim, tmux, htop, mc), RustConn's keyboard shortcuts can conflict with the remote application's bindings. Keyboard passthrough mode disables all application shortcuts so every key combination reaches the remote session.
+
+**Toggle passthrough:**
+- Press **Ctrl+Shift+Backspace** (works in both normal and passthrough mode)
+- Or use the menu: ☰ → Keyboard Passthrough
+- Or use the command palette: Ctrl+P → "Toggle Keyboard Passthrough"
+
+**When passthrough is active:**
+- All application shortcuts are disabled (Ctrl+N, Ctrl+F, Ctrl+P, etc. go to the terminal)
+- Only three shortcuts remain active: the passthrough toggle itself (Ctrl+Shift+Backspace), Quit (Ctrl+Q), and Fullscreen (F11)
+- A toast notification confirms the mode change
+- The menu item shows a checkmark when active
+
+**Customization:** The list of shortcuts that remain active in passthrough mode can be configured in `settings.toml` under `[keybindings] passthrough_exceptions`.
 
 ### Adaptive UI
 
@@ -2726,6 +2791,7 @@ RustConn uses VTE, which passes all keystrokes to the shell. Configure vim/emacs
 | Ctrl+T | SSH Tunnel Manager |
 | F10 | Open Menu |
 | Ctrl+? / F1 | Keyboard Shortcuts |
+| Ctrl+Shift+Backspace | Toggle Keyboard Passthrough |
 | Ctrl+Q | Quit |
 
 ---

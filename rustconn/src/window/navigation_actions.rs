@@ -113,6 +113,38 @@ impl MainWindow {
             }
         });
         window.add_action(&toggle_fullscreen_action);
+
+        // Toggle keyboard passthrough mode (stateful)
+        // When enabled, all keybindings except quit/fullscreen/passthrough-toggle
+        // are disabled so keys pass through to VTE terminal or embedded viewer.
+        let toggle_passthrough_action =
+            gio::SimpleAction::new_stateful("toggle-passthrough", None, &false.to_variant());
+        let window_weak = window.downgrade();
+        let state_clone = state.clone();
+        let toast_overlay_clone = self.toast_overlay.clone();
+        toggle_passthrough_action.connect_activate(move |action, _| {
+            if let Some(win) = window_weak.upgrade() {
+                let is_passthrough = action
+                    .state()
+                    .and_then(|v| v.get::<bool>())
+                    .unwrap_or(false);
+                let new_state = !is_passthrough;
+                action.set_state(&new_state.to_variant());
+
+                if let Some(app) = win.application().and_downcast::<adw::Application>() {
+                    crate::app::set_passthrough(&app, &state_clone, new_state);
+                }
+
+                // Show toast notification about the mode change
+                let message = if new_state {
+                    crate::i18n::i18n("Keyboard passthrough enabled — shortcuts disabled")
+                } else {
+                    crate::i18n::i18n("Keyboard passthrough disabled — shortcuts restored")
+                };
+                toast_overlay_clone.show_toast(&message);
+            }
+        });
+        window.add_action(&toggle_passthrough_action);
     }
 
     /// Sets up group operations actions (select all, delete selected, etc.)

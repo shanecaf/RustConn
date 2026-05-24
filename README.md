@@ -32,7 +32,7 @@ It brings SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, and Zero Trust
 | **Monitoring** | Remote host metrics bar (CPU, RAM, disk, network, load, system info) — agentless, per-connection toggle |
 | **Import/Export** | Asbru-CM, Remmina, SSH config, Ansible inventory, Royal TS, MobaXterm, SecureCRT, Remote Desktop Manager, RDP files (.rdp), virt-viewer (.vv), libvirt XML, CSV, native (.rcn) |
 | **Security** | KeePassXC (KDBX), libsecret, Bitwarden CLI, 1Password CLI, Passbolt CLI, Pass (passwordstore.org), script credentials |
-| **Productivity** | Split terminals, command snippets, cluster broadcast, ad-hoc broadcast, smart folders, session recording, text highlighting rules, Wake-on-LAN, SSH port forwarding, automation (expect rules, key sequences, pre/post-connect tasks), session reconnect, settings backup/restore, .rdp file association, tab overview, tab pinning, custom terminal themes |
+| **Productivity** | Split terminals, command snippets, cluster broadcast, ad-hoc broadcast, smart folders, session recording, text highlighting rules, Wake-on-LAN, SSH port forwarding, visual SSH tunnel builder (3-step wizard with path diagram), automation (expect rules, key sequences, pre/post-connect tasks), session reconnect, settings backup/restore, .rdp file association, tab overview, tab pinning, custom terminal themes |
 | **Cloud Sync** | Synchronize connections via shared cloud directory (Google Drive, Syncthing, Nextcloud, Dropbox); group sync with Master/Import access model; simple sync with UUID-based merge |
 | **CLI** | `rustconn-cli` — headless management: list/add/update/delete connections, import/export, snippets, groups, templates, clusters, secrets, WoL, shell completions |
 

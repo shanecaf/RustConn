@@ -157,6 +157,13 @@ pub fn builtin_commands() -> Vec<PaletteItem> {
         .with_description("F11")
         .with_priority(40),
         PaletteItem::new(
+            "Toggle Keyboard Passthrough",
+            CommandPaletteAction::GtkAction("win.toggle-passthrough".into()),
+        )
+        .with_icon("input-keyboard-symbolic")
+        .with_description("Ctrl+Shift+Backspace")
+        .with_priority(38),
+        PaletteItem::new(
             "Split Horizontal",
             CommandPaletteAction::GtkAction("win.split-horizontal".into()),
         )

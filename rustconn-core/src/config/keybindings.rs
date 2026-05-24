@@ -12,13 +12,45 @@ use serde::{Deserialize, Serialize};
 /// Each entry maps a GTK action name (e.g. `"win.copy"`) to a GTK accelerator
 /// string (e.g. `"<Control><Shift>c"`). Actions not present in `overrides`
 /// use their built-in defaults.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct KeybindingSettings {
     /// Action name → accelerator string mapping.
     ///
     /// Only overridden bindings are stored; defaults are implicit.
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub overrides: HashMap<String, String>,
+
+    /// Actions that remain active even in passthrough mode.
+    ///
+    /// When passthrough is enabled, all keybindings are disabled except those
+    /// listed here. Defaults to the passthrough toggle itself, quit, and fullscreen.
+    #[serde(default = "default_passthrough_exceptions")]
+    #[serde(skip_serializing_if = "is_default_passthrough_exceptions")]
+    pub passthrough_exceptions: Vec<String>,
+}
+
+impl Default for KeybindingSettings {
+    fn default() -> Self {
+        Self {
+            overrides: HashMap::new(),
+            passthrough_exceptions: default_passthrough_exceptions(),
+        }
+    }
+}
+
+/// Default actions that remain active in passthrough mode.
+#[must_use]
+pub fn default_passthrough_exceptions() -> Vec<String> {
+    vec![
+        "win.toggle-passthrough".into(),
+        "app.quit".into(),
+        "win.toggle-fullscreen".into(),
+    ]
+}
+
+/// Returns `true` if the list matches the default passthrough exceptions (for serde skip).
+fn is_default_passthrough_exceptions(exceptions: &[String]) -> bool {
+    *exceptions == default_passthrough_exceptions()
 }
 
 /// A single keybinding definition with its default accelerator.
@@ -278,6 +310,12 @@ pub fn default_keybindings() -> Vec<KeybindingDef> {
         // View
         KeybindingDef::new("win.toggle-fullscreen", "F11", "Toggle Fullscreen", View),
         KeybindingDef::new("win.toggle-sidebar", "F9", "Toggle Sidebar", View),
+        KeybindingDef::new(
+            "win.toggle-passthrough",
+            "<Control><Shift>BackSpace",
+            "Toggle Keyboard Passthrough",
+            View,
+        ),
         // Application (additional)
         KeybindingDef::new(
             "win.show-history",

@@ -511,3 +511,61 @@ tabbar > revealer > box {
 .document-dirty {
     font-style: italic;
 }
+
+/* ============================================================
+ * Tunnel Path Diagram Styles
+ * Visual representation of SSH tunnel chain:
+ * localhost → bastion → target
+ * ============================================================ */
+
+.tunnel-diagram {
+    padding: 12px;
+    margin: 6px 0;
+}
+
+.tunnel-node {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid alpha(@borders, 0.5);
+    background-color: alpha(@card_bg_color, 0.5);
+}
+
+.tunnel-node.success {
+    border-color: @success_color;
+    background-color: alpha(@success_color, 0.08);
+}
+
+.tunnel-node.warning {
+    border-color: @warning_color;
+    background-color: alpha(@warning_color, 0.08);
+}
+
+.tunnel-node.error {
+    border-color: @error_color;
+    background-color: alpha(@error_color, 0.08);
+}
+
+.tunnel-arrow {
+    font-size: 1.4em;
+    opacity: 0.6;
+    margin: 0 8px;
+}
+
+.tunnel-arrow.active {
+    opacity: 1.0;
+    color: @success_color;
+}
+
+.tunnel-status-dot {
+    font-size: 0.7em;
+    margin-top: 4px;
+}
+
+@keyframes tunnel-pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1.0; }
+}
+
+.tunnel-node.starting .tunnel-status-dot {
+    animation: tunnel-pulse 1.5s ease-in-out infinite;
+}

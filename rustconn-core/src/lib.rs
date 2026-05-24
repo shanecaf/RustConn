@@ -69,6 +69,7 @@ pub mod terminal_themes;
 pub mod testing;
 pub mod tracing;
 pub mod tunnel_manager;
+pub mod tunnel_preview;
 pub mod variables;
 pub mod vnc_client;
 pub mod wol;
@@ -106,7 +107,7 @@ pub use cluster::{
 pub use config::{
     AppSettings, ConfigManager, ConnectionSettings, KeybindingCategory, KeybindingDef,
     KeybindingSettings, SecretBackendType, StartupAction, default_keybindings,
-    is_valid_accelerator,
+    default_passthrough_exceptions, is_valid_accelerator,
 };
 pub use connection::{
     ConnectionManager, LazyGroupLoader, PortCheckError, PortCheckResult, RetryConfig, RetryState,

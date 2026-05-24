@@ -255,6 +255,12 @@ const SHORTCUTS: &[ShortcutEntry] = &[
         category: "Application",
     },
     ShortcutEntry {
+        accel: "<Control><Shift>BackSpace",
+        keys: "Ctrl+Shift+Backspace",
+        description: "Toggle keyboard passthrough",
+        category: "Application",
+    },
+    ShortcutEntry {
         accel: "<Control>h",
         keys: "Ctrl+H",
         description: "Connection history",
@@ -592,6 +598,7 @@ fn _i18n_markers() {
     i18n("Keyboard shortcuts");
     i18n("Toggle fullscreen");
     i18n("Toggle sidebar");
+    i18n("Toggle keyboard passthrough");
     i18n("Connection history");
     i18n("Statistics");
     i18n("Password generator");

@@ -33,6 +33,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use thiserror::Error;
 use uuid::Uuid;
+use zeroize::Zeroizing;
 
 use crate::models::{Connection, ConnectionGroup, ConnectionTemplate};
 use crate::variables::Variable;
@@ -659,7 +660,7 @@ fn encrypt_document(
     let key = derive_key(password, &salt, strength)?;
 
     // Encrypt using AES-256-GCM
-    let unbound_key = UnboundKey::new(&AES_256_GCM, &key)
+    let unbound_key = UnboundKey::new(&AES_256_GCM, key.as_ref())
         .map_err(|_| DocumentError::EncryptionError("Failed to create key".to_string()))?;
     let less_safe_key = LessSafeKey::new(unbound_key);
     let nonce = Nonce::assume_unique_for_key(nonce_bytes);
@@ -746,7 +747,7 @@ fn decrypt_document(data: &[u8], password: &str) -> DocumentResult<Document> {
     let key = derive_key(password, salt, strength)?;
 
     // Decrypt using AES-256-GCM
-    let unbound_key = UnboundKey::new(&AES_256_GCM, &key)
+    let unbound_key = UnboundKey::new(&AES_256_GCM, key.as_ref())
         .map_err(|_| DocumentError::EncryptionError("Failed to create key".to_string()))?;
     let less_safe_key = LessSafeKey::new(unbound_key);
 
@@ -786,7 +787,7 @@ fn decrypt_document_legacy(data: &[u8], password: &str) -> DocumentResult<Docume
 
     let key = derive_key(password, salt, EncryptionStrength::Standard)?;
 
-    let unbound_key = UnboundKey::new(&AES_256_GCM, &key)
+    let unbound_key = UnboundKey::new(&AES_256_GCM, key.as_ref())
         .map_err(|_| DocumentError::EncryptionError("Failed to create key".to_string()))?;
     let less_safe_key = LessSafeKey::new(unbound_key);
 
@@ -812,7 +813,7 @@ fn derive_key(
     password: &str,
     salt: &[u8],
     strength: EncryptionStrength,
-) -> DocumentResult<[u8; 32]> {
+) -> DocumentResult<Zeroizing<[u8; 32]>> {
     use argon2::{Algorithm, Argon2, Params, Version};
 
     let (m_cost, t_cost, p_cost) = strength.argon2_params();
@@ -821,9 +822,9 @@ fn derive_key(
 
     let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
 
-    let mut key = [0u8; 32];
+    let mut key = Zeroizing::new([0u8; 32]);
     argon2
-        .hash_password_into(password.as_bytes(), salt, &mut key)
+        .hash_password_into(password.as_bytes(), salt, key.as_mut())
         .map_err(|e| DocumentError::EncryptionError(format!("Key derivation failed: {e}")))?;
 
     Ok(key)
