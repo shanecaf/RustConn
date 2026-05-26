@@ -17,9 +17,16 @@ use libadwaita as adw;
 /// - Right side (pack_end): Menu, Settings, Split Vertical, Split Horizontal
 ///
 /// Returns the header bar, the busy spinner widget (initially hidden),
-/// and the passthrough indicator button (initially hidden).
+/// the passthrough indicator button (initially hidden), and the
+/// broadcast toggle button (initially hidden, only visible when the
+/// active terminal belongs to a cluster).
 #[must_use]
-pub fn create_header_bar() -> (adw::HeaderBar, gtk4::Spinner, gtk4::Button) {
+pub fn create_header_bar() -> (
+    adw::HeaderBar,
+    gtk4::Spinner,
+    gtk4::Button,
+    gtk4::ToggleButton,
+) {
     let header_bar = adw::HeaderBar::new();
 
     // Title area: label + spinner in a horizontal box
@@ -131,6 +138,29 @@ pub fn create_header_bar() -> (adw::HeaderBar, gtk4::Spinner, gtk4::Button) {
     shell_button.update_property(&[gtk4::accessible::Property::Label(&i18n("Open Local Shell"))]);
     header_bar.pack_end(&shell_button);
 
+    // Broadcast toggle — visible only when the active tab has a split layout.
+    // Mirrors keystrokes from the focused panel to all other panels in the split.
+    let broadcast_toggle = gtk4::ToggleButton::new();
+    let bc_box = gtk4::Box::new(gtk4::Orientation::Horizontal, 4);
+    let bc_icon = gtk4::Image::from_icon_name("network-transmit-receive-symbolic");
+    bc_icon.set_pixel_size(16);
+    let bc_label = Label::new(Some(&i18n("Broadcast")));
+    bc_label.add_css_class("caption");
+    bc_box.append(&bc_icon);
+    bc_box.append(&bc_label);
+    broadcast_toggle.set_child(Some(&bc_box));
+    broadcast_toggle.set_tooltip_text(Some(&i18n(
+        "Mirror keystrokes to all split panels (Ctrl+Shift+B)",
+    )));
+    broadcast_toggle.update_property(&[gtk4::accessible::Property::Label(&i18n(
+        "Toggle split broadcast",
+    ))]);
+    broadcast_toggle.set_action_name(Some("win.toggle-broadcast"));
+    broadcast_toggle.add_css_class("flat");
+    broadcast_toggle.add_css_class("pill");
+    broadcast_toggle.set_visible(false);
+    header_bar.pack_end(&broadcast_toggle);
+
     // Keyboard passthrough indicator — visible only when passthrough mode is active
     let passthrough_indicator = Button::new();
     let pt_box = gtk4::Box::new(gtk4::Orientation::Horizontal, 4);
@@ -154,7 +184,12 @@ pub fn create_header_bar() -> (adw::HeaderBar, gtk4::Spinner, gtk4::Button) {
     passthrough_indicator.set_visible(false);
     header_bar.pack_end(&passthrough_indicator);
 
-    (header_bar, busy_spinner, passthrough_indicator)
+    (
+        header_bar,
+        busy_spinner,
+        passthrough_indicator,
+        broadcast_toggle,
+    )
 }
 
 /// Creates the application menu

@@ -8,7 +8,7 @@
 //! in the legacy module, kept here for backward compatibility with existing code.
 
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use gtk4::prelude::*;
@@ -281,6 +281,19 @@ pub struct SplitViewBridge {
     panes: Rc<RefCell<Vec<TerminalPane>>>,
     /// Whether to show a scrollbar next to VTE terminals
     show_scrollbar: bool,
+    /// Whether broadcast mode is active for this split view.
+    /// When true, keystrokes typed in any panel are mirrored to all other panels.
+    pub broadcast_active: Rc<std::cell::Cell<bool>>,
+    /// Sessions that already have a broadcast commit handler wired.
+    /// Used to avoid double-wiring when broadcast is toggled multiple times.
+    pub broadcast_wired_sessions: Rc<RefCell<HashSet<Uuid>>>,
+    /// Re-entrancy guard shared across all wired commit handlers in this split.
+    /// When the first source session emits a commit and we feed text to other
+    /// terminals, those terminals also emit commit signals; without a single
+    /// shared guard each handler's per-instance flag would let the rebroadcast
+    /// fire and characters would be doubled. The shared cell is set to `true`
+    /// while a broadcast pass is in progress and reset when the pass completes.
+    pub broadcast_busy: Rc<std::cell::Cell<bool>>,
 }
 
 impl SplitViewBridge {
@@ -341,6 +354,9 @@ impl SplitViewBridge {
             focused_pane_uuid: Rc::new(RefCell::new(focused_uuid)),
             panes: Rc::new(RefCell::new(panes)),
             show_scrollbar: true,
+            broadcast_active: Rc::new(std::cell::Cell::new(false)),
+            broadcast_wired_sessions: Rc::new(RefCell::new(HashSet::new())),
+            broadcast_busy: Rc::new(std::cell::Cell::new(false)),
         }
     }
 
@@ -460,16 +476,54 @@ impl SplitViewBridge {
         self.focused_pane_uuid.borrow().is_some()
     }
 
-    /// Returns all session IDs
+    /// Returns all session IDs known to this bridge.
+    ///
+    /// Sourced from the internal `sessions` map, which is populated only by
+    /// [`Self::add_session`]. Sessions moved into a pane via
+    /// [`Self::move_session_to_panel_with_terminal`] are tracked in the pane's
+    /// `current_session` field; for those, prefer [`Self::active_sessions`].
     #[must_use]
     pub fn session_ids(&self) -> Vec<Uuid> {
         self.sessions.borrow().keys().copied().collect()
     }
 
-    /// Returns the number of sessions
+    /// Returns the number of sessions known to the `sessions` map.
+    ///
+    /// Note: this counts sessions registered via [`Self::add_session`], not
+    /// necessarily the number of panels currently displaying a session.
+    /// For broadcast / split-view UI gating use [`Self::active_session_count`].
     #[must_use]
     pub fn session_count(&self) -> usize {
         self.sessions.borrow().len()
+    }
+
+    /// Returns the IDs of sessions currently displayed in panes.
+    ///
+    /// Computed from each pane's `current_session` rather than the bridge's
+    /// `sessions` map, so it reflects sessions placed via
+    /// [`Self::move_session_to_panel_with_terminal`] (used by Select Tab) as
+    /// well as those added via [`Self::add_session`].
+    #[must_use]
+    pub fn active_sessions(&self) -> Vec<Uuid> {
+        self.panes
+            .borrow()
+            .iter()
+            .filter_map(TerminalPane::current_session)
+            .collect()
+    }
+
+    /// Returns the number of panes currently displaying a session.
+    ///
+    /// This is the correct count for UI gating (e.g. broadcast toggle):
+    /// it reflects what the user actually sees on screen, not the internal
+    /// `sessions` map state.
+    #[must_use]
+    pub fn active_session_count(&self) -> usize {
+        self.panes
+            .borrow()
+            .iter()
+            .filter(|p| p.current_session().is_some())
+            .count()
     }
 
     /// Returns true if any pane has an active session
@@ -655,6 +709,22 @@ impl SplitViewBridge {
             .borrow_mut()
             .place_in_panel(panel_id, session)
             .map_err(|e| e.to_string())?;
+
+        // Update pane's current_session so active_session_count() / active_sessions()
+        // reflect that this pane is now displaying a session. Without this the
+        // header-bar broadcast toggle (which relies on these helpers) would stay
+        // hidden even after the first split is fully populated.
+        {
+            let mut panes = self.panes.borrow_mut();
+            if let Some(pane) = panes.iter_mut().find(|p| p.id() == focused_uuid) {
+                pane.set_current_session(Some(session_id));
+            } else {
+                tracing::warn!(
+                    "show_session: pane not found for focused uuid={}",
+                    focused_uuid
+                );
+            }
+        }
 
         // Session is now tracked by the adapter via place_in_panel above.
         // Set session color to match container color for consistent tab coloring.
@@ -2088,9 +2158,13 @@ impl SplitViewBridge {
         // This is critical: when another split happens, rebuild_widgets() recreates all
         // panel widgets with "Loading..." placeholders, and restore_panel_contents()
         // needs to find the terminal in self.terminals to restore it.
-        self.terminals
-            .borrow_mut()
-            .insert(session_id, terminal.clone());
+        //
+        // Note: we do NOT register the session into `self.sessions` here —
+        // the source of truth for "what is in this split" is each pane's
+        // `current_session` (updated below). Helpers that iterate over the
+        // split's contents must use [`Self::active_sessions`] /
+        // [`Self::active_session_count`] rather than `session_ids()` /
+        // `session_count()`.
 
         // Detach terminal from any previous parent and display in panel
         Self::detach_terminal_from_parent(terminal);

@@ -515,6 +515,7 @@ fn arb_full_settings() -> impl Strategy<Value = AppSettings> {
                         color_tabs_by_protocol: false,
                         show_protocol_filters: false,
                         show_smart_folders: false,
+                        compact_ui: false,
                     },
                     connection: rustconn_core::ConnectionSettings::default(),
                     global_variables: Vec::new(),

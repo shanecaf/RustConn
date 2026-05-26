@@ -44,6 +44,44 @@ impl MainWindow {
             }
         }
 
+        // Helper closure that refreshes the broadcast toggle button state.
+        // Cloned into every callback that may change a split's session count
+        // (split, unsplit, close pane, move to panel) so the toggle accurately
+        // reflects the active tab's split layout.
+        //
+        // It also drives a one-shot discoverability toast: the very first
+        // time a split has ≥2 active panels in this app session we tell the
+        // user that broadcast is now an option. The flag lives on
+        // `MainWindow::broadcast_hint_shown` and is not persisted.
+        let refresh_broadcast: Rc<dyn Fn()> = {
+            let window_weak = window.downgrade();
+            let notebook = self.terminal_notebook.clone();
+            let bridges = self.session_split_bridges.clone();
+            let toggle = self.broadcast_toggle.clone();
+            let toast_overlay = self.toast_overlay.clone();
+            let hint_shown = self.broadcast_hint_shown.clone();
+            Rc::new(move || {
+                if let Some(win) = window_weak.upgrade() {
+                    super::navigation_actions::refresh_broadcast_toggle(
+                        &win, &notebook, &bridges, &toggle,
+                    );
+
+                    // First-time hint: only when the toggle just became
+                    // visible (i.e. a split with ≥2 active panels exists)
+                    // and we haven't shown the hint yet this session.
+                    if !hint_shown.get() && toggle.is_visible() {
+                        hint_shown.set(true);
+                        let hint = crate::i18n::i18n(
+                            "Tip: press Ctrl+Shift+B or use the Broadcast button to mirror keystrokes across split panels",
+                        );
+                        toast_overlay
+                            .widget()
+                            .add_toast(adw::Toast::builder().title(&hint).timeout(6).build());
+                    }
+                }
+            })
+        };
+
         // Split horizontal action
         let split_horizontal_action = gio::SimpleAction::new("split-horizontal", None);
         let session_bridges = self.session_split_bridges.clone();
@@ -53,6 +91,7 @@ impl MainWindow {
         let color_pool_h = self.global_color_pool.clone();
         let window_weak_h = window.downgrade();
         let monitoring_h = self.monitoring.clone();
+        let refresh_broadcast_h = refresh_broadcast.clone();
         split_horizontal_action.connect_activate(move |_, _| {
             // Get current active session before splitting
             let Some(current_session) = notebook_for_split_h.get_active_session_id() else {
@@ -204,6 +243,12 @@ impl MainWindow {
                 let monitoring_for_select_h = monitoring_h.clone();
                 let split_colors_h = Rc::clone(notebook_for_split_h.split_colors());
                 let split_owner_h = current_session;
+                // Refresh broadcast toggle once a new session is placed via Select Tab —
+                // until this point the bridge has 1 active session and the toggle is hidden.
+                let refresh_broadcast_select_h = refresh_broadcast_h.clone();
+                // Notebook clone for wiring broadcast on the freshly-placed session
+                // (needed because the wired commit handler also calls send_text_to_session).
+                let notebook_for_broadcast_h = notebook_for_split_h.clone();
                 split_view.setup_select_tab_callback_with_provider(
                     move || {
                         // Get all sessions from the notebook, excluding those already in THIS split
@@ -292,6 +337,22 @@ impl MainWindow {
                                     panel_uuid,
                                     color_index
                                 );
+
+                                // Layout changed — the bridge now has ≥2 active panels,
+                                // so the broadcast toggle should appear in the header bar.
+                                refresh_broadcast_select_h();
+
+                                // If broadcast is already on, the freshly-placed session
+                                // must be wired immediately — otherwise it would silently
+                                // miss keystroke mirroring until broadcast is toggled off
+                                // and back on.
+                                if split_view_for_select.broadcast_active.get() {
+                                    super::navigation_actions::wire_broadcast_for_session(
+                                        &split_view_for_select,
+                                        &notebook_for_broadcast_h,
+                                        session_id,
+                                    );
+                                }
                             }
                             Err(e) => {
                                 tracing::warn!("Failed to move session to panel: {}", e);
@@ -317,6 +378,10 @@ impl MainWindow {
                         }
                 });
             }
+
+            // Layout changed — refresh the broadcast toggle so it reflects the
+            // new session count of the active tab's split.
+            refresh_broadcast_h();
         });
         window.add_action(&split_horizontal_action);
 
@@ -329,6 +394,7 @@ impl MainWindow {
         let color_pool_v = self.global_color_pool.clone();
         let window_weak_v = window.downgrade();
         let monitoring_v = self.monitoring.clone();
+        let refresh_broadcast_v = refresh_broadcast.clone();
         split_vertical_action.connect_activate(move |_, _| {
             // Get current active session before splitting
             let Some(current_session) = notebook_for_split_v.get_active_session_id() else {
@@ -480,6 +546,12 @@ impl MainWindow {
                 let split_colors_v = Rc::clone(notebook_for_split_v.split_colors());
                 let split_owner_v = current_session;
                 let notebook_for_placeholder_v = notebook_for_split_v.clone();
+                // Refresh broadcast toggle once a new session is placed via Select Tab —
+                // until this point the bridge has 1 active session and the toggle is hidden.
+                let refresh_broadcast_select_v = refresh_broadcast_v.clone();
+                // Notebook clone for wiring broadcast on the freshly-placed session
+                // (needed because the wired commit handler also calls send_text_to_session).
+                let notebook_for_broadcast_v = notebook_for_split_v.clone();
                 split_view.setup_select_tab_callback_with_provider(
                     move || {
                         // Get all sessions from the notebook, excluding those already in THIS split
@@ -568,6 +640,22 @@ impl MainWindow {
                                     panel_uuid,
                                     color_index
                                 );
+
+                                // Layout changed — the bridge now has ≥2 active panels,
+                                // so the broadcast toggle should appear in the header bar.
+                                refresh_broadcast_select_v();
+
+                                // If broadcast is already on, the freshly-placed session
+                                // must be wired immediately — otherwise it would silently
+                                // miss keystroke mirroring until broadcast is toggled off
+                                // and back on.
+                                if split_view_for_select.broadcast_active.get() {
+                                    super::navigation_actions::wire_broadcast_for_session(
+                                        &split_view_for_select,
+                                        &notebook_for_broadcast_v,
+                                        session_id,
+                                    );
+                                }
                             }
                             Err(e) => {
                                 tracing::warn!("Failed to move session to panel: {}", e);
@@ -593,6 +681,9 @@ impl MainWindow {
                         }
                 });
             }
+
+            // Layout changed — refresh broadcast toggle.
+            refresh_broadcast_v();
         });
         window.add_action(&split_vertical_action);
 
@@ -603,6 +694,7 @@ impl MainWindow {
         let split_view_for_close = self.split_view.clone();
         let split_container_close = self.split_container.clone();
         let monitoring_close = self.monitoring.clone();
+        let refresh_broadcast_close = refresh_broadcast.clone();
         close_pane_action.connect_activate(move |_, _| {
             // Find the bridge for the current session and close its focused pane
             if let Some(session_id) = notebook_for_close.get_active_session_id() {
@@ -701,6 +793,9 @@ impl MainWindow {
                     }
                 }
             }
+
+            // Layout changed — refresh broadcast toggle.
+            refresh_broadcast_close();
         });
         window.add_action(&close_pane_action);
 

@@ -1,7 +1,7 @@
 //! Cluster dialog for managing connection clusters
 //!
 //! Provides an `adw::Dialog` for creating, editing, and managing clusters
-//! with connection selection and broadcast mode configuration.
+//! with connection selection.
 //!
 //! Migrated to `adw::Dialog` for GNOME HIG compliance: bottom-sheet on narrow
 //! screens, centered floating sheet on wide screens.
@@ -26,7 +26,6 @@ pub type ClusterCallback = Rc<RefCell<Option<Box<dyn Fn(Option<Cluster>)>>>>;
 pub struct ClusterDialog {
     dialog: adw::Dialog,
     name_entry: gtk4::Entry,
-    broadcast_row: adw::SwitchRow,
     connections_list: ListBox,
     connection_rows: Rc<RefCell<Vec<ConnectionSelectionRow>>>,
     editing_id: Rc<RefCell<Option<Uuid>>>,
@@ -105,15 +104,6 @@ impl ClusterDialog {
         name_row.set_activatable_widget(Some(&name_entry));
         details_group.add(&name_row);
 
-        // Broadcast mode switch row
-        let broadcast_row = super::widgets::SwitchRowBuilder::new(&i18n("Broadcast mode"))
-            .subtitle(&i18n(
-                "Send keyboard input to all cluster sessions simultaneously",
-            ))
-            .active(false)
-            .build();
-        details_group.add(&broadcast_row);
-
         content.append(&details_group);
 
         // Connections selection section
@@ -130,7 +120,6 @@ impl ClusterDialog {
         let dialog_clone = dialog.clone();
         let on_save_clone = on_save.clone();
         let name_entry_clone = name_entry.clone();
-        let broadcast_row_clone = broadcast_row.clone();
         let connection_rows_clone = connection_rows.clone();
         let editing_id_clone = editing_id.clone();
         save_btn.connect_clicked(move |_| {
@@ -164,7 +153,8 @@ impl ClusterDialog {
                 Cluster::new(name)
             };
 
-            cluster.broadcast_enabled = broadcast_row_clone.is_active();
+            // broadcast_enabled is left at its default (false). Cluster broadcast
+            // was removed in 0.14.8 — broadcast is now a split-view feature.
             for conn_id in selected_ids {
                 cluster.add_connection(conn_id);
             }
@@ -180,7 +170,6 @@ impl ClusterDialog {
         Self {
             dialog,
             name_entry,
-            broadcast_row,
             connections_list,
             connection_rows,
             editing_id,
@@ -304,7 +293,6 @@ impl ClusterDialog {
         *self.editing_id.borrow_mut() = Some(cluster.id);
         self.dialog.set_title(&i18n("Edit Cluster"));
         self.name_entry.set_text(&cluster.name);
-        self.broadcast_row.set_active(cluster.broadcast_enabled);
 
         // Select the connections that are in the cluster
         for row in self.connection_rows.borrow().iter() {
@@ -410,7 +398,7 @@ impl ClusterListDialog {
 
         // Info label
         let info_label = Label::builder()
-            .label(i18n("Clusters allow you to connect to multiple servers simultaneously and optionally broadcast input to all sessions."))
+            .label(i18n("Clusters open multiple servers together. To mirror keystrokes across them, split the resulting tabs and use the Broadcast toggle in the header bar."))
             .halign(gtk4::Align::Start)
             .wrap(true)
             .css_classes(["dim-label"])
@@ -488,18 +476,16 @@ impl ClusterListDialog {
             .css_classes(["heading"])
             .build();
 
-        let broadcast_indicator = if cluster.broadcast_enabled {
-            i18n(" (broadcast enabled)")
-        } else {
-            String::new()
-        };
+        // Note: cluster.broadcast_enabled is kept on disk for backward
+        // compatibility (CLI still reads/writes it) but no longer affects
+        // anything in the GUI as of 0.14.8 — broadcast is a split-view
+        // feature triggered from the header bar. Don't show a stale
+        // "(broadcast enabled)" indicator here that promises behaviour
+        // the cluster machinery no longer delivers.
         let count_label = Label::builder()
             .label(&i18n_f(
-                "{} connections{}",
-                &[
-                    &cluster.connection_count().to_string(),
-                    &broadcast_indicator,
-                ],
+                "{} connections",
+                &[&cluster.connection_count().to_string()],
             ))
             .halign(gtk4::Align::Start)
             .css_classes(["dim-label", "caption"])

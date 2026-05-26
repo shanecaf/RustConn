@@ -261,6 +261,12 @@ const SHORTCUTS: &[ShortcutEntry] = &[
         category: "Application",
     },
     ShortcutEntry {
+        accel: "<Control><Shift>b",
+        keys: "Ctrl+Shift+B",
+        description: "Toggle split broadcast",
+        category: "Application",
+    },
+    ShortcutEntry {
         accel: "<Control>h",
         keys: "Ctrl+H",
         description: "Connection history",

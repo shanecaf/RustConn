@@ -562,10 +562,103 @@ tabbar > revealer > box {
 }
 
 @keyframes tunnel-pulse {
-    0%, 100% { opacity: 0.4; }
+    0% { opacity: 0.4; }
     50% { opacity: 1.0; }
+    100% { opacity: 0.4; }
 }
 
 .tunnel-node.starting .tunnel-status-dot {
     animation: tunnel-pulse 1.5s ease-in-out infinite;
+}
+
+/* ============================================================
+ * Compact Interface Mode
+ * Toggled via Settings → Interface → Compact interface.
+ * Applied as `.compact` CSS class on the main AdwApplicationWindow.
+ *
+ * Goal: reduce vertical chrome (header bar + tab bar + button padding)
+ * so more space is available for the active session content. Especially
+ * useful on small laptop screens (≤14") and on KDE Plasma where the
+ * default Adwaita chrome looks taller than native Qt apps.
+ *
+ * Total vertical savings vs default Adwaita: ~28-32px on header,
+ * ~10-12px on tab bar, plus tab bar auto-hides for single-tab sessions.
+ * ============================================================ */
+
+/* Header bar — slimmer */
+window.compact headerbar {
+    min-height: 32px;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+window.compact headerbar > windowhandle {
+    min-height: 32px;
+}
+
+window.compact headerbar > windowhandle > box,
+window.compact headerbar > windowhandle > box > * {
+    min-height: 32px;
+}
+
+/* Header bar buttons — denser tap targets */
+window.compact headerbar button {
+    min-height: 24px;
+    min-width: 24px;
+    padding: 2px 6px;
+}
+
+window.compact headerbar button.image-button {
+    padding: 2px 4px;
+}
+
+/* Title label — smaller line-height */
+window.compact headerbar .title {
+    font-size: 0.95em;
+    padding: 0;
+}
+
+/* Tab bar — slimmer rows and tabs */
+window.compact tabbar tab {
+    min-height: 28px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+}
+
+window.compact tabbar .start-action,
+window.compact tabbar .end-action {
+    min-height: 28px;
+    padding: 0 4px;
+}
+
+window.compact tabbar tabbox > tabboxchild {
+    min-height: 28px;
+}
+
+/* Compact spin/dropdown rows in dialogs */
+window.compact preferencespage row.action-row {
+    padding-top: 4px;
+    padding-bottom: 4px;
+}
+
+/* ============================================================
+ * Broadcast toggle — active state
+ * Applied as the `.broadcasting` CSS class on the header-bar
+ * ToggleButton when split-view broadcast is on. Goal: make it
+ * obvious at a glance that input mirroring is active.
+ * ============================================================ */
+togglebutton.broadcasting {
+    background-color: alpha(@accent_color, 0.18);
+    color: @accent_color;
+    border: 1px solid alpha(@accent_color, 0.45);
+}
+
+togglebutton.broadcasting label.caption {
+    font-weight: 600;
+}
+
+/* Subtle pulse on the icon to suggest "live mirroring". Reuses
+ * the tunnel-pulse keyframes already defined above. */
+togglebutton.broadcasting image {
+    animation: tunnel-pulse 1.6s ease-in-out infinite;
 }

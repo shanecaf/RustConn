@@ -515,6 +515,14 @@ pub struct UiSettings {
     /// Show Smart Folders section in sidebar
     #[serde(default)]
     pub show_smart_folders: bool,
+    /// Compact interface — denser header bar, tabs and buttons
+    ///
+    /// Reduces vertical chrome (header bar, tab bar, button padding) so more
+    /// space is available for the active session content. Especially useful on
+    /// small laptop screens (≤14") and on KDE Plasma where the default Adwaita
+    /// chrome looks taller than native Qt apps.
+    #[serde(default)]
+    pub compact_ui: bool,
 }
 
 impl UiSettings {
@@ -615,6 +623,7 @@ impl Default for UiSettings {
             color_tabs_by_protocol: false,
             show_protocol_filters: false,
             show_smart_folders: false,
+            compact_ui: false,
         }
     }
 }

@@ -117,6 +117,8 @@ pub struct SettingsDialog {
     show_protocol_filters: adw::SwitchRow,
     // Sidebar width setting
     sidebar_width_row: adw::SpinRow,
+    // Compact interface toggle
+    compact_ui: adw::SwitchRow,
     // SSH Agent settings
     ssh_agent_status_label: Label,
     ssh_agent_socket_label: Label,
@@ -205,6 +207,7 @@ impl SettingsDialog {
             color_tabs_by_protocol,
             show_protocol_filters,
             sidebar_width_row,
+            compact_ui,
         ) = create_ui_page();
 
         let (
@@ -589,6 +592,7 @@ impl SettingsDialog {
             color_tabs_by_protocol,
             show_protocol_filters,
             sidebar_width_row,
+            compact_ui,
             ssh_agent_status_label,
             ssh_agent_socket_label,
             ssh_agent_start_button,
@@ -901,6 +905,7 @@ impl SettingsDialog {
             &self.color_tabs_by_protocol,
             &self.show_protocol_filters,
             &self.sidebar_width_row,
+            &self.compact_ui,
             &settings.ui,
             &conn_refs,
         );
@@ -1035,6 +1040,7 @@ impl SettingsDialog {
         let color_tabs_by_protocol_clone = self.color_tabs_by_protocol.clone();
         let show_protocol_filters_clone = self.show_protocol_filters.clone();
         let sidebar_width_row_clone = self.sidebar_width_row.clone();
+        let compact_ui_clone = self.compact_ui.clone();
         let connections_clone = self.connections.clone();
         let keybindings_overrides_clone = self.keybindings_overrides.clone();
 
@@ -1165,6 +1171,7 @@ impl SettingsDialog {
                 &color_tabs_by_protocol_clone,
                 &show_protocol_filters_clone,
                 &sidebar_width_row_clone,
+                &compact_ui_clone,
                 &conn_refs,
             );
             // Preserve smart folders visibility (managed by toolbar toggle, not settings dialog)

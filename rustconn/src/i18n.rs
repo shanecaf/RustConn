@@ -81,12 +81,25 @@ pub fn apply_language_from_config() {
     };
 
     let args: Vec<String> = std::env::args().collect();
-    let full_locale = lang_to_locale(&lang);
 
+    // Only set LANGUAGE — gettext uses it as the primary lookup mechanism.
+    //
+    // We deliberately do NOT set LC_MESSAGES (or LC_ALL/LANG) here. Inside
+    // a Flatpak sandbox the user's chosen locale (e.g. `fr_FR.UTF-8`) is
+    // very often not installed: Flatpak ships only the host system's
+    // language via the `org.gnome.Platform.Locale` extension. If we set
+    // LC_MESSAGES to an uninstalled locale, glibc falls back to the C
+    // locale, and **gettext ignores LANGUAGE when LC_MESSAGES=C**. The
+    // result is no translation at all, regardless of the LANGUAGE value.
+    //
+    // By leaving LC_MESSAGES untouched, the child inherits the system
+    // locale (which is always installed) and gettext correctly applies
+    // translations selected via LANGUAGE.
+    //
+    // Issue #158 — language change had no effect in Flatpak builds.
     let err = std::process::Command::new(exe)
         .args(&args[1..])
         .env("LANGUAGE", &lang)
-        .env("LC_MESSAGES", &full_locale)
         .env("_RUSTCONN_LANG_SET", "1")
         .exec();
 
@@ -325,12 +338,14 @@ fn apply_language_setlocale(lang: &str) {
             tracing::info!(
                 lang,
                 "Locale {full_locale} not installed; \
-                 translations may not take effect until restart"
+                 falling back to system locale (LANGUAGE env var still applies)"
             );
-            // Try en_US.UTF-8 as a non-C locale so gettext doesn't
-            // fall back to msgids. The LANGUAGE env var (set at startup
-            // via re-exec) is the primary lookup mechanism.
-            gettextrs::setlocale(gettextrs::LocaleCategory::LcMessages, "en_US.UTF-8");
+            // Fall back to the system locale ("") rather than a hardcoded
+            // en_US.UTF-8: in Flatpak sandboxes en_US.UTF-8 is itself often
+            // not installed, which would leave LC_MESSAGES=C and disable
+            // gettext's LANGUAGE lookup entirely (issue #158). The system
+            // locale inherited from the host is guaranteed to exist.
+            gettextrs::setlocale(gettextrs::LocaleCategory::LcMessages, "");
         }
     }
 

@@ -131,8 +131,13 @@ pub struct TerminalNotebook {
     cluster_sessions: Rc<RefCell<HashMap<Uuid, Vec<Uuid>>>>,
     /// Reverse lookup: session_id → cluster_id
     session_to_cluster: Rc<RefCell<HashMap<Uuid, Uuid>>>,
-    /// Broadcast mode flags per cluster: cluster_id → broadcast enabled
-    cluster_broadcast_flags: Rc<RefCell<HashMap<Uuid, Rc<std::cell::Cell<bool>>>>>,
+    /// Pending cluster registrations awaiting their session_id.
+    ///
+    /// When a connection is launched as part of a cluster but its terminal is
+    /// created asynchronously (e.g. after a TCP port check), we cannot register
+    /// the session_id at launch time. Instead we record the (connection_id →
+    /// cluster_id) pair here and resolve it the moment a tab is created.
+    cluster_pending: Rc<RefCell<HashMap<Uuid, Uuid>>>,
     /// Active recording sessions (tracked by session_id)
     active_recordings: Rc<RefCell<HashSet<Uuid>>>,
     /// Recording paths and start times: session_id → (data_path, timing_path, connection_name, start_time)
@@ -235,7 +240,7 @@ impl TerminalNotebook {
             reconnect_shown: Rc::new(RefCell::new(HashSet::new())),
             cluster_sessions: Rc::new(RefCell::new(HashMap::new())),
             session_to_cluster: Rc::new(RefCell::new(HashMap::new())),
-            cluster_broadcast_flags: Rc::new(RefCell::new(HashMap::new())),
+            cluster_pending: Rc::new(RefCell::new(HashMap::new())),
             recording_paths: RefCell::new(HashMap::new()),
             session_highlight_rules: Rc::new(RefCell::new(HashMap::new())),
             highlight_overlays: Rc::new(RefCell::new(HashMap::new())),
@@ -595,6 +600,9 @@ impl TerminalNotebook {
         if *self.color_tabs_by_protocol.borrow() {
             self.apply_protocol_color(session_id, protocol);
         }
+
+        // Resolve any pending cluster registration for this connection
+        self.resolve_cluster_pending(connection_id, session_id);
 
         session_id
     }
@@ -2781,9 +2789,34 @@ impl TerminalNotebook {
                 reverse.remove(sid);
             }
         }
-        self.cluster_broadcast_flags
+        // Clear any pending registrations for this cluster
+        self.cluster_pending
             .borrow_mut()
-            .remove(&cluster_id);
+            .retain(|_, cid| *cid != cluster_id);
+    }
+
+    /// Marks a connection as pending cluster registration.
+    ///
+    /// When the terminal tab for `connection_id` is eventually created
+    /// (synchronously or after an async port check), it will automatically
+    /// be registered as part of `cluster_id` and trigger the
+    /// `on_cluster_session_registered` callback.
+    pub fn mark_cluster_pending(&self, cluster_id: Uuid, connection_id: Uuid) {
+        self.cluster_pending
+            .borrow_mut()
+            .insert(connection_id, cluster_id);
+    }
+
+    /// Resolves a pending cluster registration for a freshly created session.
+    ///
+    /// Called internally by `create_terminal_tab_with_settings`. If the
+    /// connection had been marked as pending via `mark_cluster_pending`,
+    /// this registers the new `session_id` in the cluster's session list.
+    fn resolve_cluster_pending(&self, connection_id: Uuid, session_id: Uuid) {
+        let Some(cluster_id) = self.cluster_pending.borrow_mut().remove(&connection_id) else {
+            return;
+        };
+        self.register_cluster_terminal(cluster_id, session_id);
     }
 
     /// Gets all terminal session IDs for a cluster
@@ -2793,32 +2826,6 @@ impl TerminalNotebook {
             .get(&cluster_id)
             .cloned()
             .unwrap_or_default()
-    }
-
-    /// Gets the cluster ID for a terminal session, if any
-    #[allow(dead_code)] // Public API for future cluster status UI
-    pub fn get_session_cluster(&self, session_id: Uuid) -> Option<Uuid> {
-        self.session_to_cluster.borrow().get(&session_id).copied()
-    }
-
-    /// Sets broadcast mode for a cluster
-    pub fn set_cluster_broadcast(&self, cluster_id: Uuid, enabled: bool) {
-        let flag = self
-            .cluster_broadcast_flags
-            .borrow_mut()
-            .entry(cluster_id)
-            .or_insert_with(|| Rc::new(std::cell::Cell::new(false)))
-            .clone();
-        flag.set(enabled);
-    }
-
-    /// Gets the broadcast flag `Rc<Cell<bool>>` for a cluster (for use in closures)
-    pub fn get_cluster_broadcast_flag(&self, cluster_id: Uuid) -> Rc<std::cell::Cell<bool>> {
-        self.cluster_broadcast_flags
-            .borrow_mut()
-            .entry(cluster_id)
-            .or_insert_with(|| Rc::new(std::cell::Cell::new(false)))
-            .clone()
     }
 
     /// Checks if a cluster has any active terminal sessions

@@ -65,17 +65,12 @@ fn print_cluster_table(clusters: &[Cluster]) {
         .unwrap_or(4)
         .max(4);
 
-    println!("{:<name_width$}  CONNECTIONS  BROADCAST", "NAME");
-    println!("{:-<name_width$}  {:-<11}  {:-<9}", "", "", "");
+    println!("{:<name_width$}  CONNECTIONS", "NAME");
+    println!("{:-<name_width$}  {:-<11}", "", "");
 
     for cluster in clusters {
-        let broadcast = if cluster.broadcast_enabled {
-            "Yes"
-        } else {
-            "No"
-        };
         println!(
-            "{:<name_width$}  {:<11}  {broadcast}",
+            "{:<name_width$}  {:<11}",
             cluster.name,
             cluster.connection_count()
         );
@@ -90,14 +85,10 @@ fn print_cluster_json(clusters: &[Cluster]) -> Result<(), CliError> {
 }
 
 fn print_cluster_csv(clusters: &[Cluster]) {
-    println!("name,connection_count,broadcast_enabled");
+    println!("name,connection_count");
     for cluster in clusters {
         let name = escape_csv_field(&cluster.name);
-        println!(
-            "{name},{},{}",
-            cluster.connection_count(),
-            cluster.broadcast_enabled
-        );
+        println!("{name},{}", cluster.connection_count());
     }
 }
 
@@ -117,14 +108,6 @@ fn cmd_cluster_show(config_path: Option<&Path>, name: &str) -> Result<(), CliErr
     println!("Cluster Details:");
     println!("  ID:        {}", cluster.id);
     println!("  Name:      {}", cluster.name);
-    println!(
-        "  Broadcast: {}",
-        if cluster.broadcast_enabled {
-            "Enabled"
-        } else {
-            "Disabled"
-        }
-    );
 
     println!("\nConnections ({}):", cluster.connection_count());
     for conn_id in &cluster.connection_ids {
@@ -157,8 +140,15 @@ fn cmd_cluster_create(
         .load_connections()
         .map_err(|e| CliError::Config(format!("Failed to load connections: {e}")))?;
 
+    if broadcast {
+        eprintln!(
+            "Warning: --broadcast is no-op since 0.14.8. Cluster broadcast was \
+             replaced by the split-view Broadcast toggle in the GUI header bar."
+        );
+    }
+
     let mut cluster = Cluster::new(name.to_string());
-    cluster.broadcast_enabled = broadcast;
+    // broadcast_enabled is intentionally not set — see warning above.
 
     if let Some(conn_list) = connections {
         for conn_name in conn_list.split(',').map(str::trim) {
@@ -201,8 +191,11 @@ fn cmd_cluster_edit(
     if let Some(n) = new_name {
         cluster.name = n.to_string();
     }
-    if let Some(b) = broadcast {
-        cluster.broadcast_enabled = b;
+    if broadcast.is_some() {
+        eprintln!(
+            "Warning: --broadcast is no-op since 0.14.8. Cluster broadcast was \
+             replaced by the split-view Broadcast toggle in the GUI header bar."
+        );
     }
 
     config_manager

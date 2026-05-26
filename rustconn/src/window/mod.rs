@@ -117,6 +117,15 @@ pub struct MainWindow {
     quick_connect_history: types::SharedQuickConnectHistory,
     /// Passthrough mode indicator button in header bar (visible when active)
     passthrough_indicator: gtk4::Button,
+    /// Split-view broadcast toggle button in the header bar. Only visible
+    /// when the active tab has a split layout with two or more panels;
+    /// see `update_broadcast_toggle_state`.
+    broadcast_toggle: gtk4::ToggleButton,
+    /// One-shot flag for the "broadcast available" discoverability toast.
+    /// Set to true after the user makes the first split that produces ≥2
+    /// active panels in the current application session, so the hint is
+    /// shown at most once. Not persisted across restarts.
+    broadcast_hint_shown: Rc<std::cell::Cell<bool>>,
 }
 
 impl MainWindow {
@@ -151,7 +160,8 @@ impl MainWindow {
         });
 
         // Create header bar with busy spinner
-        let (header_bar, busy_spinner, passthrough_indicator) = ui::create_header_bar();
+        let (header_bar, busy_spinner, passthrough_indicator, broadcast_toggle) =
+            ui::create_header_bar();
 
         // Create BusyStack that shows/hides the header bar spinner.
         // GTK widgets are !Send, so we bridge via std::sync::mpsc channel.
@@ -485,6 +495,8 @@ impl MainWindow {
             busy_stack,
             quick_connect_history: types::load_quick_connect_history(&state),
             passthrough_indicator,
+            broadcast_toggle,
+            broadcast_hint_shown: Rc::new(std::cell::Cell::new(false)),
         };
 
         // Set up window actions
@@ -535,7 +547,13 @@ impl MainWindow {
         self.setup_connection_actions(window, &state, &sidebar, &terminal_notebook);
         self.setup_edit_actions(window, &state, &sidebar);
         self.setup_terminal_actions(window, &terminal_notebook, &sidebar, &state);
-        self.setup_navigation_actions(window, &terminal_notebook, &sidebar, &state);
+        self.setup_navigation_actions(
+            window,
+            &terminal_notebook,
+            &sidebar,
+            &state,
+            &self.session_split_bridges,
+        );
         self.setup_group_operations_actions(window, &state, &terminal_notebook, &sidebar);
         self.setup_snippet_actions(window, &state, &terminal_notebook, &sidebar);
         self.setup_cluster_actions(window, &state, &terminal_notebook, &sidebar);

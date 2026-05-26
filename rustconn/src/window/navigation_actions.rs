@@ -11,6 +11,7 @@ impl MainWindow {
         terminal_notebook: &SharedNotebook,
         sidebar: &SharedSidebar,
         state: &SharedAppState,
+        session_split_bridges: &SessionSplitBridges,
     ) {
         // Focus sidebar action
         let focus_sidebar_action = gio::SimpleAction::new("focus-sidebar", None);
@@ -149,6 +150,65 @@ impl MainWindow {
             }
         });
         window.add_action(&toggle_passthrough_action);
+
+        // Toggle cluster broadcast mode (stateful, per active tab's cluster).
+        // Toggle split-view broadcast mode (stateful).
+        // The action is enabled only when the active tab has a split layout with ≥2 sessions.
+        // Activating mirrors keystrokes from any panel to all other panels in the same split.
+        let toggle_broadcast_action =
+            gio::SimpleAction::new_stateful("toggle-broadcast", None, &false.to_variant());
+        toggle_broadcast_action.set_enabled(false);
+        let notebook_for_action = terminal_notebook.clone();
+        let bridges_for_action = session_split_bridges.clone();
+        let toast_for_action = self.toast_overlay.clone();
+        let broadcast_toggle_widget = self.broadcast_toggle.clone();
+        toggle_broadcast_action.connect_activate(move |action, _| {
+            let Some(session_id) = notebook_for_action.get_active_session_id() else {
+                return;
+            };
+            let Some(bridge) = bridges_for_action.borrow().get(&session_id).cloned() else {
+                return;
+            };
+            let new_state = !bridge.broadcast_active.get();
+            bridge.broadcast_active.set(new_state);
+            action.set_state(&new_state.to_variant());
+            broadcast_toggle_widget.set_active(new_state);
+
+            // When enabling broadcast, wire commit handlers for any sessions in this
+            // split that don't have one yet.
+            if new_state {
+                for &sid in &bridge.active_sessions() {
+                    wire_broadcast_for_session(&bridge, &notebook_for_action, sid);
+                }
+            }
+
+            let message = if new_state {
+                crate::i18n::i18n("Broadcast enabled — keystrokes mirrored to all split panels")
+            } else {
+                crate::i18n::i18n("Broadcast disabled — keystrokes go to focused panel only")
+            };
+            toast_for_action.show_toast(&message);
+        });
+        window.add_action(&toggle_broadcast_action);
+
+        // Track active tab → update broadcast toggle visibility/state.
+        // The toggle is visible only when the active tab has a split with ≥2 sessions.
+        {
+            let notebook_for_signal = terminal_notebook.clone();
+            let bridges_for_signal = session_split_bridges.clone();
+            let toggle_widget = self.broadcast_toggle.clone();
+            let action_for_signal = toggle_broadcast_action.clone();
+            terminal_notebook
+                .tab_view()
+                .connect_selected_page_notify(move |_| {
+                    update_broadcast_toggle_state(
+                        &notebook_for_signal,
+                        &bridges_for_signal,
+                        &toggle_widget,
+                        &action_for_signal,
+                    );
+                });
+        }
     }
 
     /// Sets up group operations actions (select all, delete selected, etc.)
@@ -261,4 +321,128 @@ impl MainWindow {
         });
         window.add_action(&cluster_from_selection_action);
     }
+}
+
+/// Updates the broadcast toggle button's visibility and state based on the
+/// active tab. Hidden if the tab has no split layout (or only 1 active pane),
+/// otherwise shown with the toggle reflecting the split's current broadcast
+/// flag. When broadcast is on, also adds a `.broadcasting` CSS class so the
+/// button gets a visible accent (defined in `assets/style.css`).
+pub(super) fn update_broadcast_toggle_state(
+    notebook: &SharedNotebook,
+    bridges: &SessionSplitBridges,
+    toggle: &gtk4::ToggleButton,
+    action: &gio::SimpleAction,
+) {
+    let Some(session_id) = notebook.get_active_session_id() else {
+        tracing::debug!("update_broadcast_toggle_state: no active session, hiding toggle");
+        toggle.set_visible(false);
+        toggle.remove_css_class("broadcasting");
+        action.set_enabled(false);
+        return;
+    };
+
+    let bridge = bridges.borrow().get(&session_id).cloned();
+    match bridge {
+        Some(b) if b.active_session_count() >= 2 => {
+            let active = b.broadcast_active.get();
+            tracing::debug!(
+                "update_broadcast_toggle_state: showing toggle for session {} (active_panes={}, broadcast_active={})",
+                session_id,
+                b.active_session_count(),
+                active
+            );
+            toggle.set_visible(true);
+            toggle.set_active(active);
+            if active {
+                toggle.add_css_class("broadcasting");
+            } else {
+                toggle.remove_css_class("broadcasting");
+            }
+            action.set_state(&active.to_variant());
+            action.set_enabled(true);
+        }
+        Some(b) => {
+            tracing::debug!(
+                "update_broadcast_toggle_state: hiding toggle — bridge for session {} has only {} active pane(s)",
+                session_id,
+                b.active_session_count()
+            );
+            toggle.set_visible(false);
+            toggle.remove_css_class("broadcasting");
+            action.set_enabled(false);
+        }
+        None => {
+            tracing::debug!(
+                "update_broadcast_toggle_state: hiding toggle — no bridge for session {} (bridges count={})",
+                session_id,
+                bridges.borrow().len()
+            );
+            toggle.set_visible(false);
+            toggle.remove_css_class("broadcasting");
+            action.set_enabled(false);
+        }
+    }
+}
+
+/// Refreshes the broadcast toggle by looking up the action on the given window.
+/// Used by other modules (e.g. split_view_actions) that don't have direct
+/// access to the action handle but do have the window reference.
+pub(super) fn refresh_broadcast_toggle(
+    window: &adw::ApplicationWindow,
+    notebook: &SharedNotebook,
+    bridges: &SessionSplitBridges,
+    toggle: &gtk4::ToggleButton,
+) {
+    use gtk4::prelude::*;
+    let Some(action) = window
+        .lookup_action("toggle-broadcast")
+        .and_then(|a| a.downcast::<gio::SimpleAction>().ok())
+    else {
+        return;
+    };
+    update_broadcast_toggle_state(notebook, bridges, toggle, &action);
+}
+
+/// Wires a single split-view session into the broadcast mirroring chain.
+///
+/// Idempotent: if the session is already in `broadcast_wired_sessions`, this
+/// is a no-op. Safe to call from any code path that introduces a new session
+/// into the split (initial enable, Select Tab placement, drop-target).
+///
+/// The handler uses `bridge.broadcast_active` as a guard so it is a no-op
+/// while broadcast is off, and a SHARED `broadcast_busy` re-entrancy guard
+/// on the bridge prevents the `feed_child → commit → feed_child` cascade
+/// across all wired sessions (otherwise each commit handler would have its
+/// own per-instance flag and characters would be doubled when text is fed
+/// back into the source terminal's neighbours).
+pub(super) fn wire_broadcast_for_session(
+    bridge: &std::rc::Rc<crate::split_view::SplitViewBridge>,
+    notebook: &SharedNotebook,
+    sid: uuid::Uuid,
+) {
+    if bridge.broadcast_wired_sessions.borrow().contains(&sid) {
+        return;
+    }
+    bridge.broadcast_wired_sessions.borrow_mut().insert(sid);
+
+    let bridge_for_cb = bridge.clone();
+    let notebook_for_cb = notebook.clone();
+
+    notebook.connect_commit(sid, move |text| {
+        if !bridge_for_cb.broadcast_active.get() {
+            return;
+        }
+        if bridge_for_cb.broadcast_busy.get() {
+            return;
+        }
+        bridge_for_cb.broadcast_busy.set(true);
+        for target_id in bridge_for_cb.active_sessions() {
+            if target_id == sid {
+                continue;
+            }
+            notebook_for_cb.send_text_to_session(target_id, text);
+        }
+        bridge_for_cb.broadcast_busy.set(false);
+    });
 }

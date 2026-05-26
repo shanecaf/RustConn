@@ -49,6 +49,34 @@ pub fn apply_color_scheme(scheme: ColorScheme) {
     }
 }
 
+/// Applies the "Compact interface" setting to all open application windows.
+///
+/// Adds or removes the `compact` CSS class on every window. The CSS rules in
+/// `assets/style.css` (`window.compact ...`) reduce header bar `min-height`,
+/// tab bar height, and button padding to give more vertical space to content.
+///
+/// Designed to run live: changes take effect without restart, and re-running
+/// with the same value is a no-op (`add_css_class` / `remove_css_class` are
+/// idempotent).
+pub fn apply_compact_ui(compact: bool) {
+    use gtk4::prelude::*;
+
+    let Some(app) = gtk4::gio::Application::default() else {
+        return;
+    };
+    let Some(gtk_app) = app.downcast_ref::<gtk4::Application>() else {
+        return;
+    };
+
+    for window in gtk_app.windows() {
+        if compact {
+            window.add_css_class("compact");
+        } else {
+            window.remove_css_class("compact");
+        }
+    }
+}
+
 /// Application ID for `RustConn`
 pub const APP_ID: &str = "io.github.totoshko88.RustConn";
 
@@ -132,6 +160,10 @@ fn build_ui(app: &adw::Application, tray_manager: SharedTrayManager) {
 
     // Create main window with state
     let window = MainWindow::new(app, state.clone());
+
+    // Apply saved compact-UI preference now that the window exists.
+    // Adds the `.compact` CSS class to the window if enabled in settings.
+    apply_compact_ui(state.borrow().settings().ui.compact_ui);
 
     // Initialize tray icon if enabled in settings
     let enable_tray = state.borrow().settings().ui.enable_tray_icon;

@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.14.7
+Version:        0.14.8
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -238,6 +238,15 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Mon May 26 2026 Anton Isaiev <totoshko88@gmail.com> - 0.14.8-0
+- Split-view broadcast toggle in header bar (#160)
+- Compact interface mode for reduced chrome (#157)
+- Fixed broadcast mode — rewired around split view (#160)
+- Fixed broadcast toggle visibility after Select Tab placement (#160)
+- Fixed broadcast doubling typed characters in split panels (#160)
+- Fixed language change in Flatpak (#158)
+- Improved tray icon visibility on dark panels (#157)
+
 * Sun May 25 2026 Anton Isaiev <totoshko88@gmail.com> - 0.14.7-0
 - Version bump to 0.14.7
 - Added Visual Tunnel Builder

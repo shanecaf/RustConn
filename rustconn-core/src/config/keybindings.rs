@@ -316,6 +316,12 @@ pub fn default_keybindings() -> Vec<KeybindingDef> {
             "Toggle Keyboard Passthrough",
             View,
         ),
+        KeybindingDef::new(
+            "win.toggle-broadcast",
+            "<Control><Shift>b",
+            "Toggle Split Broadcast",
+            View,
+        ),
         // Application (additional)
         KeybindingDef::new(
             "win.show-history",

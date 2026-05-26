@@ -282,7 +282,16 @@ fn show_new_cluster_dialog_from_manager(
     });
 }
 
-/// Connects to all connections in a cluster with session tracking and broadcast
+/// Connects to all connections in a cluster.
+///
+/// Cluster simply means "open these connections together". Broadcast
+/// is now an independent split-view feature (see toggle-broadcast action),
+/// not a cluster property — tabs do not need to belong to a cluster to use it.
+///
+/// Sessions are registered into the cluster lazily via the
+/// `cluster_session_registered` callback installed on the notebook —
+/// this works for both synchronously created tabs (Telnet, Serial) and
+/// asynchronously created ones (SSH after a TCP port check).
 fn connect_cluster(
     state: &SharedAppState,
     notebook: &SharedNotebook,
@@ -292,20 +301,15 @@ fn connect_cluster(
     cluster_id: Uuid,
 ) {
     // Get cluster info
-    let (connection_ids, broadcast_enabled, cluster_name) =
-        if let Ok(state_ref) = state.try_borrow() {
-            if let Some(cluster) = state_ref.get_cluster(cluster_id) {
-                (
-                    cluster.connection_ids.clone(),
-                    cluster.broadcast_enabled,
-                    cluster.name.clone(),
-                )
-            } else {
-                return;
-            }
+    let (connection_ids, cluster_name) = if let Ok(state_ref) = state.try_borrow() {
+        if let Some(cluster) = state_ref.get_cluster(cluster_id) {
+            (cluster.connection_ids.clone(), cluster.name.clone())
         } else {
             return;
-        };
+        }
+    } else {
+        return;
+    };
 
     if connection_ids.is_empty() {
         crate::toast::show_error_toast_on_active_window(&i18n("Cluster has no connections"));
@@ -316,7 +320,6 @@ fn connect_cluster(
         cluster = %cluster_name,
         cluster_id = %cluster_id,
         connections = connection_ids.len(),
-        broadcast = broadcast_enabled,
         "Connecting cluster"
     );
 
@@ -327,64 +330,30 @@ fn connect_cluster(
         tracing::error!(?e, cluster = %cluster_name, "Failed to start cluster session");
     }
 
-    // Connect each connection and collect session IDs
-    let mut session_ids: Vec<Uuid> = Vec::new();
+    // Mark every connection as pending; the central hook in
+    // `create_terminal_tab_with_settings` resolves them when each terminal
+    // actually appears, registering the new session in the cluster's session list.
     for conn_id in &connection_ids {
-        if let super::types::ConnectionStartResult::Started(session_id) =
-            MainWindow::start_connection(state, notebook, sidebar, monitoring, *conn_id)
-        {
-            session_ids.push(session_id);
-            // Register this terminal in the cluster tracking
-            notebook.register_cluster_terminal(cluster_id, session_id);
-        }
+        notebook.mark_cluster_pending(cluster_id, *conn_id);
     }
 
-    if session_ids.is_empty() {
-        tracing::warn!(cluster = %cluster_name, "No connections started for cluster");
-        return;
+    // Kick off each connection. We don't care whether `start_connection`
+    // returns Started, Pending or Failed — registration is driven by the
+    // callback in `create_terminal_tab_with_settings`.
+    let mut sync_started = 0usize;
+    for conn_id in &connection_ids {
+        match MainWindow::start_connection(state, notebook, sidebar, monitoring, *conn_id) {
+            super::types::ConnectionStartResult::Started(_) => sync_started += 1,
+            super::types::ConnectionStartResult::Pending
+            | super::types::ConnectionStartResult::Failed => {}
+        }
     }
 
     tracing::info!(
         cluster = %cluster_name,
-        sessions = session_ids.len(),
-        "Cluster connections started"
-    );
-
-    // Wire broadcast mode if enabled
-    if broadcast_enabled {
-        notebook.set_cluster_broadcast(cluster_id, true);
-        wire_cluster_broadcast(notebook, cluster_id);
-    }
-}
-
-/// Wires broadcast input for all terminals in a cluster
-fn wire_cluster_broadcast(notebook: &SharedNotebook, cluster_id: Uuid) {
-    let session_ids = notebook.get_cluster_sessions(cluster_id);
-
-    for &source_session_id in &session_ids {
-        let notebook_clone = notebook.clone();
-        let other_sessions: Vec<Uuid> = session_ids
-            .iter()
-            .copied()
-            .filter(|&id| id != source_session_id)
-            .collect();
-
-        // Use Rc<Cell<bool>> to track broadcast state without borrowing AppState
-        let broadcast_flag = notebook.get_cluster_broadcast_flag(cluster_id);
-
-        notebook.connect_commit(source_session_id, move |text| {
-            if broadcast_flag.get() {
-                for &target_id in &other_sessions {
-                    notebook_clone.send_text_to_session(target_id, text);
-                }
-            }
-        });
-    }
-
-    tracing::info!(
-        cluster_id = %cluster_id,
-        sessions = session_ids.len(),
-        "Broadcast input wired for cluster"
+        connections = connection_ids.len(),
+        sync_started,
+        "Cluster connection requests dispatched"
     );
 }
 

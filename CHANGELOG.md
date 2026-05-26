@@ -5,6 +5,32 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.8] - 2026-05-26
+
+### Added
+
+- **Compact interface mode** — toggle in Settings → Interface reduces header bar height to 32 px, tab bar to 28 px, and button padding throughout. Saves ~28-32 px of vertical space. ([#157](https://github.com/totoshko88/RustConn/issues/157))
+- **Split-view broadcast toggle** — header-bar button mirrors keystrokes from any panel to all other panels in the same split. Hidden when no split is active. Shortcut: `Ctrl+Shift+B`. ([#160](https://github.com/totoshko88/RustConn/issues/160))
+
+### Improved
+
+- Broadcast toggle gets accent background + pulse animation when active; one-shot discoverability toast on first eligible split.
+- Tray icon uses a dedicated SVG with cream halo for visibility on dark KDE/Plasma panels. ([#157](https://github.com/totoshko88/RustConn/issues/157))
+
+### Fixed
+
+- Broadcast toggle now appears after panels filled via Select Tab (uses `active_session_count()` instead of `session_count()`).
+- Broadcast no longer doubles every typed character (shared `broadcast_busy` re-entrancy guard across all wired handlers).
+- Broadcast rewired around split view instead of clusters — works for any terminal session, not just cluster members. ([#160](https://github.com/totoshko88/RustConn/issues/160))
+- Broadcast wires new sessions placed via Select Tab while broadcast is already on (previously required toggle off/on).
+- Language change now applies in Flatpak — only `LANGUAGE` is passed across re-exec; `LC_MESSAGES` inherited from host. ([#158](https://github.com/totoshko88/RustConn/issues/158))
+- Cluster dialog no longer shows defunct "Broadcast mode" switch; CLI `--broadcast` flag emits deprecation warning.
+
+### Dependencies
+
+- `http` 1.4.0 → 1.4.1
+- `log` 0.4.29 → 0.4.30
+
 ## [0.14.7] - 2026-05-25
 
 ### Added

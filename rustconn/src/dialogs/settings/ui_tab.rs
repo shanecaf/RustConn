@@ -25,6 +25,7 @@ pub fn create_ui_page() -> (
     adw::SwitchRow,
     adw::SwitchRow,
     adw::SpinRow,
+    adw::SwitchRow,
 ) {
     let page = adw::PreferencesPage::builder()
         .title(i18n("Interface"))
@@ -163,6 +164,20 @@ pub fn create_ui_page() -> (
         .build();
     appearance_group.add(&sidebar_width_row);
 
+    // Compact interface toggle — denser header bar, tabs and buttons.
+    // Live preview: applies the .compact CSS class to all windows on toggle,
+    // so the user sees the effect before clicking Save.
+    let compact_ui = adw::SwitchRow::builder()
+        .title(i18n("Compact interface"))
+        .subtitle(i18n(
+            "Reduce header bar and tab bar height (useful on small screens and KDE)",
+        ))
+        .build();
+    compact_ui.connect_active_notify(move |row| {
+        crate::app::apply_compact_ui(row.is_active());
+    });
+    appearance_group.add(&compact_ui);
+
     page.add(&appearance_group);
 
     // === Window Group ===
@@ -286,6 +301,7 @@ pub fn create_ui_page() -> (
         color_tabs_by_protocol,
         show_protocol_filters,
         sidebar_width_row,
+        compact_ui,
     )
 }
 
@@ -330,6 +346,7 @@ pub fn load_ui_settings(
     color_tabs_by_protocol: &adw::SwitchRow,
     show_protocol_filters: &adw::SwitchRow,
     sidebar_width_row: &adw::SpinRow,
+    compact_ui: &adw::SwitchRow,
     settings: &UiSettings,
     connections: &[&Connection],
 ) {
@@ -391,6 +408,10 @@ pub fn load_ui_settings(
     let sidebar_w = settings.sidebar_width.unwrap_or(320);
     sidebar_width_row.set_value(f64::from(sidebar_w.clamp(260, 500)));
 
+    // Load compact interface — apply CSS immediately so it persists at startup.
+    compact_ui.set_active(settings.compact_ui);
+    crate::app::apply_compact_ui(settings.compact_ui);
+
     // Populate startup action dropdown with connections
     let entries = build_startup_entries(connections);
     let mut labels: Vec<String> = vec![i18n("Do nothing"), i18n("Local Shell")];
@@ -428,6 +449,7 @@ pub fn collect_ui_settings(
     color_tabs_by_protocol: &adw::SwitchRow,
     show_protocol_filters: &adw::SwitchRow,
     sidebar_width_row: &adw::SpinRow,
+    compact_ui: &adw::SwitchRow,
     connections: &[&Connection],
 ) -> UiSettings {
     let mut selected_scheme = ColorScheme::System;
@@ -480,5 +502,6 @@ pub fn collect_ui_settings(
         color_tabs_by_protocol: color_tabs_by_protocol.is_active(),
         show_protocol_filters: show_protocol_filters.is_active(),
         show_smart_folders: false, // Preserved via toggle button, not settings dialog
+        compact_ui: compact_ui.is_active(),
     }
 }

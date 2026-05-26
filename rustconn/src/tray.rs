@@ -79,9 +79,11 @@ mod tray_impl {
     use ksni::{Icon, MenuItem, Tray, menu::StandardItem};
     use std::sync::mpsc::Sender;
 
-    /// Embedded SVG icon data
-    const ICON_SVG: &[u8] =
-        include_bytes!("../assets/icons/hicolor/scalable/apps/io.github.totoshko88.RustConn.svg");
+    /// Embedded SVG icon data (tray-specific variant with cream halo for
+    /// visibility on dark KDE/Plasma panels — see issue #157).
+    const ICON_SVG: &[u8] = include_bytes!(
+        "../assets/icons/hicolor/scalable/apps/io.github.totoshko88.RustConn-tray.svg"
+    );
 
     /// Render SVG to ARGB32 pixmap for tray icon
     /// Returns Vec<Icon> with rendered icon at specified size
