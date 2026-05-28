@@ -693,7 +693,6 @@ impl SecretManager {
     }
 }
 
-
 impl std::fmt::Debug for SecretManager {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // Cache size is read with try_read to avoid blocking in Debug.
@@ -703,8 +702,7 @@ impl std::fmt::Debug for SecretManager {
             .try_read()
             .map_or_else(|_| None, |c| Some(c.len()));
 
-        let backend_ids: Vec<&'static str> =
-            self.backends.iter().map(|b| b.backend_id()).collect();
+        let backend_ids: Vec<&'static str> = self.backends.iter().map(|b| b.backend_id()).collect();
 
         f.debug_struct("SecretManager")
             .field("backend_count", &self.backends.len())

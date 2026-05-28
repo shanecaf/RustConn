@@ -53,7 +53,11 @@ pub fn cmd_secret(config_path: Option<&Path>, subcmd: SecretCommands) -> Result<
     }
 }
 
-#[allow(clippy::too_many_lines)]
+#[expect(
+    clippy::too_many_lines,
+    reason = "status command renders every supported secret backend in turn; \
+              extracting per-backend helpers would only fragment the report"
+)]
 fn cmd_secret_status(config_path: Option<&Path>) -> Result<(), CliError> {
     use rustconn_core::secret::KeePassStatus;
 
@@ -187,7 +191,11 @@ fn parse_backend(b: &str) -> Result<rustconn_core::config::SecretBackendType, Cl
     }
 }
 
-#[allow(clippy::too_many_lines)]
+#[expect(
+    clippy::too_many_lines,
+    reason = "get handler dispatches across every backend kind with backend-specific error \
+              translation; splitting per backend would duplicate the connection lookup"
+)]
 fn cmd_secret_get(
     config_path: Option<&Path>,
     connection_name: &str,
@@ -427,7 +435,11 @@ fn cmd_secret_get(
     }
 }
 
-#[allow(clippy::too_many_lines)]
+#[expect(
+    clippy::too_many_lines,
+    reason = "set handler dispatches across every backend kind with backend-specific \
+              storage paths; splitting would duplicate the password prompt logic"
+)]
 fn cmd_secret_set(
     config_path: Option<&Path>,
     connection_name: &str,
@@ -679,7 +691,11 @@ fn cmd_secret_set(
     }
 }
 
-#[allow(clippy::too_many_lines)]
+#[expect(
+    clippy::too_many_lines,
+    reason = "delete handler dispatches across every backend kind; splitting per backend \
+              would duplicate the connection lookup and confirmation prompt"
+)]
 fn cmd_secret_delete(
     config_path: Option<&Path>,
     connection_name: &str,

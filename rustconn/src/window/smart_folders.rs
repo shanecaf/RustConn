@@ -52,8 +52,7 @@ impl MainWindow {
                         if let Err(e) = state_mut.update_settings(settings) {
                             tracing::warn!(error = %e, "failed to save smart folder");
                             if let Some(win) = window_weak_save.upgrade() {
-                                let msg =
-                                    i18n_f("Could not save smart folder: {}", &[&e]);
+                                let msg = i18n_f("Could not save smart folder: {}", &[&e]);
                                 crate::toast::show_toast_on_window(
                                     &win,
                                     &msg,
@@ -118,8 +117,7 @@ impl MainWindow {
                         if let Err(e) = state_mut.update_settings(settings) {
                             tracing::warn!(error = %e, "failed to save edited smart folder");
                             if let Some(win) = window_weak_save.upgrade() {
-                                let msg =
-                                    i18n_f("Could not save smart folder: {}", &[&e]);
+                                let msg = i18n_f("Could not save smart folder: {}", &[&e]);
                                 crate::toast::show_toast_on_window(
                                     &win,
                                     &msg,
@@ -166,11 +164,7 @@ impl MainWindow {
                 if let Err(e) = state_mut.update_settings(settings) {
                     tracing::warn!(error = %e, "failed to delete smart folder");
                     let msg = i18n_f("Could not delete smart folder: {}", &[&e]);
-                    crate::toast::show_toast_on_window(
-                        &win,
-                        &msg,
-                        crate::toast::ToastType::Error,
-                    );
+                    crate::toast::show_toast_on_window(&win, &msg, crate::toast::ToastType::Error);
                     return;
                 }
             }

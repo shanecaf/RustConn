@@ -72,7 +72,10 @@ impl PassBackend {
     ///
     /// Structure: rustconn/<connection_id>/<field>
     /// Where field is one of: username, password, key_passphrase, domain
-    #[allow(clippy::unused_self)]
+    #[expect(
+        clippy::unused_self,
+        reason = "method is part of a uniform helper API where most operations need &self; keeping &self preserves the consistent signature"
+    )]
     fn build_pass_path(&self, connection_id: &str, field: &str) -> String {
         // Sanitize connection_id to prevent path traversal (e.g. "../../other")
         let safe_id = connection_id.replace(['/', '\\', '.'], "_");

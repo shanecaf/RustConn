@@ -483,8 +483,8 @@ mod debug_tests {
     fn debug_does_not_leak_secret() {
         // PassboltBackend keeps no secrets in-process; passphrases live
         // only inside the OS keyring. Sentinel test for future fields.
-        let backend = PassboltBackend::new()
-            .with_server_address("https://passbolt.example.org/hunter2");
+        let backend =
+            PassboltBackend::new().with_server_address("https://passbolt.example.org/hunter2");
         let rendered = format!("{backend:?}");
         assert!(rendered.contains("PassboltBackend"));
         assert!(

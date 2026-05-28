@@ -7,7 +7,10 @@
 //! - Session options (Agent Forwarding, X11 Forwarding, Compression, Startup Command)
 
 // These functions are prepared for future refactoring when dialog.rs is further modularized
-#![allow(dead_code)]
+#![allow(
+    dead_code,
+    reason = "module-wide override for legacy code; refactored case by case"
+)]
 
 use super::protocol_layout::ProtocolLayoutBuilder;
 use super::widgets::{CheckboxRowBuilder, EntryRowBuilder};
@@ -178,7 +181,10 @@ pub fn create_ssh_options() -> SshOptionsWidgets {
 }
 
 /// Creates the Authentication preferences group
-#[allow(clippy::type_complexity)]
+#[allow(
+    clippy::type_complexity,
+    reason = "internal helper signature documents the exact tuple layout used by the caller; aliasing would obscure the data flow"
+)]
 fn create_authentication_group() -> (
     adw::PreferencesGroup,
     DropDown,
@@ -433,7 +439,10 @@ fn connect_auth_method_visibility(
 }
 
 /// Creates the Connection preferences group
-#[allow(clippy::type_complexity)]
+#[allow(
+    clippy::type_complexity,
+    reason = "internal helper signature documents the exact tuple layout used by the caller; aliasing would obscure the data flow"
+)]
 fn create_connection_group() -> (
     adw::PreferencesGroup,
     DropDown,
@@ -521,7 +530,10 @@ fn create_connection_group() -> (
 }
 
 /// Creates the Session preferences group
-#[allow(clippy::type_complexity)]
+#[allow(
+    clippy::type_complexity,
+    reason = "internal helper signature documents the exact tuple layout used by the caller; aliasing would obscure the data flow"
+)]
 fn create_session_group() -> (
     adw::PreferencesGroup,
     CheckButton,
@@ -800,10 +812,10 @@ pub fn add_port_forward_row_to_list(
     pf: &rustconn_core::models::PortForward,
 ) {
     let row_box = GtkBox::new(Orientation::Horizontal, 8);
-    row_box.set_margin_top(4);
-    row_box.set_margin_bottom(4);
-    row_box.set_margin_start(8);
-    row_box.set_margin_end(8);
+    row_box.set_margin_top(6);
+    row_box.set_margin_bottom(6);
+    row_box.set_margin_start(12);
+    row_box.set_margin_end(12);
 
     let summary_label = Label::builder()
         .label(&pf.display_summary())

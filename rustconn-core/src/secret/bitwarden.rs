@@ -293,7 +293,10 @@ struct BitwardenFolder {
 pub struct BitwardenStatus {
     status: String,
     #[serde(rename = "userEmail")]
-    #[allow(dead_code)] // Deserialized from `bw status` JSON but not used directly
+    #[allow(
+        dead_code,
+        reason = "Deserialized from `bw status` JSON but not used directly"
+    )]
     user_email: Option<String>,
 }
 
@@ -1250,7 +1253,10 @@ async fn try_relogin_and_unlock(
 ///
 /// # Errors
 /// Returns `SecretError::BackendUnavailable` if all strategies fail.
-#[allow(clippy::too_many_lines)] // multi-strategy unlock with ordered fallbacks
+#[expect(
+    clippy::too_many_lines,
+    reason = "long match/dispatch over many enum variants; splitting per variant only relocates the boilerplate"
+)] // multi-strategy unlock with ordered fallbacks
 pub async fn auto_unlock(
     settings: &crate::config::SecretSettings,
 ) -> SecretResult<BitwardenBackend> {
