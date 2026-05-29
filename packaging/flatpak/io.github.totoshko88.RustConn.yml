@@ -56,6 +56,14 @@ finish-args:
   # Strip host-exported bash function mc() that sources /usr/share/mc/mc-wrapper.sh
   # (absent in sandbox); without this, the function shadows /app/bin/mc
   - --unset-env=BASH_FUNC_mc%%
+  # Issue #158 — keep our translations OUT of the GNOME Locale extension subset
+  # split. flatpak-builder slices /app/share/locale/<lang>/ into per-language
+  # extension subsets that the user's host only pulls in for their system
+  # locale. Anyone whose host LANG is en_US would then have NO rustconn.mo
+  # files in the sandbox and could never switch the UI language. We install
+  # translations under /app/share/rustconn/locale/ (untouched by builder) and
+  # point the app at it via LOCALEDIR, which i18n::locale_dir() honors first.
+  - --env=LOCALEDIR=/app/share/rustconn/locale
 
 build-options:
   append-path: /usr/lib/sdk/rust-stable/bin
@@ -261,16 +269,19 @@ modules:
       - install -Dm644 rustconn/assets/io.github.totoshko88.RustConn-vv.xml /app/share/mime/packages/io.github.totoshko88.RustConn-vv.xml
       - install -Dm644 rustconn/assets/io.github.totoshko88.RustConn.metainfo.xml /app/share/metainfo/io.github.totoshko88.RustConn.metainfo.xml
       - install -Dm644 rustconn/assets/icons/hicolor/scalable/apps/io.github.totoshko88.RustConn.svg /app/share/icons/hicolor/scalable/apps/io.github.totoshko88.RustConn.svg
-      # Install locale files (compile .po to .mo)
+      # Install locale files (compile .po to .mo).
+      # Path NOT under /app/share/locale/ — flatpak-builder splits that into
+      # per-language Locale extension subsets (issue #158). LOCALEDIR in
+      # finish-args points the gettext lookup here.
       - |
         for po_file in po/*.po; do
           [ -f "$po_file" ] || continue
           lang=$(basename "$po_file" .po)
-          mkdir -p /app/share/locale/$lang/LC_MESSAGES
-          msgfmt -o /app/share/locale/$lang/LC_MESSAGES/rustconn.mo "$po_file"
+          mkdir -p /app/share/rustconn/locale/$lang/LC_MESSAGES
+          msgfmt -o /app/share/rustconn/locale/$lang/LC_MESSAGES/rustconn.mo "$po_file"
         done
     sources:
       - type: git
         url: https://github.com/totoshko88/RustConn.git
-        tag: v0.15.0
+        tag: v0.15.1
       - cargo-sources.json

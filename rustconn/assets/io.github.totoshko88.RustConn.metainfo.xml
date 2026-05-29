@@ -140,6 +140,14 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.15.1" date="2026-05-29">
+      <description>
+        <p>Version 0.15.1 — focused fix for the Flatpak language-switch bug (#158):</p>
+        <ul>
+          <li>Translations relocated from /app/share/locale/ to /app/share/rustconn/locale/ — flatpak-builder no longer splits them into per-language Locale extension subsets, so all 16 languages are now available regardless of the user's system locale</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.15.0" date="2026-05-27">
       <description>
         <p>Version 0.15.0 — quality pass release. No new user-facing features; technical-debt and security fixes:</p>

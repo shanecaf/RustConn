@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.15.0
+Version:        0.15.1
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -238,6 +238,9 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Fri May 29 2026 Anton Isaiev <totoshko88@gmail.com> - 0.15.1-0
+- Flatpak language switch fix: relocate translations to /app/share/rustconn/locale/ to bypass GNOME Locale extension subset split (#158)
+
 * Wed May 27 2026 Anton Isaiev <totoshko88@gmail.com> - 0.15.0-0
 - Version bump to 0.15.0 — quality pass release
 - RDP RemoteApp: closed /p: cmdline leak via single-use args file in $XDG_RUNTIME_DIR

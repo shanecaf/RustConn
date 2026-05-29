@@ -5,6 +5,20 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.1] - 2026-05-29
+
+A focused fix for the Flatpak language-switch bug ([#158](https://github.com/totoshko88/RustConn/issues/158)).
+
+### Fixed
+
+- **Flatpak: language switch had no effect for any of the 16 translations.** Translations were installed under `/app/share/locale/<lang>/`, which `flatpak-builder` automatically splits into per-language subsets of `org.gnome.Platform.Locale`. The host pulls in only the subset matching the user's system locale, so a user with `LANG=en_US` literally had no `rustconn.mo` file in the sandbox and could not switch the UI language to anything else, no matter what was selected in Settings. Translations now install to `/app/share/rustconn/locale/` (a path `flatpak-builder` does not touch) and the manifest sets `--env=LOCALEDIR=/app/share/rustconn/locale`. The existing `i18n::locale_dir()` resolution order already honors `LOCALEDIR` first, so no application code changed.
+  - Affects the published Flathub manifest, the GitHub release manifest, and the local development manifest.
+  - Verified: a `find /app -name 'rustconn.mo'` in the sandbox now lists all 16 languages instead of zero.
+
+### Dependencies
+
+- **Updated**: mio 1.2.0→1.2.1, socket2 0.6.3→0.6.4
+
 ## [0.15.0] - 2026-05-27
 
 A focused quality-and-cleanup release. No new user-facing features — the goal is to retire technical debt and make the codebase easier to evolve. 

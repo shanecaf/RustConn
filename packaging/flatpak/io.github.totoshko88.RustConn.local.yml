@@ -43,6 +43,14 @@ finish-args:
   # Strip host-exported bash function mc() that sources /usr/share/mc/mc-wrapper.sh
   # (absent in sandbox); without this, the function shadows /app/bin/mc
   - --unset-env=BASH_FUNC_mc%%
+  # Issue #158 — keep our translations OUT of the GNOME Locale extension subset
+  # split. flatpak-builder slices /app/share/locale/<lang>/ into per-language
+  # extension subsets that the user's host only pulls in for their system
+  # locale. Anyone whose host LANG is en_US would then have NO rustconn.mo
+  # files in the sandbox and could never switch the UI language. We install
+  # translations under /app/share/rustconn/locale/ (untouched by builder) and
+  # point the app at it via LOCALEDIR, which i18n::locale_dir() honors first.
+  - --env=LOCALEDIR=/app/share/rustconn/locale
 
 build-options:
   append-path: /usr/lib/sdk/rust-stable/bin
@@ -255,8 +263,8 @@ modules:
         for po_file in po/*.po; do
           [ -f "$po_file" ] || continue
           lang=$(basename "$po_file" .po)
-          mkdir -p /app/share/locale/$lang/LC_MESSAGES
-          msgfmt -o /app/share/locale/$lang/LC_MESSAGES/rustconn.mo "$po_file"
+          mkdir -p /app/share/rustconn/locale/$lang/LC_MESSAGES
+          msgfmt -o /app/share/rustconn/locale/$lang/LC_MESSAGES/rustconn.mo "$po_file"
         done
     sources:
       - type: dir

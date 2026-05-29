@@ -160,9 +160,13 @@ fn build_locale_has_translations(dir: &str) -> bool {
 /// Returns the locale directory path.
 ///
 /// Resolution order:
-/// 1. `LOCALEDIR` environment variable (explicit override)
+/// 1. `LOCALEDIR` environment variable (explicit override).
+///    Set in the Flatpak manifest to `/app/share/rustconn/locale` so our
+///    translations bypass `flatpak-builder`'s automatic split of
+///    `/app/share/locale/<lang>/` into per-language Locale extension
+///    subsets (issue #158).
 /// 2. Build-time locale dir compiled by `build.rs` (`cargo run` development)
-/// 3. Flatpak `/app/share/locale`
+/// 3. Flatpak `/app/share/locale` (legacy fallback for older builds)
 /// 4. Snap `$SNAP/share/locale`
 /// 5. User-local `~/.local/share/locale` (install-desktop.sh)
 /// 6. `XDG_DATA_HOME/locale`

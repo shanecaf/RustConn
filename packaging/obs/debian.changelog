@@ -1,3 +1,9 @@
+rustconn (0.15.1-1) unstable; urgency=medium
+
+  * Flatpak: language switch had no effect for any of the 16 translations because /app/share/locale/<lang>/ is split by flatpak-builder into per-language Locale extension subsets — fixed by relocating to /app/share/rustconn/locale/ and pointing LOCALEDIR there (#158)
+
+ -- Anton Isaiev <totoshko88@gmail.com>  Fri, 29 May 2026 12:00:00 +0200
+
 rustconn (0.15.0-1) unstable; urgency=medium
 
   * RDP RemoteApp: password no longer leaked via /proc/PID/cmdline (uses single-use args file in $XDG_RUNTIME_DIR)

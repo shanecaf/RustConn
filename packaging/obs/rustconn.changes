@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri May 29 2026 Anton Isaiev <totoshko88@gmail.com> - 0.15.1
+
+- Flatpak: language switch had no effect for any of the 16 translations because /app/share/locale/<lang>/ is split by flatpak-builder into per-language Locale extension subsets only pulled in for the user's system locale; relocated translations to /app/share/rustconn/locale/ and added --env=LOCALEDIR=/app/share/rustconn/locale to finish-args (#158)
+
+-------------------------------------------------------------------
 Wed May 27 2026 Anton Isaiev <totoshko88@gmail.com> - 0.15.0
 
 - RDP RemoteApp: password no longer leaked via /proc/PID/cmdline; uses single-use args file in $XDG_RUNTIME_DIR with mode 0600
