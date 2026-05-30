@@ -17,7 +17,7 @@ jobs:
         uses: canonical/setup-lxd@main
 
       - name: Install Snapcraft
-        run: sudo snap install snapcraft --classic
+        run: sudo snap install snapcraft --classic --channel=latest/stable
 
       - name: Build Snap
         id: build
