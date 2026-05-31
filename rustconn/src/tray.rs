@@ -645,9 +645,6 @@ mod tray_macos_impl {
                 }
             } else {
                 false
-                }
-            } else {
-                false
             };
             if changed {
                 self.rebuild_menu();
