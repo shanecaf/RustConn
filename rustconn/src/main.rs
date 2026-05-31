@@ -300,7 +300,10 @@ fn setup_macos_bundle_env() {
         .file_name()
         .and_then(|n| n.to_str())
         .unwrap_or("");
-    if !bundle_name.ends_with(".app") {
+    if !std::path::Path::new(bundle_name)
+        .extension()
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("app"))
+    {
         return;
     }
 

@@ -5,66 +5,66 @@ fileMatchPattern: "**/*.rs"
 
 # Error Resolution Guide — RustConn
 
-Типові помилки компілятора та їх архітектурно-правильні рішення для цього проекту.
-Не давай поверхневих фіксів — шукай root cause.
+Common compiler errors and their architecturally correct solutions for this project.
+Do not apply superficial fixes — find the root cause.
 
 ## Ownership & Borrowing
 
-| Помилка | Поверхневий фікс ❌ | Правильне рішення ✅ |
-|---------|---------------------|---------------------|
-| E0382 (use after move) | `.clone()` | `Rc<T>` / `Arc<T>` для shared data; передай `&T` якщо ownership не потрібен |
-| E0505 (borrow while moved) | `.clone()` перед borrow | Restructure: спочатку borrow, потім move |
-| E0502 (mutable + immutable borrow) | `RefCell` скрізь | Розділи на окремі поля або використай take-invoke-restore pattern |
-| E0597 (lifetime too short) | `'static` | Передай owned data або використай `Rc`; в GTK callbacks — `clone!` macro |
+| Error | Superficial fix ❌ | Correct solution ✅ |
+|-------|---------------------|---------------------|
+| E0382 (use after move) | `.clone()` | `Rc<T>` / `Arc<T>` for shared data; pass `&T` if ownership is not needed |
+| E0505 (borrow while moved) | `.clone()` before borrow | Restructure: borrow first, then move |
+| E0502 (mutable + immutable borrow) | `RefCell` everywhere | Split into separate fields or use take-invoke-restore pattern |
+| E0597 (lifetime too short) | `'static` | Pass owned data or use `Rc`; in GTK callbacks — `clone!` macro |
 
-## RefCell / Rc Patterns (GTK4 специфіка)
+## RefCell / Rc Patterns (GTK4 specific)
 
-| Проблема | Рішення |
-|----------|---------|
-| `BorrowMutError` в runtime | **take-invoke-restore**: `let val = state.borrow_mut().field.take(); ...; state.borrow_mut().field = val;` |
-| Borrow через async boundary | Клонуй `Rc` перед `spawn_local`, не тримай `Ref`/`RefMut` через `.await` |
-| Circular Rc references | `Rc::new_cyclic` або `Weak<T>` для зворотних посилань |
+| Problem | Solution |
+|---------|----------|
+| `BorrowMutError` at runtime | **take-invoke-restore**: `let val = state.borrow_mut().field.take(); ...; state.borrow_mut().field = val;` |
+| Borrow across async boundary | Clone `Rc` before `spawn_local`, do not hold `Ref`/`RefMut` across `.await` |
+| Circular Rc references | `Rc::new_cyclic` or `Weak<T>` for back-references |
 
 ## Async / Tokio
 
-| Помилка | Рішення |
-|---------|---------|
-| "Cannot start runtime within runtime" | Використай `with_runtime()` helper — thread-local Runtime |
-| `Send` bound not satisfied | GTK об'єкти не Send — використай `spawn_local` або channel pattern |
-| Timeout на vault operations | Завжди `tokio::time::timeout(Duration::from_secs(10), ...)` |
+| Error | Solution |
+|-------|----------|
+| "Cannot start runtime within runtime" | Use `with_runtime()` helper — thread-local Runtime |
+| `Send` bound not satisfied | GTK objects are not Send — use `spawn_local` or channel pattern |
+| Timeout on vault operations | Always `tokio::time::timeout(Duration::from_secs(10), ...)` |
 
 ## Clippy Lints
 
-| Lint | Рішення |
-|------|---------|
-| `cognitive_complexity` | Виділи inner logic в окрему fn; для GTK — builder pattern |
-| `too_many_arguments` (>7) | Створи struct: `struct ConnectionParams { ... }` |
-| `missing_errors_doc` | Додай `/// # Errors\n/// Returns error if...` |
-| `significant_drop_tightening` | Явно `drop(guard)` перед наступною операцією |
-| `option_if_let_else` (allowed) | Ігноруй — дозволено в .clippy.toml |
+| Lint | Solution |
+|------|----------|
+| `cognitive_complexity` | Extract inner logic into a separate fn; for GTK — builder pattern |
+| `too_many_arguments` (>7) | Create a struct: `struct ConnectionParams { ... }` |
+| `missing_errors_doc` | Add `/// # Errors\n/// Returns error if...` |
+| `significant_drop_tightening` | Explicitly `drop(guard)` before the next operation |
+| `option_if_let_else` (allowed) | Ignore — allowed in .clippy.toml |
 
 ## thiserror Patterns
 
-| Ситуація | Pattern |
-|----------|---------|
+| Situation | Pattern |
+|-----------|---------|
 | Wrapping std::io::Error | `#[error("operation failed: {0}")] Io(#[from] std::io::Error)` |
-| Wrapping з контекстом | `#[error("failed to {action}: {source}")] WithContext { action: String, source: Box<dyn std::error::Error + Send + Sync> }` |
-| Enum → Display для UI | Implement `display_name()` → wrap в `i18n()` at call site |
+| Wrapping with context | `#[error("failed to {action}: {source}")] WithContext { action: String, source: Box<dyn std::error::Error + Send + Sync> }` |
+| Enum → Display for UI | Implement `display_name()` → wrap in `i18n()` at call site |
 
 ## SecretString Patterns
 
-| Ситуація | Pattern |
-|----------|---------|
-| Отримати пароль з UI | `SecretString::new(entry.text().to_string().into())` |
-| Передати в CLI | `cmd.stdin(Stdio::piped()); child.stdin.write_all(secret.expose_secret().as_bytes())` |
-| Тимчасова String | `let tmp = Zeroizing::new(secret.expose_secret().to_string()); use tmp; // auto-zeroize on drop` |
-| Порівняння | `secret1.expose_secret() == secret2.expose_secret()` (в scope де обидва доступні) |
+| Situation | Pattern |
+|-----------|---------|
+| Get password from UI | `SecretString::new(entry.text().to_string().into())` |
+| Pass to CLI | `cmd.stdin(Stdio::piped()); child.stdin.write_all(secret.expose_secret().as_bytes())` |
+| Temporary String | `let tmp = Zeroizing::new(secret.expose_secret().to_string()); use tmp; // auto-zeroize on drop` |
+| Comparison | `secret1.expose_secret() == secret2.expose_secret()` (in scope where both are accessible) |
 
 ## GTK4 / libadwaita
 
-| Проблема | Рішення |
-|----------|---------|
-| Widget not showing | Перевір `.set_visible(true)` та що parent має `child`/`append` |
-| Signal handler memory leak | `connect_*` з `clone!(@weak self as this =>` |
-| Dialog не закривається | `dialog.close()` або `dialog.set_visible(false)` + `dialog.destroy()` |
-| Wayland: no window position | Не використовуй `set_position` — Wayland не підтримує |
+| Problem | Solution |
+|---------|----------|
+| Widget not showing | Check `.set_visible(true)` and that parent has `child`/`append` |
+| Signal handler memory leak | `connect_*` with `clone!(@weak self as this =>` |
+| Dialog not closing | `dialog.close()` or `dialog.set_visible(false)` + `dialog.destroy()` |
+| Wayland: no window position | Do not use `set_position` — Wayland does not support it |

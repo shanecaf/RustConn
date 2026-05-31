@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.15.3
+Version:        0.15.4
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -238,6 +238,10 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Sat May 31 2026 Anton Isaiev <totoshko88@gmail.com> - 0.15.4-0
+- Fixed macOS UI hang when editing connection with broken/throttled ssh-agent (#163)
+- SSH agent probe now runs asynchronously with a 5-second timeout
+
 * Sat May 30 2026 Anton Isaiev <totoshko88@gmail.com> - 0.15.3-0
 - Snap base bumped to core26 (Ubuntu 26.04 / GNOME 50 / libadwaita 1.8)
 - Removed system-files plug; external CLIs download on demand inside sandbox

@@ -432,12 +432,11 @@ mod tray_macos_impl {
             let state = Arc::new(Mutex::new(TrayState::default()));
 
             // Render icon — macOS menu bar uses 22pt icons (44px for Retina)
-            let rgba_data = match render_svg_to_rgba(44) {
-                Some(data) => data,
-                None => {
-                    tracing::warn!("macOS tray: failed to render SVG icon");
-                    return None;
-                }
+            let rgba_data = if let Some(data) = render_svg_to_rgba(44) {
+                data
+            } else {
+                tracing::warn!("macOS tray: failed to render SVG icon");
+                return None;
             };
             let icon = match tray_icon::Icon::from_rgba(rgba_data, 44, 44) {
                 Ok(i) => i,
@@ -476,27 +475,22 @@ mod tray_macos_impl {
                 .name("tray-macos-events".into())
                 .spawn(move || {
                     let menu_rx = MenuEvent::receiver();
-                    loop {
-                        match menu_rx.recv() {
-                            Ok(event) => {
-                                let id_str = event.id().0.as_str();
-                                let msg = match id_str {
-                                    ID_TOGGLE_WINDOW => Some(TrayMessage::ToggleWindow),
-                                    ID_QUICK_CONNECT => Some(TrayMessage::QuickConnect),
-                                    ID_LOCAL_SHELL => Some(TrayMessage::LocalShell),
-                                    ID_ABOUT => Some(TrayMessage::About),
-                                    ID_QUIT => Some(TrayMessage::Quit),
-                                    other if other.starts_with(ID_CONNECT_PREFIX) => {
-                                        let uuid_str = &other[ID_CONNECT_PREFIX.len()..];
-                                        Uuid::parse_str(uuid_str).ok().map(TrayMessage::Connect)
-                                    }
-                                    _ => None,
-                                };
-                                if let Some(m) = msg {
-                                    let _ = sender_for_events.send(m);
-                                }
+                    while let Ok(event) = menu_rx.recv() {
+                        let id_str = event.id().0.as_str();
+                        let msg = match id_str {
+                            ID_TOGGLE_WINDOW => Some(TrayMessage::ToggleWindow),
+                            ID_QUICK_CONNECT => Some(TrayMessage::QuickConnect),
+                            ID_LOCAL_SHELL => Some(TrayMessage::LocalShell),
+                            ID_ABOUT => Some(TrayMessage::About),
+                            ID_QUIT => Some(TrayMessage::Quit),
+                            other if other.starts_with(ID_CONNECT_PREFIX) => {
+                                let uuid_str = &other[ID_CONNECT_PREFIX.len()..];
+                                Uuid::parse_str(uuid_str).ok().map(TrayMessage::Connect)
                             }
-                            Err(_) => break,
+                            _ => None,
+                        };
+                        if let Some(m) = msg {
+                            let _ = sender_for_events.send(m);
                         }
                     }
                 })
@@ -537,7 +531,7 @@ mod tray_macos_impl {
                     for (id, name) in s.recent_connections.iter().take(10) {
                         let menu_id = format!("{ID_CONNECT_PREFIX}{id}");
                         let _ = submenu.append(&MenuItem::with_id(
-                            muda::MenuId(menu_id.into()),
+                            muda::MenuId(menu_id),
                             name,
                             true,
                             None,
@@ -611,11 +605,11 @@ mod tray_macos_impl {
 
         pub fn set_active_sessions(&self, count: u32) {
             let changed = if let Ok(mut state) = self.state.lock() {
-                if state.active_sessions != count {
+                if state.active_sessions == count {
+                    false
+                } else {
                     state.active_sessions = count;
                     true
-                } else {
-                    false
                 }
             } else {
                 false
@@ -627,11 +621,11 @@ mod tray_macos_impl {
 
         pub fn set_recent_connections(&self, connections: Vec<(Uuid, String)>) {
             let changed = if let Ok(mut state) = self.state.lock() {
-                if state.recent_connections != connections {
+                if state.recent_connections == connections {
+                    false
+                } else {
                     state.recent_connections = connections;
                     true
-                } else {
-                    false
                 }
             } else {
                 false
@@ -643,11 +637,11 @@ mod tray_macos_impl {
 
         pub fn set_window_visible(&self, visible: bool) {
             let changed = if let Ok(mut state) = self.state.lock() {
-                if state.window_visible != visible {
+                if state.window_visible == visible {
+                    false
+                } else {
                     state.window_visible = visible;
                     true
-                } else {
-                    false
                 }
             } else {
                 false

@@ -15,6 +15,7 @@ use super::ssh;
 use crate::alert;
 use crate::i18n::{i18n, i18n_f};
 use adw::prelude::*;
+use gtk4::glib;
 use gtk4::prelude::*;
 use gtk4::{
     Box as GtkBox, Button, CheckButton, ColorDialogButton, DrawingArea, DropDown, Entry,
@@ -5731,47 +5732,86 @@ impl ConnectionDialog {
         &self.password_row
     }
 
-    /// Refreshes the agent keys dropdown with keys from the SSH agent
+    /// Refreshes the SSH agent key list asynchronously.
+    ///
+    /// Spawns the agent probe on a background thread with a 5-second timeout so
+    /// the GTK main thread is never blocked — even if the system ssh-agent is
+    /// broken or launchd-throttled (common on macOS).
     ///
     /// This should be called before showing the dialog to populate the agent key dropdown
     /// with the currently loaded keys from the SSH agent.
     pub fn refresh_agent_keys(&self) {
         use rustconn_core::ssh_agent::SshAgentManager;
 
-        let manager = SshAgentManager::from_env();
-        let keys = match manager.get_status() {
-            Ok(status) if status.running => status.keys,
-            _ => Vec::new(),
-        };
+        // 5-second timeout — enough for a healthy agent, prevents indefinite hang.
+        const AGENT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
 
-        // Update the stored keys
-        *self.ssh_agent_keys.borrow_mut() = keys.clone();
-
-        // Build the dropdown items with shortened display
-        let items: Vec<String> = if keys.is_empty() {
-            vec!["(No keys loaded)".to_string()]
-        } else {
-            keys.iter()
-                .map(|key| Self::format_agent_key_short(key))
-                .collect()
-        };
-
-        // Create new StringList and set it on the dropdown
-        let string_list = StringList::new(&items.iter().map(String::as_str).collect::<Vec<_>>());
-        self.ssh_agent_key_dropdown.set_model(Some(&string_list));
+        // Show a placeholder while loading
+        let loading_items: Vec<String> = vec![i18n("Loading agent keys…")];
+        let loading_list =
+            StringList::new(&loading_items.iter().map(String::as_str).collect::<Vec<_>>());
+        self.ssh_agent_key_dropdown.set_model(Some(&loading_list));
         self.ssh_agent_key_dropdown.set_selected(0);
+        self.ssh_agent_key_dropdown.set_sensitive(false);
 
-        // Update sensitivity based on whether keys are available
-        let has_keys = !keys.is_empty();
-        if self.ssh_key_source_dropdown.selected() == 2 {
-            // Agent source is selected
-            self.ssh_agent_key_dropdown.set_sensitive(has_keys);
-        }
+        // Clone the Rc fields needed to update UI after async completion
+        let ssh_agent_keys = self.ssh_agent_keys.clone();
+        let ssh_agent_key_dropdown = self.ssh_agent_key_dropdown.clone();
+        let ssh_key_source_dropdown = self.ssh_key_source_dropdown.clone();
+        let pending_agent_selection = self.pending_agent_selection.clone();
 
-        // Restore pending agent key selection (set by set_ssh_config before keys were loaded)
-        if let Some((ref fingerprint, ref comment)) = *self.pending_agent_selection.borrow() {
-            self.select_agent_key_by_fingerprint(fingerprint, comment);
-        }
+        // Read the socket path from environment now (cheap, no blocking)
+        let manager = SshAgentManager::from_env();
+
+        glib::spawn_future_local(async move {
+            // Run the blocking agent probe on a background thread
+            let keys = glib::spawn_future(async move {
+                match manager.get_status_timeout(AGENT_TIMEOUT) {
+                    Ok(status) if status.running => status.keys,
+                    _ => Vec::new(),
+                }
+            })
+            .await
+            .unwrap_or_default();
+
+            // Back on GTK main thread — update the UI
+            *ssh_agent_keys.borrow_mut() = keys.clone();
+
+            let items: Vec<String> = if keys.is_empty() {
+                vec![i18n("No keys loaded")]
+            } else {
+                keys.iter()
+                    .map(|key| Self::format_agent_key_short(key))
+                    .collect()
+            };
+
+            let string_list =
+                StringList::new(&items.iter().map(String::as_str).collect::<Vec<_>>());
+            ssh_agent_key_dropdown.set_model(Some(&string_list));
+            ssh_agent_key_dropdown.set_selected(0);
+
+            // Update sensitivity based on whether keys are available
+            let has_keys = !keys.is_empty();
+            if ssh_key_source_dropdown.selected() == 2 {
+                // Agent source is selected
+                ssh_agent_key_dropdown.set_sensitive(has_keys);
+            }
+
+            // Restore pending agent key selection (set by set_ssh_config before keys were loaded)
+            if let Some((ref fingerprint, ref comment)) = *pending_agent_selection.borrow() {
+                let keys_ref = ssh_agent_keys.borrow();
+                for (idx, key) in keys_ref.iter().enumerate() {
+                    if key.fingerprint == *fingerprint || key.comment == *comment {
+                        #[expect(
+                            clippy::cast_possible_truncation,
+                            reason = "agent key count always fits u32"
+                        )]
+                        ssh_agent_key_dropdown.set_selected(idx as u32);
+                        break;
+                    }
+                }
+            }
+        });
     }
 
     /// Formats an agent key for short display in dropdown button

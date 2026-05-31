@@ -58,7 +58,7 @@ After writing `.rs` files in `rustconn/src/`, verify:
 - **Do NOT** run `cargo fmt`/`cargo clippy` automatically on every change — use `getDiagnostics` for quick validation.
 - Run `rust-quality-check` sub-agent only when: (a) about to commit, (b) user explicitly asks, (c) finishing a multi-file feature.
 - Run tests only when: (a) user explicitly asks, (b) finishing a spec task, (c) before release.
-- After completing work, inform the user: "Готово. Запустити перевірку якості (fmt+clippy)?" — wait for confirmation.
+- After completing work, inform the user: "Done. Run quality check (fmt+clippy)?" — wait for confirmation.
 
 ### Test Run Rules (CRITICAL)
 
@@ -74,8 +74,8 @@ be, cs, da, de, es, fr, it, kk, nl, pl, pt, sk, sv, uk, uz, zh-cn
 
 ## External Standards
 
-Окрім локальних правил вище, RustConn слідує:
+In addition to the local rules above, RustConn follows:
 
-- **[Microsoft Pragmatic Rust Guidelines](https://microsoft.github.io/rust-guidelines/)** — деталі та адаптація в `rust-pragmatic-guidelines.md` (auto-included для `*.rs`). Ключове: `#[expect]` замість `#[allow]`, M-PANIC-ON-BUG, `# Errors` / `# Panics` секції в публічних API, `mimalloc` як опція.
-- **[GNOME HIG](https://developer.gnome.org/hig/)** — деталі та адаптація в `gnome-hig.md` (auto-included для `rustconn/src/**/*.rs`). Ключове: `adw::AlertDialog` замість `gtk::MessageDialog`, CSS class `suggested-action` / `destructive-action`, обов'язкові keyboard shortcuts (Ctrl+W, Ctrl+Q, F10), Toast vs Banner vs Dialog.
-- **[Rust API Guidelines](https://rust-lang.github.io/api-guidelines/)** — стандартні Rust convensії (C-CONV, C-GETTER, C-COMMON-TRAITS).
+- **[Microsoft Pragmatic Rust Guidelines](https://microsoft.github.io/rust-guidelines/)** — details and adaptation in `rust-pragmatic-guidelines.md` (auto-included for `*.rs`). Key points: `#[expect]` instead of `#[allow]`, M-PANIC-ON-BUG, `# Errors` / `# Panics` sections in public APIs, `mimalloc` as an option.
+- **[GNOME HIG](https://developer.gnome.org/hig/)** — details and adaptation in `gnome-hig.md` (auto-included for `rustconn/src/**/*.rs`). Key points: `adw::AlertDialog` instead of `gtk::MessageDialog`, CSS class `suggested-action` / `destructive-action`, mandatory keyboard shortcuts (Ctrl+W, Ctrl+Q, F10), Toast vs Banner vs Dialog.
+- **[Rust API Guidelines](https://rust-lang.github.io/api-guidelines/)** — standard Rust conventions (C-CONV, C-GETTER, C-COMMON-TRAITS).

@@ -76,10 +76,10 @@ pub fn spawn_native_pty(
         // Ensure essential env vars are present even when envv is non-empty.
         // Without HOME/USER/SHELL the child shell may malfunction.
         for &var in ESSENTIAL_ENV_VARS {
-            if !envv_contains_key(envv, var) {
-                if let Ok(value) = std::env::var(var) {
-                    cmd.env(var, value);
-                }
+            if !envv_contains_key(envv, var)
+                && let Ok(value) = std::env::var(var)
+            {
+                cmd.env(var, value);
             }
         }
     }

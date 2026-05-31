@@ -4,14 +4,14 @@ inclusion: manual
 
 # Spec Templates — RustConn
 
-Шаблони для швидкого створення specs різних типів.
+Templates for quickly creating specs of various types.
 
-## Design-First: Новий протокол
+## Design-First: New Protocol
 
-Використовуй коли архітектура вже відома (Protocol trait, dialog, CLI handler).
-Пропускає requirements, одразу design → tasks.
+Use when the architecture is already known (Protocol trait, dialog, CLI handler).
+Skips requirements, goes straight to design → tasks.
 
-### design.md шаблон
+### design.md template
 
 ```markdown
 # Design: {Protocol} Protocol Support
@@ -42,7 +42,7 @@ inclusion: manual
 - Feature flags: {if optional}
 ```
 
-### tasks.md шаблон
+### tasks.md template
 
 ```markdown
 # Tasks: {Protocol} Protocol
@@ -84,9 +84,9 @@ inclusion: manual
 
 ## Bugfix Spec
 
-Використовуй для критичних багів де потрібна трасовність.
+Use for critical bugs where traceability is needed.
 
-> **Tip:** для типового bugfix workflow див. `bugfix-workflow.md` (manual inclusion: `#bugfix-workflow`).
+> **Tip:** for a typical bugfix workflow see `bugfix-workflow.md` (manual inclusion: `#bugfix-workflow`).
 
 ### .config.kiro
 
@@ -94,22 +94,22 @@ inclusion: manual
 {"workflowType": "requirements-first", "specType": "bugfix"}
 ```
 
-### requirements.md шаблон
+### requirements.md template
 
 ```markdown
 # Requirements: Fix {Bug Title}
 
 ## Problem Statement
-{Опис бага, кроки відтворення}
+{Bug description, reproduction steps}
 
 ## Expected Behavior
-{Що має бути}
+{What should happen}
 
 ## Actual Behavior
-{Що відбувається}
+{What actually happens}
 
 ## Constraints
-- MUST NOT break: {список що не можна зламати}
+- MUST NOT break: {list of things that must not break}
 - MUST preserve: {API compatibility, data format, etc.}
 
 ## Acceptance Criteria
@@ -119,7 +119,7 @@ inclusion: manual
 - [ ] No clippy warnings
 ```
 
-### tasks.md шаблон
+### tasks.md template
 
 ```markdown
 # Tasks: Fix {Bug Title}
@@ -142,7 +142,7 @@ inclusion: manual
 
 ## Refactoring Spec (Design-First)
 
-Для рефакторингу де ти знаєш що хочеш змінити.
+For refactoring where you know what you want to change.
 
 ### .config.kiro
 
@@ -150,4 +150,4 @@ inclusion: manual
 {"workflowType": "design-first", "specType": "feature"}
 ```
 
-Пропускає requirements, починає з design де описуєш поточний стан → бажаний стан → план міграції.
+Skips requirements, starts with design describing current state → desired state → migration plan.

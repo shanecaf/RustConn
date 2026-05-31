@@ -1013,7 +1013,6 @@ impl MainWindow {
                 return;
             }
             tracing::warn!(%uri, "macOS open failed for SFTP URI");
-            return;
         }
 
         // Linux: Try dolphin first (KDE)

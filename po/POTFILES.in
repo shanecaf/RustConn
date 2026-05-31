@@ -7,12 +7,14 @@ rustconn/assets/io.github.totoshko88.RustConn.metainfo.xml
 
 # GUI application source files
 rustconn/src/i18n.rs
+rustconn/src/i18n_markers.rs
 rustconn/src/app.rs
 rustconn/src/toast.rs
 rustconn/src/alert.rs
 rustconn/src/window/mod.rs
 rustconn/src/window/protocols.rs
 rustconn/src/window/rdp_vnc.rs
+rustconn/src/window/session_lifecycle.rs
 rustconn/src/window/sessions.rs
 rustconn/src/window/smart_folders.rs
 rustconn/src/window/snippets.rs
@@ -45,6 +47,7 @@ rustconn/src/dialogs/connection/serial.rs
 rustconn/src/dialogs/connection/telnet.rs
 rustconn/src/dialogs/connection/kubernetes.rs
 rustconn/src/dialogs/connection/web.rs
+rustconn/src/dialogs/connection/data_tab.rs
 rustconn/src/dialogs/connection/zerotrust.rs
 rustconn/src/dialogs/connection/shared_folders.rs
 rustconn/src/dialogs/connection/logging_tab.rs
@@ -81,6 +84,7 @@ rustconn/src/dialogs/recording.rs
 rustconn/src/dialogs/variables.rs
 rustconn/src/dialogs/variable_setup.rs
 rustconn/src/dialogs/widgets.rs
+rustconn/src/dialogs/backend_missing.rs
 rustconn/src/dialogs/cluster.rs
 rustconn/src/dialogs/command_palette.rs
 rustconn/src/dialogs/document.rs
@@ -104,6 +108,7 @@ rustconn/src/split_view/adapter.rs
 rustconn/src/split_view/bridge.rs
 rustconn/src/terminal/mod.rs
 rustconn/src/terminal/config.rs
+rustconn/src/terminal/playback.rs
 rustconn/src/terminal/recording.rs
 rustconn/src/terminal/tab_menu.rs
 rustconn/src/validation.rs
@@ -116,6 +121,7 @@ rustconn/src/embedded.rs
 rustconn/src/embedded_rdp/mod.rs
 rustconn/src/embedded_rdp/autotype.rs
 rustconn/src/embedded_rdp/clipboard.rs
+rustconn/src/embedded_rdp/ui.rs
 rustconn/src/embedded_rdp/connection.rs
 rustconn/src/embedded_rdp/file_dnd.rs
 rustconn/src/embedded_rdp/resize.rs
@@ -123,3 +129,4 @@ rustconn/src/embedded_spice.rs
 rustconn/src/embedded_trait.rs
 rustconn/src/embedded_vnc/mod.rs
 rustconn/src/embedded_vnc/ui.rs
+rustconn/src/session/vnc.rs

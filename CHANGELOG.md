@@ -5,6 +5,25 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.4] - 2026-05-31
+
+### Fixed
+
+- **macOS: UI hang when editing connection with broken ssh-agent** — when the system `ssh-agent` is unhealthy or launchd-throttled, opening the Edit Connection dialog no longer freezes the GTK main thread; `ConnectionDialog::refresh_agent_keys()` now probes the agent asynchronously on a background thread with a 5-second timeout, showing "Loading agent keys…" while the probe runs; if the agent does not respond in time the child process is killed and the dropdown shows "No keys loaded" without blocking the UI ([#163](https://github.com/totoshko88/RustConn/issues/163))
+- **macOS: SSH Tunnel Manager showed native traffic lights** — migrated from `adw::Window` to `adw::Dialog` for consistent cross-platform presentation (× close button in header bar, same as all other dialogs)
+- **macOS: Settings dialog tabs truncated** — increased `content_width` to 1000px on macOS so all 6 ViewSwitcher tabs display without ellipsis (Linux remains 800px)
+- **macOS: clippy warnings** — fixed `useless_conversion` in `rdpdr.rs` (inverted `cfg_attr`), `new_without_default` and `redundant_clone` in `macos_keychain.rs`, `case_sensitive_file_extension_comparisons` in `main.rs`, `collapsible_if` in `macos_pty.rs` and `window/mod.rs`, `single_match_else` / `while_let_loop` / `useless_conversion` / `if_not_else` in `tray.rs`, `needless_return` in `edit_actions.rs`, `items_after_statements` in `dialog.rs`, unused `PtyFlags` import in `terminal/mod.rs`
+- **`release.sh` crash on macOS (bash 3.2)** — replaced `declare -A` associative arrays (bash 4+ only) with parallel indexed arrays compatible with macOS default bash
+- **`release.sh` clippy failure on macOS** — added platform detection to run clippy with `--no-default-features --features tray-macos,...` on Darwin, avoiding the missing `gtk4-wayland` pkg-config error
+
+### Added
+
+- **`scripts/macos-build.sh`** — one-command build + `.app` bundle creation for macOS development. Handles cargo build with correct features, icon generation, locale compilation, Adwaita icon bundling, ad-hoc code signing, and launch. Supports `--release`, `--no-launch`, `--clean` flags.
+
+### Dependencies
+
+- **Updated**: kqueue 1.1.1→1.2.0, libz-sys 1.1.28→1.1.29, rpassword 7.5.3→7.5.4
+
 ## [0.15.3] - 2026-05-30
 
 Snap packaging now reaches feature parity with the Flatpak build and is on a current GNOME runtime.

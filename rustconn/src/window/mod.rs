@@ -2225,10 +2225,10 @@ impl MainWindow {
                         let bundle_icons = macos_dir
                             .parent() // Contents/
                             .map(|p| p.join("Resources/share/icons"));
-                        if let Some(ref icons_path) = bundle_icons {
-                            if icons_path.exists() {
-                                icon_theme.add_search_path(icons_path.to_string_lossy().as_ref());
-                            }
+                        if let Some(ref icons_path) = bundle_icons
+                            && icons_path.exists()
+                        {
+                            icon_theme.add_search_path(icons_path.to_string_lossy().as_ref());
                         }
                     }
                 }

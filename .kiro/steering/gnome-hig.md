@@ -5,46 +5,46 @@ fileMatchPattern: "rustconn/src/**/*.rs"
 
 # GNOME HIG — RustConn Adaptation
 
-Адаптація [GNOME Human Interface Guidelines](https://developer.gnome.org/hig/) для RustConn (GTK4 + libadwaita).
-Доповнює `dialogs-guide.md` і `window-guide.md`. Перелічено лише пункти, які бракують в інших steering файлах.
+Adaptation of [GNOME Human Interface Guidelines](https://developer.gnome.org/hig/) for RustConn (GTK4 + libadwaita).
+Supplements `dialogs-guide.md` and `window-guide.md`. Only lists points missing from other steering files.
 
-## Writing Style — мова в UI
+## Writing Style — UI language
 
-GNOME HIG: коротко, людяно, без жаргону. Українська локалізація — див. `po/uk.po` style guide
-(`uk-translation-reviewer` agent). Загальні правила:
+GNOME HIG: brief, human, no jargon. Ukrainian localization — see `po/uk.po` style guide
+(`uk-translation-reviewer` agent). General rules:
 
-- **Sentence case** для всього: кнопки, заголовки, меню, toggles. Заголовок діалогу: «Properties of connection», НЕ «Properties Of Connection».
-- **Звертайся до користувача напряму** через imperative («Save», «Connect»), не «Please save».
-- **Не вживай знаки оклику** «!» в normal UI — звучить тривожно. Винятки: критичні помилки.
-- **Уникай скорочень** на кшталт «info», «config» — пиши повні слова.
-- **Назви кнопок — дієслова дії**: «Connect», «Save», «Delete» — не «OK», коли можна точніше.
-- **Помилки** — пояснюй що сталося + що зробити. Не «Error 0x80070005», а «Connection refused. Check that the host is reachable.»
+- **Sentence case** for everything: buttons, headings, menus, toggles. Dialog title: "Properties of connection", NOT "Properties Of Connection".
+- **Address the user directly** via imperative ("Save", "Connect"), not "Please save".
+- **Do not use exclamation marks** "!" in normal UI — sounds alarming. Exceptions: critical errors.
+- **Avoid abbreviations** like "info", "config" — write full words.
+- **Button labels are action verbs**: "Connect", "Save", "Delete" — not "OK" when you can be more specific.
+- **Errors** — explain what happened + what to do. Not "Error 0x80070005", but "Connection refused. Check that the host is reachable."
 
-Усе ще обгортай в `i18n()` / `i18n_f()`.
+Everything still wrapped in `i18n()` / `i18n_f()`.
 
-## UI Styling — CSS classes від libadwaita
+## UI Styling — CSS classes from libadwaita
 
-Кнопки несуть семантику через CSS class:
+Buttons carry semantics via CSS class:
 
 ```rust
 let connect_button = gtk4::Button::with_label(&i18n("Connect"));
-connect_button.add_css_class("suggested-action");   // primary action — синя
+connect_button.add_css_class("suggested-action");   // primary action — blue
 
 let delete_button = gtk4::Button::with_label(&i18n("Delete"));
-delete_button.add_css_class("destructive-action");  // червона
+delete_button.add_css_class("destructive-action");  // red
 ```
 
-Інші семантичні класи (libadwaita 1.5+):
-- `flat` — кнопка без рамки (icon-only в header bar),
-- `pill` — округла кнопка (welcome screens),
-- `circular` — кругла кнопка (close, add),
-- `accent` — на банерах і стилях.
+Other semantic classes (libadwaita 1.5+):
+- `flat` — borderless button (icon-only in header bar),
+- `pill` — rounded button (welcome screens),
+- `circular` — circular button (close, add),
+- `accent` — on banners and styles.
 
-**Правило**: один `suggested-action` на діалог (primary дія). `destructive-action` — лише для незворотніх операцій (delete, revoke).
+**Rule**: one `suggested-action` per dialog (primary action). `destructive-action` — only for irreversible operations (delete, revoke).
 
-## Dialogs — використовуй `adw::AlertDialog`
+## Dialogs — use `adw::AlertDialog`
 
-Для confirm/alert (так/ні, OK) — `adw::AlertDialog`, НЕ `gtk::MessageDialog` (deprecated):
+For confirm/alert (yes/no, OK) — `adw::AlertDialog`, NOT `gtk::MessageDialog` (deprecated):
 
 ```rust
 let dialog = adw::AlertDialog::new(
@@ -58,33 +58,33 @@ dialog.set_default_response(Some("cancel"));
 dialog.set_close_response("cancel");
 ```
 
-- `set_response_appearance` → `Suggested` або `Destructive`.
-- Default response — найбезпечніша дія (зазвичай Cancel).
-- Close response (Escape) — теж Cancel.
+- `set_response_appearance` → `Suggested` or `Destructive`.
+- Default response — the safest action (usually Cancel).
+- Close response (Escape) — also Cancel.
 
-Для більших форм — `adw::Dialog` із власним контентом (Properties, Connection editor).
+For larger forms — `adw::Dialog` with custom content (Properties, Connection editor).
 
 ## Header bars
 
-- `adw::HeaderBar` — стандарт; не використовуй `gtk::HeaderBar` напряму в нових віджетах.
-- Title widget → `adw::WindowTitle` із title + subtitle, або `adw::ViewSwitcher` для tabs.
-- Primary action в headerbar — зліва (наприклад New connection); secondary/menu — справа.
-- Burger menu (☰) — `gtk::MenuButton` з `adw::PopoverMenu`, відкривається F10.
+- `adw::HeaderBar` — standard; do not use `gtk::HeaderBar` directly in new widgets.
+- Title widget → `adw::WindowTitle` with title + subtitle, or `adw::ViewSwitcher` for tabs.
+- Primary action in headerbar — left side (e.g. New connection); secondary/menu — right side.
+- Burger menu (☰) — `gtk::MenuButton` with `adw::PopoverMenu`, opens with F10.
 
-## Toasts vs Banners vs Dialogs — коли що
+## Toasts vs Banners vs Dialogs — when to use what
 
-| Patterns | Коли |
-|----------|------|
-| `adw::Toast` (через `adw::ToastOverlay`) | Транзиєнтні повідомлення про результат («Connected», «Saved»). Не блокує. |
-| `adw::Banner` | Постійний стан, що вимагає уваги: «You are offline», «Update available». Інтегрований у вікно. |
-| `adw::AlertDialog` | Підтвердження дії або модальне рішення. Блокує. |
+| Pattern | When |
+|---------|------|
+| `adw::Toast` (via `adw::ToastOverlay`) | Transient messages about results ("Connected", "Saved"). Non-blocking. |
+| `adw::Banner` | Persistent state requiring attention: "You are offline", "Update available". Integrated into the window. |
+| `adw::AlertDialog` | Action confirmation or modal decision. Blocking. |
 
-Не показуй toast для критичних помилок — використовуй banner або alert dialog.
+Do not show a toast for critical errors — use a banner or alert dialog.
 
-## Boxed lists — настройки і списки
+## Boxed lists — settings and lists
 
-Будь-який список settings → `adw::PreferencesGroup` з `adw::ActionRow` / `adw::EntryRow` /
-`adw::SwitchRow` / `adw::ComboRow` / `adw::SpinRow`. Не комбінуй з raw `gtk::ListBox`.
+Any settings list → `adw::PreferencesGroup` with `adw::ActionRow` / `adw::EntryRow` /
+`adw::SwitchRow` / `adw::ComboRow` / `adw::SpinRow`. Do not combine with raw `gtk::ListBox`.
 
 ```rust
 let group = adw::PreferencesGroup::new();
@@ -95,71 +95,71 @@ host_row.set_title(&i18n("Host"));
 group.add(&host_row);
 ```
 
-## Keyboard — обов'язкові shortcuts
+## Keyboard — mandatory shortcuts
 
-Кожен GTK4 додаток мусить підтримувати:
+Every GTK4 application must support:
 
-| Shortcut | Дія |
-|----------|-----|
-| `Ctrl+W` | Закрити поточне вікно/tab |
-| `Ctrl+Q` | Вийти з програми |
-| `Ctrl+,` | Open Preferences (якщо є) |
-| `F10` | Відкрити primary menu |
-| `Ctrl+?` або `F1` | Show shortcuts window |
-| `Escape` | Закрити dialog / popover / cancel mode |
-| `Ctrl+F` | Search (де релевантно) |
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+W` | Close current window/tab |
+| `Ctrl+Q` | Quit application |
+| `Ctrl+,` | Open Preferences (if available) |
+| `F10` | Open primary menu |
+| `Ctrl+?` or `F1` | Show shortcuts window |
+| `Escape` | Close dialog / popover / cancel mode |
+| `Ctrl+F` | Search (where relevant) |
 
-Реєструй через `gtk::Application::set_accels_for_action()`.
+Register via `gtk::Application::set_accels_for_action()`.
 
-Shortcuts window → `gtk::ShortcutsWindow` з `.ui` файла або `gtk::Builder`.
+Shortcuts window → `gtk::ShortcutsWindow` from `.ui` file or `gtk::Builder`.
 
 ## Adaptive design — Wayland-first, mobile-friendly
 
-- Мінімальний розмір вікна — підтримуй 360×294px (phone size). Перевіряй через `adw::WindowResizable`.
-- Sidebar → `adw::OverlaySplitView` (auto-collapse), не `gtk::Paned`.
-- Toolbar → `adw::ToolbarView` замість ручного `gtk::Box`.
+- Minimum window size — support 360×294px (phone size). Verify via `adw::WindowResizable`.
+- Sidebar → `adw::OverlaySplitView` (auto-collapse), not `gtk::Paned`.
+- Toolbar → `adw::ToolbarView` instead of manual `gtk::Box`.
 
 ## Pointer & Touch
 
-- Мінімальний tap target: 44×44px (через `set_size_request` для icon-only buttons).
-- Long-press для context menu — додавай через `gtk::GestureLongPress` поряд із right-click.
-- Hover state — лише декорація; не покладайся на hover для важливої функціональності (touch screens не мають hover).
+- Minimum tap target: 44×44px (via `set_size_request` for icon-only buttons).
+- Long-press for context menu — add via `gtk::GestureLongPress` alongside right-click.
+- Hover state — decoration only; do not rely on hover for important functionality (touch screens have no hover).
 
 ## Accessibility
 
-- Кожен icon-only button → `set_tooltip_text(Some(&i18n("...")))` І
-  `update_property(&[gtk4::accessible::Property::Label(&i18n("..."))])`. Уже задокументовано в `dialogs-guide.md`.
-- Усі form widgets → `set_accessible_role(Role::TextBox)` (зазвичай встановлюється автоматично, перевіряй Inspector).
-- Test з high-contrast і large-text — `gsettings set org.gnome.desktop.a11y.interface high-contrast true`.
-- Min contrast ratio 4.5:1 для тексту, 3:1 для UI elements (WCAG AA).
-- Не передавай інформацію лише кольором (статус conn — кольор + іконка).
+- Every icon-only button → `set_tooltip_text(Some(&i18n("...")))` AND
+  `update_property(&[gtk4::accessible::Property::Label(&i18n("..."))])`. Already documented in `dialogs-guide.md`.
+- All form widgets → `set_accessible_role(Role::TextBox)` (usually set automatically, verify with Inspector).
+- Test with high-contrast and large-text — `gsettings set org.gnome.desktop.a11y.interface high-contrast true`.
+- Min contrast ratio 4.5:1 for text, 3:1 for UI elements (WCAG AA).
+- Do not convey information by color alone (connection status — color + icon).
 
 ## Icons
 
-- Symbolic icons (`*-symbolic`) для inline UI (toolbar, lists). Кольорові — лише для app icon і decorative.
-- Розмір: 16px для inline, 24px для toolbar, 32px для grid items.
-- Перевіряй наявність в Adwaita icon theme: <https://gnome.pages.gitlab.gnome.org/libadwaita/doc/main/named-icons.html>
+- Symbolic icons (`*-symbolic`) for inline UI (toolbar, lists). Colorful — only for app icon and decorative.
+- Size: 16px for inline, 24px for toolbar, 32px for grid items.
+- Check availability in Adwaita icon theme: <https://gnome.pages.gitlab.gnome.org/libadwaita/doc/main/named-icons.html>
 
 ## Spacing — quick reference
 
-| Контекст | Spacing |
-|----------|---------|
-| Margin вікна / `adw::Clamp` | 12px |
-| Між пов'язаними елементами (label + entry) | 6px |
-| Між групами | 18–24px |
-| Header bar internal padding | автоматично |
-| Boxed list rows | автоматично через AdwListBox |
+| Context | Spacing |
+|---------|---------|
+| Window margin / `adw::Clamp` | 12px |
+| Between related elements (label + entry) | 6px |
+| Between groups | 18–24px |
+| Header bar internal padding | automatic |
+| Boxed list rows | automatic via AdwListBox |
 
-Кламп ширини: 600px для preferences, 800px для content (повідомлення).
+Width clamp: 600px for preferences, 800px for content (messages).
 
-## Anti-patterns (не роби так)
+## Anti-patterns (do not do this)
 
-- ❌ `gtk::MessageDialog` — deprecated, використовуй `adw::AlertDialog`.
-- ❌ `gtk::Notebook` для main UI — використовуй `adw::TabView` + `adw::TabBar`.
-- ❌ `gtk::Statusbar` — використовуй `adw::Toast` або `adw::Banner`.
-- ❌ `gtk::Dialog` без `set_modal(true)` — на Wayland виглядає як окреме вікно.
-- ❌ Hardcoded RGB кольори в коді — використовуй CSS classes (suggested-action, error, success).
-- ❌ Власні розміри вікна через `set_default_size` без `adw::WindowResizable`.
+- ❌ `gtk::MessageDialog` — deprecated, use `adw::AlertDialog`.
+- ❌ `gtk::Notebook` for main UI — use `adw::TabView` + `adw::TabBar`.
+- ❌ `gtk::Statusbar` — use `adw::Toast` or `adw::Banner`.
+- ❌ `gtk::Dialog` without `set_modal(true)` — on Wayland looks like a separate window.
+- ❌ Hardcoded RGB colors in code — use CSS classes (suggested-action, error, success).
+- ❌ Custom window sizes via `set_default_size` without `adw::WindowResizable`.
 
 ## References
 

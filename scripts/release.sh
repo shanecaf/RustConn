@@ -130,22 +130,35 @@ ok "metainfo.xml release date matches: $META_DATE"
 # ──────────────────────────────────────────────────────────────────────────────
 # 5. Packaging files version sync
 # ──────────────────────────────────────────────────────────────────────────────
-declare -A PKG_PATTERNS=(
-    [debian/changelog]="^rustconn \\($VERSION-1\\)"
-    [packaging/obs/debian.changelog]="^rustconn \\($VERSION-1\\)"
-    [packaging/obs/rustconn.dsc]="^Version: $VERSION-1$"
-    [packaging/obs/debian.dsc]="^Version: $VERSION-1$"
-    [packaging/obs/rustconn.spec]="^Version:[[:space:]]+$VERSION$"
-    [packaging/obs/AppImageBuilder.yml]="^[[:space:]]+version: $VERSION$"
-    [packaging/flatpak/io.github.totoshko88.RustConn.yml]="tag: v$VERSION$"
-    [packaging/flathub/io.github.totoshko88.RustConn.yml]="tag: v$VERSION$"
-    [docs/USER_GUIDE.md]="\\*\\*Version $VERSION\\*\\*"
-    [docs/ARCHITECTURE.md]="\\*\\*Version $VERSION\\*\\*"
+PKG_FILES=(
+    "debian/changelog"
+    "packaging/obs/debian.changelog"
+    "packaging/obs/rustconn.dsc"
+    "packaging/obs/debian.dsc"
+    "packaging/obs/rustconn.spec"
+    "packaging/obs/AppImageBuilder.yml"
+    "packaging/flatpak/io.github.totoshko88.RustConn.yml"
+    "packaging/flathub/io.github.totoshko88.RustConn.yml"
+    "docs/USER_GUIDE.md"
+    "docs/ARCHITECTURE.md"
+)
+PKG_PATS=(
+    "^rustconn \\($VERSION-1\\)"
+    "^rustconn \\($VERSION-1\\)"
+    "^Version: $VERSION-1$"
+    "^Version: $VERSION-1$"
+    "^Version:[[:space:]]+$VERSION$"
+    "^[[:space:]]+version: $VERSION$"
+    "tag: v$VERSION$"
+    "tag: v$VERSION$"
+    "\\*\\*Version $VERSION\\*\\*"
+    "\\*\\*Version $VERSION\\*\\*"
 )
 
 PKG_FAILED=0
-for file in "${!PKG_PATTERNS[@]}"; do
-    pattern="${PKG_PATTERNS[$file]}"
+for i in "${!PKG_FILES[@]}"; do
+    file="${PKG_FILES[$i]}"
+    pattern="${PKG_PATS[$i]}"
     if [[ ! -f "$file" ]]; then
         warn "Packaging file missing: $file"
         ((PKG_FAILED+=1))
@@ -160,7 +173,7 @@ done
 if (( PKG_FAILED > 0 )); then
     fail "$PKG_FAILED packaging file(s) out of sync"
 fi
-ok "All ${#PKG_PATTERNS[@]} packaging files synced to $VERSION"
+ok "All ${#PKG_FILES[@]} packaging files synced to $VERSION"
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 6. Tag does not exist yet
@@ -216,7 +229,19 @@ else
     ok "cargo fmt clean"
 
     info "Running: cargo clippy --all-targets --quiet -- -D warnings"
-    cargo clippy --all-targets --quiet -- -D warnings || fail "cargo clippy reported warnings"
+    # On macOS, gdk4-wayland cannot build (no Wayland). Exclude it via --no-default-features
+    # for the GUI crate and re-enable all other defaults.
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        cargo clippy --all-targets --quiet \
+            -p rustconn-core -p rustconn-cli \
+            -- -D warnings || fail "cargo clippy reported warnings"
+        cargo clippy --all-targets --quiet \
+            -p rustconn --no-default-features \
+            --features "tray-macos,vnc-embedded,rdp-embedded,rdp-audio,spice-embedded,adw-1-8" \
+            -- -D warnings || fail "cargo clippy reported warnings (rustconn)"
+    else
+        cargo clippy --all-targets --quiet -- -D warnings || fail "cargo clippy reported warnings"
+    fi
     ok "cargo clippy: 0 warnings"
 
     if $WITH_TESTS; then

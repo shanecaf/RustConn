@@ -433,11 +433,35 @@ impl SshAgentManager {
 
     /// Gets the current agent status including loaded keys.
     ///
+    /// This calls `ssh-add -l` synchronously. On macOS, if the system ssh-agent
+    /// is broken or launchd-throttled, this can block indefinitely. Prefer
+    /// [`get_status_timeout`] when calling from a UI thread.
+    ///
     /// # Errors
     ///
     /// Returns `AgentError::NotRunning` if no socket path is configured.
     pub fn get_status(&self) -> AgentResult<AgentStatus> {
-        use std::process::Command;
+        self.get_status_inner(None)
+    }
+
+    /// Gets the current agent status with a timeout.
+    ///
+    /// Spawns `ssh-add -l` as a child process and waits up to `timeout` for it
+    /// to complete. If the process does not finish in time it is killed and the
+    /// agent is reported as not running. This prevents the caller from hanging
+    /// when the system ssh-agent is broken or launchd-throttled (common on
+    /// macOS).
+    ///
+    /// # Errors
+    ///
+    /// Returns `AgentError::NotRunning` if no socket path is configured.
+    pub fn get_status_timeout(&self, timeout: std::time::Duration) -> AgentResult<AgentStatus> {
+        self.get_status_inner(Some(timeout))
+    }
+
+    /// Internal implementation shared by `get_status` and `get_status_timeout`.
+    fn get_status_inner(&self, timeout: Option<std::time::Duration>) -> AgentResult<AgentStatus> {
+        use std::process::{Command, Stdio};
 
         let socket_path = match &self.socket_path {
             Some(path) => path.clone(),
@@ -450,14 +474,73 @@ impl SshAgentManager {
             }
         };
 
-        // Check if the socket exists and agent is responsive
-        let output = Command::new("ssh-add")
+        // Spawn the child process so we can apply a timeout.
+        let child_result = Command::new("ssh-add")
             .arg("-l")
             .env("SSH_AUTH_SOCK", &socket_path)
-            .output();
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn();
+
+        let child = match child_result {
+            Ok(c) => c,
+            Err(_) => {
+                return Ok(AgentStatus {
+                    running: false,
+                    socket_path: Some(socket_path),
+                    keys: Vec::new(),
+                });
+            }
+        };
+
+        let output = if let Some(dur) = timeout {
+            // Wait with timeout using a helper thread + channel.
+            let (tx, rx) = std::sync::mpsc::sync_channel(1);
+            let child_id = child.id();
+            std::thread::spawn(move || {
+                let result = child.wait_with_output();
+                // Send result; ignore error if receiver dropped (timeout).
+                let _ = tx.send(result);
+            });
+
+            match rx.recv_timeout(dur) {
+                Ok(Ok(out)) => Some(out),
+                Ok(Err(_)) => None,
+                Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+                    // Timeout expired — kill the child process.
+                    #[expect(
+                        clippy::cast_possible_truncation,
+                        reason = "timeout duration is always small enough to fit u64 milliseconds"
+                    )]
+                    let timeout_ms = dur.as_millis() as u64;
+                    tracing::warn!(
+                        pid = child_id,
+                        timeout_ms,
+                        "ssh-add timed out, killing child process"
+                    );
+                    // Best-effort kill on Unix via SIGKILL.
+                    #[cfg(unix)]
+                    {
+                        #[expect(
+                            clippy::cast_possible_wrap,
+                            reason = "PID values never exceed i32::MAX on any supported OS"
+                        )]
+                        let _ = nix::sys::signal::kill(
+                            nix::unistd::Pid::from_raw(child_id as i32),
+                            nix::sys::signal::Signal::SIGKILL,
+                        );
+                    }
+                    None
+                }
+                Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => None,
+            }
+        } else {
+            // No timeout — blocking wait (original behaviour).
+            child.wait_with_output().ok()
+        };
 
         match output {
-            Ok(output) => {
+            Some(output) => {
                 let stdout = String::from_utf8_lossy(&output.stdout);
                 let stderr = String::from_utf8_lossy(&output.stderr);
 
@@ -481,7 +564,7 @@ impl SshAgentManager {
                     })
                 }
             }
-            Err(_) => Ok(AgentStatus {
+            None => Ok(AgentStatus {
                 running: false,
                 socket_path: Some(socket_path),
                 keys: Vec::new(),

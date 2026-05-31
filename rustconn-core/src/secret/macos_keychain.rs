@@ -36,6 +36,12 @@ mod inner {
         }
     }
 
+    impl Default for MacOsKeychainBackend {
+        fn default() -> Self {
+            Self::new()
+        }
+    }
+
     impl MacOsKeychainBackend {
         /// Creates a new macOS Keychain backend
         #[must_use]
@@ -63,7 +69,7 @@ mod inner {
             let account = Self::account_name(connection_id, field);
             match get_generic_password(SERVICE_NAME, &account) {
                 Ok(bytes) => {
-                    let value = String::from_utf8(bytes.to_vec()).map_err(|e| {
+                    let value = String::from_utf8(bytes).map_err(|e| {
                         SecretError::LibSecret(format!(
                             "Keychain value is not valid UTF-8 for {field}: {e}"
                         ))
@@ -258,7 +264,7 @@ pub mod keychain_ops {
 
         match get_generic_password(APP_SERVICE, key) {
             Ok(bytes) => {
-                let value = String::from_utf8(bytes.to_vec()).map_err(|e| {
+                let value = String::from_utf8(bytes).map_err(|e| {
                     SecretError::LibSecret(format!("Keychain value is not valid UTF-8: {e}"))
                 })?;
                 if value.is_empty() {

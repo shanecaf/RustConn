@@ -31,8 +31,10 @@ use std::path::PathBuf;
 use std::rc::Rc;
 use std::time::Instant;
 use uuid::Uuid;
+#[cfg(not(target_os = "macos"))]
+use vte4::PtyFlags;
+use vte4::Terminal;
 use vte4::prelude::*;
-use vte4::{PtyFlags, Terminal};
 
 /// PCRE2 multiline compile flag — required by VTE's `match_add_regex()`.
 ///

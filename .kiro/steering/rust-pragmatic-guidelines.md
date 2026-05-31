@@ -5,55 +5,55 @@ fileMatchPattern: "**/*.rs"
 
 # Pragmatic Rust Guidelines (Microsoft) — RustConn Adaptation
 
-Адаптація [Microsoft Pragmatic Rust Guidelines](https://microsoft.github.io/rust-guidelines/) для RustConn.
-Доповнює `project-rules.md`, а не замінює. Перелічено лише пункти, які бракують в інших steering файлах.
+Adaptation of [Microsoft Pragmatic Rust Guidelines](https://microsoft.github.io/rust-guidelines/) for RustConn.
+Supplements `project-rules.md`, does not replace it. Only lists points missing from other steering files.
 
 ## Universal
 
-### M-LINT-OVERRIDE-EXPECT — `#[expect]` замість `#[allow]`
+### M-LINT-OVERRIDE-EXPECT — `#[expect]` instead of `#[allow]`
 
-При локальному override clippy/compiler lint-у — використовуй `#[expect(..., reason = "...")]`.
-`#[expect]` емітить warning, якщо lint не спрацював, що запобігає накопиченню застарілих override-ів.
+When locally overriding a clippy/compiler lint — use `#[expect(..., reason = "...")]`.
+`#[expect]` emits a warning if the lint did not fire, preventing accumulation of stale overrides.
 
 ```rust
-#[expect(clippy::unused_async, reason = "API stable, I/O буде додано пізніше")]
+#[expect(clippy::unused_async, reason = "API stable, I/O will be added later")]
 pub async fn ping_server() { }
 ```
 
-`#[allow]` лишається доречним лише в макросах і згенерованому коді.
+`#[allow]` remains appropriate only in macros and generated code.
 
-### M-PANIC-IS-STOP / M-PANIC-ON-BUG — паніка = «програма має зупинитися»
+### M-PANIC-IS-STOP / M-PANIC-ON-BUG — panic = "the program must stop"
 
-Паніка не є винятком. `panic!()` означає «зупини програму зараз». Не використовуй паніку для:
-- комунікації помилок наверх (це робить `Result`),
-- обробки контрольованих умов (timeout, недоступний хост, неправильний пароль),
-- припущення, що паніку зловлять (якщо `panic = "abort"` — програма впаде).
+Panic is not an exception. `panic!()` means "stop the program now". Do not use panic for:
+- communicating errors upward (that is what `Result` does),
+- handling controlled conditions (timeout, unreachable host, wrong password),
+- assuming the panic will be caught (if `panic = "abort"` — the program crashes).
 
-Валідні випадки: `expect("must never happen")` для programming bug, `unwrap()` на `OnceLock::get_or_init`, panic на отруєний lock.
+Valid cases: `expect("must never happen")` for programming bugs, `unwrap()` on `OnceLock::get_or_init`, panic on poisoned lock.
 
-Програмний баг → `panic!` / `unreachable!` / `debug_assert!`. Recoverable стан → `Result<T, ThisError>`. Не змішуй.
+Programming bug → `panic!` / `unreachable!` / `debug_assert!`. Recoverable state → `Result<T, ThisError>`. Do not mix.
 
-### M-DOCUMENTED-MAGIC — документуй магічні значення
+### M-DOCUMENTED-MAGIC — document magic values
 
-Будь-яка магічна константа або поведінка-за-замовчуванням повинна мати коментар.
-Особливо актуально для timeout-ів, retry бекоффів, лімітів буферів.
+Any magic constant or default behavior must have a comment.
+Especially relevant for timeouts, retry backoffs, buffer limits.
 
 ```rust
-// Vault операції чекають 10 секунд — Bitwarden CLI може тригерити master-pw prompt.
+// Vault operations wait 10 seconds — Bitwarden CLI may trigger a master-pw prompt.
 const VAULT_OP_TIMEOUT: Duration = Duration::from_secs(10);
 ```
 
-### M-LOG-STRUCTURED — структуроване логування
+### M-LOG-STRUCTURED — structured logging
 
-Ми вже використовуємо `tracing`. Додатково:
-- передавай дані як поля, не як форматовану string: `tracing::info!(host = %h, port = p, "connecting")` замість `tracing::info!("connecting to {}:{}", h, p)`,
-- ніколи не лонж `SecretString` (`expose_secret()` в `tracing::*` — заборонено).
+We already use `tracing`. Additionally:
+- pass data as fields, not as a formatted string: `tracing::info!(host = %h, port = p, "connecting")` instead of `tracing::info!("connecting to {}:{}", h, p)`,
+- never log `SecretString` (`expose_secret()` in `tracing::*` — forbidden).
 
 ## Applications (rustconn / rustconn-cli)
 
-### M-MIMALLOC-APP — глобальний алокатор
+### M-MIMALLOC-APP — global allocator
 
-[Не критично, опційно]. Apps можуть отримати ~10–25% прискорення на hot paths шляхом заміни алокатора на `mimalloc`. Якщо профілювання покаже, що allocation — bottleneck, додай:
+[Not critical, optional]. Apps can gain ~10–25% speedup on hot paths by replacing the allocator with `mimalloc`. If profiling shows allocation is a bottleneck, add:
 
 ```toml
 [dependencies]
@@ -66,45 +66,45 @@ mimalloc = "0.1"
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 ```
 
-### M-APP-ERROR — `anyhow` дозволено в `rustconn` / `rustconn-cli`
+### M-APP-ERROR — `anyhow` is allowed in `rustconn` / `rustconn-cli`
 
-Бінарні крейти можуть використовувати `anyhow` / `eyre` для зменшення boilerplate.
-Бібліотечні функції в `rustconn-core` ВСЕ ОДНО мусять використовувати `thiserror::Error`
-(M-ERRORS-CANONICAL-STRUCTS — щоб виклик з GUI/CLI міг паттерн-матчити варіанти).
+Binary crates may use `anyhow` / `eyre` to reduce boilerplate.
+Library functions in `rustconn-core` MUST still use `thiserror::Error`
+(M-ERRORS-CANONICAL-STRUCTS — so that callers from GUI/CLI can pattern-match variants).
 
 ## Safety
 
-### M-UNSAFE — `unsafe_code = "forbid"` уже застосовано
+### M-UNSAFE — `unsafe_code = "forbid"` already applied
 
-Workspace `[lints.rust] unsafe_code = "forbid"`. Якщо колись знадобиться FFI — створюй
-окремий маленький крейт `rustconn-*-sys` з документацією safety contract і Miri тестами.
-Не дозволяй unsafe «розповзатися» по основних крейтах.
+Workspace `[lints.rust] unsafe_code = "forbid"`. If FFI is ever needed — create a
+separate small crate `rustconn-*-sys` with documented safety contracts and Miri tests.
+Do not allow unsafe to "spread" across the main crates.
 
 ## Documentation
 
-### M-CANONICAL-DOCS — секції в doc-коментарях
+### M-CANONICAL-DOCS — sections in doc comments
 
-Public функції в `rustconn-core` мусять мати:
+Public functions in `rustconn-core` must have:
 
 ```rust
-/// Резюме одне речення, до 15 слів. (M-FIRST-DOC-SENTENCE)
+/// Summary in one sentence, up to 15 words. (M-FIRST-DOC-SENTENCE)
 ///
-/// Розширений опис.
+/// Extended description.
 ///
 /// # Errors
-/// Повертає `MyError::X`, якщо ...
+/// Returns `MyError::X` if ...
 ///
 /// # Panics
-/// Панікує, якщо ... (тільки для programming bug, див. M-PANIC-ON-BUG)
+/// Panics if ... (only for programming bugs, see M-PANIC-ON-BUG)
 pub fn foo() -> Result<(), MyError> { ... }
 ```
 
-Не створюй таблицю параметрів — описуй їх у вступному реченні: `Copies a file from src to dst`.
+Do not create a parameter table — describe them in the introductory sentence: `Copies a file from src to dst`.
 
-### M-PUBLIC-DEBUG для типів із секретами
+### M-PUBLIC-DEBUG for types with secrets
 
-Якщо тип містить `SecretString` або credentials — `Debug` має бути ручний і покритий тестом.
-`secrecy::SecretString` уже редагує себе в `Debug`, але обгортки навколо нього треба перевіряти.
+If a type contains `SecretString` or credentials — `Debug` must be manual and covered by a test.
+`secrecy::SecretString` already redacts itself in `Debug`, but wrappers around it need verification.
 
 ```rust
 #[test]
@@ -115,38 +115,38 @@ fn debug_does_not_leak_secret() {
 }
 ```
 
-## Naming — компроміс M-CONCISE-NAMES
+## Naming — compromise M-CONCISE-NAMES
 
-MS guideline радить уникати `Manager` / `Service` / `Factory`. У нас історично є
-`ConnectionManager`, `SessionManager`, `SecretManager` — ці імена лишаємо для сумісності.
-Для **нового** коду — обирай специфічніші імена: `ConnectionStore`, `SessionRouter`,
+MS guideline recommends avoiding `Manager` / `Service` / `Factory`. We historically have
+`ConnectionManager`, `SessionManager`, `SecretManager` — these names stay for compatibility.
+For **new** code — choose more specific names: `ConnectionStore`, `SessionRouter`,
 `CredentialResolver`, `SnippetCatalog`.
 
 ## Universal lints — recommended additions
 
-Розглянути додавання до `[workspace.lints.rust]` (опційно, не блокуюче):
+Consider adding to `[workspace.lints.rust]` (optional, non-blocking):
 
 ```toml
 missing_debug_implementations = "warn"
-unsafe_op_in_unsafe_fn = "warn"  # неактуально, у нас forbid
+unsafe_op_in_unsafe_fn = "warn"  # not relevant, we have forbid
 unused_lifetimes = "warn"
 redundant_lifetimes = "warn"
 ```
 
-І до `[workspace.lints.clippy]` з restriction групи:
+And to `[workspace.lints.clippy]` from the restriction group:
 
 ```toml
-allow_attributes_without_reason = "warn"  # форсує reason = "..." в #[allow] / #[expect]
-clone_on_ref_ptr = "warn"                 # ловить .clone() на Rc/Arc — пиши Rc::clone()
+allow_attributes_without_reason = "warn"  # forces reason = "..." in #[allow] / #[expect]
+clone_on_ref_ptr = "warn"                 # catches .clone() on Rc/Arc — write Rc::clone()
 empty_drop = "warn"
-undocumented_unsafe_blocks = "warn"        # неактуально, у нас forbid
+undocumented_unsafe_blocks = "warn"        # not relevant, we have forbid
 ```
 
-Перевір, що це не зламає білд: `cargo clippy --all-targets`.
+Verify this does not break the build: `cargo clippy --all-targets`.
 
 ## References
 
-- Чекліст: <https://microsoft.github.io/rust-guidelines/guidelines/checklist/>
+- Checklist: <https://microsoft.github.io/rust-guidelines/guidelines/checklist/>
 - Universal: <https://microsoft.github.io/rust-guidelines/guidelines/universal/>
 - Apps: <https://microsoft.github.io/rust-guidelines/guidelines/apps/>
 - Safety: <https://microsoft.github.io/rust-guidelines/guidelines/safety/>
