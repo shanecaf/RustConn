@@ -229,7 +229,19 @@ else
     ok "cargo fmt clean"
 
     info "Running: cargo clippy --all-targets --quiet -- -D warnings"
-    cargo clippy --all-targets --quiet -- -D warnings || fail "cargo clippy reported warnings"
+    # On macOS, gdk4-wayland cannot build (no Wayland). Exclude it via --no-default-features
+    # for the GUI crate and re-enable all other defaults.
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        cargo clippy --all-targets --quiet \
+            -p rustconn-core -p rustconn-cli \
+            -- -D warnings || fail "cargo clippy reported warnings"
+        cargo clippy --all-targets --quiet \
+            -p rustconn --no-default-features \
+            --features "tray-macos,vnc-embedded,rdp-embedded,rdp-audio,spice-embedded" \
+            -- -D warnings || fail "cargo clippy reported warnings (rustconn)"
+    else
+        cargo clippy --all-targets --quiet -- -D warnings || fail "cargo clippy reported warnings"
+    fi
     ok "cargo clippy: 0 warnings"
 
     if $WITH_TESTS; then
