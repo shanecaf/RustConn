@@ -4,62 +4,62 @@ inclusion: manual
 
 # Verification Checklist
 
-Використовуй після завершення фічі або перед merge. Адаптовано з AI-DLC methodology.
+Use after completing a feature or before merge. Adapted from AI-DLC methodology.
 
-## 1. Компіляція та якість
+## 1. Compilation & Quality
 
-- [ ] `cargo fmt --check` — без помилок
+- [ ] `cargo fmt --check` — no errors
 - [ ] `cargo clippy --all-targets` — 0 warnings
-- [ ] `cargo test --workspace` — всі тести pass
-- [ ] `getDiagnostics` на змінених файлах — без errors
+- [ ] `cargo test --workspace` — all tests pass
+- [ ] `getDiagnostics` on modified files — no errors
 
-## 2. Архітектура
+## 2. Architecture
 
-- [ ] Новий код в правильному крейті (core vs gui vs cli)
-- [ ] Немає GUI imports в `rustconn-core` або `rustconn-cli`
-- [ ] Public API не змінено ненавмисно (якщо змінено — задокументовано)
-- [ ] Нові модулі зареєстровані в `mod.rs`
+- [ ] New code in the correct crate (core vs gui vs cli)
+- [ ] No GUI imports in `rustconn-core` or `rustconn-cli`
+- [ ] Public API not changed unintentionally (if changed — documented)
+- [ ] New modules registered in `mod.rs`
 
-## 3. Безпека
+## 3. Security
 
-- [ ] Паролі/ключі → `SecretString` (не plain String)
-- [ ] Немає secrets в логах/помилках
-- [ ] CLI паролі через stdin pipe (не `.arg()`)
-- [ ] Timeout на всі vault/credential операції
+- [ ] Passwords/keys → `SecretString` (not plain String)
+- [ ] No secrets in logs/errors
+- [ ] CLI passwords via stdin pipe (not `.arg()`)
+- [ ] Timeout on all vault/credential operations
 
 ## 4. i18n
 
-- [ ] Всі user-facing strings в `i18n()` / `i18n_f()`
-- [ ] Файл додано в `po/POTFILES.in` (якщо нові i18n strings)
-- [ ] `display_name()` значення обгорнуті в `i18n()` at call site
+- [ ] All user-facing strings in `i18n()` / `i18n_f()`
+- [ ] File added to `po/POTFILES.in` (if new i18n strings)
+- [ ] `display_name()` values wrapped in `i18n()` at call site
 
-## 5. Тестування
+## 5. Testing
 
-- [ ] Новий код покритий property test або integration test
-- [ ] Temp files через `tempfile` crate
-- [ ] Тести не використовують `unwrap()`/`expect()` без причини
+- [ ] New code covered by property test or integration test
+- [ ] Temp files via `tempfile` crate
+- [ ] Tests do not use `unwrap()`/`expect()` without reason
 
-## 6. Документація
+## 6. Documentation
 
-- [ ] CHANGELOG.md оновлено (якщо user-facing зміна)
-- [ ] `/// # Errors` секція для нових `Result` функцій
-- [ ] Коментарі для неочевидної логіки
+- [ ] CHANGELOG.md updated (if user-facing change)
+- [ ] `/// # Errors` section for new `Result` functions
+- [ ] Comments for non-obvious logic
 
 ## 7. Cleanup
 
-- [ ] Немає `dbg!`, `todo!`, `println!`, `eprintln!`
-- [ ] Немає `#[allow(dead_code)]` на новому коді
-- [ ] Немає закоментованого коду
-- [ ] Немає `.clone()` де можна передати `&T`
+- [ ] No `dbg!`, `todo!`, `println!`, `eprintln!`
+- [ ] No `#[allow(dead_code)]` on new code
+- [ ] No commented-out code
+- [ ] No `.clone()` where `&T` can be passed
 
-## Швидка перевірка (делегуй)
+## Quick check (delegate)
 
 ```
-Делегуй в rust-quality-check: "Run checks with tests"
+Delegate to rust-quality-check: "Run checks with tests"
 ```
 
-## Коли НЕ потрібен повний чеклист
+## When the full checklist is NOT needed
 
-- Typo fix / коментар → достатньо fmt + clippy
-- Тільки .md / .po файли → не потрібно cargo checks
-- Тільки hook/steering зміни → не потрібно нічого
+- Typo fix / comment → fmt + clippy is sufficient
+- Only .md / .po files → no cargo checks needed
+- Only hook/steering changes → nothing needed
