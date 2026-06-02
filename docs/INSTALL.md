@@ -85,7 +85,7 @@ flatpak install flathub org.gnome.Platform//50
 #### Install
 
 ```bash
-flatpak install --user RustConn-0.15.4.flatpak
+flatpak install --user RustConn-0.15.5.flatpak
 ```
 
 Confirm runtime dependency installation if prompted.

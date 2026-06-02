@@ -10,7 +10,7 @@ use ironrdp::pdu::gcc::KeyboardType;
 use ironrdp::pdu::rdp::capability_sets::{
     BitmapCodecs, MajorPlatformType, client_codecs_capabilities,
 };
-use ironrdp::pdu::rdp::client_info::{PerformanceFlags, TimezoneInfo};
+use ironrdp::pdu::rdp::client_info::{CompressionType, PerformanceFlags, TimezoneInfo};
 use ironrdp::rdpdr::Rdpdr;
 use ironrdp::rdpsnd::client::Rdpsnd;
 use ironrdp_tokio::TokioFramed;
@@ -225,11 +225,12 @@ pub async fn establish_connection(
         );
 
         // Complete connection (NLA, licensing, capabilities)
-        // Wrap in catch_unwind: ironrdp-tokio 0.8.0 has a bug where
-        // `copy_from_slice` panics on 64-bit systems in the KDC TCP
-        // response parser (usize::to_be_bytes() returns 8 bytes but
-        // destination is 4 bytes). Convert the panic into an error
+        // Wrap in catch_unwind: IronRDP may panic on unexpected server
+        // responses in edge cases. Convert the panic into an error
         // so the GUI can fall back to FreeRDP instead of crashing.
+        // TODO(0.16): re-evaluate whether catch_unwind is still needed —
+        // IronRDP 0.15 fixed several panic sources (KDC parser, Auto-Detect).
+        // Remove if upstream confirms no more panics on malformed PDUs.
         let finalize_future = AssertUnwindSafe(ironrdp_tokio::connect_finalize(
             upgraded,
             connector,
@@ -350,6 +351,17 @@ fn build_connector_config(config: &RdpClientConfig) -> Config {
         client_build: 0,
         client_name: String::from("RustConn"),
         client_dir: String::new(),
+        // Alternate shell for RemoteApp / CyberArk PSM scenarios
+        alternate_shell: config
+            .remote_app
+            .as_ref()
+            .map(|app| app.program.clone())
+            .unwrap_or_default(),
+        work_dir: config
+            .remote_app
+            .as_ref()
+            .and_then(|app| app.working_dir.clone())
+            .unwrap_or_default(),
         platform: MajorPlatformType::UNIX,
         hardware_id: None,
         request_data: None,
@@ -358,10 +370,19 @@ fn build_connector_config(config: &RdpClientConfig) -> Config {
         performance_flags,
         license_cache: None,
         timezone_info: get_timezone_info(),
+        // Bulk compression: Balanced/Quality use RDP 6.1 (XCRUSH),
+        // Speed mode uses RDP 5.0 (64 KB MPPC) for lower CPU overhead
+        compression_type: Some(match config.performance_mode {
+            crate::models::RdpPerformanceMode::Quality
+            | crate::models::RdpPerformanceMode::Balanced => CompressionType::Rdp61,
+            crate::models::RdpPerformanceMode::Speed => CompressionType::K64,
+        }),
         enable_server_pointer: true,
         // Use hardware pointer - server sends cursor bitmap separately
         // This avoids cursor artifacts in the framebuffer
         pointer_software_rendering: false,
+        // Multitransport (UDP sideband) — not implemented yet
+        multitransport_flags: None,
     }
 }
 

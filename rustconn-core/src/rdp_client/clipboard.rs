@@ -77,6 +77,12 @@ impl ClipboardMessageProxy for RustConnClipboardProxy {
             ClipboardMessage::Error(err) => {
                 warn!("Clipboard error: {}", err);
             }
+            ClipboardMessage::SendFileContentsRequest(_)
+            | ClipboardMessage::SendFileContentsResponse(_) => {
+                // File transfer clipboard operations — not yet implemented.
+                // IronRDP 0.15 adds file contents PDUs for clipboard file copy.
+                trace!("Clipboard file contents message received (not implemented)");
+            }
         }
     }
 }
@@ -392,7 +398,7 @@ impl CliprdrBackend for RustConnClipboardBackend {
             .event_tx
             .send(RdpClientEvent::FileContentsRequested {
                 stream_id: request.stream_id,
-                file_index: request.index,
+                file_index: request.index as u32,
                 is_size_request,
                 offset: request.position,
                 requested_size: request.requested_size,

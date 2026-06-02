@@ -199,16 +199,16 @@ pub fn create_header_bar() -> (
 ///
 /// Menu sections:
 /// 1. Connections: New Connection, New Group, Quick Connect, Local Shell
-/// 2. Tools: Snippets, Clusters, Templates, Variables, Sessions, History, Statistics,
-///    Password Generator, Wake On LAN, Recordings, SSH Tunnels
-/// 3. File: Import, Export
-/// 4. Edit: Copy Connection, Paste Connection
-/// 5. App: Settings, Flatpak Components (if Flatpak), Keyboard Shortcuts, About, Quit
+/// 2. Tools (submenu): Snippets, Clusters, Templates, Variables
+/// 3. Sessions (submenu): Active Sessions, History, Statistics, Recordings
+/// 4. Security (submenu): Password Generator, Wake On LAN, SSH Tunnels
+/// 5. File: Import, Export, Copy, Paste
+/// 6. App: Settings, Fullscreen, Passthrough, Keyboard Shortcuts, About, Quit
 #[must_use]
 pub fn create_app_menu() -> gio::Menu {
     let menu = gio::Menu::new();
 
-    // Connections section
+    // Connections section — primary actions (always top-level for quick access)
     let conn_section = gio::Menu::new();
     conn_section.append(Some(&i18n("New Connection")), Some("win.new-connection"));
     conn_section.append(
@@ -220,52 +220,53 @@ pub fn create_app_menu() -> gio::Menu {
     conn_section.append(Some(&i18n("Local Shell")), Some("win.local-shell"));
     menu.append_section(None, &conn_section);
 
-    // Tools section — Managers
-    let managers_section = gio::Menu::new();
-    managers_section.append(Some(&i18n("Snippets...")), Some("win.manage-snippets"));
-    managers_section.append(Some(&i18n("Clusters...")), Some("win.manage-clusters"));
-    managers_section.append(Some(&i18n("Templates...")), Some("win.manage-templates"));
-    managers_section.append(Some(&i18n("Variables...")), Some("win.manage-variables"));
-    menu.append_section(None, &managers_section);
+    // Tools submenu — managers grouped together to reduce top-level height
+    let tools_submenu = gio::Menu::new();
+    tools_submenu.append(Some(&i18n("Snippets...")), Some("win.manage-snippets"));
+    tools_submenu.append(Some(&i18n("Clusters...")), Some("win.manage-clusters"));
+    tools_submenu.append(Some(&i18n("Templates...")), Some("win.manage-templates"));
+    tools_submenu.append(Some(&i18n("Variables...")), Some("win.manage-variables"));
 
-    // Tools section — Monitoring & History
-    let monitoring_section = gio::Menu::new();
-    monitoring_section.append(Some(&i18n("Active Sessions...")), Some("win.show-sessions"));
-    monitoring_section.append(
-        Some(&i18n("Connection History...")),
-        Some("win.show-history"),
-    );
-    monitoring_section.append(Some(&i18n("Statistics...")), Some("win.show-statistics"));
-    monitoring_section.append(Some(&i18n("Recordings...")), Some("win.manage-recordings"));
-    menu.append_section(None, &monitoring_section);
-
-    // Tools section — Security & Network
-    let security_section = gio::Menu::new();
-    security_section.append(
+    let tools_section_sep = gio::Menu::new();
+    tools_section_sep.append(
         Some(&i18n("Password Generator...")),
         Some("win.password-generator"),
     );
-    security_section.append(
+    tools_section_sep.append(
         Some(&i18n("Wake On LAN...")),
         Some("win.wake-on-lan-dialog"),
     );
-    security_section.append(Some(&i18n("SSH Tunnels...")), Some("win.ssh-tunnels"));
-    menu.append_section(None, &security_section);
+    tools_section_sep.append(Some(&i18n("SSH Tunnels...")), Some("win.ssh-tunnels"));
+    tools_submenu.append_section(None, &tools_section_sep);
 
-    // File section (import/export connections)
+    let tools_section = gio::Menu::new();
+    tools_section.append_submenu(Some(&i18n("Tools")), &tools_submenu);
+    menu.append_section(None, &tools_section);
+
+    // Sessions submenu — monitoring and history
+    let sessions_submenu = gio::Menu::new();
+    sessions_submenu.append(Some(&i18n("Active Sessions...")), Some("win.show-sessions"));
+    sessions_submenu.append(
+        Some(&i18n("Connection History...")),
+        Some("win.show-history"),
+    );
+    sessions_submenu.append(Some(&i18n("Statistics...")), Some("win.show-statistics"));
+    sessions_submenu.append(Some(&i18n("Recordings...")), Some("win.manage-recordings"));
+
+    let sessions_section = gio::Menu::new();
+    sessions_section.append_submenu(Some(&i18n("Sessions")), &sessions_submenu);
+    menu.append_section(None, &sessions_section);
+
+    // File section (import/export + clipboard)
     let file_section = gio::Menu::new();
     file_section.append(Some(&i18n("Import Connections...")), Some("win.import"));
     file_section.append(Some(&i18n("Export Connections...")), Some("win.export"));
-    menu.append_section(None, &file_section);
-
-    // Edit section
-    let edit_section = gio::Menu::new();
-    edit_section.append(Some(&i18n("Copy Connection")), Some("win.copy-connection"));
-    edit_section.append(
+    file_section.append(Some(&i18n("Copy Connection")), Some("win.copy-connection"));
+    file_section.append(
         Some(&i18n("Paste Connection")),
         Some("win.paste-connection"),
     );
-    menu.append_section(None, &edit_section);
+    menu.append_section(None, &file_section);
 
     // Settings section (separated from app meta per GNOME HIG)
     let settings_section = gio::Menu::new();

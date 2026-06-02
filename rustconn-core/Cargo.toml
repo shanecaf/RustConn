@@ -52,11 +52,10 @@ vnc-rs = { version = "0.5", optional = true }
 # Native SPICE client for embedded SPICE sessions
 spice-client = { version = "0.2.0", optional = true }
 # Pure Rust RDP client for embedded RDP sessions using IronRDP (crates.io)
-# Using same versions as rdw project to avoid sspi/rand_core conflicts
 # native-tls instead of rustls to match rdw approach
 # Features: cliprdr (clipboard), rdpdr (shared folders), dvc (dynamic channels),
 # displaycontrol (dynamic resolution), rdpsnd (audio)
-ironrdp = { version = "0.14", features = [
+ironrdp = { version = "0.15", features = [
     "connector", "session", "graphics", "pdu", "core", "svc",
     "cliprdr",        # Clipboard redirection
     "rdpdr",          # Device/drive redirection (shared folders)
@@ -64,7 +63,7 @@ ironrdp = { version = "0.14", features = [
     "displaycontrol", # Dynamic resolution changes (MS-RDPEDISP)
     "rdpsnd",         # Audio redirection
 ], optional = true }
-ironrdp-tokio = { version = "0.8", features = ["reqwest"], optional = true }
+ironrdp-tokio = { version = "0.9", features = ["reqwest"], optional = true }
 ironrdp-tls = { version = "0.2", features = ["native-tls"], optional = true }
 # Pin native-tls to avoid Tlsv13 compile bug in 0.2.17
 native-tls = { workspace = true }
@@ -74,7 +73,7 @@ fs2 = "0.4"
 [target.'cfg(target_os = "macos")'.dependencies]
 security-framework = "3.3"
 
-# Note: ironrdp-rdpdr-native 0.5 requires ironrdp-rdpdr 0.5.x which matches ironrdp 0.14
+# Note: ironrdp-rdpdr-native 0.6 requires ironrdp-rdpdr 0.6.x which matches ironrdp 0.15
 
 [features]
 default = ["vnc-embedded", "rdp-embedded", "spice-embedded"]

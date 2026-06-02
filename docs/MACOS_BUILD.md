@@ -148,27 +148,30 @@ for f in po/*.po; do
   msgfmt -o "RustConn.app/Contents/Resources/locale/${lang}/LC_MESSAGES/rustconn.mo" "$f"
 done
 
-# 6. Create wrapper script
+# 6. Create wrapper script (kept for manual terminal launches)
 cat > RustConn.app/Contents/MacOS/rustconn-wrapper << 'EOF'
 #!/bin/bash
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
 export XDG_DATA_DIRS="$DIR/Resources/share:/opt/homebrew/share:/usr/local/share:/usr/share"
 export GSETTINGS_SCHEMA_DIR="/opt/homebrew/share/glib-2.0/schemas"
 export LOCALEDIR="$DIR/Resources/locale"
-# Let GTK4 handle HiDPI scaling natively; override with GDK_DPI_SCALE env if needed.
+export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:$PATH"
 cd "$HOME"
 exec "$DIR/MacOS/rustconn" "$@"
 EOF
 chmod +x RustConn.app/Contents/MacOS/rustconn-wrapper
 
-# 7. Create Info.plist
+# 7. Create Info.plist (CFBundleExecutable = native binary, no wrapper)
+#    The rustconn binary detects the bundle and configures i18n/icons/schemas
+#    programmatically without re-exec, preserving the LaunchServices scene
+#    required for NSStatusItem (tray icon).
 cat > RustConn.app/Contents/Info.plist << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
     <key>CFBundleExecutable</key>
-    <string>rustconn-wrapper</string>
+    <string>rustconn</string>
     <key>CFBundleIconFile</key>
     <string>RustConn</string>
     <key>CFBundleIdentifier</key>
@@ -339,6 +342,16 @@ Tray initialization thread exited without creating tray
 ```
 
 Expected if built with the Linux `tray` feature instead of `tray-macos`. The Linux tray uses D-Bus StatusNotifierItem which doesn't exist on macOS. Build with `--features tray-macos` (not `tray`) to get native NSStatusItem menu bar icon.
+
+### AWS SSM "session-manager-plugin not found"
+
+The Session Manager plugin is not bundled with the AWS CLI on macOS. Install it separately:
+
+```bash
+brew install --cask session-manager-plugin
+```
+
+If installed via the official AWS installer instead of Homebrew, ensure `/usr/local/sessionmanagerplugin/bin/` is in PATH. RustConn adds this path automatically since v0.15.5.
 
 ### Window Too Large / DPI Issues
 

@@ -472,6 +472,8 @@ pub fn get_extended_path() -> String {
             "/opt/homebrew/bin",
             "/opt/homebrew/sbin",
             "/usr/local/bin",
+            // AWS Session Manager Plugin (official installer puts it here)
+            "/usr/local/sessionmanagerplugin/bin",
             "/Applications/KeePassXC.app/Contents/MacOS",
         ];
         macos_dirs

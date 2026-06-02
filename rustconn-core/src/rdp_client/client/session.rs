@@ -143,7 +143,8 @@ where
             let data = src.to_vec();
 
             // Pass RGBA data as-is — handle_cursor_update crops transparent
-            // padding and does R↔B swap + premultiplied alpha for HiDPI
+            // padding and does premultiplied alpha + R↔B for HiDPI cursors
+            // (pointer bitmaps from IronRDP are RGBA, unlike framebuffer which is BGRA)
             let _ = event_tx.send(RdpClientEvent::CursorUpdate {
                 width: pointer.width,
                 height: pointer.height,
@@ -166,6 +167,22 @@ where
                 event_tx,
             )
             .await?;
+        }
+        ActiveStageOutput::MultitransportRequest(pdu) => {
+            // IronRDP 0.15: server requests sideband UDP transport.
+            // We do not implement UDP multitransport — log and continue.
+            tracing::debug!(
+                request_id = pdu.request_id,
+                "Server requested multitransport (UDP) — not supported, ignoring"
+            );
+        }
+        ActiveStageOutput::AutoDetect(request) => {
+            // IronRDP 0.15: server sends network characteristics result.
+            // Log for diagnostics; no action required from client.
+            tracing::debug!(
+                ?request,
+                "Received Auto-Detect network characteristics from server"
+            );
         }
     }
     Ok(false)
@@ -214,6 +231,7 @@ where
             desktop_size,
             enable_server_pointer,
             pointer_software_rendering,
+            share_id,
         } = connection_activation.connection_activation_state()
         {
             tracing::debug!(
@@ -234,11 +252,17 @@ where
                 fast_path::ProcessorBuilder {
                     io_channel_id,
                     user_channel_id,
+                    share_id,
                     enable_server_pointer,
                     pointer_software_rendering,
+                    // After reactivation, compression state is reset —
+                    // no bulk decompressor needed until server re-negotiates
+                    bulk_decompressor: None,
                 }
                 .build(),
             );
+            // Update share_id if the server assigned a new one
+            active_stage.set_share_id(share_id);
             active_stage.set_enable_server_pointer(enable_server_pointer);
 
             // Notify GUI about resolution change
@@ -253,11 +277,13 @@ where
     Ok(())
 }
 
-/// Extracts pixel data for a specific region from the decoded image
-/// Converts from `IronRDP`'s BGRA format to Cairo's ARGB32 format by swapping R and B channels
+/// Extracts pixel data for a specific region from the decoded image.
 ///
-/// Optimized for 4K rendering: uses row-based `memcpy` + bulk channel swap instead of
-/// per-pixel copy with index arithmetic. This is cache-friendly and auto-vectorizable by LLVM.
+/// IronRDP 0.15 outputs pixels in BgrA32 which matches Cairo's ARGB32 format
+/// on little-endian (both are B-G-R-A byte order in memory). No channel swap needed.
+///
+/// Optimized for 4K rendering: uses row-based `memcpy` which is cache-friendly
+/// and auto-vectorizable by LLVM.
 fn extract_region_data(image: &DecodedImage, rect: RdpRect) -> Vec<u8> {
     let img_width = image.width();
     let img_height = image.height();
@@ -276,12 +302,7 @@ fn extract_region_data(image: &DecodedImage, rect: RdpRect) -> Vec<u8> {
 
     // Fast path: if the region covers the entire image, avoid row-by-row copy
     if region_x == 0 && region_y == 0 && region_w == img_width && region_h == img_height {
-        let mut result = data.to_vec();
-        // Bulk R↔B swap — LLVM auto-vectorizes this into SIMD on x86_64
-        for chunk in result.chunks_exact_mut(bpp) {
-            chunk.swap(0, 2);
-        }
-        return result;
+        return data.to_vec();
     }
 
     let src_stride = img_width as usize * bpp;
@@ -298,13 +319,6 @@ fn extract_region_data(image: &DecodedImage, rect: RdpRect) -> Vec<u8> {
             result[dst_offset..dst_offset + dst_stride]
                 .copy_from_slice(&data[src_offset..src_offset + dst_stride]);
         }
-    }
-
-    // Bulk R↔B channel swap (BGRA→RGBA or vice versa)
-    // Process 4 bytes at a time — LLVM will auto-vectorize this
-    // into SIMD instructions on x86_64 (SSE2/AVX2)
-    for chunk in result.chunks_exact_mut(bpp) {
-        chunk.swap(0, 2);
     }
 
     result

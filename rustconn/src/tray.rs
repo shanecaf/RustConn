@@ -431,7 +431,9 @@ mod tray_macos_impl {
             let (sender, receiver) = mpsc::channel();
             let state = Arc::new(Mutex::new(TrayState::default()));
 
-            // Render icon — macOS menu bar uses 22pt icons (44px for Retina)
+            // Render icon at 44×44px (Retina 2x) — macOS menu bar auto-scales
+            // NSImage to fit the 22pt status item height. Providing 44px ensures
+            // crisp rendering on Retina displays without blur.
             let rgba_data = if let Some(data) = render_svg_to_rgba(44) {
                 data
             } else {
@@ -466,6 +468,11 @@ mod tray_macos_impl {
                     return None;
                 }
             };
+
+            // macOS workaround: explicitly set visible after creation.
+            // On some macOS versions (Ventura+), the NSStatusItem is created
+            // but not shown until explicitly toggled. This ensures visibility.
+            tray_icon.set_visible(true).ok();
 
             // Set up menu event handler on a background thread.
             // MenuEvent::receiver() is thread-safe — only the TrayIcon itself

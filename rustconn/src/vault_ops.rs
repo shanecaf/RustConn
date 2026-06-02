@@ -989,8 +989,15 @@ pub fn dispatch_vault_op(
             SecretBackendType::Pass => std::sync::Arc::new(
                 rustconn_core::secret::PassBackend::from_secret_settings(secret_settings),
             ),
+            #[cfg(target_os = "macos")]
+            SecretBackendType::MacOsKeychain => {
+                std::sync::Arc::new(rustconn_core::secret::MacOsKeychainBackend::new())
+            }
+            #[cfg(not(target_os = "macos"))]
+            SecretBackendType::MacOsKeychain => {
+                std::sync::Arc::new(rustconn_core::secret::LibSecretBackend::new("rustconn"))
+            }
             SecretBackendType::LibSecret
-            | SecretBackendType::MacOsKeychain
             | SecretBackendType::KeePassXc
             | SecretBackendType::KdbxFile => {
                 std::sync::Arc::new(rustconn_core::secret::LibSecretBackend::new("rustconn"))

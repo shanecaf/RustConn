@@ -169,10 +169,12 @@ DIR="$(cd "$(dirname "$0")/.." && pwd)"
 export XDG_DATA_DIRS="$DIR/Resources/share:/opt/homebrew/share:/usr/local/share:/usr/share"
 export GSETTINGS_SCHEMA_DIR="/opt/homebrew/share/glib-2.0/schemas"
 export LOCALEDIR="$DIR/Resources/locale"
+export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:$PATH"
 cd "$HOME"
 exec "$DIR/MacOS/rustconn" "$@"
 EOF
 chmod +x "$BUNDLE_NAME/Contents/MacOS/rustconn-wrapper"
+ok "Wrapper script created"
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 8. Create Info.plist
@@ -183,7 +185,7 @@ cat > "$BUNDLE_NAME/Contents/Info.plist" << EOF
 <plist version="1.0">
 <dict>
     <key>CFBundleExecutable</key>
-    <string>rustconn-wrapper</string>
+    <string>rustconn</string>
     <key>CFBundleIconFile</key>
     <string>RustConn</string>
     <key>CFBundleIdentifier</key>
@@ -207,7 +209,7 @@ cat > "$BUNDLE_NAME/Contents/Info.plist" << EOF
 </dict>
 </plist>
 EOF
-ok "Info.plist created (version $VERSION)"
+ok "Info.plist created (version $VERSION, CFBundleExecutable=rustconn)"
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 9. Ad-hoc code sign

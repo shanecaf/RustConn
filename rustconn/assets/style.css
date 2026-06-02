@@ -641,6 +641,80 @@ window.compact preferencespage row.action-row {
     padding-bottom: 4px;
 }
 
+/* Sidebar rows — denser vertical spacing */
+window.compact listview > row {
+    min-height: 28px;
+}
+
+window.compact listview > row treeexpander > box {
+    margin-top: 3px;
+    margin-bottom: 3px;
+}
+
+/* Sidebar search entry — slimmer */
+window.compact searchbar {
+    min-height: 32px;
+    padding: 2px 6px;
+}
+
+window.compact searchbar searchentry {
+    min-height: 26px;
+    font-size: 0.92em;
+}
+
+/* Sidebar bottom toolbar — compact icons */
+window.compact .sidebar toolbarview > .bottom-bar {
+    min-height: 28px;
+    padding: 2px 4px;
+}
+
+window.compact .sidebar toolbarview > .bottom-bar button {
+    min-height: 22px;
+    min-width: 22px;
+    padding: 2px;
+}
+
+/* Popover menu items — less vertical padding for shorter menus */
+window.compact popover.menu box > modelbutton,
+window.compact popover.menu box > button,
+window.compact popover.menu contents modelbutton,
+window.compact popover.menu contents > box > box > button {
+    min-height: 26px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+}
+
+window.compact popover.menu contents {
+    padding: 4px;
+}
+
+/* Filter bar buttons — slightly smaller in compact mode */
+window.compact .filter-button {
+    min-height: 22px;
+    min-width: 22px;
+    padding: 2px 4px;
+    font-size: 0.85em;
+}
+
+/* Embedded RDP/VNC/SPICE toolbar — denser in compact mode */
+window.compact .embedded-toolbar {
+    margin-top: 2px;
+    margin-bottom: 2px;
+    margin-left: 4px;
+    margin-right: 4px;
+}
+
+window.compact .embedded-toolbar button {
+    min-height: 22px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+}
+
+window.compact .embedded-toolbar separator {
+    margin-left: 3px;
+    margin-right: 3px;
+}
+
 /* ============================================================
  * Broadcast toggle — active state
  * Applied as the `.broadcasting` CSS class on the header-bar

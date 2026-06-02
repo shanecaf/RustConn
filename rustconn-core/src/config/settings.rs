@@ -644,7 +644,7 @@ impl Default for UiSettings {
             color_tabs_by_protocol: false,
             show_protocol_filters: false,
             show_smart_folders: false,
-            compact_ui: false,
+            compact_ui: cfg!(target_os = "macos"),
         }
     }
 }

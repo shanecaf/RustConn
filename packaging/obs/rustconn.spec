@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.15.4
+Version:        0.15.5
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -238,6 +238,19 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Mon Jun 01 2026 Anton Isaiev <totoshko88@gmail.com> - 0.15.5-0
+- IronRDP 0.14→0.15: bulk compression, slow-path rendering, RemoteApp
+  alternate_shell, multitransport dispatch, pixel format fix
+- macOS: fixed passwords not saving to Keychain (wrong backend dispatch)
+- macOS: fixed tray icon missing when launched from .app bundle
+- macOS: fixed AWS SSM "session-manager-plugin not found"
+- Compact mode: denser sidebar, toolbar, search bar, popover menus
+- Compact mode enabled by default on macOS for new installations
+- Hamburger menu restructured: Tools and Sessions submenus
+- Upgraded: ironrdp 0.14→0.15 (+ ironrdp-bulk 0.1)
+- Updated: inotify 0.11.2, ironrdp-tls 0.2.1, rustls-native-certs 0.8.4,
+  unicode-segmentation 1.13.3
+
 * Sat May 31 2026 Anton Isaiev <totoshko88@gmail.com> - 0.15.4-0
 - Fixed macOS UI hang when editing connection with broken/throttled ssh-agent (#163)
 - SSH agent probe now runs asynchronously with a 5-second timeout

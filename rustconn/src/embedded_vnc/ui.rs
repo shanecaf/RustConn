@@ -33,6 +33,7 @@ impl EmbeddedVncWidget {
 
         // Create toolbar with clipboard and Ctrl+Alt+Del buttons (right-aligned)
         let toolbar = GtkBox::new(Orientation::Horizontal, 4);
+        toolbar.add_css_class("embedded-toolbar");
         toolbar.set_margin_start(6);
         toolbar.set_margin_end(6);
         toolbar.set_margin_top(6);

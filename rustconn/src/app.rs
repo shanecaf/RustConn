@@ -170,24 +170,18 @@ fn build_ui(app: &adw::Application, tray_manager: SharedTrayManager) {
     if enable_tray {
         // macOS: TrayManager uses NSStatusItem which MUST be created on the
         // main thread AFTER the NSApplication run loop is fully active.
-        // When launched via `open RustConn.app` (LaunchServices), NSApplication
-        // needs time to complete activation before NSStatusItem can be created.
-        // A 500ms delay ensures the run loop is spinning and the app is fully
-        // activated. Without this, TrayIconBuilder::build() succeeds but the
-        // status item is never displayed in the menu bar.
+        // On macOS Sequoia 15.5+, LaunchServices requires the app's scene
+        // to be fully registered with FrontBoardServices before NSStatusItem
+        // can acquire a scene from ControlCenter. This takes longer than
+        // GTK's initial activation — retry up to 3 times with increasing
+        // delays to give WindowServer time to complete scene registration.
         #[cfg(feature = "tray-macos")]
         {
             let state_for_tray = state.clone();
             let tray_mgr_for_init = tray_manager.clone();
-            glib::timeout_add_local_once(std::time::Duration::from_millis(500), move || {
-                if let Some(tray) = TrayManager::new() {
-                    let mut initial_cache = TrayStateCache::default();
-                    update_tray_state(&tray, &state_for_tray, &mut initial_cache);
-                    *tray_mgr_for_init.borrow_mut() = Some(tray);
-                    tracing::info!("macOS tray icon created successfully");
-                } else {
-                    tracing::warn!("Failed to create macOS tray icon");
-                }
+            // Initial delay: 2 seconds (Sequoia needs more time than Ventura)
+            glib::timeout_add_local_once(std::time::Duration::from_millis(2000), move || {
+                try_create_macos_tray(state_for_tray, tray_mgr_for_init, 0);
             });
         }
 
@@ -510,6 +504,62 @@ fn build_ui(app: &adw::Application, tray_manager: SharedTrayManager) {
             tracing::info!("Secret backends initialized after window presentation");
         }
     });
+}
+
+/// Attempts to create the macOS tray icon with retry logic.
+///
+/// On macOS Sequoia 15.5+, GTK4 apps launched via LaunchServices (`open`,
+/// Finder, Dock) cannot acquire a FrontBoardServices scene for NSStatusItem.
+/// This is a known limitation of GTK4's GDK macOS backend which does not
+/// perform the proper scene handshake with ControlCenter's statusitems
+/// service. The icon is "created" (API returns Ok) but not displayed.
+///
+/// When launched directly from terminal (bypassing LaunchServices), the
+/// status item uses the legacy codepath and works correctly.
+///
+/// This function retries creation in case a future macOS update or GTK4
+/// fix resolves the scene registration issue.
+#[cfg(feature = "tray-macos")]
+fn try_create_macos_tray(
+    state: SharedAppState,
+    tray_manager: SharedTrayManager,
+    attempt: u32,
+) {
+    const MAX_ATTEMPTS: u32 = 3;
+    // Retry delays: 3s, 5s after initial 2s delay
+    const RETRY_DELAYS_MS: [u64; 2] = [3000, 5000];
+
+    if let Some(tray) = TrayManager::new() {
+        let mut initial_cache = TrayStateCache::default();
+        update_tray_state(&tray, &state, &mut initial_cache);
+        *tray_manager.borrow_mut() = Some(tray);
+        if attempt > 0 {
+            tracing::info!(attempt, "macOS tray icon created (after retry)");
+        } else {
+            tracing::info!("macOS tray icon created successfully");
+        }
+    } else if attempt + 1 < MAX_ATTEMPTS {
+        let next_delay = RETRY_DELAYS_MS[attempt as usize];
+        tracing::debug!(
+            attempt,
+            next_delay_ms = next_delay,
+            "macOS tray icon creation failed — retrying"
+        );
+        let next_attempt = attempt + 1;
+        glib::timeout_add_local_once(
+            std::time::Duration::from_millis(next_delay),
+            move || {
+                try_create_macos_tray(state, tray_manager, next_attempt);
+            },
+        );
+    } else {
+        tracing::warn!(
+            attempts = MAX_ATTEMPTS,
+            "macOS tray icon unavailable when launched via Finder/Dock \
+             (known GTK4 limitation on macOS Sequoia 15.5+). \
+             Tray icon works when launched from terminal."
+        );
+    }
 }
 
 /// Updates the tray icon state from the application state
@@ -1004,6 +1054,11 @@ fn show_error_dialog(app: &adw::Application, title: &str, message: &str) {
 /// Returns `glib::ExitCode::FAILURE` if libadwaita initialization fails,
 /// otherwise returns the application's exit code.
 pub fn run() -> glib::ExitCode {
+    // macOS: Load GSettings schemas programmatically from the .app bundle
+    // or Homebrew. Must happen BEFORE gtk4::init() which reads schemas.
+    #[cfg(target_os = "macos")]
+    crate::configure_gsettings_schemas();
+
     // Initialize GTK first (creates the display and loads GtkSettings from
     // the desktop environment). This must happen BEFORE adw::init() so we
     // can clear the deprecated property before libadwaita sees it.

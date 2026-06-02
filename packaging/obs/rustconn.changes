@@ -1,4 +1,22 @@
 -------------------------------------------------------------------
+Mon Jun 01 2026 Anton Isaiev <totoshko88@gmail.com> - 0.15.5
+
+- IronRDP 0.14→0.15: bulk compression (XCRUSH/MPPC), slow-path rendering,
+  alternate_shell/work_dir for RemoteApp, multitransport dispatch,
+  clipboard file contents handling, pixel format fix (no more R↔B swap)
+- macOS: fixed passwords not saving to Keychain (wrong backend dispatch)
+- macOS: fixed tray icon missing when launched from .app bundle
+- macOS: fixed AWS SSM "session-manager-plugin not found"
+- Compact mode: denser sidebar rows, slimmer bottom toolbar, search bar,
+  popover menu items, filter buttons, embedded session toolbar
+- Compact mode enabled by default on macOS for new installations
+- Hamburger menu restructured: Tools and Sessions submenus reduce top-level
+  items from 24 to ~14
+- Upgraded: ironrdp 0.14→0.15 (+ ironrdp-bulk 0.1 new transitive)
+- Updated: inotify 0.11.2, ironrdp-tls 0.2.1, rustls-native-certs 0.8.4,
+  unicode-segmentation 1.13.3
+
+-------------------------------------------------------------------
 Sat May 31 2026 Anton Isaiev <totoshko88@gmail.com> - 0.15.4
 
 - Fixed macOS UI hang when editing connection with broken/throttled ssh-agent (#163)

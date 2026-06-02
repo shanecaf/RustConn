@@ -166,11 +166,12 @@ fn build_locale_has_translations(dir: &str) -> bool {
 ///    `/app/share/locale/<lang>/` into per-language Locale extension
 ///    subsets (issue #158).
 /// 2. Build-time locale dir compiled by `build.rs` (`cargo run` development)
-/// 3. Flatpak `/app/share/locale` (legacy fallback for older builds)
-/// 4. Snap `$SNAP/share/locale`
-/// 5. User-local `~/.local/share/locale` (install-desktop.sh)
-/// 6. `XDG_DATA_HOME/locale`
-/// 7. System `/usr/share/locale`
+/// 3. macOS .app bundle: `Contents/Resources/locale` relative to executable
+/// 4. Flatpak `/app/share/locale` (legacy fallback for older builds)
+/// 5. Snap `$SNAP/share/locale`
+/// 6. User-local `~/.local/share/locale` (install-desktop.sh)
+/// 7. `XDG_DATA_HOME/locale`
+/// 8. System `/usr/share/locale`
 fn locale_dir() -> String {
     // 1. Explicit override
     if let Ok(dir) = std::env::var("LOCALEDIR") {
@@ -189,12 +190,20 @@ fn locale_dir() -> String {
         return build_locale.to_string();
     }
 
-    // 3. Flatpak
+    // 3. macOS .app bundle detection
+    //    When launched via LaunchServices, LOCALEDIR is not set but the
+    //    translations live at .app/Contents/Resources/locale/
+    #[cfg(target_os = "macos")]
+    if let Some(bundle_locale) = macos_bundle_locale_dir() {
+        return bundle_locale;
+    }
+
+    // 4. Flatpak
     if std::path::Path::new("/app/share/locale").exists() {
         return "/app/share/locale".to_string();
     }
 
-    // 4. Snap
+    // 5. Snap
     if let Ok(snap) = std::env::var("SNAP") {
         let snap_locale = format!("{snap}/share/locale");
         if std::path::Path::new(&snap_locale).exists() {
@@ -202,7 +211,7 @@ fn locale_dir() -> String {
         }
     }
 
-    // 5. User-local install (install-desktop.sh)
+    // 6. User-local install (install-desktop.sh)
     if let Ok(home) = std::env::var("HOME") {
         let local_locale = format!("{home}/.local/share/locale");
         if build_locale_has_translations(&local_locale) {
@@ -210,7 +219,7 @@ fn locale_dir() -> String {
         }
     }
 
-    // 6. XDG_DATA_HOME fallback
+    // 7. XDG_DATA_HOME fallback
     if let Ok(xdg_data) = std::env::var("XDG_DATA_HOME") {
         let xdg_locale = format!("{xdg_data}/locale");
         if build_locale_has_translations(&xdg_locale) {
@@ -218,8 +227,36 @@ fn locale_dir() -> String {
         }
     }
 
-    // 7. System default
+    // 8. System default
     "/usr/share/locale".to_string()
+}
+
+/// Detects the locale directory inside a macOS .app bundle.
+///
+/// When the executable is at `RustConn.app/Contents/MacOS/rustconn`,
+/// translations are at `RustConn.app/Contents/Resources/locale/`.
+#[cfg(target_os = "macos")]
+fn macos_bundle_locale_dir() -> Option<String> {
+    let exe_path = std::env::current_exe().ok()?;
+    // exe is at .app/Contents/MacOS/rustconn
+    let macos_dir = exe_path.parent()?;
+    let contents_dir = macos_dir.parent()?;
+    let bundle_dir = contents_dir.parent()?;
+
+    // Verify this looks like a .app bundle
+    let bundle_ext = bundle_dir
+        .extension()
+        .and_then(|e| e.to_str())?;
+    if !bundle_ext.eq_ignore_ascii_case("app") {
+        return None;
+    }
+
+    let locale_dir = contents_dir.join("Resources").join("locale");
+    if build_locale_has_translations(&locale_dir.to_string_lossy()) {
+        Some(locale_dir.to_string_lossy().into_owned())
+    } else {
+        None
+    }
 }
 
 /// Translates a string using gettext.

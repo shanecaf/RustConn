@@ -185,6 +185,7 @@ pub fn create_embedded_toolbar() -> (
     gtk4::Label,
 ) {
     let toolbar = GtkBox::new(gtk4::Orientation::Horizontal, 4);
+    toolbar.add_css_class("embedded-toolbar");
     toolbar.set_margin_start(6);
     toolbar.set_margin_end(6);
     toolbar.set_margin_top(6);

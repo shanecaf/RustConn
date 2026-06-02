@@ -42,6 +42,14 @@ Connects via `aws ssm start-session`. Requires the AWS CLI and Session Manager p
 
 **Prerequisites:** `aws` CLI, `session-manager-plugin`, configured AWS credentials.
 
+**macOS installation:**
+```bash
+brew install awscli
+brew install --cask session-manager-plugin
+```
+
+The Session Manager plugin is **not** bundled with the AWS CLI on macOS and must be installed separately. Without it, `aws ssm start-session` will fail silently or report that the plugin is not found.
+
 ### GCP IAP Tunnel
 
 Connects via `gcloud compute ssh --tunnel-through-iap`. Requires the Google Cloud SDK.

@@ -5,6 +5,40 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.5] - 2026-06-01
+
+### Added
+
+- **IronRDP 0.15 (bulk compression)** — RDP sessions now negotiate XCRUSH (RDP 6.1) compression in Quality/Balanced modes and MPPC-64K in Speed mode, significantly reducing bandwidth for slow connections. Compression is handled transparently by the new `ironrdp-bulk` crate.
+- **IronRDP 0.15 (slow-path rendering)** — sessions with servers that use slow-path output (XRDP, older Windows) now render correctly instead of showing blank screens. Both slow-path bitmap and pointer updates are routed through the existing rendering pipeline.
+- **IronRDP 0.15 (alternate_shell/work_dir)** — RemoteApp `program` and `working_dir` are now passed via the native `alternate_shell`/`work_dir` fields in the Client Info PDU, enabling CyberArk PSM and custom shell scenarios without FreeRDP.
+- **IronRDP 0.15 (improved compatibility)** — connection to GNOME Remote Desktop (grd) no longer fails on `ServerDeactivateAll` during CapabilitiesExchange; all colour depths are advertised per FreeRDP pattern (fixes Windows Server 2012+ with 24bpp); Auto-Detect Request PDUs no longer crash the session; bitmap updates exceeding buffer bounds after resize are safely skipped.
+- **IronRDP 0.15 (multitransport dispatch)** — `MultitransportRequest` and `AutoDetect` PDUs are now logged instead of causing unhandled-PDU errors. UDP sideband transport is not yet implemented but the session stays alive.
+- **IronRDP 0.15 (clipboard file contents)** — `SendFileContentsRequest`/`SendFileContentsResponse` clipboard messages are now gracefully handled (logged, not yet implemented for full file copy).
+- **IronRDP 0.15 (pixel format fix)** — removed manual R↔B channel swap in `extract_region_data`; IronRDP 0.15 fixed the pixel format pipeline so BgrA32 output now directly matches Cairo's ARGB32 (both are B-G-R-A in memory on little-endian). This eliminates a per-frame O(w×h) loop, improving 4K rendering throughput.
+
+### Fixed
+
+- **macOS: passwords not saving to Keychain** — `dispatch_vault_op()` incorrectly used `LibSecretBackend` (which shells out to `secret-tool`, a Linux-only utility) for the `MacOsKeychain` backend type. Now correctly instantiates `MacOsKeychainBackend` (Security.framework) on macOS. Users saw a generic "Failed to save password to vault" toast with no further details.
+- **macOS: tray icon missing when launched from .app bundle** — the root cause was `exec()` (re-exec) breaking the macOS LaunchServices "scene" registration for `NSStatusItem`. Replaced `setup_macos_bundle_env()` (which used `exec()` to set env vars) with `configure_macos_bundle()` which programmatically configures all subsystems without re-exec: `i18n::locale_dir()` now detects the bundle's `Contents/Resources/locale` path directly, icon search paths were already added programmatically in `register_app_icon()`, and `get_extended_path()` already handles PATH for child processes. `CFBundleExecutable` in Info.plist now points to the native `rustconn` binary with no wrapper or re-exec needed. **Note**: on macOS Sequoia 15.5, tray icon is not displayed when launched via Finder/Dock due to a GTK4 GDK macOS backend limitation (FrontBoardServices scene registration failure); works correctly when launched from terminal.
+- **macOS: AWS SSM "session-manager-plugin not found"** — added `/usr/local/sessionmanagerplugin/bin` to `get_extended_path()` on macOS for users who install the plugin via the official AWS installer (not Homebrew). Documented the separate installation requirement in `ZERO_TRUST.md` and `MACOS_BUILD.md`.
+
+### Changed
+
+- **Compact mode: denser sidebar rows** — vertical margins reduced from 6px to 3px per row, allowing ~60px more visible content for 10 connections
+- **Compact mode: slimmer sidebar bottom toolbar** — button min-height reduced from default to 22px with tighter padding
+- **Compact mode: smaller search/filter bar** — search entry min-height reduced to 26px with slightly smaller font
+- **Compact mode: popover menu item padding** — all popover menus (hamburger, context, tab) use less vertical padding per item, significantly reducing menu height on small screens
+- **Compact mode: smaller protocol filter buttons** — denser filter pills matching overall compact density
+- **Compact mode: denser RDP/VNC/SPICE toolbar** — embedded session toolbar (Copy, Paste, Autotype, Ctrl+Alt+Del) uses reduced margins and button height in compact mode, giving more vertical space to the remote desktop viewport
+- **Compact mode enabled by default on macOS** — new installations on macOS start with compact interface active; existing users keep their saved preference
+- **Hamburger menu restructured into submenus** — "Tools" (Snippets, Clusters, Templates, Variables, Password Generator, Wake On LAN, SSH Tunnels) and "Sessions" (Active Sessions, History, Statistics, Recordings) are now submenus; Import/Export/Copy/Paste merged into a single "File" section. Top-level menu reduced from 24 items to ~14, dramatically reducing vertical height on macOS
+
+### Dependencies
+
+- **Upgraded**: ironrdp 0.14→0.15, ironrdp-tokio 0.8→0.9, ironrdp-connector 0.8→0.9, ironrdp-session 0.8→0.9, ironrdp-cliprdr 0.5→0.6, ironrdp-rdpdr 0.5→0.6, ironrdp-rdpsnd 0.7→0.8, ironrdp-dvc 0.5→0.6, ironrdp-displaycontrol 0.5→0.6, ironrdp-graphics 0.7→0.8, ironrdp-pdu 0.7→0.8, ironrdp-core 0.1→0.2, ironrdp-svc 0.6→0.7. New transitive: ironrdp-bulk 0.1.
+- **Updated**: inotify 0.11.1→0.11.2, ironrdp-tls 0.2.0→0.2.1, rustls-native-certs 0.8.3→0.8.4, unicode-segmentation 1.13.2→1.13.3
+
 ## [0.15.4] - 2026-05-31
 
 ### Fixed

@@ -93,9 +93,10 @@ exec "$DIR/MacOS/rustconn" "$@"
 EOF
 chmod +x "$APP_DIR/Contents/MacOS/rustconn-wrapper"
 
-# 8b. Create native launcher that sets env and execs rustconn.
-#     CFBundleExecutable points here so macOS associates NSStatusItem
-#     with the correct bundle (bash wrappers break this association).
+# 8b. Kept for backward compatibility — the RustConn-launcher script is still
+#     available for manual use but is no longer the CFBundleExecutable.
+#     CFBundleExecutable now points directly to the native `rustconn` binary
+#     so macOS associates NSStatusItem with the correct bundle.
 cat > "$APP_DIR/Contents/MacOS/RustConn-launcher" << 'LAUNCHER'
 #!/bin/bash
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -109,16 +110,17 @@ LAUNCHER
 chmod +x "$APP_DIR/Contents/MacOS/RustConn-launcher"
 
 # 9. Create Info.plist
-#    CFBundleExecutable points to the wrapper script which sets env vars and execs
-#    the rustconn binary. The wrapper uses exec so the binary inherits the PID
-#    and macOS correctly associates it with the bundle for NSStatusItem (tray).
+#    CFBundleExecutable points directly to the native rustconn binary.
+#    The binary's configure_macos_bundle() detects the bundle and configures
+#    i18n, icon paths, and GSettings programmatically (no re-exec needed).
+#    This preserves the LaunchServices scene for NSStatusItem (tray icon).
 cat > "$APP_DIR/Contents/Info.plist" << EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
     <key>CFBundleExecutable</key>
-    <string>rustconn-wrapper</string>
+    <string>rustconn</string>
     <key>CFBundleIconFile</key>
     <string>RustConn</string>
     <key>CFBundleIdentifier</key>
