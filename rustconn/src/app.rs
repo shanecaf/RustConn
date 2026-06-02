@@ -180,7 +180,7 @@ fn build_ui(app: &adw::Application, tray_manager: SharedTrayManager) {
             let state_for_tray = state.clone();
             let tray_mgr_for_init = tray_manager.clone();
             // Initial delay: 2 seconds (Sequoia needs more time than Ventura)
-            glib::timeout_add_local_once(std::time::Duration::from_millis(2000), move || {
+            glib::timeout_add_local_once(std::time::Duration::from_secs(2), move || {
                 try_create_macos_tray(state_for_tray, tray_mgr_for_init, 0);
             });
         }
