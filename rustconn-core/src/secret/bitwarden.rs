@@ -560,20 +560,21 @@ impl BitwardenBackend {
         Ok(result)
     }
 
-    /// Finds an item by exact vault entry name (without `RustConn:` prefix).
+    /// Finds an item by exact vault entry name (without `RustConn:` prefix)
+    /// and returns its password.
     ///
     /// This allows reusing existing Bitwarden entries that were not created
     /// by RustConn. The search matches the item name exactly as stored.
     ///
     /// # Errors
     /// Returns `SecretError` if the vault is locked or CLI fails.
-    pub async fn find_item_by_exact_name(
+    pub async fn find_password_by_exact_name(
         &self,
         entry_name: &str,
-    ) -> SecretResult<Option<BitwardenItem>> {
+    ) -> SecretResult<Option<SecretString>> {
         tracing::debug!(
             entry_name = %entry_name,
-            "Bitwarden find_item_by_exact_name: searching vault"
+            "Bitwarden find_password_by_exact_name: searching vault"
         );
 
         let output = self
@@ -586,7 +587,7 @@ impl BitwardenBackend {
         tracing::debug!(
             items_count = items.len(),
             entry_name = %entry_name,
-            "Bitwarden find_item_by_exact_name: parsed results"
+            "Bitwarden find_password_by_exact_name: parsed results"
         );
 
         // Find exact match by name (case-sensitive)
@@ -595,11 +596,11 @@ impl BitwardenBackend {
         if result.is_none() {
             tracing::debug!(
                 entry_name = %entry_name,
-                "Bitwarden find_item_by_exact_name: no exact match found"
+                "Bitwarden find_password_by_exact_name: no exact match found"
             );
         }
 
-        Ok(result)
+        Ok(result.and_then(|item| item.login).and_then(|l| l.password))
     }
 }
 

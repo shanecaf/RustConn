@@ -723,13 +723,12 @@ fn retrieve_by_vault_entry_name(
                         let bw = rustconn_core::secret::auto_unlock(settings)
                             .await
                             .map_err(|e| format!("{e}"))?;
-                        let item = bw
-                            .find_item_by_exact_name(entry_name)
+                        let password = bw
+                            .find_password_by_exact_name(entry_name)
                             .await
                             .map_err(|e| format!("{e}"))?;
-                        let password = item.and_then(|i| i.login).and_then(|l| l.password);
                         Ok(password.map(|p| {
-                            let z = zeroize::Zeroizing::new(p);
+                            let z = zeroize::Zeroizing::new(p.expose_secret().to_string());
                             String::from(z.as_str())
                         }))
                     }
