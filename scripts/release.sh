@@ -13,8 +13,8 @@
 #   ./scripts/release.sh                # validate + run merge/tag/push (asks for confirmation)
 #   ./scripts/release.sh --dry-run      # validate + show what WOULD be done
 #   ./scripts/release.sh --no-push      # validate + merge + tag locally; skip push
-#   ./scripts/release.sh --with-tests   # also run `cargo test --workspace` (slow, ~120s)
-#   ./scripts/release.sh --skip-checks  # skip cargo fmt/clippy (NOT recommended)
+#   ./scripts/release.sh --skip-tests   # skip cargo test (saves ~120s)
+#   ./scripts/release.sh --skip-checks  # skip cargo fmt/clippy/tests (NOT recommended)
 #   ./scripts/release.sh --yes          # do not prompt before push
 #
 # Exit codes:
@@ -50,7 +50,7 @@ run()   { printf '%s[run]%s  %s\n'    "$C_BOLD"   "$C_RESET" "$*"; "$@"; }
 # ──────────────────────────────────────────────────────────────────────────────
 DRY_RUN=false
 NO_PUSH=false
-WITH_TESTS=false
+SKIP_TESTS=false
 SKIP_CHECKS=false
 ASSUME_YES=false
 
@@ -58,7 +58,7 @@ for arg in "$@"; do
     case "$arg" in
         --dry-run)     DRY_RUN=true ;;
         --no-push)     NO_PUSH=true ;;
-        --with-tests)  WITH_TESTS=true ;;
+        --skip-tests)  SKIP_TESTS=true ;;
         --skip-checks) SKIP_CHECKS=true ;;
         --yes|-y)      ASSUME_YES=true ;;
         --help|-h)
@@ -176,10 +176,13 @@ fi
 ok "All ${#PKG_FILES[@]} packaging files synced to $VERSION"
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 6. Tag does not exist yet
+# 6. Tag does not exist yet (local + remote)
 # ──────────────────────────────────────────────────────────────────────────────
+info "Fetching latest tags from origin..."
+git fetch --tags --quiet origin 2>/dev/null || warn "git fetch failed — checking local only"
+
 if git rev-parse "$TAG" >/dev/null 2>&1; then
-    fail "Tag $TAG already exists. Aborting."
+    fail "Tag $TAG already exists (local or remote). Aborting."
 fi
 ok "Tag $TAG does not exist yet"
 
@@ -193,10 +196,16 @@ fi
 ok "Working tree clean (untracked files ignored)"
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 8. main branch exists and is reachable
+# 8. main branch exists, is reachable, and release branch contains it
 # ──────────────────────────────────────────────────────────────────────────────
 git rev-parse --verify main >/dev/null 2>&1 || fail "Branch 'main' does not exist"
-ok "Branch 'main' exists"
+
+# Ensure release branch includes all commits from main (fast-forward safe merge)
+BEHIND="$(git rev-list --count "HEAD..main" 2>/dev/null || echo "0")"
+if (( BEHIND > 0 )); then
+    fail "Branch '$BRANCH' is $BEHIND commit(s) behind 'main'. Rebase or merge main first."
+fi
+ok "Branch 'main' exists; release branch is up-to-date"
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 9. po/*.po files validate (msgfmt --check)
@@ -219,13 +228,13 @@ else
 fi
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 10. cargo fmt + clippy + (optional) tests
+# 10. cargo fmt + clippy + tests
 # ──────────────────────────────────────────────────────────────────────────────
 if $SKIP_CHECKS; then
-    warn "Skipping cargo fmt/clippy (--skip-checks)"
+    warn "Skipping cargo fmt/clippy/tests (--skip-checks)"
 else
-    info "Running: cargo fmt --check"
-    cargo fmt --check || fail "cargo fmt --check failed"
+    info "Running: cargo fmt --all -- --check"
+    cargo fmt --all -- --check || fail "cargo fmt --check failed"
     ok "cargo fmt clean"
 
     info "Running: cargo clippy --all-targets --quiet -- -D warnings"
@@ -244,15 +253,25 @@ else
     fi
     ok "cargo clippy: 0 warnings"
 
-    if $WITH_TESTS; then
-        info "Running: cargo test --workspace (this is slow, ~120s)"
-        cargo test --workspace --quiet || fail "cargo test failed"
+    if $SKIP_TESTS; then
+        warn "Skipping tests (--skip-tests)"
+    else
+        info "Running: cargo test --workspace (this takes ~120s)"
+        cargo test --workspace || fail "cargo test failed"
         ok "cargo test passed"
     fi
 fi
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 11. Plan or execute release operations
+# 11. Verify Cargo.lock is up-to-date
+# ──────────────────────────────────────────────────────────────────────────────
+if [[ -n "$(git status --porcelain -- Cargo.lock)" ]]; then
+    fail "Cargo.lock is out of sync with Cargo.toml — run 'cargo check' and commit"
+fi
+ok "Cargo.lock is up-to-date"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 12. Plan or execute release operations
 # ──────────────────────────────────────────────────────────────────────────────
 echo
 printf '%s%s═══ Release plan for %s ═══%s\n' "$C_BOLD" "$C_GREEN" "$VERSION" "$C_RESET"
