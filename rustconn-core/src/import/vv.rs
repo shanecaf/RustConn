@@ -435,7 +435,10 @@ ca=-----BEGIN CERTIFICATE-----\\nMIIFake...\\n-----END CERTIFICATE-----
         );
         // A warning should inform the user where the cert was saved
         assert!(
-            result.warnings.iter().any(|w| w.contains("Inline CA certificate saved")),
+            result
+                .warnings
+                .iter()
+                .any(|w| w.contains("Inline CA certificate saved")),
             "Expected a warning about saved CA certificate"
         );
         // Verify the saved file exists and contains decoded PEM
@@ -548,7 +551,10 @@ ca=-----BEGIN CERTIFICATE-----\\nMIIFakeContentWithoutEndMarker
         );
         // Should have a skipped entry explaining the issue
         assert!(
-            result.skipped.iter().any(|s| s.reason.contains("END marker")),
+            result
+                .skipped
+                .iter()
+                .any(|s| s.reason.contains("END marker")),
             "Expected skipped entry mentioning missing END marker"
         );
     }

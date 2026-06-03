@@ -684,8 +684,7 @@ pub fn load_variable_from_vault_with_path(
             // For non-KeePass backends: if vault_entry_name is set, search by
             // exact name in the vault (Bitwarden, 1Password, etc.) instead of
             // the default rustconn/var/{name} key.
-            let effective_entry_name =
-                vault_entry_name.filter(|n| !n.trim().is_empty());
+            let effective_entry_name = vault_entry_name.filter(|n| !n.trim().is_empty());
 
             if let Some(entry_name) = effective_entry_name {
                 // Direct lookup by exact vault entry name
@@ -737,47 +736,72 @@ fn retrieve_by_vault_entry_name(
                     SecretBackendType::OnePassword => {
                         // 1Password: use `op item get "{name}" --fields password`
                         let backend = rustconn_core::secret::OnePasswordBackend::new();
-                        let creds = backend.retrieve(entry_name).await.map_err(|e| format!("{e}"))?;
-                        Ok(creds.and_then(|c| c.expose_password().map(|p| {
-                            let z = zeroize::Zeroizing::new(p.to_string());
-                            String::from(z.as_str())
-                        })))
+                        let creds = backend
+                            .retrieve(entry_name)
+                            .await
+                            .map_err(|e| format!("{e}"))?;
+                        Ok(creds.and_then(|c| {
+                            c.expose_password().map(|p| {
+                                let z = zeroize::Zeroizing::new(p.to_string());
+                                String::from(z.as_str())
+                            })
+                        }))
                     }
                     SecretBackendType::Pass => {
                         // Pass: entry_name is the pass path (e.g. "work/ad-creds")
                         let backend =
                             rustconn_core::secret::PassBackend::from_secret_settings(settings);
-                        let creds = backend.retrieve(entry_name).await.map_err(|e| format!("{e}"))?;
-                        Ok(creds.and_then(|c| c.expose_password().map(|p| {
-                            let z = zeroize::Zeroizing::new(p.to_string());
-                            String::from(z.as_str())
-                        })))
+                        let creds = backend
+                            .retrieve(entry_name)
+                            .await
+                            .map_err(|e| format!("{e}"))?;
+                        Ok(creds.and_then(|c| {
+                            c.expose_password().map(|p| {
+                                let z = zeroize::Zeroizing::new(p.to_string());
+                                String::from(z.as_str())
+                            })
+                        }))
                     }
                     SecretBackendType::Passbolt => {
                         let backend = rustconn_core::secret::PassboltBackend::new();
-                        let creds = backend.retrieve(entry_name).await.map_err(|e| format!("{e}"))?;
-                        Ok(creds.and_then(|c| c.expose_password().map(|p| {
-                            let z = zeroize::Zeroizing::new(p.to_string());
-                            String::from(z.as_str())
-                        })))
+                        let creds = backend
+                            .retrieve(entry_name)
+                            .await
+                            .map_err(|e| format!("{e}"))?;
+                        Ok(creds.and_then(|c| {
+                            c.expose_password().map(|p| {
+                                let z = zeroize::Zeroizing::new(p.to_string());
+                                String::from(z.as_str())
+                            })
+                        }))
                     }
                     #[cfg(target_os = "macos")]
                     SecretBackendType::MacOsKeychain => {
                         let backend = rustconn_core::secret::MacOsKeychainBackend::new();
-                        let creds = backend.retrieve(entry_name).await.map_err(|e| format!("{e}"))?;
-                        Ok(creds.and_then(|c| c.expose_password().map(|p| {
-                            let z = zeroize::Zeroizing::new(p.to_string());
-                            String::from(z.as_str())
-                        })))
+                        let creds = backend
+                            .retrieve(entry_name)
+                            .await
+                            .map_err(|e| format!("{e}"))?;
+                        Ok(creds.and_then(|c| {
+                            c.expose_password().map(|p| {
+                                let z = zeroize::Zeroizing::new(p.to_string());
+                                String::from(z.as_str())
+                            })
+                        }))
                     }
                     _ => {
                         // LibSecret (Linux) — lookup by entry_name as attribute
                         let backend = rustconn_core::secret::LibSecretBackend::new("rustconn");
-                        let creds = backend.retrieve(entry_name).await.map_err(|e| format!("{e}"))?;
-                        Ok(creds.and_then(|c| c.expose_password().map(|p| {
-                            let z = zeroize::Zeroizing::new(p.to_string());
-                            String::from(z.as_str())
-                        })))
+                        let creds = backend
+                            .retrieve(entry_name)
+                            .await
+                            .map_err(|e| format!("{e}"))?;
+                        Ok(creds.and_then(|c| {
+                            c.expose_password().map(|p| {
+                                let z = zeroize::Zeroizing::new(p.to_string());
+                                String::from(z.as_str())
+                            })
+                        }))
                     }
                 }
             })

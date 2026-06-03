@@ -318,8 +318,9 @@ pub(super) fn create_basic_tab() -> BasicTabWidgets {
         .valign(gtk4::Align::Center)
         .css_classes(["flat"])
         .build();
-    variable_manage_btn
-        .update_property(&[gtk4::accessible::Property::Label(&i18n("Manage global variables"))]);
+    variable_manage_btn.update_property(&[gtk4::accessible::Property::Label(&i18n(
+        "Manage global variables",
+    ))]);
     // Clicking the manage button activates the same action as Tools → Variables
     variable_manage_btn.set_action_name(Some("win.manage-variables"));
     let variable_action_row = adw::ActionRow::builder()

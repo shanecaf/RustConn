@@ -6,7 +6,7 @@
 
 use adw::prelude::*;
 use gtk4::prelude::*;
-use gtk4::{gio, Button, EventControllerKey, Label};
+use gtk4::{Button, EventControllerKey, Label, gio};
 use libadwaita as adw;
 use rustconn_core::config::keybindings::{
     KeybindingCategory, KeybindingSettings, default_keybindings, is_valid_accelerator,
@@ -411,4 +411,3 @@ pub fn restore_accels_with_overrides(app: &gtk4::Application, overrides: &Keybin
         app.set_accels_for_action(&def.action, &accels);
     }
 }
-

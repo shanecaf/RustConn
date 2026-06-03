@@ -527,7 +527,12 @@ impl AppState {
                 .iter()
                 .find(|v| v.name == *var_name)
                 .and_then(|v| v.vault_entry_name.as_deref());
-            match load_variable_from_vault_with_path(&secret_settings, var_name, kdbx_entry_path, vault_entry_name) {
+            match load_variable_from_vault_with_path(
+                &secret_settings,
+                var_name,
+                kdbx_entry_path,
+                vault_entry_name,
+            ) {
                 Ok(Some(password)) => {
                     tracing::debug!(var_name, "[resolve_credentials_blocking] Variable resolved");
                     let creds = if let Some(ref username) = connection.username {

@@ -381,7 +381,10 @@ pub fn is_valid_accelerator(accel: &str) -> bool {
     // Without modifiers, only allow special keys (multi-char names)
     // Single characters like "a", "x" conflict with text input
     let key_name = trimmed;
-    key_name.len() > 1 && key_name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+    key_name.len() > 1
+        && key_name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_')
 }
 
 #[cfg(test)]
