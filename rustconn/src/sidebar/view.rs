@@ -18,6 +18,18 @@ use crate::sidebar_ui;
 /// Each list item is set up with proper accessible properties:
 /// - Status icons have live region for dynamic updates
 /// - Labels are associated with their icons
+
+/// Finds a direct child widget with a given CSS class.
+fn find_child_by_css_class(parent: &GtkBox, class: &str) -> Option<gtk4::Widget> {
+    let mut child = parent.first_child();
+    while let Some(widget) = child {
+        if widget.css_classes().iter().any(|c| c == class) {
+            return Some(widget);
+        }
+        child = widget.next_sibling();
+    }
+    None
+}
 #[expect(
     clippy::too_many_lines,
     reason = "long match/dispatch over many enum variants; splitting per variant only relocates the boilerplate"
@@ -37,6 +49,7 @@ pub fn setup_list_item(
     content_box.set_margin_bottom(6);
 
     let icon = Image::from_icon_name("network-server-symbolic");
+    icon.set_pixel_size(16);
     content_box.append(&icon);
 
     let status_icon = Image::from_icon_name("object-select-symbolic");
@@ -258,11 +271,26 @@ pub fn bind_list_item(
         return;
     };
 
-    let Some(icon) = content_box.first_child().and_downcast::<Image>() else {
+    // Find icon — skip emoji labels that may have been prepended
+    let icon = {
+        let mut child = content_box.first_child();
+        loop {
+            match child {
+                Some(w) if w.downcast_ref::<Image>().is_some() && !w.css_classes().iter().any(|c| c == "status-icon") => {
+                    break w.downcast::<Image>().ok();
+                }
+                Some(w) => child = w.next_sibling(),
+                None => break None,
+            }
+        }
+    };
+    let Some(icon) = icon else {
         return;
     };
 
-    let Some(status_icon) = icon.next_sibling().and_downcast::<Image>() else {
+    let Some(status_icon) = find_child_by_css_class(&content_box, "status-icon")
+        .and_downcast::<Image>()
+    else {
         return;
     };
 
@@ -485,9 +513,7 @@ pub fn bind_list_item(
 
         // Setup status monitoring logic
         // Update status icon
-        if let Some(status_icon) = content_box
-            .first_child()
-            .and_then(|c| c.next_sibling())
+        if let Some(status_icon) = find_child_by_css_class(&content_box, "status-icon")
             .and_downcast::<gtk4::Image>()
         {
             // Helper to update icon state with accessibility announcements
