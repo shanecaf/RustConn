@@ -12,13 +12,6 @@ use crate::i18n::{i18n, i18n_f};
 use crate::sidebar::ConnectionItem;
 use crate::sidebar_ui;
 
-/// Sets up a list item widget
-///
-/// # Accessibility
-/// Each list item is set up with proper accessible properties:
-/// - Status icons have live region for dynamic updates
-/// - Labels are associated with their icons
-
 /// Finds a direct child widget with a given CSS class.
 fn find_child_by_css_class(parent: &GtkBox, class: &str) -> Option<gtk4::Widget> {
     let mut child = parent.first_child();
@@ -30,6 +23,13 @@ fn find_child_by_css_class(parent: &GtkBox, class: &str) -> Option<gtk4::Widget>
     }
     None
 }
+
+/// Sets up a list item widget
+///
+/// # Accessibility
+/// Each list item is set up with proper accessible properties:
+/// - Status icons have live region for dynamic updates
+/// - Labels are associated with their icons
 #[expect(
     clippy::too_many_lines,
     reason = "long match/dispatch over many enum variants; splitting per variant only relocates the boilerplate"
