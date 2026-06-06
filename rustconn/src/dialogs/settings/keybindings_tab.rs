@@ -273,12 +273,18 @@ pub fn load_keybinding_settings(
 ) {
     *overrides_cell.borrow_mut() = settings.clone();
 
-    // Collect all ActionRow widgets recursively and update their labels
+    // Build the same category-grouped order used by create_keybindings_page
+    // so that the zip with DOM-collected ActionRows is correct.
     let defaults = default_keybindings();
+    let ordered_defs: Vec<_> = KeybindingCategory::all()
+        .iter()
+        .flat_map(|cat| defaults.iter().filter(move |d| d.category == *cat))
+        .collect();
+
     let mut action_rows: Vec<gtk4::Widget> = Vec::new();
     collect_action_rows(&page.clone().upcast::<gtk4::Widget>(), &mut action_rows);
 
-    for (row_widget, def) in action_rows.iter().zip(defaults.iter()) {
+    for (row_widget, def) in action_rows.iter().zip(ordered_defs.iter()) {
         let accel = settings.get_accel(def);
         update_row_accel_label(row_widget, accel);
     }
@@ -307,12 +313,32 @@ fn find_accel_conflict(
         let effective = overrides.get_accel(def);
         // Check each pipe-separated accelerator
         for existing in effective.split('|') {
-            if existing == accel {
+            if accels_equivalent(existing, accel) {
                 return Some(def.label.clone());
             }
         }
     }
     None
+}
+
+/// Returns `true` if two accelerator strings represent the same key combination.
+///
+/// GTK4 `accelerator_name` normalises modifier order as Shift > Control > Alt > Super,
+/// but user-facing config or defaults may have been written in a different order.
+/// We canonicalise both sides via `gtk4::accelerator_parse` + comparison of parsed
+/// key/modifiers.
+fn accels_equivalent(a: &str, b: &str) -> bool {
+    if a == b {
+        return true;
+    }
+    // Parse both through GTK to get canonical representation
+    let Some((a_key, a_mods)) = gtk4::accelerator_parse(a) else {
+        return false;
+    };
+    let Some((b_key, b_mods)) = gtk4::accelerator_parse(b) else {
+        return false;
+    };
+    a_key == b_key && a_mods == b_mods
 }
 
 /// Returns `true` if the keyval is a modifier key (Shift, Control, Alt, Super).
@@ -338,10 +364,16 @@ fn is_modifier_key(keyval: gtk4::gdk::Key) -> bool {
 /// Refreshes all accelerator labels in the page to show defaults.
 fn refresh_accel_labels(page: &adw::PreferencesPage) {
     let defaults = default_keybindings();
+    // Use the same category-grouped order as create_keybindings_page
+    let ordered_defs: Vec<_> = KeybindingCategory::all()
+        .iter()
+        .flat_map(|cat| defaults.iter().filter(move |d| d.category == *cat))
+        .collect();
+
     let mut action_rows: Vec<gtk4::Widget> = Vec::new();
     collect_action_rows(&page.clone().upcast::<gtk4::Widget>(), &mut action_rows);
 
-    for (row_widget, def) in action_rows.iter().zip(defaults.iter()) {
+    for (row_widget, def) in action_rows.iter().zip(ordered_defs.iter()) {
         update_row_accel_label(row_widget, &def.default_accels);
     }
 }

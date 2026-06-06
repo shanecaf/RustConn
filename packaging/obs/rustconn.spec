@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.15.9
+Version:        0.15.10
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -238,6 +238,12 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Thu Jun 05 2026 Anton Isaiev <totoshko88@gmail.com> - 0.15.10-0
+- Fixed keybinding overrides not displayed correctly after reopening Settings (#170)
+- Fixed keybinding conflict detection ignoring modifier order
+- Fixed Snap package failing to start on Ubuntu 26.04 (AppArmor error) (#174)
+- Updated bitflags 2.12.1 -> 2.13.0
+
 * Thu Jun 05 2026 Anton Isaiev <totoshko88@gmail.com> - 0.15.9-0
 - Lazy init secret backends — only preferred backend initialized at startup
 - KeePass keyring failure toast at startup when password not loaded

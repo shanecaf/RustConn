@@ -85,7 +85,7 @@ flatpak install flathub org.gnome.Platform//50
 #### Install
 
 ```bash
-flatpak install --user RustConn-0.15.9.flatpak
+flatpak install --user RustConn-0.15.10.flatpak
 ```
 
 Confirm runtime dependency installation if prompted.
@@ -134,9 +134,6 @@ sudo snap connect rustconn:oci-credentials
 
 # Kubernetes config
 sudo snap connect rustconn:kube-credentials
-
-# Host CLI access (Zero Trust, password managers, kubectl, FreeRDP, VNC viewer)
-sudo snap connect rustconn:host-usr-bin
 ```
 
 ### Bundled in Snap
@@ -150,7 +147,7 @@ sudo snap connect rustconn:host-usr-bin
 | waypipe | Wayland forwarding |
 
 External CLIs (Zero Trust providers, password managers, kubectl, FreeRDP, VNC viewer)
-must be installed on the host and accessed via the `host-usr-bin` interface.
+are downloaded on demand via the Components dialog (Menu → Components) inside the sandbox.
 
 ### CLI in Snap
 

@@ -29,8 +29,8 @@ rustconn.rustconn-cli add --name myserver --protocol ssh --host 192.168.1.10
 ## Strict Confinement
 
 This snap uses strict confinement with embedded Rust protocol implementations.
-External CLIs (Zero Trust, password managers, kubectl) must be installed on the
-host system and accessed via the `host-usr-bin` interface.
+External CLIs (Zero Trust, password managers, kubectl) can be downloaded on demand
+via the Components dialog (Menu → Components) inside the sandbox — no host access required.
 
 ### Automatic Interfaces
 
@@ -66,9 +66,6 @@ sudo snap connect rustconn:oci-credentials        # ~/.oci (read-only)
 
 # Kubernetes config
 sudo snap connect rustconn:kube-credentials       # ~/.kube (read-only)
-
-# Host CLI access (Zero Trust, password managers, kubectl, FreeRDP, VNC viewer)
-sudo snap connect rustconn:host-usr-bin
 ```
 
 ## Bundled Components
@@ -91,12 +88,12 @@ The snap includes all core protocol clients — no separate installation needed:
 | Protocol | Implementation | Notes |
 |----------|----------------|-------|
 | SSH | VTE terminal | Always embedded |
-| RDP | IronRDP | Embedded; FreeRDP fallback via `host-usr-bin` |
-| VNC | vnc-rs | Embedded; TigerVNC fallback via `host-usr-bin` |
-| SPICE | spice-client | Embedded; remote-viewer fallback via `host-usr-bin` |
+| RDP | IronRDP | Embedded; FreeRDP fallback via Components |
+| VNC | vnc-rs | Embedded; TigerVNC fallback via Components |
+| SPICE | spice-client | Embedded; remote-viewer fallback via Components |
 | Telnet | Bundled inetutils | VTE terminal session |
 | Serial | Bundled picocom | VTE terminal session; requires `serial-port` interface |
-| Kubernetes | Host kubectl | Requires `host-usr-bin` + `kube-credentials` |
+| Kubernetes | Components kubectl | Requires `kube-credentials` |
 | SFTP | Bundled mc | Midnight Commander FISH VFS |
 | Waypipe | Bundled waypipe | Wayland forwarding over SSH |
 
@@ -114,59 +111,52 @@ sudo usermod -aG dialout $USER
 # Log out and back in for the change to take effect
 ```
 
-## External CLIs (Host-Installed)
+## External CLIs (On-Demand Download)
 
-For Zero Trust connections, password managers, and Kubernetes, install CLIs on your
-host system and connect the `host-usr-bin` interface:
+External CLIs (Zero Trust providers, password managers, kubectl, FreeRDP, VNC viewer)
+are downloaded on demand via the Components dialog (Menu → Components) inside the
+sandbox. CLIs install into `$SNAP_USER_DATA/cli/` and are available for connections
+automatically — no host access is required.
 
-```bash
-sudo snap connect rustconn:host-usr-bin
-```
+### Available CLIs
 
-The `host-usr-bin` interface grants read access to these specific binaries:
-
-| Binary | Purpose |
-|--------|---------|
-| `/usr/bin/aws` | AWS SSM connections |
-| `/usr/bin/gcloud` | GCP IAP connections |
-| `/usr/bin/az` | Azure Bastion connections |
-| `/usr/bin/oci` | OCI Bastion connections |
-| `/usr/bin/cloudflared` | Cloudflare Tunnel |
-| `/usr/bin/tsh` | Teleport |
-| `/usr/bin/tailscale` | Tailscale |
-| `/usr/bin/boundary` | HashiCorp Boundary |
-| `/usr/bin/kubectl`, `/usr/local/bin/kubectl` | Kubernetes |
-| `/usr/bin/bw` | Bitwarden CLI |
-| `/usr/bin/op` | 1Password CLI |
-| `/usr/bin/passbolt` | Passbolt CLI |
-| `/usr/bin/keepassxc-proxy` | KeePassXC proxy |
-| `/usr/bin/remote-viewer` | SPICE fallback |
-| `/usr/bin/xfreerdp` | RDP fallback |
-| `/usr/bin/vncviewer` | VNC fallback |
+| CLI | Purpose |
+|-----|---------|
+| `aws` | AWS SSM connections |
+| `gcloud` | GCP IAP connections |
+| `az` | Azure Bastion connections |
+| `oci` | OCI Bastion connections |
+| `cloudflared` | Cloudflare Tunnel |
+| `tsh` | Teleport |
+| `tailscale` | Tailscale |
+| `boundary` | HashiCorp Boundary |
+| `kubectl` | Kubernetes |
+| `bw` | Bitwarden CLI |
+| `op` | 1Password CLI |
+| `passbolt` | Passbolt CLI |
+| `keepassxc-proxy` | KeePassXC proxy |
+| `remote-viewer` | SPICE fallback |
+| `xfreerdp` | RDP fallback |
+| `vncviewer` | VNC fallback |
 
 ### Zero Trust CLIs
 
-Install the CLIs you need on your host, then connect both the CLI and credentials interfaces:
+Download the CLIs you need from the Components dialog, then connect the credentials interfaces:
 
 ```bash
 # AWS SSM
-sudo snap connect rustconn:host-usr-bin
 sudo snap connect rustconn:aws-credentials
 
 # GCP IAP
-sudo snap connect rustconn:host-usr-bin
 sudo snap connect rustconn:gcloud-credentials
 
 # Azure Bastion
-sudo snap connect rustconn:host-usr-bin
 sudo snap connect rustconn:azure-credentials
 
 # OCI Bastion
-sudo snap connect rustconn:host-usr-bin
 sudo snap connect rustconn:oci-credentials
 
 # Kubernetes
-sudo snap connect rustconn:host-usr-bin
 sudo snap connect rustconn:kube-credentials
 ```
 
@@ -174,11 +164,8 @@ For CLI installation instructions, see [INSTALL.md — Zero Trust CLI Tools](INS
 
 ### Password Manager CLIs
 
-Install the CLI on your host, then connect `host-usr-bin`:
-
-```bash
-sudo snap connect rustconn:host-usr-bin
-```
+Download the CLI from the Components dialog. No additional interface connections
+are needed for password manager CLIs (they run inside the sandbox).
 
 | Manager | Host package | Notes |
 |---------|-------------|-------|
@@ -198,8 +185,7 @@ sudo snap connect rustconn:ssh-keys
 # Serial console
 sudo snap connect rustconn:serial-port
 
-# Host CLIs + cloud credentials (connect only what you use)
-sudo snap connect rustconn:host-usr-bin
+# Cloud credentials (connect only what you use)
 sudo snap connect rustconn:aws-credentials
 sudo snap connect rustconn:gcloud-credentials
 sudo snap connect rustconn:azure-credentials
@@ -225,8 +211,7 @@ Due to snap confinement, RustConn stores data in snap-specific locations:
 - Verify SSH agent is running: `echo $SSH_AUTH_SOCK`
 
 ### Zero Trust / kubectl CLI not found
-- Install the CLI on your host system (must be in `/usr/bin/` or `/usr/local/bin/`)
-- Connect the interface: `sudo snap connect rustconn:host-usr-bin`
+- Open the Components dialog (Menu → Components) and download the CLI
 - Connect credentials: e.g. `sudo snap connect rustconn:aws-credentials`
 
 ### Serial port permission denied
@@ -249,16 +234,16 @@ snap connections rustconn
 | Telnet | Bundled | Bundled | Host CLI |
 | Serial | Bundled | Bundled | Host CLI |
 | Waypipe | Bundled | Bundled | Host CLI |
-| Kubernetes | Host kubectl | Host kubectl (flatpak-spawn) | Host kubectl |
-| Zero Trust | Host CLIs | Host CLIs (flatpak-spawn) | Host CLIs |
-| Password CLIs | Host CLIs | Host CLIs (flatpak-spawn) | Host CLIs |
-| CLI downloads | — | Flatpak Components dialog | — |
+| Kubernetes | Components kubectl | Components kubectl (flatpak-spawn) | Host kubectl |
+| Zero Trust | Components CLIs | Components CLIs (flatpak-spawn) | Host CLIs |
+| Password CLIs | Components CLIs | Components CLIs (flatpak-spawn) | Host CLIs |
+| CLI downloads | Components dialog | Components dialog | — |
 
 **Flatpak Components** — Flatpak users can download additional CLI tools (Zero Trust,
-password managers, TigerVNC) directly within the sandbox via Menu → Flatpak Components.
+password managers, TigerVNC) directly within the sandbox via Menu → Components.
 See [User Guide — Flatpak Components](USER_GUIDE.md#flatpak-components) for details.
 
 **Recommendation:**
 - **Flatpak:** Recommended for most users. Full functionality with on-demand CLI downloads.
-- **Snap:** Good for users who prefer strict confinement; requires manual interface connections.
+- **Snap:** Good for users who prefer strict confinement; on-demand CLI downloads and manual interface connections.
 - **Native:** Full functionality with all host CLIs, no sandboxing overhead.
