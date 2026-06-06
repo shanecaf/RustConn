@@ -3,7 +3,7 @@
 //! Provides [`KeybindingSettings`] for user-customizable keyboard shortcuts
 //! and [`KeybindingDef`] for the default keybinding registry.
 
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 
 use serde::{Deserialize, Serialize};
 
@@ -358,6 +358,60 @@ pub fn default_keybindings() -> Vec<KeybindingDef> {
     ]
 }
 
+/// Returns `true` if two GTK accelerator strings denote the same shortcut.
+///
+/// Comparison ignores the order of modifier tokens, so `<Control><Shift>w`
+/// and `<Shift><Control>w` are treated as equal. The `<Primary>` and `<Ctrl>`
+/// aliases are normalised to `<Control>`. Key names are compared
+/// case-insensitively.
+///
+/// This is a pure, GTK-independent equivalent of comparing the output of
+/// `gtk4::accelerator_parse`, kept in `rustconn-core` so it can be unit-tested
+/// without a display.
+#[must_use]
+pub fn accelerators_equivalent(a: &str, b: &str) -> bool {
+    match (parse_accelerator(a), parse_accelerator(b)) {
+        (Some(parsed_a), Some(parsed_b)) => parsed_a == parsed_b,
+        // Fall back to exact comparison when either side cannot be parsed.
+        _ => a == b,
+    }
+}
+
+/// Parses an accelerator into its set of modifiers and its key name.
+///
+/// Returns `None` when the string is empty, has an unterminated `<...>` token,
+/// or has no trailing key after the modifiers.
+fn parse_accelerator(accel: &str) -> Option<(BTreeSet<String>, String)> {
+    let trimmed = accel.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    let mut modifiers = BTreeSet::new();
+    let mut rest = trimmed;
+    while let Some(after_open) = rest.strip_prefix('<') {
+        let close = after_open.find('>')?;
+        let token = after_open[..close].trim().to_ascii_lowercase();
+        if token.is_empty() {
+            return None;
+        }
+        // Normalise the only unambiguous GTK aliases; leave others as-is so we
+        // never merge genuinely distinct modifiers (e.g. Super vs Meta).
+        let canonical = match token.as_str() {
+            "primary" | "ctrl" => "control",
+            other => other,
+        };
+        modifiers.insert(canonical.to_owned());
+        rest = &after_open[close + 1..];
+    }
+
+    let key = rest.trim();
+    if key.is_empty() {
+        return None;
+    }
+    Some((modifiers, key.to_ascii_lowercase()))
+}
+
 /// Validates a GTK accelerator string.
 ///
 /// Returns `true` if the string looks like a valid GTK accelerator
@@ -497,5 +551,73 @@ mod tests {
         assert!(!is_valid_accelerator("a"));
         assert!(!is_valid_accelerator("x"));
         assert!(!is_valid_accelerator("1"));
+    }
+
+    #[test]
+    fn accels_equivalent_ignores_modifier_order() {
+        assert!(accelerators_equivalent(
+            "<Control><Shift>w",
+            "<Shift><Control>w"
+        ));
+        assert!(accelerators_equivalent(
+            "<Control><Shift><Alt>p",
+            "<Alt><Shift><Control>p"
+        ));
+    }
+
+    #[test]
+    fn accels_equivalent_identical_strings() {
+        assert!(accelerators_equivalent("<Control>q", "<Control>q"));
+        assert!(accelerators_equivalent("F11", "F11"));
+    }
+
+    #[test]
+    fn accels_equivalent_normalises_primary_and_ctrl_aliases() {
+        assert!(accelerators_equivalent("<Primary>c", "<Control>c"));
+        assert!(accelerators_equivalent("<Ctrl>c", "<Control>c"));
+        assert!(accelerators_equivalent(
+            "<Primary><Shift>c",
+            "<Shift><Control>c"
+        ));
+    }
+
+    #[test]
+    fn accels_equivalent_key_case_insensitive() {
+        assert!(accelerators_equivalent("<Control>W", "<Control>w"));
+    }
+
+    #[test]
+    fn accels_not_equivalent_different_key() {
+        assert!(!accelerators_equivalent("<Control>w", "<Control>q"));
+    }
+
+    #[test]
+    fn accels_not_equivalent_different_modifiers() {
+        assert!(!accelerators_equivalent("<Control>w", "<Control><Shift>w"));
+        assert!(!accelerators_equivalent("<Control>w", "<Alt>w"));
+        // Super and Meta must not be merged.
+        assert!(!accelerators_equivalent("<Super>e", "<Meta>e"));
+    }
+
+    #[test]
+    fn accels_equivalent_unparseable_falls_back_to_exact() {
+        // Unterminated token cannot be parsed; equal strings still match.
+        assert!(accelerators_equivalent("<Control", "<Control"));
+        assert!(!accelerators_equivalent("<Control", "<Shift"));
+    }
+
+    #[test]
+    fn all_default_accels_are_self_equivalent() {
+        // Every default accelerator must compare equal to itself under the
+        // order-insensitive comparison (guards the conflict-detection path).
+        for def in default_keybindings() {
+            for accel in def.default_accel_list() {
+                assert!(
+                    accelerators_equivalent(accel, accel),
+                    "accel '{}' not self-equivalent",
+                    accel
+                );
+            }
+        }
     }
 }

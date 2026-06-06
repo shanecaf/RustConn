@@ -1,3 +1,17 @@
+rustconn (0.15.10-1) unstable; urgency=medium
+
+  * Fixed keybinding overrides not displayed correctly after reopening
+    Settings — category-grouped order now used before zipping rows (#170)
+  * Fixed keybinding conflict detection ignoring modifier order —
+    accelerators compared via gtk4::accelerator_parse normalisation
+  * Fixed Snap package failing to start on Ubuntu 26.04 (AppArmor error) —
+    removed build-base: devel, changed grade to stable (#174)
+  * Documentation: SNAP.md and INSTALL.md no longer reference the removed
+    host-usr-bin interface
+  * Updated bitflags 2.12.1 → 2.13.0
+
+ -- Anton Isaiev <totoshko88@gmail.com>  Thu, 05 Jun 2026 18:00:00 +0300
+
 rustconn (0.15.9-1) unstable; urgency=medium
 
   * Lazy init secret backends — only preferred backend is initialized at
