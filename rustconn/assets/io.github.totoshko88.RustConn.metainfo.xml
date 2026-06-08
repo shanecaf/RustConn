@@ -140,6 +140,17 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.15.11" date="2026-06-07">
+      <description>
+        <p>Version 0.15.11 — Keybinding recorder rework and Snap startup fix:</p>
+        <ul>
+          <li>Fixed keybinding recorder not registering keystrokes on Flatpak — now a dedicated modal capture dialog (#170, #167)</li>
+          <li>Fixed custom keyboard shortcuts not shown in Settings after reopening or restart (#170)</li>
+          <li>Keybinding recorder now stores shortcuts in a layout-independent (Latin) form (#170)</li>
+          <li>Fixed Snap package still failing to start on Ubuntu 26.04 — core24 base with the GNOME extension (#174)</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.15.10" date="2026-06-05">
       <description>
         <p>Version 0.15.10 — Keybinding fixes and Snap packaging:</p>

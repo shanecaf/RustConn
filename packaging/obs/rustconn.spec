@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.15.10
+Version:        0.15.11
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -238,6 +238,13 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Sun Jun 07 2026 Anton Isaiev <totoshko88@gmail.com> - 0.15.11-0
+- Fixed keybinding recorder still not registering keystrokes on Flatpak — dedicated modal capture dialog (#170, #167)
+- Fixed keybinding overrides not displayed in Settings after reopening or restart (#170)
+- Fixed Snap package still failing to start on Ubuntu 26.04 — core24 base with gnome extension (#174)
+- Changed keybinding recorder to store shortcuts in a layout-independent (Latin) form (#170)
+- Changed Snap base core26 -> core24 (GNOME 46 / libadwaita 1.5, without adw-1-8); Snap CI installs Snapcraft from latest/stable
+
 * Thu Jun 05 2026 Anton Isaiev <totoshko88@gmail.com> - 0.15.10-0
 - Fixed keybinding overrides not displayed correctly after reopening Settings (#170)
 - Fixed keybinding conflict detection ignoring modifier order

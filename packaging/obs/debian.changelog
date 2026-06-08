@@ -1,3 +1,21 @@
+rustconn (0.15.11-1) unstable; urgency=medium
+
+  * Fixed keybinding recorder still not registering keystrokes on Flatpak —
+    replaced the inline recorder with a dedicated modal capture dialog that
+    owns its own keyboard focus scope (#170, #167)
+  * Fixed keybinding overrides not displayed in Settings after reopening or
+    restart — direct Label references replace the fragile widget-tree
+    traversal that broke after groups are reparented (#170)
+  * Fixed Snap package still failing to start on Ubuntu 26.04 — moved to a
+    core24 base with the gnome extension for a correctly confined GTK4
+    environment; removed the custom launcher wrapper (#174)
+  * Changed keybinding recorder to store shortcuts in a layout-independent
+    (Latin) form so they keep working after switching keyboard layout (#170)
+  * Changed Snap base core26 -> core24 (GNOME 46 / libadwaita 1.5, built
+    without adw-1-8); Snap CI installs Snapcraft from latest/stable
+
+ -- Anton Isaiev <totoshko88@gmail.com>  Sun, 07 Jun 2026 18:00:00 +0300
+
 rustconn (0.15.10-1) unstable; urgency=medium
 
   * Fixed keybinding overrides not displayed correctly after reopening

@@ -137,6 +137,7 @@ pub struct SettingsDialog {
     monitoring_widgets: MonitoringPageWidgets,
     // Keybinding settings
     keybindings_overrides: Rc<RefCell<rustconn_core::config::keybindings::KeybindingSettings>>,
+    keybindings_accel_labels: keybindings_tab::AccelLabels,
     keybindings_page: adw::PreferencesPage,
     // Global highlight rules
     highlight_rules_list: gtk4::ListBox,
@@ -237,7 +238,8 @@ impl SettingsDialog {
 
         let clients_page = create_clients_page();
 
-        let (keybindings_page, keybindings_overrides) = create_keybindings_page();
+        let (keybindings_page, keybindings_overrides, keybindings_accel_labels) =
+            create_keybindings_page();
 
         let monitoring_widgets = MonitoringPageWidgets::new();
 
@@ -619,6 +621,7 @@ impl SettingsDialog {
             ssh_agent_manager,
             monitoring_widgets,
             keybindings_overrides,
+            keybindings_accel_labels,
             keybindings_page,
             highlight_rules_list,
             highlight_rules,
@@ -953,7 +956,7 @@ impl SettingsDialog {
 
         // Load keybinding settings
         load_keybinding_settings(
-            &self.keybindings_page,
+            &self.keybindings_accel_labels,
             &self.keybindings_overrides,
             &settings.keybindings,
         );

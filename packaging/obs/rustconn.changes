@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Sun Jun 07 2026 Anton Isaiev <totoshko88@gmail.com> - 0.15.11
+
+- Fixed keybinding recorder still not registering keystrokes on Flatpak — dedicated modal capture dialog with its own focus scope (#170, #167)
+- Fixed keybinding overrides not displayed in Settings after reopening or restart — direct Label references replace widget-tree traversal (#170)
+- Fixed Snap package still failing to start on Ubuntu 26.04 — core24 base with gnome extension, removed custom launcher wrapper (#174)
+- Changed keybinding recorder to store shortcuts in a layout-independent (Latin) form (#170)
+- Changed Snap base core26 -> core24 (GNOME 46 / libadwaita 1.5, without adw-1-8); Snap CI installs Snapcraft from latest/stable
+
+-------------------------------------------------------------------
 Thu Jun 05 2026 Anton Isaiev <totoshko88@gmail.com> - 0.15.10
 
 - Fixed keybinding overrides not displayed correctly after reopening Settings (#170)

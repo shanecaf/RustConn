@@ -5,6 +5,33 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.11] - 2026-06-07
+
+### Fixed
+
+#### Keybindings
+
+- **Recorder did not register keystrokes on Flatpak/Wayland** ([#170](https://github.com/totoshko88/RustConn/issues/170), [#167](https://github.com/totoshko88/RustConn/issues/167)) — the inline recorder (0.15.7–0.15.10) attached an `EventControllerKey` to the toplevel window and depended on row focus, which was unreliable inside `AdwPreferencesDialog`. Replaced it with a dedicated modal `AdwDialog` (the pattern GNOME Control Center uses) that owns its own keyboard focus, so every key press is captured. Escape cancels, Backspace resets to default, conflicts still warn, and global accelerators are suspended during capture.
+- **Custom shortcuts showed defaults after reopening Settings or restarting** ([#170](https://github.com/totoshko88/RustConn/issues/170)) — overrides were saved and applied correctly, but the UI always displayed the default. `move_groups` reparents the keybinding rows into the Interface page, leaving the page that `load_keybinding_settings` walked empty, so no label was updated. The accelerator labels are now tracked directly via a `HashMap<action, Label>` instead of walking the widget tree.
+
+#### Snap
+
+- **Package failed to start on Ubuntu 26.04** ([#174](https://github.com/totoshko88/RustConn/issues/174)) — the snap targeted `base: core26` and hand-rolled the GTK4 runtime because the `gnome` extension does not yet support core26 ([snapcraft#6185](https://github.com/canonical/snapcraft/issues/6185)), omitting `desktop-launch`, the GNOME platform and the matching AppArmor accesses. Moved to `base: core24` with `extensions: [gnome]`, which provides the complete, correctly-confined GTK4 environment. (The 0.15.10 note blaming `grade: devel` was wrong — `grade` only controls store channels.)
+- **App could not register on the session D-Bus** — `g_application_register` was denied by AppArmor because a confined snap may only own names derived from the snap name, not the app ID. Added a `dbus` slot (`bus: session`, `name: io.github.totoshko88.RustConn`); the providing snap is auto-granted ownership. The Flatpak build is unaffected.
+- **Transparent window and broken icons** — affected only the snap (native, Flatpak and other GTK4 snaps rendered fine). VTE must be staged (the platform omits it at runtime), but its `.deb` drags in a second copy of the whole GTK4 stack. The platform's libadwaita then bound against our `libgtk-4` (ABI mismatch → transparent window) and the platform's SVG loader against our newer `librsvg` (→ broken icons). A `prime` exclusion now drops every platform-provided GTK/GLib/render library, keeping only `libvte` itself, so a single matched copy is used process-wide.
+
+### Changed
+
+#### Keybindings
+
+- **Shortcuts are stored layout-independently (Latin)** ([#170](https://github.com/totoshko88/RustConn/issues/170)) — recording under a non-Latin layout (e.g. Cyrillic) used to store the localised keyval, so pressing "F" produced `<Control>ф`, which stopped matching after switching back to Latin. The recorder now resolves the hardware keycode to its ASCII keyval. Function keys are unaffected.
+
+#### Snap
+
+- **Base `core26` → `core24`** (Ubuntu 24.04 LTS / GNOME 46 / libadwaita 1.5) — the GUI is now built **without** `--features adw-1-8`. The 1.6/1.7/1.8 widgets fall back to 1.5 equivalents (AdwSpinner → GtkSpinner, AdwToggleGroup → linked buttons, AdwShortcutsDialog → legacy dialog), preserving functionality with slightly less polish than the Flatpak (GNOME 50) build. Can return to core26 + adw-1-8 once the gnome extension supports core26.
+- **CI installs Snapcraft from `latest/stable`** again (the `latest/candidate` 9.x pin was only needed for core26).
+- **Added a `title`** (`RustConn`) so the Store listing and metadata linter no longer report a missing field.
+
 ## [0.15.10] - 2026-06-05
 
 ### Fixed
