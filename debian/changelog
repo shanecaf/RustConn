@@ -1,3 +1,16 @@
+rustconn (0.15.12-1) unstable; urgency=medium
+
+  * Fixed macOS SSH password authentication always failing with "Permission
+    denied" — the native PTY child now claims the slave PTY as its
+    controlling terminal (setsid + TIOCSCTTY), so ssh can open /dev/tty to
+    read the password prompt; also affected ssh run in a Local Shell (#175)
+  * Added rustconn-pty-sys crate to isolate the controlling-terminal FFI
+    (pre_exec) so the main crates keep unsafe_code = "forbid"
+  * Updated uuid 1.23.2 → 1.23.3 and wasm-bindgen 0.2.122 → 0.2.123 (with
+    related js-sys, web-sys, wasm-bindgen-futures)
+
+ -- Anton Isaiev <totoshko88@gmail.com>  Tue, 09 Jun 2026 18:00:00 +0300
+
 rustconn (0.15.11-1) unstable; urgency=medium
 
   * Fixed keybinding recorder still not registering keystrokes on Flatpak —

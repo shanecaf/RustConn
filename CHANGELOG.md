@@ -5,6 +5,23 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.12] - 2026-06-09
+
+### Fixed
+
+#### macOS
+
+- **SSH password authentication always failed with "Permission denied"** ([#175](https://github.com/totoshko88/RustConn/issues/175)) — on macOS the terminal uses a hand-rolled native PTY (VTE's `spawn_async` does not connect the PTY to the child on the Homebrew build). The spawned child was given the PTY slave as stdin/stdout/stderr but never made it the *controlling terminal*. Since `ssh` reads the password from `/dev/tty` (not stdin) and RustConn disables askpass on macOS (`SSH_ASKPASS_REQUIRE=never`, #161), `ssh` could not read the password, tried an empty one three times, and failed with `Permission denied (publickey,password)`. The same affected `ssh` typed manually in a Local Shell tab. The child is now placed in a new session via `setsid(2)` and claims the slave PTY as its controlling terminal via `TIOCSCTTY`, so interactive password prompts work. `setsid(2)` also supplies the process-group leadership previously set by `process_group(0)`, so job control (Ctrl-C) is preserved.
+
+### Changed
+
+- **New `rustconn-pty-sys` crate** — the controlling-terminal setup needs `pre_exec` (an `unsafe` API), which conflicts with the workspace-wide `unsafe_code = "forbid"`. Per the project's `M-UNSAFE` guideline, the FFI is isolated in a small dedicated crate that exposes a single safe `set_controlling_terminal()` function with a documented safety contract. The main crates keep `unsafe_code = "forbid"` untouched.
+
+### Dependencies
+
+- Updated `uuid` 1.23.2 → 1.23.3
+- Updated `wasm-bindgen` 0.2.122 → 0.2.123 and the related `js-sys` 0.3.99 → 0.3.100, `web-sys` 0.3.99 → 0.3.100, `wasm-bindgen-futures` 0.4.72 → 0.4.73 (transitive)
+
 ## [0.15.11] - 2026-06-07
 
 ### Fixed

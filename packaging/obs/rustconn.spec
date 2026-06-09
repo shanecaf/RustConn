@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.15.11
+Version:        0.15.12
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -238,6 +238,11 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Tue Jun 09 2026 Anton Isaiev <totoshko88@gmail.com> - 0.15.12-0
+- Fixed macOS SSH password authentication always failing with "Permission denied" — native PTY child now claims the slave PTY as its controlling terminal (setsid + TIOCSCTTY) (#175)
+- Added rustconn-pty-sys crate to isolate the controlling-terminal FFI (pre_exec) so the main crates keep unsafe_code = "forbid"
+- Updated uuid 1.23.2 -> 1.23.3 and wasm-bindgen 0.2.122 -> 0.2.123 (with related js-sys, web-sys, wasm-bindgen-futures)
+
 * Sun Jun 07 2026 Anton Isaiev <totoshko88@gmail.com> - 0.15.11-0
 - Fixed keybinding recorder still not registering keystrokes on Flatpak — dedicated modal capture dialog (#170, #167)
 - Fixed keybinding overrides not displayed in Settings after reopening or restart (#170)

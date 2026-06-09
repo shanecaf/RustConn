@@ -140,6 +140,15 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.15.12" date="2026-06-09">
+      <description>
+        <p>Version 0.15.12 — macOS SSH connection fix:</p>
+        <ul>
+          <li>Fixed SSH password authentication always failing with "Permission denied" on macOS — the terminal now gives the session a controlling terminal so ssh can read the password prompt (#175)</li>
+          <li>Isolated the controlling-terminal setup in a small rustconn-pty-sys crate so the main crates stay free of unsafe code</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.15.11" date="2026-06-07">
       <description>
         <p>Version 0.15.11 — Keybinding recorder rework and Snap startup fix:</p>

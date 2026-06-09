@@ -7,7 +7,6 @@
 //! the slave fd as stdin/stdout/stderr, then handing the master fd to VTE.
 
 use std::os::fd::AsFd;
-use std::os::unix::process::CommandExt;
 use std::process::{Command, Stdio};
 
 use gtk4::gio;
@@ -102,13 +101,23 @@ pub fn spawn_native_pty(
     cmd.stdout(Stdio::from(stdout_fd));
     cmd.stderr(Stdio::from(stderr_fd));
 
-    // 4. Spawn the child process as a new process group leader.
-    // `process_group(0)` calls setpgid(0,0) which creates a new process group,
-    // enabling basic job control (Ctrl-C sends SIGINT to the group).
-    let child = cmd
-        .process_group(0)
-        .spawn()
-        .map_err(|e| format!("spawn failed: {e}"))?;
+    // 4. Spawn the child process.
+    //
+    // `set_controlling_terminal` registers a `pre_exec` hook that runs
+    // setsid(2) + TIOCSCTTY so the slave PTY (fd 0) becomes the child's
+    // controlling terminal. This is required for interactive programs such
+    // as `ssh` to open /dev/tty and read a password prompt — without it,
+    // a GUI process launched without a controlling terminal (e.g. from the
+    // macOS Finder) makes ssh fail instantly with "Permission denied" (#175).
+    //
+    // setsid(2) also makes the child a session + process-group leader, which
+    // provides basic job control (Ctrl-C → SIGINT to the foreground group),
+    // so the previous `.process_group(0)` (setpgid) is intentionally gone —
+    // and must stay gone, because setsid(2) fails with EPERM if the caller is
+    // already a process-group leader.
+    rustconn_pty_sys::set_controlling_terminal(&mut cmd);
+
+    let child = cmd.spawn().map_err(|e| format!("spawn failed: {e}"))?;
     let child_pid = child.id();
 
     // Forget the Child handle — GLib's child_watch_add_local will reap the

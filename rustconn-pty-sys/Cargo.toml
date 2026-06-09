@@ -1,0 +1,18 @@
+[package]
+name = "rustconn-pty-sys"
+description = "Isolated FFI helper: gives a spawned child its PTY slave as a controlling terminal (setsid + TIOCSCTTY) for RustConn's macOS native PTY."
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+libc = "0.2"
+
+# This crate is the single sanctioned location for `unsafe` in the workspace
+# (see rust-pragmatic-guidelines.md, M-UNSAFE: isolate FFI in a small -sys
+# crate). It therefore does NOT opt into `[workspace.lints]`
+# (unsafe_code = "forbid") and instead explicitly allows unsafe here.
+[lints.rust]
+unsafe_code = "allow"
