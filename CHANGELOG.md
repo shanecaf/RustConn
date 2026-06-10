@@ -5,6 +5,29 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.13] - 2026-06-10
+
+### Added
+
+- **Menu key / Shift+F10 opens the sidebar context menu for the selected row** ([#157](https://github.com/totoshko88/RustConn/issues/157)) — standard GNOME HIG keyboard access to the connection/group context menu, anchored to the selected row. Requested as a reliable alternative on systems where right-click on nested rows misbehaves
+- **Confirmation before closing with open sessions** — closing the window or pressing Ctrl+Q with open session tabs now asks "Close RustConn?" with the number of open tabs instead of silently disconnecting everything. Skipped when minimize-to-tray is enabled (the app keeps running). Both the window close button and the `app.quit` action (which bypasses `close_request`) share the same dialog
+- **Recording indicator in the sidebar** — a red `media-record-symbolic` dot (with tooltip and screen-reader label) appears next to a connection while any of its sessions is being recorded; recording is privacy-sensitive and must be visible at a glance. Driven by a new `on_recording_changed` notebook callback so every start/stop path (manual action, auto-record, session end) updates it
+- **Import duplicate handling** — importing connections whose names already exist now shows a dialog with the duplicate count and the choices Cancel / Skip Duplicates / Import All, instead of silently creating renamed copies
+- **Persistent cloud-sync failure banner** — sync errors (manual Sync Now and background auto-export, which previously only logged to the journal) now reveal an `adw::Banner` below the header bar that stays until dismissed or the next successful sync; transient toasts are kept for success messages only (GNOME HIG: banner for state that needs attention)
+- **Touch long-press opens the sidebar context menu** — `GestureLongPress` (touch-only) on the connection list, sharing the coordinate-based row resolution with the right-click fallback
+
+### Improved
+
+- **Context menu keyboard navigation and accessibility** — the custom sidebar context menu now supports Up/Down arrow navigation with wrap-around plus Home/End, focuses its first item on open (so the Menu-key path is immediately navigable), highlights the focused item, and announces itself as a menu (`AccessibleRole::Menu` / `MenuItem`) to screen readers
+- **Error message quality (GNOME HIG writing style)** — removed "Please" from 10 validation messages (imperative voice), replaced three generic "OK" buttons with "Close", and rewrote raw error surfaces ("Error: {e}", "Unknown error", "Error loading log file") to explain what happened and what to do next; export/log-file failures now name the likely cause (permissions, disk space, moved/deleted file)
+- **Sidebar bottom-toolbar buttons enlarged to the 44×44 px minimum tap target** (GNOME HIG pointer & touch); Ukrainian translations added for all new strings
+
+### Fixed
+
+- **Sidebar context menu not opening for rows nested deeper than the root level on some systems (reported on KDE Plasma)** ([#157](https://github.com/totoshko88/RustConn/issues/157)) — the menu was shown only by a per-row `GestureClick` on each `TreeExpander` (CAPTURE phase); on the reporter's environment right-clicks on nested rows never reached that gesture. A fallback `GestureClick` on the `ListView` itself (BUBBLE phase) now resolves the clicked row from the pointer coordinates via `pick()` — independent of per-row event dispatch, so it works at any nesting depth. In the normal case the per-row gesture still fires first and claims the press, cancelling the fallback; when both fire (claim propagation differs between compositors), the result is idempotent — same selection, same menu position. Item-data extraction was deduplicated into a shared `show_context_menu_for_connection_item()` helper used by the per-row gesture, the fallback, and the new keyboard path
+
+- **Crash (SIGSEGV) in pango when opening a new SSH tab or on screen unlock — follow-up to v0.15.9** ([#171](https://github.com/totoshko88/RustConn/issues/171)) — debug-symbol analysis of all five crash dumps (Ubuntu 24.04 dbgsym for pango 1.52.1 and vte 0.76.0) showed the same use-after-free: `pango_itemize` → `g_object_ref()` on a freed `PangoFont`, hit during VTE's first text measurement of a freshly created terminal (`FontInfo::get_unistr_info`) inside the GTK snapshot phase. Root cause: VTE reads `gtk-fontconfig-timestamp` only when it creates its cached `FontInfo` (the timestamp is part of the font-cache key) and never subscribes to changes, so after a fontconfig update (font installation, `fc-cache`, KDE pushing `Fontconfig/Timestamp` via XSettings on screen unlock) terminals keep stale Pango font references — which is why the crash always struck right when a new tab was opened (existing tabs render from VTE's glyph cache and rarely re-itemize) and why a restart always cleared it. Two changes: (1) RustConn now listens for `gtk-fontconfig-timestamp` changes and re-applies the font on every open terminal, forcing VTE to rebuild its font cache against the new fontconfig state (`vte_terminal_set_font` deliberately recreates the font even for an unchanged description); (2) all remaining widget/VTE work in the `child-exited` handler (disconnect indicator, `terminal.reset()`, reconnect banner, auto-reconnect setup) is now deferred to the next main-loop idle instead of running inside VTE's signal emission, closing the same race the v0.15.9 fix closed for `close_tab`
+
 ## [0.15.12] - 2026-06-09
 
 ### Fixed
