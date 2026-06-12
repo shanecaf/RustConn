@@ -13,7 +13,7 @@ Supplements `dialogs-guide.md` and `window-guide.md`. Only lists points missing 
 GNOME HIG: brief, human, no jargon. Ukrainian localization — see `po/uk.po` style guide
 (`uk-translation-reviewer` agent). General rules:
 
-- **Sentence case** for everything: buttons, headings, menus, toggles. Dialog title: "Properties of connection", NOT "Properties Of Connection".
+- **Capitalization follows upstream HIG**: *header capitalization* for window/dialog titles, buttons, menu items, and tab titles ("Connection History", "Clear History"); *sentence case* for descriptions, body text, checkbox/switch labels, and tooltips. Do not capitalize prepositions/articles of ≤3 letters in header caps ("Move to Group").
 - **Address the user directly** via imperative ("Save", "Connect"), not "Please save".
 - **Do not use exclamation marks** "!" in normal UI — sounds alarming. Exceptions: critical errors.
 - **Avoid abbreviations** like "info", "config" — write full words.

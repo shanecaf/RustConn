@@ -121,6 +121,10 @@ pub struct MainWindow {
     quick_connect_history: types::SharedQuickConnectHistory,
     /// Passthrough mode indicator button in header bar (visible when active)
     passthrough_indicator: gtk4::Button,
+    /// Primary menu button in the header bar. Its `primary` property is
+    /// toggled off in passthrough mode to suspend the GTK-internal F10
+    /// binding, which is not covered by `set_accels_for_action`.
+    menu_button: gtk4::MenuButton,
     /// Split-view broadcast toggle button in the header bar. Only visible
     /// when the active tab has a split layout with two or more panels;
     /// see `update_broadcast_toggle_state`.
@@ -168,7 +172,7 @@ impl MainWindow {
         });
 
         // Create header bar with busy spinner
-        let (header_bar, busy_spinner, passthrough_indicator, broadcast_toggle) =
+        let (header_bar, busy_spinner, passthrough_indicator, broadcast_toggle, menu_button) =
             ui::create_header_bar();
 
         // Create BusyStack that shows/hides the header bar spinner.
@@ -534,6 +538,7 @@ impl MainWindow {
             busy_stack,
             quick_connect_history: types::load_quick_connect_history(&state),
             passthrough_indicator,
+            menu_button,
             broadcast_toggle,
             broadcast_hint_shown: Rc::new(std::cell::Cell::new(false)),
             sync_banner,
@@ -690,13 +695,6 @@ impl MainWindow {
             }
         });
         window.add_action(&toggle_filters_action);
-
-        // F9 keyboard shortcut for toggle-sidebar
-        let app = window.application().and_downcast::<adw::Application>();
-        if let Some(app) = app {
-            app.set_accels_for_action("win.toggle-sidebar", &["F9"]);
-            app.set_accels_for_action("win.ssh-tunnels", &["<Control>t"]);
-        }
     }
 
     /// Connects UI signals

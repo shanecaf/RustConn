@@ -500,13 +500,13 @@ impl VariablesDialog {
                                 "Failed to load secret \
                                  from vault: {e}"
                             );
-                            if let Some(window) = btn_clone.root().and_downcast::<gtk4::Window>() {
-                                crate::toast::show_toast_on_window(
-                                    &window,
+                            if btn_clone.root().is_some() {
+                                crate::alert::show_error(
+                                    &btn_clone,
+                                    &i18n("Could not load secret"),
                                     &i18n(
                                         "Failed to load secret. Check secret backend in Settings.",
                                     ),
-                                    crate::toast::ToastType::Error,
                                 );
                             } else {
                                 tracing::warn!(

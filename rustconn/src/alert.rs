@@ -53,7 +53,8 @@ pub fn show_error(parent: &impl IsA<gtk4::Widget>, heading: &str, body: &str) {
     let dialog = adw::AlertDialog::new(Some(heading), Some(body));
     dialog.add_response("ok", &i18n("OK"));
     dialog.set_default_response(Some("ok"));
-    dialog.set_response_appearance("ok", adw::ResponseAppearance::Destructive);
+    // No Destructive appearance: acknowledging an error is not an
+    // irreversible action (GNOME HIG reserves red for destructive ops).
     dialog.present(Some(parent));
 }
 

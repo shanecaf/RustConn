@@ -160,7 +160,7 @@ impl DropIndicator {
             r"
             /* Hide the overlay indicator - we use CSS borders instead */
             .drop-indicator {
-                background-color: #aa4400;
+                background-color: @accent_bg_color;
                 min-height: 3px;
                 margin-left: 8px;
                 margin-right: 8px;
@@ -205,14 +205,14 @@ impl DropIndicator {
             
             /* Drop indicator line BEFORE this row (line at top) */
             .drop-target-before {
-                border-top: 3px solid #aa4400;
+                border-top: 3px solid @accent_bg_color;
                 margin-top: 4px;
                 padding-top: 4px;
             }
             
             /* Drop indicator line AFTER this row (line at bottom) */
             .drop-target-after {
-                border-bottom: 3px solid #aa4400;
+                border-bottom: 3px solid @accent_bg_color;
                 margin-bottom: 4px;
                 padding-bottom: 4px;
             }
@@ -230,8 +230,8 @@ impl DropIndicator {
             
             /* Group highlight for drop-into */
             .drop-target-into {
-                background-color: alpha(#aa4400, 0.2);
-                border: 2px solid #aa4400;
+                background-color: alpha(@accent_bg_color, 0.2);
+                border: 2px solid @accent_bg_color;
                 border-radius: 6px;
             }
             

@@ -161,10 +161,6 @@ type ErrorCallback = Box<dyn Fn(&str) + 'static>;
 /// This widget provides native SPICE session embedding within GTK4 applications.
 /// It uses a `DrawingArea` for rendering and integrates with the SPICE client
 /// from `rustconn-core`.
-#[allow(
-    dead_code,
-    reason = "Many fields kept for GTK widget lifecycle and signal handlers"
-)]
 pub struct EmbeddedSpiceWidget {
     /// Main container widget
     container: GtkBox,

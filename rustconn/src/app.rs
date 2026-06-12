@@ -1039,6 +1039,11 @@ pub fn apply_keybindings(app: &adw::Application, state: &SharedAppState) {
 /// viewer without being intercepted by the application.
 ///
 /// When passthrough is disabled, all keybindings are restored from settings.
+///
+/// Note: the F10 primary-menu key is a GTK-internal binding, not an
+/// application accelerator, so it is suspended separately by toggling the
+/// header-bar menu button's `primary` property (see the
+/// `win.toggle-passthrough` action handler).
 pub fn set_passthrough(app: &adw::Application, state: &SharedAppState, enable: bool) {
     if enable {
         let exceptions = with_state(state, |s| {

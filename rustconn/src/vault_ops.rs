@@ -15,14 +15,19 @@ fn show_vault_save_error_toast() {
             && let Some(gtk_app) = app.downcast_ref::<gtk4::Application>()
             && let Some(window) = gtk_app.active_window()
         {
-            crate::toast::show_toast_on_window(
+            // A silently lost credential is a critical error — use a blocking
+            // dialog, not a transient toast (GNOME HIG).
+            crate::alert::show_error(
                 &window,
-                &crate::i18n::i18n("Failed to save password to vault"),
-                crate::toast::ToastType::Error,
+                &crate::i18n::i18n("Password not saved"),
+                &crate::i18n::i18n(
+                    "The password could not be saved to the vault. \
+                     Check the secret backend in Settings.",
+                ),
             );
             return;
         }
-        tracing::warn!("Could not show vault save error toast: no active window");
+        tracing::warn!("Could not show vault save error dialog: no active window");
     });
 }
 
@@ -568,23 +573,6 @@ pub fn save_variable_to_vault(
             Ok(())
         }
     }
-}
-
-/// Loads a secret variable value from the configured vault backend.
-///
-/// Respects `preferred_backend` from secret settings, using the same
-/// backend selection logic as connection passwords.
-///
-/// Convenience wrapper around [`load_variable_from_vault_with_path`] with no custom path.
-#[allow(
-    dead_code,
-    reason = "kept alive for GTK widget lifecycle / future API exposure"
-)]
-pub fn load_variable_from_vault(
-    settings: &rustconn_core::config::SecretSettings,
-    var_name: &str,
-) -> Result<Option<String>, String> {
-    load_variable_from_vault_with_path(settings, var_name, None, None)
 }
 
 /// Loads a secret variable value from the configured vault backend,

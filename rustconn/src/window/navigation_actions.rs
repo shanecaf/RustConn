@@ -124,6 +124,7 @@ impl MainWindow {
         let state_clone = state.clone();
         let toast_overlay_clone = self.toast_overlay.clone();
         let passthrough_indicator_clone = self.passthrough_indicator.clone();
+        let menu_button_clone = self.menu_button.clone();
         toggle_passthrough_action.connect_activate(move |action, _| {
             if let Some(win) = window_weak.upgrade() {
                 let is_passthrough = action
@@ -139,6 +140,13 @@ impl MainWindow {
 
                 // Toggle passthrough indicator visibility in header bar
                 passthrough_indicator_clone.set_visible(new_state);
+
+                // The F10 primary-menu binding is GTK-internal (triggered by
+                // the menu button's `primary` property), not an application
+                // accelerator, so `set_passthrough` cannot remove it. Drop
+                // the `primary` flag while passthrough is active so F10 also
+                // reaches the remote session.
+                menu_button_clone.set_primary(!new_state);
 
                 // Show toast notification about the mode change
                 let message = if new_state {

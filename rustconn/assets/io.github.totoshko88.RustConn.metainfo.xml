@@ -140,6 +140,19 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.16.2" date="2026-06-12">
+      <description>
+        <p>Version 0.16.2 — GNOME HIG follow-up audit and dead code cleanup:</p>
+        <ul>
+          <li>Critical errors (vault password save, secret load, smart folder deletion) are now blocking alert dialogs instead of transient toasts</li>
+          <li>Error alert dialogs no longer style OK button as destructive (reserved for irreversible actions)</li>
+          <li>Sidebar drag-and-drop indicators use the libadwaita accent color instead of hardcoded orange</li>
+          <li>Removed unused ContainerState machine, is_split/is_welcome, and load_variable_from_vault wrapper</li>
+          <li>Fixed F10 opening the application menu in keyboard passthrough mode</li>
+          <li>Fixed Ctrl+T (SSH Tunnel Manager) ignoring keyboard passthrough and not customizable</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.16.1" date="2026-06-12">
       <description>
         <p>Version 0.16.1 — Settings dialog GNOME HIG pass and performance fixes:</p>

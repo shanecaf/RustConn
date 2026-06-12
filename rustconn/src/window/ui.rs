@@ -17,15 +17,17 @@ use libadwaita as adw;
 /// - Right side (pack_end): Menu, Settings, Split Vertical, Split Horizontal
 ///
 /// Returns the header bar, the busy spinner widget (initially hidden),
-/// the passthrough indicator button (initially hidden), and the
+/// the passthrough indicator button (initially hidden), the
 /// broadcast toggle button (initially hidden, only visible when the
-/// active terminal belongs to a cluster).
+/// active terminal belongs to a cluster), and the primary menu button
+/// (needed to suspend the GTK-internal F10 binding in passthrough mode).
 #[must_use]
 pub fn create_header_bar() -> (
     adw::HeaderBar,
     gtk4::Spinner,
     gtk4::Button,
     gtk4::ToggleButton,
+    MenuButton,
 ) {
     let header_bar = adw::HeaderBar::new();
 
@@ -192,6 +194,7 @@ pub fn create_header_bar() -> (
         busy_spinner,
         passthrough_indicator,
         broadcast_toggle,
+        menu_button,
     )
 }
 

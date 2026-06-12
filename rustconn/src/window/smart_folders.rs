@@ -11,7 +11,7 @@ use libadwaita as adw;
 use super::MainWindow;
 use super::types::SharedSidebar;
 use crate::dialogs::SmartFolderDialog;
-use crate::i18n::i18n_f;
+use crate::i18n::{i18n, i18n_f};
 use crate::state::SharedAppState;
 
 impl MainWindow {
@@ -163,8 +163,10 @@ impl MainWindow {
                 settings.smart_folders.retain(|f| f.id != folder_id);
                 if let Err(e) = state_mut.update_settings(settings) {
                     tracing::warn!(error = %e, "failed to delete smart folder");
+                    // Failure to persist settings is not transient — show a
+                    // blocking dialog instead of a toast (GNOME HIG).
                     let msg = i18n_f("Could not delete smart folder: {}", &[&e]);
-                    crate::toast::show_toast_on_window(&win, &msg, crate::toast::ToastType::Error);
+                    crate::alert::show_error(&win, &i18n("Could not delete smart folder"), &msg);
                     return;
                 }
             }

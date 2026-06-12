@@ -454,10 +454,6 @@ impl SwitchRowBuilder {
 /// be invisible to the POT extraction tool.
 ///
 /// This function is never called at runtime.
-#[allow(
-    dead_code,
-    reason = "kept alive for GTK widget lifecycle / future API exposure"
-)]
 fn _i18n_markers() {
     // Button labels used in dialog_header() across the codebase
     i18n("Close");

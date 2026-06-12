@@ -355,6 +355,12 @@ pub fn default_keybindings() -> Vec<KeybindingDef> {
             "Wake On LAN",
             Application,
         ),
+        KeybindingDef::new(
+            "win.ssh-tunnels",
+            "<Control>t",
+            "SSH Tunnel Manager",
+            Application,
+        ),
     ]
 }
 

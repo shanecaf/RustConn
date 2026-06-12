@@ -1,6 +1,6 @@
 # RustConn User Guide
 
-**Version 0.16.1** | GTK4/libadwaita Connection Manager for Linux
+**Version 0.16.2** | GTK4/libadwaita Connection Manager for Linux
 
 RustConn is a modern connection manager designed for Linux with Wayland-first approach. It supports SSH, RDP, VNC, SPICE, MOSH, SFTP, Telnet, Serial, Kubernetes, Web protocols and Zero Trust integrations through a native GTK4/libadwaita interface.
 
@@ -2102,6 +2102,7 @@ When working in remote sessions with TUI applications (nvim, tmux, htop, mc), Ru
 
 **When passthrough is active:**
 - All application shortcuts are disabled (Ctrl+N, Ctrl+F, Ctrl+P, etc. go to the terminal)
+- The F10 primary-menu key is also suspended, so F10 reaches the remote session (e.g. Midnight Commander)
 - Only three shortcuts remain active: the passthrough toggle itself (Ctrl+Shift+Backspace), Quit (Ctrl+Q), and Fullscreen (F11)
 - A toast notification confirms the mode change
 - The menu item shows a checkmark when active
@@ -2873,7 +2874,7 @@ RustConn uses VTE, which passes all keystrokes to the shell. Configure vim/emacs
 | Ctrl+G | Password Generator |
 | Ctrl+Shift+L | Wake On LAN |
 | Ctrl+T | SSH Tunnel Manager |
-| F10 | Open Menu |
+| F10 | Open Menu (suspended in passthrough mode) |
 | Ctrl+? / F1 | Keyboard Shortcuts |
 | Ctrl+Shift+Backspace | Toggle Keyboard Passthrough |
 | Ctrl+Shift+B | Toggle Split Broadcast |

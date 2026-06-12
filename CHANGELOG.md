@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.2] - 2026-06-12
+
+### Improved
+
+- **GNOME HIG follow-up audit**:
+  - critical errors are no longer transient toasts: vault password save failure, secret load failure in the variables dialog, and smart folder deletion failure now show a blocking alert dialog (a toast could disappear before the user notices a lost credential)
+  - error alert dialogs no longer style the OK button as destructive (red is reserved for irreversible actions)
+  - sidebar drag-and-drop indicators use the libadwaita accent color (`@accent_bg_color`) instead of a hardcoded orange, following the user's accent color and high-contrast mode
+- **Dead code cleanup**: removed the unused `ContainerState` machine and `is_split`/`is_welcome` from `TabPageContainer` (leftovers of an abandoned "Phase 2" refactoring), the never-called `load_variable_from_vault` wrapper, and stale `#[allow(dead_code)]` attributes that compiler verification (`#[expect]`) proved unnecessary
+
+### Fixed
+
+- **F10 still opened the application menu in keyboard passthrough mode** — the F10 primary-menu binding is GTK-internal (driven by the header-bar menu button's `primary` property), not an application accelerator, so disabling shortcuts via Ctrl+Shift+Backspace did not affect it. The `primary` flag is now dropped while passthrough is active, so F10 reaches the remote session (e.g. Midnight Commander) and is restored when passthrough is turned off
+- **Ctrl+T (SSH Tunnel Manager) ignored keyboard passthrough and was not customizable** — the accelerator was registered directly instead of through the central keybinding registry; it is now a regular keybinding (visible in Settings → Keybindings, disabled in passthrough mode like all others)
+
+### Dependencies
+
+- **Updated**: block-buffer 0.12.0→0.12.1, cc 1.2.63→1.2.64, memchr 2.8.1→2.8.2, smallvec 1.15.1→1.15.2, yuv 0.8.14→0.8.15
+
 ## [0.16.1] - 2026-06-12
 
 ### Improved

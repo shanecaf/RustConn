@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.16.1
+Version:        0.16.2
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -242,6 +242,13 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Fri Jun 12 2026 Anton Isaiev <totoshko88@gmail.com> - 0.16.2-0
+- GNOME HIG follow-up audit — critical errors as blocking alert dialogs, destructive button styling removed, DnD indicators use accent color
+- Dead code cleanup — removed unused ContainerState, is_split/is_welcome, load_variable_from_vault, stale #[allow(dead_code)]
+- Fixed F10 opening application menu in keyboard passthrough mode — primary flag dropped during passthrough
+- Fixed Ctrl+T (SSH Tunnel Manager) ignoring passthrough and not customizable — now a regular keybinding
+- Updated block-buffer 0.12.0->0.12.1, cc 1.2.63->1.2.64, memchr 2.8.1->2.8.2, smallvec 1.15.1->1.15.2, yuv 0.8.14->0.8.15
+
 * Fri Jun 12 2026 Anton Isaiev <totoshko88@gmail.com> - 0.16.1-0
 - Settings dialog GNOME HIG pass — secret fields to PasswordEntryRow, highlight-rules editor rebuilt, rows activatable, Reset All confirmation, restore dialog, backup/restore failures shown
 - Fixed Settings dialog taking 5+ seconds to appear with Bitwarden backend (flatpak)
