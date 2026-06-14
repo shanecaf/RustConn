@@ -11,6 +11,8 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use uuid::Uuid;
+
 use crate::error::ImportError;
 use crate::models::{
     Connection, ConnectionGroup, ProtocolConfig, RdpConfig, Resolution, SshAuthMethod, SshConfig,
@@ -101,7 +103,9 @@ impl MobaXtermImporter {
     #[must_use]
     pub fn parse_content(&self, content: &str, source_path: &str) -> ImportResult {
         let mut result = ImportResult::new();
-        let mut groups: HashMap<String, ConnectionGroup> = HashMap::new();
+        // Maps a fully-qualified folder path (e.g. `Production\Web`) to the
+        // UUID of the `ConnectionGroup` representing its leaf segment.
+        let mut groups: HashMap<String, Uuid> = HashMap::new();
         let mut current_section: Option<String> = None;
         let mut current_subrep: Option<String> = None;
 
@@ -146,24 +150,11 @@ impl MobaXtermImporter {
             if let Some(ref section) = current_section
                 && section.starts_with("Bookmarks")
             {
-                // Determine group path
-                let group_path = current_subrep.clone();
-
-                // Create or get group
-                let group_id = if let Some(ref path) = group_path {
-                    if let std::collections::hash_map::Entry::Vacant(e) = groups.entry(path.clone())
-                    {
-                        let group = ConnectionGroup::new(path.clone());
-                        let id = group.id;
-                        e.insert(group.clone());
-                        result.add_group(group);
-                        Some(id)
-                    } else {
-                        groups.get(path).map(|g| g.id)
-                    }
-                } else {
-                    None
-                };
+                // Resolve the (possibly nested) folder path into a leaf group,
+                // creating intermediate groups for each path segment as needed.
+                let group_id = current_subrep
+                    .as_deref()
+                    .and_then(|path| Self::resolve_subrep_path(path, &mut groups, &mut result));
 
                 // Parse session
                 match self.parse_session(key, value, source_path) {
@@ -182,6 +173,44 @@ impl MobaXtermImporter {
         }
 
         result
+    }
+
+    /// Resolves a MobaXterm `SubRep` folder path into the UUID of its leaf group.
+    ///
+    /// MobaXterm encodes nested folders with backslash separators, e.g.
+    /// `Production\Web`. Each path segment becomes a `ConnectionGroup`, chained
+    /// via `parent_id` to reconstruct the original folder tree. Intermediate
+    /// groups are created on demand and reused across sessions and sections.
+    ///
+    /// Returns `None` if the path is empty or contains only separators.
+    fn resolve_subrep_path(
+        path: &str,
+        groups: &mut HashMap<String, Uuid>,
+        result: &mut ImportResult,
+    ) -> Option<Uuid> {
+        let mut parent_id: Option<Uuid> = None;
+        let mut accumulated = String::new();
+
+        for segment in path.split('\\').map(str::trim).filter(|s| !s.is_empty()) {
+            if !accumulated.is_empty() {
+                accumulated.push('\\');
+            }
+            accumulated.push_str(segment);
+
+            let group_id = *groups.entry(accumulated.clone()).or_insert_with(|| {
+                let group = parent_id.map_or_else(
+                    || ConnectionGroup::new(segment.to_string()),
+                    |pid| ConnectionGroup::with_parent(segment.to_string(), pid),
+                );
+                let id = group.id;
+                result.add_group(group);
+                id
+            });
+
+            parent_id = Some(group_id);
+        }
+
+        parent_id
     }
 
     /// Parses a single session line.
@@ -674,6 +703,26 @@ Web Server=#109#0%10.0.1.2%22%www%%-1%-1%%%%%0%0%0%%%-1%0%0%0%%1080%%0%0%1%#Moba
         assert_eq!(result.connections.len(), 3);
         assert_eq!(result.groups.len(), 2);
 
+        // Nested SubRep `Production\Web` must form a tree, not a flat group
+        // named literally "Production\Web".
+        let production = result
+            .groups
+            .iter()
+            .find(|g| g.name == "Production")
+            .expect("Production group should exist");
+        assert!(production.parent_id.is_none(), "Production is a root group");
+
+        let web = result
+            .groups
+            .iter()
+            .find(|g| g.name == "Web")
+            .expect("Web group should exist as a nested folder");
+        assert_eq!(
+            web.parent_id,
+            Some(production.id),
+            "Web should be nested under Production"
+        );
+
         // Check root connection has no group
         let root_conn = result
             .connections
@@ -688,7 +737,15 @@ Web Server=#109#0%10.0.1.2%22%www%%-1%-1%%%%%0%0%0%%%-1%0%0%0%%1080%%0%0%1%#Moba
             .iter()
             .find(|c| c.name == "Prod Server")
             .unwrap();
-        assert!(prod_conn.group_id.is_some());
+        assert_eq!(prod_conn.group_id, Some(production.id));
+
+        // Check the deeply nested connection lands in the leaf group
+        let web_conn = result
+            .connections
+            .iter()
+            .find(|c| c.name == "Web Server")
+            .unwrap();
+        assert_eq!(web_conn.group_id, Some(web.id));
     }
 
     #[test]

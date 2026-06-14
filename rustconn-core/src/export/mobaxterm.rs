@@ -268,25 +268,72 @@ impl MobaXtermExporter {
         .to_string()
     }
 
-    /// Builds group hierarchy from flat group list.
+    /// Builds full backslash-separated folder paths for each group.
+    ///
+    /// Walks each group's parent chain to produce a MobaXterm `SubRep` path
+    /// such as `Production\Web`. Unlike a single-pass approach, this correctly
+    /// handles folders nested more than two levels deep regardless of the order
+    /// groups appear in the input slice. A cycle guard prevents infinite loops
+    /// on malformed `parent_id` references.
     fn build_group_hierarchy(groups: &[ConnectionGroup]) -> HashMap<Uuid, String> {
-        let mut paths: HashMap<Uuid, String> = HashMap::new();
+        let by_id: HashMap<Uuid, &ConnectionGroup> = groups.iter().map(|g| (g.id, g)).collect();
+        let mut paths: HashMap<Uuid, String> = HashMap::with_capacity(groups.len());
 
         for group in groups {
-            paths.insert(group.id, group.name.clone());
-        }
+            let mut segments = vec![group.name.as_str()];
+            let mut current = group;
+            let mut guard = 0;
 
-        // Build full paths for nested groups
-        for group in groups {
-            if let Some(parent_id) = group.parent_id
-                && let Some(parent_path) = paths.get(&parent_id).cloned()
-            {
-                let full_path = format!("{}\\{}", parent_path, group.name);
-                paths.insert(group.id, full_path);
+            while let Some(parent_id) = current.parent_id {
+                // Bound the walk by the group count to defend against cycles.
+                if guard >= groups.len() {
+                    break;
+                }
+                guard += 1;
+
+                let Some(parent) = by_id.get(&parent_id) else {
+                    break;
+                };
+                segments.push(parent.name.as_str());
+                current = parent;
             }
+
+            segments.reverse();
+            paths.insert(group.id, segments.join("\\"));
         }
 
         paths
+    }
+
+    /// Writes the session lines for a set of connections into the output buffer.
+    ///
+    /// Unsupported protocols are recorded as skipped warnings rather than
+    /// aborting the export.
+    fn write_connection_lines(
+        output: &mut String,
+        connections: &[&Connection],
+        result: &mut ExportResult,
+    ) {
+        for conn in connections {
+            match Self::export_connection_line(conn) {
+                Ok(line) => {
+                    let name = Self::encode_escapes(&conn.name);
+                    let _ = writeln!(output, "{name}={line}");
+                    result.increment_exported();
+                }
+                Err(ExportError::UnsupportedProtocol(proto)) => {
+                    result.increment_skipped();
+                    result.add_warning(format!(
+                        "Skipped '{}': unsupported protocol {}",
+                        conn.name, proto
+                    ));
+                }
+                Err(e) => {
+                    result.increment_skipped();
+                    result.add_warning(format!("Failed to export '{}': {}", conn.name, e));
+                }
+            }
+        }
     }
 
     /// Exports all connections to MobaXterm format.
@@ -323,64 +370,32 @@ impl MobaXtermExporter {
 
         // Write root-level connections
         if let Some(root_connections) = connections_by_group.get(&None) {
-            for conn in root_connections {
-                match Self::export_connection_line(conn) {
-                    Ok(line) => {
-                        let name = Self::encode_escapes(&conn.name);
-                        let _ = writeln!(output, "{name}={line}");
-                        result.increment_exported();
-                    }
-                    Err(ExportError::UnsupportedProtocol(proto)) => {
-                        result.increment_skipped();
-                        result.add_warning(format!(
-                            "Skipped '{}': unsupported protocol {}",
-                            conn.name, proto
-                        ));
-                    }
-                    Err(e) => {
-                        result.increment_skipped();
-                        result.add_warning(format!("Failed to export '{}': {}", conn.name, e));
-                    }
-                }
-            }
+            Self::write_connection_lines(&mut output, root_connections, &mut result);
         }
 
-        // Write grouped connections
-        let mut section_index = 1;
-        let mut sorted_groups: Vec<_> = connections_by_group
-            .iter()
-            .filter(|(k, _)| k.is_some())
-            .collect();
-        sorted_groups.sort_by_key(|(a, _)| *a);
+        // Write one section per group, sorted by full folder path so parent
+        // folders always precede their children. Every group gets a section —
+        // including intermediate folders with no direct sessions — so MobaXterm
+        // can reconstruct the complete folder tree on import.
+        let mut sorted_groups: Vec<&ConnectionGroup> = groups.iter().collect();
+        sorted_groups.sort_by(|a, b| {
+            group_paths
+                .get(&a.id)
+                .map(String::as_str)
+                .cmp(&group_paths.get(&b.id).map(String::as_str))
+        });
 
-        for (group_path, group_connections) in sorted_groups {
-            if let Some(path) = group_path {
-                let _ = writeln!(output, "[Bookmarks_{section_index}]");
-                let _ = writeln!(output, "SubRep={}", Self::encode_escapes(path));
-                let _ = writeln!(output, "ImgNum={ICON_FOLDER}");
+        for (offset, group) in sorted_groups.iter().enumerate() {
+            let Some(path) = group_paths.get(&group.id) else {
+                continue;
+            };
 
-                for conn in group_connections {
-                    match Self::export_connection_line(conn) {
-                        Ok(line) => {
-                            let name = Self::encode_escapes(&conn.name);
-                            let _ = writeln!(output, "{name}={line}");
-                            result.increment_exported();
-                        }
-                        Err(ExportError::UnsupportedProtocol(proto)) => {
-                            result.increment_skipped();
-                            result.add_warning(format!(
-                                "Skipped '{}': unsupported protocol {}",
-                                conn.name, proto
-                            ));
-                        }
-                        Err(e) => {
-                            result.increment_skipped();
-                            result.add_warning(format!("Failed to export '{}': {}", conn.name, e));
-                        }
-                    }
-                }
+            let _ = writeln!(output, "[Bookmarks_{}]", offset + 1);
+            let _ = writeln!(output, "SubRep={}", Self::encode_escapes(path));
+            let _ = writeln!(output, "ImgNum={ICON_FOLDER}");
 
-                section_index += 1;
+            if let Some(group_connections) = connections_by_group.get(&Some(path.clone())) {
+                Self::write_connection_lines(&mut output, group_connections, &mut result);
             }
         }
 
@@ -632,6 +647,85 @@ mod tests {
         assert!(content.contains("[Bookmarks]"));
         assert!(content.contains("[Bookmarks_1]"));
         assert!(content.contains("SubRep=Production"));
+    }
+
+    #[test]
+    fn test_export_nested_folders_preserves_hierarchy() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let output_path = temp_dir.path().join("sessions.mxtsessions");
+
+        // Production -> Web -> web01 (intermediate "Web" holds no direct session)
+        let production = ConnectionGroup::new("Production".to_string());
+        let web = ConnectionGroup::with_parent("Web".to_string(), production.id);
+
+        let mut conn = create_ssh_connection("web01", "10.0.1.2", 22);
+        conn.group_id = Some(web.id);
+
+        let connections = vec![conn];
+        let groups = vec![production, web];
+
+        MobaXtermExporter::export_to_file(&connections, &groups, &output_path).unwrap();
+
+        let content = fs::read_to_string(&output_path).unwrap();
+
+        // Both the intermediate and leaf folders must be emitted as sections,
+        // with full backslash-separated paths, so MobaXterm rebuilds the tree.
+        assert!(
+            content.contains("SubRep=Production\r\n"),
+            "intermediate Production folder must be present"
+        );
+        assert!(
+            content.contains("SubRep=Production\\Web\r\n"),
+            "nested Web folder must use the full path"
+        );
+        assert!(content.contains("web01="));
+
+        // Parent folder section must precede the child folder section.
+        let prod_idx = content.find("SubRep=Production\r\n").unwrap();
+        let web_idx = content.find("SubRep=Production\\Web\r\n").unwrap();
+        assert!(prod_idx < web_idx, "parent folder must come before child");
+    }
+
+    #[test]
+    fn test_roundtrip_nested_folders() {
+        use crate::import::MobaXtermImporter;
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let output_path = temp_dir.path().join("sessions.mxtsessions");
+
+        let production = ConnectionGroup::new("Production".to_string());
+        let web = ConnectionGroup::with_parent("Web".to_string(), production.id);
+
+        let mut conn = create_ssh_connection("web01", "10.0.1.2", 22);
+        conn.group_id = Some(web.id);
+
+        let connections = vec![conn];
+        let groups = vec![production, web];
+
+        MobaXtermExporter::export_to_file(&connections, &groups, &output_path).unwrap();
+
+        // Re-import the exported file and verify the hierarchy survives.
+        let importer = MobaXtermImporter::new();
+        let content = fs::read_to_string(&output_path).unwrap();
+        let result = importer.parse_content(&content, "roundtrip.mxtsessions");
+
+        assert_eq!(result.connections.len(), 1);
+        assert_eq!(result.groups.len(), 2);
+
+        let imported_prod = result
+            .groups
+            .iter()
+            .find(|g| g.name == "Production")
+            .expect("Production group should round-trip");
+        let imported_web = result
+            .groups
+            .iter()
+            .find(|g| g.name == "Web")
+            .expect("Web group should round-trip");
+
+        assert!(imported_prod.parent_id.is_none());
+        assert_eq!(imported_web.parent_id, Some(imported_prod.id));
+        assert_eq!(result.connections[0].group_id, Some(imported_web.id));
     }
 
     #[test]
