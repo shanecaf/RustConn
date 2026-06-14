@@ -190,37 +190,6 @@ pub fn create_keybindings_page() -> (
     (page, overrides_cell, accel_labels)
 }
 
-/// Maps a key press to a layout-independent (Latin) keyval.
-///
-/// GDK reports `keyval` according to the *active* keyboard layout, so pressing
-/// the physical "F" key under a Cyrillic layout yields `Cyrillic_ef` and the
-/// accelerator would be stored as `<Control>ф` — which never matches once the
-/// layout switches back to Latin. To keep shortcuts stable we translate the
-/// hardware `keycode` (which is layout-independent) through every installed
-/// layout group and prefer an ASCII keyval.
-///
-/// Returns the original `keyval` when it is already ASCII or when no ASCII
-/// mapping exists (e.g. function keys, which are already layout-independent).
-fn latin_keyval(keyval: gtk4::gdk::Key, keycode: u32) -> gtk4::gdk::Key {
-    // Already an ASCII keyval (e.g. Latin layout) — nothing to translate.
-    if keyval.to_unicode().is_some_and(|c| c.is_ascii()) {
-        return keyval;
-    }
-    let Some(display) = gtk4::gdk::Display::default() else {
-        return keyval;
-    };
-    let Some(entries) = display.map_keycode(keycode) else {
-        return keyval;
-    };
-    // Prefer an ASCII graphic keyval from any layout group (the Latin one),
-    // covering letters, digits and punctuation used in accelerators.
-    entries
-        .iter()
-        .map(|(_, kv)| *kv)
-        .find(|kv| kv.to_unicode().is_some_and(|c| c.is_ascii_graphic()))
-        .unwrap_or(keyval)
-}
-
 /// Opens a modal dialog that captures a single key combination.
 ///
 /// The previous implementation attached an `EventControllerKey` to the toplevel
@@ -309,7 +278,7 @@ fn show_shortcut_recorder(
             // Translate to a layout-independent (Latin) keyval so a shortcut
             // recorded under e.g. a Cyrillic layout still stores `<Control>f`
             // rather than `<Control>ф` and keeps working after switching back.
-            let keyval = latin_keyval(keyval, keycode);
+            let keyval = crate::utils::latin_keyval(keyval, keycode);
 
             // Strip lock modifiers (Caps/Num) so they do not pollute the accel.
             let mods = state & gtk4::accelerator_get_default_mod_mask();

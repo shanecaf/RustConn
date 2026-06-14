@@ -289,7 +289,7 @@ impl Default for LoggingSettings {
 )]
 pub struct SecretSettings {
     /// Preferred secret backend
-    #[serde(default)]
+    #[serde(default = "default_secret_backend")]
     pub preferred_backend: SecretBackendType,
     /// Enable fallback to libsecret if `KeePassXC` unavailable
     #[serde(default = "default_true")]
@@ -374,10 +374,26 @@ const fn default_true() -> bool {
     true
 }
 
+/// Default secret backend, chosen per platform.
+///
+/// macOS ships the system Keychain (Security.framework) and has no libsecret,
+/// so a fresh install defaults to [`SecretBackendType::MacOsKeychain`] there.
+/// Every other platform defaults to [`SecretBackendType::LibSecret`].
+fn default_secret_backend() -> SecretBackendType {
+    #[cfg(target_os = "macos")]
+    {
+        SecretBackendType::MacOsKeychain
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        SecretBackendType::LibSecret
+    }
+}
+
 impl Default for SecretSettings {
     fn default() -> Self {
         Self {
-            preferred_backend: SecretBackendType::default(),
+            preferred_backend: default_secret_backend(),
             enable_fallback: true,
             kdbx_path: None,
             kdbx_enabled: false,

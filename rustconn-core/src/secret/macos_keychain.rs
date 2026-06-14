@@ -13,6 +13,7 @@ mod inner {
     use security_framework::passwords::{
         delete_generic_password, get_generic_password, set_generic_password,
     };
+    use zeroize::Zeroizing;
 
     use crate::error::{SecretError, SecretResult};
     use crate::models::Credentials;
@@ -69,11 +70,21 @@ mod inner {
             let account = Self::account_name(connection_id, field);
             match get_generic_password(SERVICE_NAME, &account) {
                 Ok(bytes) => {
-                    let value = String::from_utf8(bytes).map_err(|e| {
-                        SecretError::LibSecret(format!(
-                            "Keychain value is not valid UTF-8 for {field}: {e}"
-                        ))
-                    })?;
+                    // `from_utf8` reuses the buffer on success; on success the
+                    // decoded value is moved by the caller into a `SecretString`
+                    // (zeroized on drop). On failure the raw bytes may still hold
+                    // password material, so zeroize them before returning.
+                    let value = match String::from_utf8(bytes) {
+                        Ok(value) => value,
+                        Err(e) => {
+                            // Wipe the raw bytes (may hold password material)
+                            // before returning — `Zeroizing` zeroizes on drop.
+                            drop(Zeroizing::new(e.into_bytes()));
+                            return Err(SecretError::LibSecret(format!(
+                                "Keychain value is not valid UTF-8 for {field}"
+                            )));
+                        }
+                    };
                     if value.is_empty() {
                         Ok(None)
                     } else {

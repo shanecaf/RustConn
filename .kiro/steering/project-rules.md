@@ -14,6 +14,27 @@ Communication language: Ukrainian.
 | `rustconn-cli` | CLI interface | Only rustconn-core |
 | `rustconn` | GTK4/libadwaita GUI | May import everything |
 
+## Code Philosophy (YAGNI / lazy-senior)
+
+The best code is the code never written. Lazy means efficient, not careless.
+Before writing any code, stop at the first rung that holds:
+
+1. Does this need to exist at all? → no: skip it (YAGNI)
+2. Does `std` already do this? → use it
+3. Is there a native platform / GTK4 / libadwaita feature? → use it
+4. Does an already-present dependency solve it? → use it
+5. Can it be one line? → make it one line
+6. Only then: the minimum code that works
+
+- Deletion over addition. Boring over clever. Fewest files possible.
+- No abstractions, traits, or generics that weren't asked for. No boilerplate nobody requested.
+- No new crate if it can be avoided (also respects `cargo deny` / supply-chain).
+- Question complex requests: "Do you actually need X, or does Y cover it?"
+- When two `std` approaches are the same size, pick the edge-case-correct one. Lazy means less code, not the flimsier algorithm.
+- Mark intentional simplifications with a `// ponytail:` comment that names the ceiling and the upgrade path, e.g. `// ponytail: O(n²) scan, fine for <100 hosts; index if the list grows`.
+- **Never lazy about** (these are never on the chopping block): trust-boundary input validation, error handling that prevents data loss, security/credentials (see Absolute Rules), accessibility (see GNOME HIG).
+- Tests are **not** subject to laziness: the existing test policy below stands — keep at least the rustconn-core property-test coverage; never drop a test to "save code".
+
 ## Absolute Rules
 
 - `unsafe_code = "forbid"` — no unsafe whatsoever

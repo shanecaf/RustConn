@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.5] - 2026-06-14
+
+### Fixed
+
+- **Keyboard shortcuts did nothing under non-Latin keyboard layouts** — accelerators are registered with Latin keyvals (`<Control>n`), but GTK matches them against the keyval produced by the *active* layout, so under a Cyrillic/Greek/etc. layout pressing Ctrl+N yielded `Cyrillic_en` and the shortcut silently did nothing (the in-app recorder already normalized to Latin, but runtime matching did not). A capture-phase key controller now maps the hardware keycode back to its Latin keyval and activates the matching action when it is currently bound. User overrides and keyboard-passthrough mode are honored automatically (it queries the live accelerators), and Latin layouts are untouched
+- **RDP external client closed immediately with no explanation** ([#177](https://github.com/totoshko88/RustConn/issues/177) follow-up) — when the embedded IronRDP first-frame watchdog (0.16.3) fell back to the external FreeRDP client — or when external mode was selected directly — the client's `stderr` was redirected to `/dev/null`, so a failed connection (authentication failure, rejected certificate, unsupported codec, wrong display backend) just made a window flash and close with no diagnostic anywhere. On top of that the widget was left in a phantom `Connected` state because the spawned process was never checked for an early exit. FreeRDP's `stderr` is now captured and forwarded to the application log, and a short startup watchdog (polls for ~3 s) detects an immediate exit and surfaces it as a clear, localized error instead of a silent blank tab
+- **macOS: wrong default secret backend on a fresh install** — `SecretSettings` defaulted to `libsecret` on every platform, but libsecret does not exist on macOS, so a new install fell back through an unavailable backend instead of using the system Keychain. The default is now platform-aware (`MacOsKeychain` on macOS, `libsecret` elsewhere), and the Settings → Secrets backend selector shows and persists "macOS Keychain" for the system-keyring slot on macOS instead of the meaningless "libsecret" label
+- **macOS: misleading "not installed" error for any terminal spawn failure** — the native-PTY launcher reported every failure (PTY allocation, fd duplication, controlling-terminal setup) as `Command not found` / `'…' is not installed`. Only a genuine missing-executable error (NotFound) now uses that wording; other failures surface the actual error text in the toast so the cause is diagnosable
+- **macOS: `gtk-application-prefer-dark-theme` workaround fought the system theme** — the Linux/KDE/XFCE xsettings workaround that force-clears this property also ran on macOS, where the property mirrors the system `NSAppearance`. Clearing it interfered with "Follow system" dark mode and produced repeated misleading log lines. The workaround is now gated to non-macOS platforms
+
+### Improved
+
+- **RDP connection diagnostics** — the external FreeRDP launcher now logs the selected binary (`wlfreerdp3`/`sdl-freerdp3`/`xfreerdp3`), the session type (Wayland vs X11), and the full argument vector (the password is never on the command line, so this is safe) at debug level. The embedded IronRDP path now logs how long the first displayable frame took to arrive, making it possible to tell a genuine GFX/H.264-only server (no frame at all) apart from a slow first paint on a high-latency link. Run with `RUST_LOG=debug` to collect this when reporting RDP issues
+- **Quieter logs: CSS theme-parser warning flood suppressed** — GTK4's CSS parser emits hundreds of harmless `Theme parser warning … Expected ';'` lines while reading the libadwaita ≥1.9 stylesheet (most visible on macOS/Homebrew). A GLib log writer now drops only those specific messages and forwards every other GTK/GLib message unchanged, so real warnings are no longer buried
+- **macOS Keychain: secret bytes zeroized on decode failure** — if a stored Keychain value failed UTF-8 decoding, the raw bytes (potentially password material) were dropped without being wiped; they are now zeroized before the error is returned
+- **macOS: native key symbols on the welcome screen** — the welcome screen's Keyboard Shortcuts column now renders combos with macOS symbols (`⌃ ⇧ ⌥ ⌫`, e.g. `⌃⇧T`) instead of the `Ctrl+Shift+T` text. The bindings themselves are unchanged (RustConn still uses Control on macOS, shown as `⌃`); this is presentation only. The Shortcuts dialog already renders natively via `AdwShortcutsItem`
+
+### Translations
+
+- **Italian** — updated translations contributed by [@albanobattistella](https://github.com/albanobattistella) ([#179](https://github.com/totoshko88/RustConn/pull/179))
+- New string for the external-client early-exit error, translated across all 16 languages
+- New strings for the macOS terminal spawn-failure messages (`Failed to start '{}'`, `Failed to start '{}': {}`)
+
+### Dependencies
+
+- **Updated**: yuv 0.8.15→0.8.16
+
 ## [0.16.4] - 2026-06-14
 
 ### Fixed

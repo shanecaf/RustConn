@@ -1260,6 +1260,19 @@ impl TerminalNotebook {
                         "Failed to spawn command (macOS native PTY)"
                     );
 
+                    // A missing executable surfaces as a NotFound spawn error
+                    // ("No such file or directory" / os error 2). Anything else
+                    // (PTY allocation, fd dup, controlling-terminal setup) is a
+                    // genuine failure the user must see verbatim instead of a
+                    // misleading "not installed" message.
+                    let not_found =
+                        e.contains("No such file or directory") || e.contains("os error 2");
+                    let banner_msg = if not_found {
+                        i18n_f("Command not found: {}", &[&command_name])
+                    } else {
+                        i18n_f("Failed to start '{}'", &[&command_name])
+                    };
+
                     // Mark tab as disconnected and show reconnect overlay
                     if let Some(page) = sessions_rc.borrow().get(&session_id) {
                         page.set_indicator_icon(Some(&gio::ThemedIcon::new(
@@ -1287,7 +1300,7 @@ impl TerminalNotebook {
                             banner.set_halign(gtk4::Align::Center);
                             banner.set_widget_name("reconnect-banner");
 
-                            let msg = i18n_f("Command not found: {}", &[&command_name]);
+                            let msg = banner_msg.clone();
                             let label = gtk4::Label::new(Some(&msg));
                             label.add_css_class("dim-label");
 
@@ -1309,7 +1322,11 @@ impl TerminalNotebook {
                     }
 
                     // Show toast on the nearest window
-                    let msg = i18n_f("'{}' is not installed", &[&command_name]);
+                    let msg = if not_found {
+                        i18n_f("'{}' is not installed", &[&command_name])
+                    } else {
+                        i18n_f("Failed to start '{}': {}", &[&command_name, &e])
+                    };
                     crate::toast::show_error_toast_on_active_window(&msg);
                 }
             }

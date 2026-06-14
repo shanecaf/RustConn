@@ -20,6 +20,87 @@ use super::types::{
 #[cfg(feature = "rdp-embedded")]
 use rustconn_core::rdp_client::RdpClientCommand;
 
+/// Polls a freshly launched external FreeRDP client for an early exit.
+///
+/// A real RDP session never terminates within the first few seconds. If the
+/// external client exits that quickly it almost always failed to connect
+/// (authentication failure, rejected certificate, unsupported codec, or the
+/// wrong display backend). Without this watchdog the widget stayed in a
+/// phantom `Connected` state while the user only saw a window flash and close.
+///
+/// Surfaces the exit as an `Error` (with the process status) instead. The real
+/// failure reason is captured separately from the client's stderr by
+/// [`SafeFreeRdpLauncher::launch`]. (Fixes #177 follow-up: "it closes automatically")
+fn arm_external_exit_watchdog(
+    process: Rc<RefCell<Option<std::process::Child>>>,
+    state: Rc<RefCell<RdpConnectionState>>,
+    on_state_changed: Rc<RefCell<Option<super::types::StateCallback>>>,
+    on_error: Rc<RefCell<Option<super::types::ErrorCallback>>>,
+    drawing_area: gtk4::DrawingArea,
+) {
+    // Poll every 500 ms for ~3 s. Long enough to catch an immediate auth/cert
+    // rejection, short enough not to delay reporting a genuine failure.
+    const POLL_INTERVAL: std::time::Duration = std::time::Duration::from_millis(500);
+    const MAX_POLLS: u32 = 6;
+
+    let polls = Rc::new(RefCell::new(0u32));
+    glib::timeout_add_local(POLL_INTERVAL, move || {
+        // Stop once we're no longer in the external-connected state (e.g. the
+        // user disconnected, or an error was already reported elsewhere).
+        if *state.borrow() != RdpConnectionState::Connected {
+            return glib::ControlFlow::Break;
+        }
+
+        let exit_status = match process.borrow_mut().as_mut() {
+            Some(child) => child.try_wait().ok().flatten(),
+            None => return glib::ControlFlow::Break,
+        };
+
+        if let Some(status) = exit_status {
+            // Reap the dead child so disconnect() doesn't try to wait on it again.
+            *process.borrow_mut() = None;
+            *state.borrow_mut() = RdpConnectionState::Error;
+            drawing_area.queue_draw();
+
+            let status_str = status.to_string();
+            tracing::error!(
+                protocol = "rdp",
+                status = %status_str,
+                "[FreeRDP] External client exited shortly after launch — connection failed"
+            );
+
+            let msg = i18n_f(
+                "External RDP client closed unexpectedly ({}). Check that FreeRDP is installed and the server is reachable; run with RUST_LOG=debug for details.",
+                &[&status_str],
+            );
+
+            // take-invoke-restore: the callbacks may close the tab and re-enter
+            // these cells, which would otherwise panic with BorrowMutError.
+            let scb = on_state_changed.borrow_mut().take();
+            if let Some(ref cb) = scb {
+                cb(RdpConnectionState::Error);
+            }
+            *on_state_changed.borrow_mut() = scb;
+
+            let ecb = on_error.borrow_mut().take();
+            if let Some(ref cb) = ecb {
+                cb(&msg);
+            }
+            *on_error.borrow_mut() = ecb;
+
+            return glib::ControlFlow::Break;
+        }
+
+        let mut count = polls.borrow_mut();
+        *count += 1;
+        if *count >= MAX_POLLS {
+            glib::ControlFlow::Break
+        } else {
+            glib::ControlFlow::Continue
+        }
+    });
+}
+
 /// Groups the shared state references needed by `handle_ironrdp_error`.
 ///
 /// Replaces the 13-parameter function signature with a single context struct,
@@ -667,6 +748,16 @@ impl super::EmbeddedRdpWidget {
                                     &data,
                                     u32::from(rect.width) * 4,
                                 );
+                                if !*first_frame_received.borrow()
+                                    && let Some(t) = *connected_at.borrow()
+                                {
+                                    tracing::info!(
+                                        protocol = "rdp",
+                                        elapsed_ms = u64::try_from(t.elapsed().as_millis())
+                                            .unwrap_or(u64::MAX),
+                                        "[IronRDP] First displayable frame received"
+                                    );
+                                }
                                 *first_frame_received.borrow_mut() = true;
                                 needs_redraw = true;
                             }
@@ -709,6 +800,16 @@ impl super::EmbeddedRdpWidget {
                                     &data,
                                     u32::from(width) * 4,
                                 );
+                                if !*first_frame_received.borrow()
+                                    && let Some(t) = *connected_at.borrow()
+                                {
+                                    tracing::info!(
+                                        protocol = "rdp",
+                                        elapsed_ms = u64::try_from(t.elapsed().as_millis())
+                                            .unwrap_or(u64::MAX),
+                                        "[IronRDP] First displayable frame received"
+                                    );
+                                }
                                 *first_frame_received.borrow_mut() = true;
                                 needs_redraw = true;
                             }
@@ -1283,6 +1384,16 @@ impl super::EmbeddedRdpWidget {
                     cb(&i18n("Using external RDP client (server incompatible)"));
                     *ctx.on_fallback.borrow_mut() = Some(cb);
                 }
+                // The external client may itself fail to connect (auth, cert,
+                // codec). Detect an immediate exit and surface it as an error
+                // instead of leaving a phantom "Connected" state.
+                arm_external_exit_watchdog(
+                    ctx.fallback_process.clone(),
+                    ctx.state.clone(),
+                    ctx.on_state_changed.clone(),
+                    ctx.on_error.clone(),
+                    ctx.drawing_area.clone(),
+                );
             } else {
                 *ctx.state.borrow_mut() = RdpConnectionState::Error;
                 if let Some(ref cb) = *ctx.on_error.borrow() {
@@ -1709,6 +1820,9 @@ impl super::EmbeddedRdpWidget {
                 self.set_state(RdpConnectionState::Connected);
                 // Trigger redraw to show "Session running in external window"
                 self.drawing_area.queue_draw();
+                // Detect an immediate exit (auth/cert/codec failure) so the user
+                // sees an error instead of a window that flashed and closed.
+                self.arm_external_exit_watchdog();
                 Ok(())
             }
             Err(e) => {
@@ -1816,6 +1930,20 @@ impl super::EmbeddedRdpWidget {
                 "No previous configuration to reconnect".to_string(),
             ))
         }
+    }
+
+    /// Arms a short-lived watchdog detecting an external client that exits
+    /// immediately after launch (auth/certificate/codec failure).
+    ///
+    /// See [`arm_external_exit_watchdog`] for the rationale.
+    fn arm_external_exit_watchdog(&self) {
+        arm_external_exit_watchdog(
+            self.process.clone(),
+            self.state.clone(),
+            self.on_state_changed.clone(),
+            self.on_error.clone(),
+            self.drawing_area.clone(),
+        );
     }
 
     /// Terminates the external FreeRDP process if running

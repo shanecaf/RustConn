@@ -1686,6 +1686,37 @@ impl SplitViewBridge {
         col
     }
 
+    /// Formats a `"Ctrl+Shift+T"`-style shortcut for on-screen display.
+    ///
+    /// On macOS the combo is rendered with native modifier/key symbols
+    /// (`⌃ ⇧ ⌥ ⌘ ⌫ ↩ ⇥ ⎋`) and no separators (e.g. `⌃⇧T`), matching platform
+    /// conventions. The real bindings are unchanged — RustConn still uses the
+    /// Control key on macOS, so Control is shown as `⌃`, not `⌘`. On every other
+    /// platform the string is returned unchanged.
+    fn format_shortcut(combo: &str) -> String {
+        #[cfg(not(target_os = "macos"))]
+        {
+            combo.to_string()
+        }
+        #[cfg(target_os = "macos")]
+        {
+            combo
+                .split('+')
+                .map(|part| match part {
+                    "Ctrl" | "Control" => "⌃",
+                    "Shift" => "⇧",
+                    "Alt" | "Option" => "⌥",
+                    "Cmd" | "Command" | "Super" | "Meta" => "⌘",
+                    "Backspace" => "⌫",
+                    "Enter" | "Return" => "↩",
+                    "Tab" => "⇥",
+                    "Esc" | "Escape" => "⎋",
+                    other => other,
+                })
+                .collect::<String>()
+        }
+    }
+
     /// Builds the Keyboard Shortcuts column for the welcome screen
     fn build_welcome_shortcuts_column() -> GtkBox {
         let col = GtkBox::new(Orientation::Vertical, 6);
@@ -1710,8 +1741,9 @@ impl SplitViewBridge {
 
         for (shortcut, description) in &shortcuts {
             let row = adw::ActionRow::builder().title(description).build();
+            let combo = Self::format_shortcut(shortcut);
             let label = gtk4::Label::builder()
-                .label(*shortcut)
+                .label(&combo)
                 .css_classes(["dim-label", "monospace"])
                 .build();
             row.add_suffix(&label);

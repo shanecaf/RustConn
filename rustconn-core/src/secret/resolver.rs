@@ -1333,6 +1333,9 @@ mod tests {
     fn test_select_storage_backend_keepass_disabled() {
         let settings = SecretSettings {
             kdbx_enabled: false,
+            // Pin the system-keyring backend so the test is platform-independent
+            // (the default is platform-aware: Keychain on macOS, libsecret elsewhere).
+            preferred_backend: SecretBackendType::LibSecret,
             ..Default::default()
         };
         let manager = Arc::new(SecretManager::empty());
@@ -1349,6 +1352,9 @@ mod tests {
         let settings = SecretSettings {
             kdbx_enabled: true,
             kdbx_path: None,
+            // Pin the system-keyring backend so the test is platform-independent
+            // (the default is platform-aware: Keychain on macOS, libsecret elsewhere).
+            preferred_backend: SecretBackendType::LibSecret,
             ..Default::default()
         };
         let manager = Arc::new(SecretManager::empty());

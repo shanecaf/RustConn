@@ -1,4 +1,16 @@
 -------------------------------------------------------------------
+Sun Jun 14 2026 Anton Isaiev <totoshko88@gmail.com> - 0.16.5
+
+- Fixed external FreeRDP client closing immediately with no explanation (#177 follow-up) — stderr captured and forwarded to the log; a startup watchdog (~3s) detects an immediate exit and surfaces a clear error
+- Fixed wrong default secret backend on macOS — fresh install defaults to the system Keychain instead of the unavailable libsecret; Secrets selector shows/persists "macOS Keychain"
+- Fixed misleading "not installed" message for any terminal spawn failure on macOS — only a genuine missing executable uses that wording; other failures show the actual error
+- Skipped the Linux dark-theme (gtk-application-prefer-dark-theme) workaround on macOS, where it fought the system NSAppearance
+- Suppressed the harmless CSS theme-parser warning flood (libadwaita >= 1.9 stylesheet vs GTK4 parser)
+- macOS Keychain: secret bytes zeroized on a UTF-8 decode failure
+- Improved RDP connection diagnostics (selected binary, session type, args, first-frame timing) at debug level
+- Updated yuv 0.8.15->0.8.16
+
+-------------------------------------------------------------------
 Sun Jun 14 2026 Anton Isaiev <totoshko88@gmail.com> - 0.16.4
 
 - Fixed MobaXterm import/export losing nested folder structure (#178) — SubRep paths like Production\Web rebuild the full folder tree on import and round-trip on export

@@ -205,9 +205,15 @@ pub fn create_secrets_page() -> SecretsPageWidgets {
         .build();
 
     // Simplified: KeePassXC, libsecret, Bitwarden, 1Password, Passbolt, Pass
+    // Index 1 is the system keyring: libsecret on Linux/BSD, the native
+    // Keychain on macOS (libsecret does not exist there).
+    #[cfg(target_os = "macos")]
+    let system_keyring_label = "macOS Keychain";
+    #[cfg(not(target_os = "macos"))]
+    let system_keyring_label = "libsecret";
     let backend_strings = StringList::new(&[
         "KeePassXC",
-        "libsecret",
+        system_keyring_label,
         "Bitwarden",
         "1Password",
         "Passbolt",
@@ -1783,9 +1789,13 @@ pub fn collect_secret_settings(
     widgets: &SecretsPageWidgets,
     settings: &Rc<RefCell<rustconn_core::config::AppSettings>>,
 ) -> SecretSettings {
-    // Indices: 0=KeePassXC, 1=libsecret, 2=Bitwarden, 3=1Password, 4=Passbolt, 5=Pass
+    // Indices: 0=KeePassXC, 1=libsecret/Keychain, 2=Bitwarden, 3=1Password, 4=Passbolt, 5=Pass
     let preferred_backend = match widgets.secret_backend_dropdown.selected() {
         0 => SecretBackendType::KeePassXc,
+        // Index 1 is the platform system keyring (see create_secrets_page).
+        #[cfg(target_os = "macos")]
+        1 => SecretBackendType::MacOsKeychain,
+        #[cfg(not(target_os = "macos"))]
         1 => SecretBackendType::LibSecret,
         2 => SecretBackendType::Bitwarden,
         3 => SecretBackendType::OnePassword,

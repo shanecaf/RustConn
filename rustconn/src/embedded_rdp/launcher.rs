@@ -183,12 +183,45 @@ impl SafeFreeRdpLauncher {
         // Build connection arguments
         Self::add_connection_args(&mut cmd, config);
 
-        // Redirect stderr to suppress warnings
-        cmd.stderr(Stdio::null());
+        // Capture stderr instead of discarding it. The real FreeRDP failure
+        // reason (authentication failure, rejected certificate, missing codec,
+        // wrong display backend) is printed to stderr — silencing it made
+        // blank-screen / auto-close reports impossible to diagnose remotely.
+        // Qt/Wayland noise is already filtered via QT_LOGGING_RULES. (See #177)
+        cmd.stderr(Stdio::piped());
+
+        // Log the chosen binary and full argument vector (the password is sent
+        // via stdin / args-file, never on argv, so this is safe to log).
+        tracing::debug!(
+            protocol = "rdp",
+            binary = %actual_binary,
+            via_host,
+            host = %config.host,
+            port = config.port,
+            command = ?cmd,
+            "[FreeRDP] Launching external client"
+        );
 
         let mut child = cmd
             .spawn()
             .map_err(|e| EmbeddedRdpError::FreeRdpInit(e.to_string()))?;
+
+        // Drain the client's stderr on a background thread and forward every
+        // non-empty line to `tracing`. This surfaces the genuine connection
+        // failure reason (e.g. `ERRCONNECT_AUTHENTICATION_FAILED`,
+        // certificate errors) that previously vanished into `/dev/null`.
+        if let Some(stderr) = child.stderr.take() {
+            let client = actual_binary.clone();
+            std::thread::spawn(move || {
+                use std::io::{BufRead, BufReader};
+                for line in BufReader::new(stderr).lines().map_while(Result::ok) {
+                    let trimmed = line.trim();
+                    if !trimmed.is_empty() {
+                        tracing::warn!(protocol = "rdp", client = %client, "[FreeRDP] {trimmed}");
+                    }
+                }
+            });
+        }
 
         // Write password via stdin when /from-stdin is used (i.e. for
         // non-RemoteApp sessions; RemoteApp gets the password via the

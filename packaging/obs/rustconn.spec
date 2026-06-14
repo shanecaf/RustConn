@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.16.4
+Version:        0.16.5
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -242,6 +242,15 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Sun Jun 14 2026 Anton Isaiev <totoshko88@gmail.com> - 0.16.5-0
+- Fixed external FreeRDP client closing immediately with no explanation (#177 follow-up) — stderr captured and forwarded to the log; startup watchdog (~3s) detects an immediate exit
+- Fixed wrong default secret backend on macOS — fresh install defaults to the system Keychain instead of the unavailable libsecret
+- Fixed misleading "not installed" message for any terminal spawn failure on macOS — only a genuine missing executable uses that wording
+- Skipped the Linux dark-theme workaround on macOS, where it fought the system NSAppearance
+- Suppressed the harmless CSS theme-parser warning flood (libadwaita >= 1.9 vs GTK4 parser)
+- macOS Keychain: secret bytes zeroized on a UTF-8 decode failure
+- Updated yuv 0.8.15->0.8.16
+
 * Sun Jun 14 2026 Anton Isaiev <totoshko88@gmail.com> - 0.16.4-0
 - Fixed MobaXterm import/export losing nested folder structure (#178) — SubRep paths rebuild the full folder tree and round-trip correctly
 - Fixed SecureCRT export mangling folders nested 3+ levels deep (#178) — paths built by walking the parent chain; empty intermediate folders preserved

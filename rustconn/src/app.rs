@@ -131,6 +131,9 @@ fn build_ui(app: &adw::Application, tray_manager: SharedTrayManager) {
 
         // Safety net: clear the deprecated property again in case it was
         // re-set between run() and activate (e.g. by a settings daemon).
+        // Skipped on macOS — see the note in run(): the property mirrors the
+        // system appearance there and must not be cleared.
+        #[cfg(not(target_os = "macos"))]
         if settings.is_gtk_application_prefer_dark_theme() {
             settings.set_gtk_application_prefer_dark_theme(false);
             tracing::debug!(
@@ -164,6 +167,10 @@ fn build_ui(app: &adw::Application, tray_manager: SharedTrayManager) {
 
     // Create main window with state
     let window = MainWindow::new(app, state.clone());
+
+    // Make application accelerators work under non-Latin keyboard layouts
+    // (Ukrainian, Russian, Greek, …) where GTK's keyval-based matching fails.
+    install_layout_independent_accels(window.gtk_window(), app);
 
     // Apply saved compact-UI preference now that the window exists.
     // Adds the `.compact` CSS class to the window if enabled in settings.
@@ -1211,6 +1218,12 @@ pub fn run() -> glib::ExitCode {
     // adw::init() so AdwStyleManager never sees it as true.
     // We also connect a notify handler to catch the xsettings daemon re-setting
     // the property after we clear it (race condition on KDE).
+    //
+    // macOS has no xsettings daemon: there the property is driven by the GTK
+    // Quartz backend to mirror the system NSAppearance, so clearing it would
+    // fight macOS' "follow system" dark mode (ColorScheme::System) and only
+    // produce misleading log spam. Skip the whole workaround there.
+    #[cfg(not(target_os = "macos"))]
     if let Some(display) = gtk4::gdk::Display::default() {
         let settings = gtk4::Settings::for_display(&display);
         if settings.is_gtk_application_prefer_dark_theme() {
@@ -1254,4 +1267,83 @@ fn apply_saved_language(state: &SharedAppState) {
     let language = with_state(state, |s| s.settings().ui.language.clone());
 
     crate::i18n::apply_language(&language);
+}
+
+/// Installs a capture-phase key controller that makes application accelerators
+/// work under non-Latin keyboard layouts (e.g. Ukrainian, Russian, Greek).
+///
+/// GTK matches the accelerators registered via `set_accels_for_action` against
+/// the keyval produced by the *active* layout. Under a Cyrillic layout the "N"
+/// key yields `Cyrillic_en`, so `<Control>n` never matches and the shortcut
+/// silently does nothing. This controller detects a non-ASCII keyval, maps the
+/// hardware keycode back to its Latin keyval, and — if the resulting accelerator
+/// is currently registered for an action — activates that action directly.
+///
+/// Querying `accels_for_action` at press time means user overrides and
+/// passthrough mode (which clears accelerators) are honored automatically: when
+/// an action has no active accelerator, the key falls through unchanged.
+fn install_layout_independent_accels(window: &adw::ApplicationWindow, app: &adw::Application) {
+    // Action names are stable for the lifetime of the process.
+    let actions: Vec<String> = rustconn_core::default_keybindings()
+        .into_iter()
+        .map(|def| def.action)
+        .collect();
+
+    let controller = gtk4::EventControllerKey::new();
+    controller.set_propagation_phase(gtk4::PropagationPhase::Capture);
+
+    let app = app.clone();
+    let window_weak = window.downgrade();
+    controller.connect_key_pressed(move |_ctrl, keyval, keycode, state| {
+        // Latin layout (ASCII keyval): GTK already matches it. Proceed and,
+        // crucially, do NOT double-dispatch the action.
+        if keyval.to_unicode().is_some_and(|c| c.is_ascii()) {
+            return glib::Propagation::Proceed;
+        }
+
+        // Only accelerator-like combos (with a real modifier) are eligible —
+        // never hijack plain text entry under a non-Latin layout.
+        let mods = state & gtk4::accelerator_get_default_mod_mask();
+        let trigger = gtk4::gdk::ModifierType::CONTROL_MASK
+            | gtk4::gdk::ModifierType::ALT_MASK
+            | gtk4::gdk::ModifierType::SUPER_MASK
+            | gtk4::gdk::ModifierType::META_MASK;
+        if !mods.intersects(trigger) {
+            return glib::Propagation::Proceed;
+        }
+
+        // Map the hardware key to its Latin keyval; bail out if unchanged.
+        let latin = crate::utils::latin_keyval(keyval, keycode);
+        tracing::debug!(
+            keyval = ?keyval.name(),
+            keycode,
+            latin = ?latin.name(),
+            ?mods,
+            "layout-independent accel: non-Latin modified key"
+        );
+        if latin == keyval {
+            return glib::Propagation::Proceed;
+        }
+
+        let Some(window) = window_weak.upgrade() else {
+            return glib::Propagation::Proceed;
+        };
+
+        for action in &actions {
+            for accel in app.accels_for_action(action) {
+                if let Some((accel_key, accel_mods)) = gtk4::accelerator_parse(accel.as_str())
+                    && accel_key == latin
+                    && accel_mods == mods
+                {
+                    tracing::debug!(%action, %accel, "layout-independent accel: matched, activating");
+                    if gtk4::prelude::WidgetExt::activate_action(&window, action, None).is_ok() {
+                        return glib::Propagation::Stop;
+                    }
+                }
+            }
+        }
+        glib::Propagation::Proceed
+    });
+
+    window.add_controller(controller);
 }

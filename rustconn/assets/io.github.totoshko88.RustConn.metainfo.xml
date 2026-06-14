@@ -140,6 +140,18 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.16.5" date="2026-06-14">
+      <description>
+        <p>Version 0.16.5 — RDP diagnostics and macOS fixes:</p>
+        <ul>
+          <li>Fixed external FreeRDP client closing immediately with no explanation — its error output is now captured and a startup watchdog surfaces an early exit</li>
+          <li>Fixed wrong default secret backend on macOS — a fresh install now defaults to the system Keychain instead of the unavailable libsecret</li>
+          <li>Fixed misleading "not installed" message for any terminal spawn failure on macOS — only a genuine missing executable uses that wording</li>
+          <li>Skipped the Linux dark-theme workaround on macOS, where it fought the system appearance</li>
+          <li>Suppressed the harmless CSS theme-parser warning flood that buried real log messages</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.16.4" date="2026-06-14">
       <description>
         <p>Version 0.16.4 — import/export folder hierarchy fixes:</p>

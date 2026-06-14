@@ -4,6 +4,7 @@
 //! including safe display access, CSS provider management, and accessibility helpers.
 
 use gtk4::gdk;
+use gtk4::prelude::DisplayExtManual;
 
 /// Gets the default GDK display, returning None if unavailable
 ///
@@ -557,6 +558,113 @@ pub fn progress_fraction(current: u64, total: u64) -> f64 {
         return 0.0;
     }
     (current as f64 / total as f64).clamp(0.0, 1.0)
+}
+
+/// Maps a key press to a layout-independent (Latin) keyval.
+///
+/// GDK reports `keyval` according to the *active* keyboard layout, so pressing
+/// the physical "F" key under a Cyrillic layout yields `Cyrillic_ef`. Accelerators
+/// are stored and registered with Latin keyvals (`<Control>f`), so they would
+/// never match under a non-Latin layout. This translates the hardware `keycode`
+/// (which is layout-independent) to an ASCII keyval.
+///
+/// On macOS the GTK Quartz backend does not expose alternate layout groups via
+/// `map_keycode` (it returns only the active layout, and often nothing usable
+/// when no Latin layout is installed), so the stable Apple virtual keycode is
+/// translated directly. On X11/Wayland every installed layout group is walked
+/// for an ASCII keyval.
+///
+/// Returns the original `keyval` when it is already ASCII or when no ASCII
+/// mapping exists (e.g. function keys, which are already layout-independent).
+#[must_use]
+pub fn latin_keyval(keyval: gdk::Key, keycode: u32) -> gdk::Key {
+    // Already an ASCII keyval (e.g. Latin layout) — nothing to translate.
+    if keyval.to_unicode().is_some_and(|c| c.is_ascii()) {
+        return keyval;
+    }
+
+    // macOS: translate the stable Apple virtual keycode directly, because the
+    // Quartz backend's `map_keycode` does not return a Latin group.
+    #[cfg(target_os = "macos")]
+    if let Some(kv) = macos_keycode_to_latin(keycode) {
+        return kv;
+    }
+
+    let Some(display) = gdk::Display::default() else {
+        return keyval;
+    };
+    let Some(entries) = display.map_keycode(keycode) else {
+        return keyval;
+    };
+    // Prefer an ASCII graphic keyval from any layout group (the Latin one),
+    // covering letters, digits and punctuation used in accelerators.
+    entries
+        .iter()
+        .map(|(_, kv)| *kv)
+        .find(|kv| kv.to_unicode().is_some_and(|c| c.is_ascii_graphic()))
+        .unwrap_or(keyval)
+}
+
+/// Translates a macOS Apple virtual keycode (`kVK_ANSI_*`) to its Latin GDK
+/// keyval, independent of the active keyboard layout.
+///
+/// Apple virtual keycodes are tied to the physical key position on an ANSI
+/// keyboard and never change with the layout, so they are a reliable source for
+/// layout-independent accelerator matching. Only the keys that can appear in an
+/// accelerator are mapped; anything else returns `None`.
+#[cfg(target_os = "macos")]
+fn macos_keycode_to_latin(keycode: u32) -> Option<gdk::Key> {
+    let name = match keycode {
+        0 => "a",
+        1 => "s",
+        2 => "d",
+        3 => "f",
+        4 => "h",
+        5 => "g",
+        6 => "z",
+        7 => "x",
+        8 => "c",
+        9 => "v",
+        11 => "b",
+        12 => "q",
+        13 => "w",
+        14 => "e",
+        15 => "r",
+        16 => "y",
+        17 => "t",
+        18 => "1",
+        19 => "2",
+        20 => "3",
+        21 => "4",
+        22 => "6",
+        23 => "5",
+        24 => "equal",
+        25 => "9",
+        26 => "7",
+        27 => "minus",
+        28 => "8",
+        29 => "0",
+        30 => "bracketright",
+        31 => "o",
+        32 => "u",
+        33 => "bracketleft",
+        34 => "i",
+        35 => "p",
+        37 => "l",
+        38 => "j",
+        39 => "apostrophe",
+        40 => "k",
+        41 => "semicolon",
+        42 => "backslash",
+        43 => "comma",
+        44 => "slash",
+        45 => "n",
+        46 => "m",
+        47 => "period",
+        50 => "grave",
+        _ => return None,
+    };
+    gdk::Key::from_name(name)
 }
 
 #[cfg(test)]

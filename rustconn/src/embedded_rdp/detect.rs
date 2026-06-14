@@ -54,7 +54,8 @@ fn binary_exists(name: &str) -> bool {
 /// Returns `None` if no FreeRDP client is found.
 #[must_use]
 pub fn detect_best_freerdp() -> Option<String> {
-    let candidates = if is_wayland_session() {
+    let wayland = is_wayland_session();
+    let candidates = if wayland {
         WAYLAND_FIRST_CANDIDATES
     } else {
         X11_FIRST_CANDIDATES
@@ -62,9 +63,20 @@ pub fn detect_best_freerdp() -> Option<String> {
 
     for candidate in candidates {
         if binary_exists(candidate) {
+            tracing::debug!(
+                protocol = "rdp",
+                binary = %candidate,
+                wayland,
+                "Selected external FreeRDP binary"
+            );
             return Some((*candidate).to_string());
         }
     }
+    tracing::warn!(
+        protocol = "rdp",
+        wayland,
+        "No FreeRDP client found on PATH (wlfreerdp3/sdl-freerdp3/xfreerdp3)"
+    );
     None
 }
 

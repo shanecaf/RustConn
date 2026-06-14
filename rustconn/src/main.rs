@@ -411,6 +411,32 @@ pub fn configure_gsettings_schemas() {
     );
 }
 
+/// Installs a GLib log writer that drops the high-volume, harmless CSS
+/// theme-parser warnings (libadwaita ≥1.9 stylesheet vs GTK4's CSS parser)
+/// while forwarding every other GLib/GTK message to the default writer.
+///
+/// # Panics
+///
+/// Panics if a writer function was already installed; this is called exactly
+/// once from `main`, so that cannot happen in practice.
+fn install_glib_css_warning_filter() {
+    use gtk4::glib;
+
+    glib::log_set_writer_func(|level, fields| {
+        let is_css_noise = fields.iter().any(|field| {
+            field.key() == "MESSAGE"
+                && field
+                    .value_str()
+                    .is_some_and(|msg| msg.contains("Theme parser") || msg.contains("gtk.css"))
+        });
+        if is_css_noise {
+            glib::LogWriterOutput::Handled
+        } else {
+            glib::log_writer_default(level, fields)
+        }
+    });
+}
+
 fn main() -> gtk4::glib::ExitCode {
     // macOS .app bundle: detect bundle Resources path for programmatic
     // configuration of i18n, GSettings schemas, and icon paths.
@@ -468,6 +494,12 @@ fn main() -> gtk4::glib::ExitCode {
         );
 
     tracing_subscriber::fmt().with_env_filter(filter).init();
+
+    // Drop the flood of harmless CSS theme-parser warnings GTK4 emits when it
+    // reads the libadwaita ≥1.9 stylesheet (it uses CSS syntax the older GTK4
+    // parser does not fully understand). They are non-fatal — documented in
+    // docs/MACOS_BUILD.md — but at debug level they bury every other log line.
+    install_glib_css_warning_filter();
 
     // Ensure ssh-agent is running so that child processes (Dolphin,
     // mc, ssh-add) inherit SSH_AUTH_SOCK. On some DEs (KDE on
