@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.16.3
+Version:        0.16.4
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -242,6 +242,12 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Sun Jun 14 2026 Anton Isaiev <totoshko88@gmail.com> - 0.16.4-0
+- Fixed MobaXterm import/export losing nested folder structure (#178) — SubRep paths rebuild the full folder tree and round-trip correctly
+- Fixed SecureCRT export mangling folders nested 3+ levels deep (#178) — paths built by walking the parent chain; empty intermediate folders preserved
+- Fixed Asbru-CM export dropping parent links on deep hierarchies (#178) — group UUID map built up front so nesting survives any group order
+- Updated time 0.3.47->0.3.49, time-core 0.1.8->0.1.9, time-macros 0.2.27->0.2.29
+
 * Sat Jun 13 2026 Anton Isaiev <totoshko88@gmail.com> - 0.16.3-0
 - Added RDP "Fit resolution to window" toolbar button — re-requests session resolution to match the window
 - Added error details in Connection History for failed connections (the toast is transient)

@@ -68,6 +68,28 @@ After writing `.rs` files in `rustconn/src/`, verify:
 - If a hook or sub-agent already ran tests in this turn, do NOT re-run them.
 - Use timeout 180s for test commands.
 
+### Shared Terminal & Sub-agents (CRITICAL)
+
+The main agent and all sub-agents (e.g. `rust-quality-check`) share ONE persistent
+bash session. Concurrent or queued commands interleave, producing `Exit Code -1`,
+glued-together command lines, stale output, and `bash-5.2$` prompt artifacts.
+The terminal architecture cannot be fixed from rules — only the collisions can.
+Apply this discipline to avoid them:
+
+- **One terminal owner at a time.** While a sub-agent that may touch the terminal
+  is running (`rust-quality-check` and any cargo-running agent), the main agent
+  MUST NOT run any bash command — wait for the sub-agent's result.
+- **Never delegate cargo runs to more than one sub-agent in parallel.** Centralize
+  all `cargo build/clippy/test` through a single `rust-quality-check` invocation.
+- **No polling loops.** Never use `sleep N; tail …` to watch progress. Run the
+  command once, redirect to a log file, then read it with `readFile`.
+- **Logs go inside the workspace** (`target/*.log`), never `/tmp` — `readFile` is
+  restricted to the workspace and cannot read `/tmp`.
+- **Check before launching.** Run `pgrep -f 'cargo'` first; if anything is running,
+  do not start another cargo command.
+- **One command per `executeBash` call.** Do not chain unrelated commands with
+  `;`/`&&` into a single line that the shared shell may split incorrectly.
+
 ## 16 Translation Languages
 
 be, cs, da, de, es, fr, it, kk, nl, pl, pt, sk, sv, uk, uz, zh-cn

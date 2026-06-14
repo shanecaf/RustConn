@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.4] - 2026-06-14
+
+### Fixed
+
+- **MobaXterm import/export lost nested folder structure** ([#178](https://github.com/totoshko88/RustConn/issues/178)) — `.mxtsessions` `SubRep` paths such as `Production\Web` were imported as a single flat group literally named `Production\Web` instead of a `Production` → `Web` tree, and export only emitted sections for folders that held direct sessions while building deeper paths in an order-dependent, sometimes-incorrect way. Import now splits each `SubRep` on the backslash separator and rebuilds the full folder tree (creating and reusing intermediate groups with correct `parent_id`), and export walks the parent chain to produce full paths, emits one section per group sorted so parents precede children, and includes intermediate folders even when they contain no direct sessions — so the hierarchy round-trips correctly between RustConn and MobaXterm
+- **SecureCRT export mangled folders nested 3+ levels deep** — the directory-path builder updated paths in a single order-dependent pass, so a connection in `A/B/C` could be written to a truncated path like `B/C` when groups were processed child-first. Paths are now built by walking the parent chain (correct at any depth), and a directory is created for every group so empty intermediate folders are preserved
+- **Asbru-CM export dropped parent links on deep hierarchies** — the group-to-UUID map was filled incrementally while emitting entries, so a child group serialized before its parent lost its `parent:` reference. The full map is now built up front, so nesting survives regardless of group order
+
+### Dependencies
+
+- **Updated**: time 0.3.47→0.3.49, time-core 0.1.8→0.1.9, time-macros 0.2.27→0.2.29
+
 ## [0.16.3] - 2026-06-13
 
 ### Added

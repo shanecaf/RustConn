@@ -40,13 +40,21 @@ impl AsbruExporter {
         let mut output = String::new();
         output.push_str("---\n# Asbru-CM configuration exported from RustConn\n\n");
 
-        // Build a map from RustConn group IDs to Asbru UUID strings
-        let mut group_uuid_map: HashMap<Uuid, String> = HashMap::new();
+        // Build a map from RustConn group IDs to Asbru UUID strings.
+        // Populate the full map up front so that a group's `parent:` link
+        // resolves correctly regardless of the order groups appear in — a child
+        // emitted before its parent must still reference the parent's UUID.
+        let mut group_uuid_map: HashMap<Uuid, String> = HashMap::with_capacity(groups.len());
+        for group in groups {
+            group_uuid_map.insert(group.id, generate_asbru_uuid());
+        }
 
         // Export groups first
         for group in groups {
-            let asbru_uuid = generate_asbru_uuid();
-            group_uuid_map.insert(group.id, asbru_uuid.clone());
+            let asbru_uuid = group_uuid_map
+                .get(&group.id)
+                .cloned()
+                .unwrap_or_else(generate_asbru_uuid);
 
             let entry = Self::group_to_entry(group, &group_uuid_map);
             let _ = writeln!(output, "{asbru_uuid}:");
@@ -486,6 +494,33 @@ mod tests {
         assert!(output.contains("name: \"web2\""));
         // Connections should have parent field
         assert!(output.contains("parent:"));
+    }
+
+    #[test]
+    fn test_export_nested_groups_order_independent() {
+        // Parent -> Child, but pass them child-first to expose order-dependent
+        // parent UUID resolution.
+        let parent = ConnectionGroup::new("Servers".to_string());
+        let child = ConnectionGroup::with_parent("Web".to_string(), parent.id);
+        let parent_id = parent.id;
+        let child_id = child.id;
+
+        let output = AsbruExporter::export(&[], &[child, parent]);
+
+        // The child group must reference its parent regardless of emit order.
+        // Exactly one `parent:` line is expected (the child group's link).
+        let parent_lines = output.matches("parent:").count();
+        assert_eq!(
+            parent_lines, 1,
+            "child group must keep its parent link even when emitted before the parent"
+        );
+
+        // Both groups must be present.
+        assert!(output.contains("name: \"Servers\""));
+        assert!(output.contains("name: \"Web\""));
+
+        // Sanity: the two groups are distinct entries.
+        assert!(parent_id != child_id);
     }
 
     #[test]

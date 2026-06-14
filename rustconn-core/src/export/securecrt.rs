@@ -196,22 +196,39 @@ impl SecureCrtExporter {
         output
     }
 
-    /// Builds group hierarchy paths from flat group list.
+    /// Builds full directory paths for each group by walking the parent chain.
+    ///
+    /// Produces a forward-slash separated path (e.g. `Production/Web`) with each
+    /// segment individually sanitized for the filesystem. Walking the parent
+    /// chain (rather than a single-pass update) keeps paths correct for folders
+    /// nested more than two levels deep regardless of the order groups appear in
+    /// the input slice. A cycle guard prevents infinite loops on malformed
+    /// `parent_id` references.
     fn build_group_hierarchy(groups: &[ConnectionGroup]) -> HashMap<Uuid, String> {
-        let mut paths: HashMap<Uuid, String> = HashMap::new();
+        let by_id: HashMap<Uuid, &ConnectionGroup> = groups.iter().map(|g| (g.id, g)).collect();
+        let mut paths: HashMap<Uuid, String> = HashMap::with_capacity(groups.len());
 
         for group in groups {
-            paths.insert(group.id, Self::sanitize_filename(&group.name));
-        }
+            let mut segments = vec![Self::sanitize_filename(&group.name)];
+            let mut current = group;
+            let mut guard = 0;
 
-        // Build full paths for nested groups
-        for group in groups {
-            if let Some(parent_id) = group.parent_id
-                && let Some(parent_path) = paths.get(&parent_id).cloned()
-            {
-                let full_path = format!("{}/{}", parent_path, Self::sanitize_filename(&group.name));
-                paths.insert(group.id, full_path);
+            while let Some(parent_id) = current.parent_id {
+                // Bound the walk by the group count to defend against cycles.
+                if guard >= groups.len() {
+                    break;
+                }
+                guard += 1;
+
+                let Some(parent) = by_id.get(&parent_id) else {
+                    break;
+                };
+                segments.push(Self::sanitize_filename(&parent.name));
+                current = parent;
             }
+
+            segments.reverse();
+            paths.insert(group.id, segments.join("/"));
         }
 
         paths
@@ -240,6 +257,25 @@ impl SecureCrtExporter {
 
         // Build group paths
         let group_paths = Self::build_group_hierarchy(groups);
+
+        // Create a directory for every group, including intermediate folders that
+        // hold no direct sessions, so the full folder tree round-trips even when
+        // some folders are empty.
+        for path in group_paths.values() {
+            if path.is_empty() {
+                continue;
+            }
+            let group_dir = output_path.join(path);
+            if !group_dir.exists() {
+                std::fs::create_dir_all(&group_dir).map_err(|e| {
+                    ExportError::WriteError(format!(
+                        "Failed to create directory {}: {}",
+                        group_dir.display(),
+                        e
+                    ))
+                })?;
+            }
+        }
 
         for conn in connections {
             let ini_content = match conn.protocol {
@@ -493,6 +529,73 @@ mod tests {
         // Check files exist
         assert!(output_path.join("Production").join("Server1.ini").exists());
         assert!(output_path.join("Router.ini").exists());
+    }
+
+    #[test]
+    fn test_export_deeply_nested_folders() {
+        let dir = tempfile::tempdir().unwrap();
+        let output_path = dir.path().join("Sessions");
+
+        // Three levels deep: Production -> Web -> Frontend
+        let production = ConnectionGroup::new("Production".to_string());
+        let web = ConnectionGroup::with_parent("Web".to_string(), production.id);
+        let frontend = ConnectionGroup::with_parent("Frontend".to_string(), web.id);
+
+        let mut conn = Connection::new(
+            "web01".to_string(),
+            "10.0.1.2".to_string(),
+            22,
+            ProtocolConfig::Ssh(SshConfig::default()),
+        );
+        conn.group_id = Some(frontend.id);
+
+        // Pass groups deepest-first to expose order-dependent path building.
+        let groups = vec![frontend, web, production];
+
+        let result =
+            SecureCrtExporter::export_to_directory(&[conn], &groups, &output_path).unwrap();
+
+        assert_eq!(result.exported_count, 1);
+
+        // The session must land in the full path, not a truncated one.
+        let full = output_path.join("Production").join("Web").join("Frontend");
+        assert!(
+            full.join("web01.ini").exists(),
+            "connection should be written under the full nested path"
+        );
+        // Truncated path must NOT exist.
+        assert!(
+            !output_path
+                .join("Web")
+                .join("Frontend")
+                .join("web01.ini")
+                .exists(),
+            "no truncated path should be created"
+        );
+    }
+
+    #[test]
+    fn test_export_creates_empty_intermediate_folders() {
+        let dir = tempfile::tempdir().unwrap();
+        let output_path = dir.path().join("Sessions");
+
+        // "Staging" has no direct sessions but is an intermediate folder.
+        let staging = ConnectionGroup::new("Staging".to_string());
+        let db = ConnectionGroup::with_parent("DB".to_string(), staging.id);
+
+        let mut conn = Connection::new(
+            "db01".to_string(),
+            "10.0.2.2".to_string(),
+            22,
+            ProtocolConfig::Ssh(SshConfig::default()),
+        );
+        conn.group_id = Some(db.id);
+
+        SecureCrtExporter::export_to_directory(&[conn], &[staging, db], &output_path).unwrap();
+
+        // Both the intermediate and leaf directories must exist.
+        assert!(output_path.join("Staging").is_dir());
+        assert!(output_path.join("Staging").join("DB").is_dir());
     }
 
     #[test]
