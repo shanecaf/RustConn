@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.16.7
+Version:        0.16.8
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -242,6 +242,13 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Thu Jun 18 2026 Anton Isaiev <totoshko88@gmail.com> - 0.16.8-0
+- Fixed KeePassXC not being detected in Flatpak ("keepassxc-cli not found") (#182) — detection and all KDBX operations now resolve and run the host binary via flatpak-spawn --host, so the host's KeePassXC is found and piped database/entry passwords reach it
+- Fixed KDBX status text overflowing the row (#182) — the status label now ellipsizes at a capped width and shows the full text as a tooltip on hover
+- Fixed the Settings → Interface theme segmented control not reflecting the saved colour scheme on libadwaita >= 1.7 builds — the toggle group is now held in its wrapper box and the loader sets the active segment from the saved scheme
+- Documented the external FreeRDP SDL client keyboard shortcuts (Right Shift hotkeys) and where to place sdl-freerdp.json for the Flatpak build (#183)
+- Updated dependencies: ironrdp-graphics 0.8.0->0.8.1, ironrdp-rdpsnd 0.8.0->0.8.1, bytes 1.11.1->1.12.0, crypto-bigint 0.7.3->0.7.4, getrandom 0.4.2->0.4.3, syn 2.0.117->2.0.118
+
 * Tue Jun 16 2026 Anton Isaiev <totoshko88@gmail.com> - 0.16.7-0
 - Fixed sidebar right-click menu rows rendering invisible under KDE / the Breeze GTK theme (#181) — the custom popover now pins its colours to the libadwaita popover palette so the menu rows stay legible under any GTK theme
 - Fixed the smart-folder right-click menus (folder actions and connections inside a smart folder) sharing the same invisible-rows defect — they now reuse the same popover styling; the destructive Delete keeps its red accent

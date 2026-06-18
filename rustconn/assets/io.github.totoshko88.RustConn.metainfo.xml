@@ -140,6 +140,18 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.16.8" date="2026-06-18">
+      <description>
+        <p>Version 0.16.8 — KeePassXC Flatpak detection and theme control fixes:</p>
+        <ul>
+          <li>Fixed KeePassXC not being detected in Flatpak — detection and all database operations now run the host binary via flatpak-spawn, so the host's KeePassXC is found and piped passwords reach it</li>
+          <li>Fixed KDBX connection status text overflowing the row — it now ellipsizes and shows the full message as a tooltip</li>
+          <li>Fixed the Settings theme segmented control not reflecting the saved colour scheme on newer libadwaita builds</li>
+          <li>Documented the external FreeRDP SDL client keyboard shortcuts and where to place sdl-freerdp.json for the Flatpak build</li>
+          <li>Updated bundled dependencies (IronRDP, bytes, crypto-bigint, getrandom)</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.16.7" date="2026-06-16">
       <description>
         <p>Version 0.16.7 — KDE menu legibility fix and Flatpak component updates:</p>

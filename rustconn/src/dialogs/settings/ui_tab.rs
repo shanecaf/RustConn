@@ -58,17 +58,20 @@ pub fn create_ui_page() -> (
             crate::app::apply_color_scheme(scheme);
         });
 
+        // Wrap the ToggleGroup in a GtkBox so load/collect can locate it via
+        // first_child() — same reparent-safe pattern as the cursor shape/blink
+        // toggles. The wrapper IS the suffix added to the row (it must hold the
+        // toggle group, not be an empty placeholder), otherwise load cannot
+        // sync the segmented control to the saved scheme.
+        let wrapper = GtkBox::new(gtk4::Orientation::Horizontal, 0);
+        wrapper.set_valign(gtk4::Align::Center);
+        wrapper.set_widget_name("color-scheme-toggle-group");
+        wrapper.append(&toggle_group);
+
         let color_scheme_row = adw::ActionRow::builder().title(i18n("Theme")).build();
-        color_scheme_row.add_suffix(&toggle_group);
+        color_scheme_row.add_suffix(&wrapper);
         appearance_group.add(&color_scheme_row);
 
-        // Return the ToggleGroup wrapped in a GtkBox (not parented elsewhere)
-        // for load/collect to find via first_child()
-        let wrapper = GtkBox::new(gtk4::Orientation::Horizontal, 0);
-        wrapper.set_visible(false);
-        wrapper.set_widget_name("color-scheme-toggle-group");
-        // Store a reference: the actual widget is in color_scheme_row
-        // We pass the row's parent reference through the wrapper
         wrapper
     };
 
@@ -367,8 +370,13 @@ pub fn load_ui_settings(
     // Set the color scheme toggle to the saved value
     #[cfg(feature = "adw-1-7")]
     {
-        let _ = target_index;
-        let _ = color_scheme_box; // marker only on adw-1-7
+        // The wrapper GtkBox holds the AdwToggleGroup as its only child.
+        // Syncing it keeps the segmented control in step with the saved scheme.
+        if let Some(child) = color_scheme_box.first_child()
+            && let Ok(toggle_group) = child.downcast::<adw::ToggleGroup>()
+        {
+            toggle_group.set_active(u32::try_from(target_index).unwrap_or(0));
+        }
     }
     #[cfg(not(feature = "adw-1-7"))]
     {

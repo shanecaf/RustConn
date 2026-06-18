@@ -1,3 +1,23 @@
+rustconn (0.16.8-1) unstable; urgency=medium
+
+  * Fixed KeePassXC not being detected in Flatpak ("keepassxc-cli not found")
+    (#182) — detection and all KDBX operations now resolve and run the host
+    binary via flatpak-spawn --host, so the host's KeePassXC is found and piped
+    database/entry passwords reach it
+  * Fixed KDBX status text overflowing the row (#182) — the status label now
+    ellipsizes at a capped width and shows the full text as a tooltip
+  * Fixed the Settings → Interface theme segmented control not reflecting the
+    saved colour scheme on libadwaita >= 1.7 builds — the toggle group is now
+    held in its wrapper box and the loader sets the active segment from the
+    saved scheme
+  * Documented the external FreeRDP SDL client keyboard shortcuts (Right Shift
+    hotkeys) and where to place sdl-freerdp.json for the Flatpak build (#183)
+  * Updated dependencies: ironrdp-graphics 0.8.0->0.8.1,
+    ironrdp-rdpsnd 0.8.0->0.8.1, bytes 1.11.1->1.12.0,
+    crypto-bigint 0.7.3->0.7.4, getrandom 0.4.2->0.4.3, syn 2.0.117->2.0.118
+
+ -- Anton Isaiev <totoshko88@gmail.com>  Thu, 18 Jun 2026 12:00:00 +0300
+
 rustconn (0.16.7-1) unstable; urgency=medium
 
   * Fixed sidebar right-click menu rows rendering invisible under KDE / the

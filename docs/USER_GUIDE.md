@@ -1,6 +1,6 @@
 # RustConn User Guide
 
-**Version 0.16.7** | GTK4/libadwaita Connection Manager for Linux
+**Version 0.16.8** | GTK4/libadwaita Connection Manager for Linux
 
 RustConn is a modern connection manager designed for Linux with Wayland-first approach. It supports SSH, RDP, VNC, SPICE, MOSH, SFTP, Telnet, Serial, Kubernetes, Web protocols and Zero Trust integrations through a native GTK4/libadwaita interface.
 
@@ -757,6 +757,65 @@ RemoteApp settings are automatically imported from `.rdp` files containing `remo
 #### Hide Local Cursor
 
 Embedded RDP, VNC, and SPICE viewers support hiding the local OS cursor to eliminate the "double cursor" effect (local + remote cursor visible simultaneously). Toggle "Show Local Cursor" in the connection dialog's Features section. Enabled by default for backward compatibility.
+
+#### External FreeRDP Keyboard Shortcuts (Right Shift hotkeys)
+
+When you use **External** RDP mode, RustConn launches the FreeRDP SDL client (`sdl-freerdp3` / `sdl-freerdp`). That client has its own built-in shortcuts that use **Right Shift** as the modifier by default. These are handled entirely inside FreeRDP — RustConn does not intercept them:
+
+| Shortcut | Action |
+|----------|--------|
+| Right Shift + Enter | Toggle fullscreen |
+| Right Shift + R | Toggle window resizable |
+| Right Shift + G | Toggle keyboard/mouse grab (release input back to the local system) |
+| Right Shift + D | **Disconnect the session** |
+| Right Shift + M | Minimize the window |
+
+If you press **Right Shift + D** by accident the session closes immediately. The grab toggle is **Right Shift + G** (not "Win+Esc").
+
+**Configuring or disabling the hotkeys**
+
+FreeRDP reads its shortcut configuration from `$XDG_CONFIG_HOME/freerdp/sdl-freerdp.json`. Because the bundled FreeRDP runs **inside the RustConn sandbox**, the path is *not* the one used by the standalone `com.freerdp.FreeRDP` Flatpak. Use the location for your install type:
+
+| Install | Config file path |
+|---------|------------------|
+| Flatpak | `~/.var/app/io.github.totoshko88.RustConn/config/freerdp/sdl-freerdp.json` |
+| System / native | `~/.config/freerdp/sdl-freerdp.json` |
+
+Note: `/etc/FreeRDP/sdl-freerdp.json` is read from *inside* the sandbox filesystem for the Flatpak build, so a file placed in the host's `/etc/FreeRDP/` is **not** visible to it — use the per-user path above.
+
+Disable **all** hotkeys (the safest option if you only need a single release/grab key):
+
+```json
+{
+  "SDL_KeyModMask": ["KMOD_NONE"]
+}
+```
+
+Or keep the modifier but move just the disconnect action onto a key you will never press by accident, while leaving grab on Right Shift + G:
+
+```json
+{
+  "SDL_KeyModMask": ["KMOD_RSHIFT"],
+  "SDL_Disconnect": "SDL_SCANCODE_F24"
+}
+```
+
+Recognised keys (with their defaults): `SDL_KeyModMask` (`KMOD_RSHIFT`), `SDL_Fullscreen` (`SDL_SCANCODE_RETURN`), `SDL_Resizeable` (`SDL_SCANCODE_R`), `SDL_Grab` (`SDL_SCANCODE_G`), `SDL_Disconnect` (`SDL_SCANCODE_D`), `SDL_Minimize` (`SDL_SCANCODE_M`). Modifier names come from [SDL_Keymod](https://wiki.libsdl.org/SDL3/SDL_Keymod) and key names from [SDL_Scancode](https://wiki.libsdl.org/SDL3/SDL_Scancode).
+
+**Quick setup (Flatpak):**
+
+```bash
+mkdir -p ~/.var/app/io.github.totoshko88.RustConn/config/freerdp
+cat > ~/.var/app/io.github.totoshko88.RustConn/config/freerdp/sdl-freerdp.json <<'EOF'
+{
+  "SDL_KeyModMask": ["KMOD_NONE"]
+}
+EOF
+```
+
+Create the `freerdp` directory first if it does not exist, make sure the JSON is valid (an invalid file is silently ignored), and reconnect — the file is read each time a FreeRDP process starts, so no RustConn restart is needed.
+
+**Verify it is being read:** start RustConn with `RUST_LOG=debug` (Flatpak: `flatpak run io.github.totoshko88.RustConn` from a terminal with `RUST_LOG=debug` set) and connect. The captured FreeRDP `stderr` is forwarded to the log; pressing the modifier + a hotkey logs a line such as `<KMOD_RSHIFT>+<...> pressed`. If hotkeys are disabled, no such line appears.
 
 ### VNC
 
@@ -2605,6 +2664,9 @@ Set the **Proxy Jump** field in the SSH connection dialog's Advanced tab (e.g., 
 ```bash
 mv ~/.config/rustconn ~/.config/rustconn.backup
 ```
+
+**My External RDP session disconnects (or goes fullscreen) when I press a key combo.**
+That is a built-in shortcut of the FreeRDP SDL client, which uses **Right Shift** as the modifier (e.g. Right Shift + D disconnects, Right Shift + G releases the keyboard/mouse). You can remap or disable these in `sdl-freerdp.json` — see [External FreeRDP Keyboard Shortcuts](#external-freerdp-keyboard-shortcuts-right-shift-hotkeys) for the exact Flatpak path and ready-to-use JSON.
 
 ### Connection Issues
 

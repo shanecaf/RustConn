@@ -126,8 +126,15 @@ impl KeePassStatus {
 
     /// Finds the `keepassxc-cli` binary
     ///
-    /// Searches in PATH and common installation locations.
+    /// Searches in PATH and common installation locations. Inside a Flatpak
+    /// sandbox, KeePassXC cannot be bundled (it is the user's host GUI app),
+    /// so the host binary is located via `flatpak-spawn --host`.
     fn find_keepassxc_cli() -> Option<std::path::PathBuf> {
+        // In Flatpak, resolve and run keepassxc-cli on the host (see #182).
+        if crate::flatpak::is_flatpak() {
+            return Self::find_host_keepassxc_cli();
+        }
+
         let extended_path = crate::cli_download::get_extended_path();
 
         // Try to find in PATH using `which` (with extended PATH for macOS .app bundles)
@@ -166,13 +173,60 @@ impl KeePassStatus {
         None
     }
 
+    /// Resolves the host `keepassxc-cli` path from inside a Flatpak sandbox.
+    ///
+    /// Runs `flatpak-spawn --host sh -lc 'command -v keepassxc-cli'` so the
+    /// user's login `PATH` (e.g. `/usr/bin`) is honored. Returns the absolute
+    /// host path, or `None` when the host has no KeePassXC installed or the
+    /// Flatpak session helper is unreachable (missing
+    /// `--talk-name=org.freedesktop.Flatpak`).
+    fn find_host_keepassxc_cli() -> Option<std::path::PathBuf> {
+        let output = match Command::new("flatpak-spawn")
+            .args(["--host", "sh", "-lc", "command -v keepassxc-cli"])
+            .output()
+        {
+            Ok(o) => o,
+            Err(e) => {
+                tracing::warn!(?e, "flatpak-spawn --host failed; cannot detect host keepassxc-cli");
+                return None;
+            }
+        };
+        if !output.status.success() {
+            tracing::debug!(
+                exit_code = ?output.status.code(),
+                stderr = %String::from_utf8_lossy(&output.stderr).trim(),
+                "host keepassxc-cli not found via flatpak-spawn"
+            );
+            return None;
+        }
+        let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        if path.is_empty() {
+            tracing::debug!("flatpak-spawn returned empty path for keepassxc-cli");
+            return None;
+        }
+        tracing::debug!(path = %path, "detected host keepassxc-cli via flatpak-spawn");
+        Some(std::path::PathBuf::from(path))
+    }
+
     /// Builds a [`Command`] for running `keepassxc-cli`.
     ///
     /// The returned command has no arguments yet — callers append `.arg(...)` as needed.
     ///
-    /// Injects the extended PATH so that child processes (e.g. GPG invoked by
-    /// keepassxc-cli) can also be found on macOS where GUI apps have minimal PATH.
+    /// Inside a Flatpak sandbox the invocation is routed through
+    /// `flatpak-spawn --host` so the host's KeePassXC is used (it cannot be
+    /// bundled in the sandbox). flatpak-spawn forwards stdin/stdout/stderr to
+    /// the host process by default, so piped database/entry passwords reach it.
+    /// Appending args then yields `flatpak-spawn --host <cli> <args...>`.
+    ///
+    /// Otherwise the binary is run directly with the extended PATH injected so
+    /// that child processes (e.g. GPG invoked by keepassxc-cli) can also be
+    /// found on macOS where GUI apps have minimal PATH.
     fn keepassxc_command(cli_path: &Path) -> Command {
+        if crate::flatpak::is_flatpak() {
+            let mut cmd = Command::new("flatpak-spawn");
+            cmd.arg("--host").arg(cli_path);
+            return cmd;
+        }
         let mut cmd = Command::new(cli_path);
         cmd.env("PATH", crate::cli_download::get_extended_path());
         cmd
@@ -183,19 +237,30 @@ impl KeePassStatus {
     /// # Arguments
     /// * `cli_path` - Path to the `keepassxc-cli` binary
     fn get_keepassxc_version(cli_path: &Path) -> Option<String> {
-        let output = Self::keepassxc_command(cli_path)
-            .arg("--version")
-            .output()
-            .ok()?;
+        let output = match Self::keepassxc_command(cli_path).arg("--version").output() {
+            Ok(o) => o,
+            Err(e) => {
+                tracing::warn!(?e, cli = %cli_path.display(), "failed to run keepassxc-cli --version");
+                return None;
+            }
+        };
 
-        if output.status.success() {
-            let version_output = String::from_utf8_lossy(&output.stdout);
-            parse_keepassxc_version(&version_output)
+        let version = if output.status.success() {
+            parse_keepassxc_version(&String::from_utf8_lossy(&output.stdout))
         } else {
             // Some versions output to stderr
-            let version_output = String::from_utf8_lossy(&output.stderr);
-            parse_keepassxc_version(&version_output)
+            parse_keepassxc_version(&String::from_utf8_lossy(&output.stderr))
+        };
+
+        if version.is_none() {
+            tracing::warn!(
+                exit_code = ?output.status.code(),
+                stdout = %String::from_utf8_lossy(&output.stdout).trim(),
+                stderr = %String::from_utf8_lossy(&output.stderr).trim(),
+                "could not parse keepassxc-cli version"
+            );
         }
+        version
     }
 
     /// Retrieves a password from KDBX database using `keepassxc-cli`

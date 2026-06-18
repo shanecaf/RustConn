@@ -857,6 +857,12 @@ pub fn create_secrets_page() -> SecretsPageWidgets {
         .label(i18n("Not connected"))
         .halign(gtk4::Align::End)
         .valign(gtk4::Align::Center)
+        // Long error strings (e.g. "Invalid database password or key file")
+        // must not overflow the row next to the Check button (#182). Cap the
+        // width and ellipsize; update_status_label sets the full text as a
+        // tooltip so nothing is lost.
+        .ellipsize(gtk4::pango::EllipsizeMode::End)
+        .max_width_chars(28)
         .css_classes(["dim-label"])
         .build();
 
@@ -1454,6 +1460,9 @@ pub fn create_secrets_page() -> SecretsPageWidgets {
 /// Gets CLI version from command output
 fn update_status_label(label: &Label, text: &str, css_class: &str) {
     label.set_text(text);
+    // Full text in a tooltip so ellipsized status (e.g. long errors) stays
+    // readable on hover (#182).
+    label.set_tooltip_text(Some(text));
     label.remove_css_class("success");
     label.remove_css_class("warning");
     label.remove_css_class("error");

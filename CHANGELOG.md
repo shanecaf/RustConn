@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.8] - 2026-06-18
+
+### Fixed
+
+- **KeePassXC not detected in Flatpak ("keepassxc-cli not found")** ([#182](https://github.com/totoshko88/RustConn/issues/182)) — KeePassXC detection and all KDBX operations only searched the *sandbox* `PATH` (`which keepassxc-cli` plus host paths like `/usr/bin/keepassxc-cli`), which never resolve inside Flatpak, so the host's KeePassXC was never found even though the documentation promised automatic detection via `flatpak-spawn --host`. Unlike the bundled CLI tools (`bw`, `op`, `kubectl`), KeePassXC is the user's host GUI app and cannot be shipped as a Flatpak Component. Detection now resolves the host binary via `flatpak-spawn --host sh -lc 'command -v keepassxc-cli'`, and every `keepassxc-cli` invocation (show/add/ls/rm/verify/version) is routed through `flatpak-spawn --host` (which forwards stdin/stdout/stderr to the host process by default, so piped database/entry passwords reach it). Requires the host-shell permission (`--talk-name=org.freedesktop.Flatpak`, already in the manifest) and filesystem access to the `.kdbx` file
+- **KDBX status text overflowed the row** ([#182](https://github.com/totoshko88/RustConn/issues/182)) — long status strings (e.g. "Invalid database password or key file") spilled past the "Connection Status" row next to the Check button. The status label now ellipsizes at a capped width and exposes the full text as a tooltip on hover
+- **Settings → Interface: theme segmented control did not reflect the saved scheme** (libadwaita ≥ 1.7 builds) — on Flatpak/Fedora packages built with the `adw-1-7`/`adw-1-8` feature, the `AdwToggleGroup` for the color scheme was added to its row but the value returned to the loader was an empty placeholder box, so `load_ui_settings` had nothing to sync. Reopening Settings always showed "System" highlighted even when Dark or Light was saved and applied (the theme itself was correct — only the segmented control was out of step). The toggle group is now held inside its wrapper box (the same reparent-safe pattern used by the cursor shape/blink toggles) and the loader sets the active segment from the saved scheme
+
+### Documentation
+
+- **External FreeRDP keyboard shortcuts (Right Shift hotkeys)** ([#183](https://github.com/totoshko88/RustConn/issues/183)) — the User Guide now documents the built-in shortcuts of the FreeRDP SDL client used in External RDP mode (Right Shift + Enter/R/G/D/M for fullscreen/resize/grab/disconnect/minimize), why `Right Shift + D` drops the session, and that the "release input" key is `Right Shift + G` (not Win+Esc). It explains where to put `sdl-freerdp.json` for the Flatpak build — `~/.var/app/io.github.totoshko88.RustConn/config/freerdp/sdl-freerdp.json` (the bundled FreeRDP runs inside RustConn's own sandbox, so the `com.freerdp.FreeRDP` path and the host `/etc/FreeRDP/` do not apply), and gives ready-to-use JSON to either disable all hotkeys (`"SDL_KeyModMask": ["KMOD_NONE"]`) or remap only the disconnect key while keeping the grab toggle
+
+### Dependencies
+
+- **Updated**: ironrdp-graphics 0.8.0→0.8.1, ironrdp-rdpsnd 0.8.0→0.8.1, bytes 1.11.1→1.12.0, crypto-bigint 0.7.3→0.7.4, getrandom 0.4.2→0.4.3, syn 2.0.117→2.0.118
+
 ## [0.16.7] - 2026-06-16
 
 ### Fixed

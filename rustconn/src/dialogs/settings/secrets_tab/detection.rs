@@ -110,14 +110,12 @@ fn run_detection() -> SecretCliDetection {
     })
 }
 
-/// Detects the KeePassXC CLI version
+/// Detects the KeePassXC CLI version.
+///
+/// Delegates to the core detector, which resolves `keepassxc-cli` on the host
+/// via `flatpak-spawn --host` when running inside a Flatpak sandbox (#182).
 fn detect_keepassxc() -> Option<String> {
-    let keepassxc_installed = rustconn_core::flatpak::is_host_command_available("keepassxc-cli");
-    if keepassxc_installed {
-        get_cli_version("keepassxc-cli", &["--version"])
-    } else {
-        None
-    }
+    rustconn_core::secret::KeePassStatus::detect().keepassxc_version
 }
 
 /// Detects the Bitwarden CLI: `(installed, cmd, version, status)`

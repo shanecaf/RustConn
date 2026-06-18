@@ -5,8 +5,9 @@
 //! availability in the sandbox PATH.
 //!
 //! CLI tools are installed into the sandbox via Flatpak Components
-//! (`~/.var/app/io.github.totoshko88.RustConn/cli/`).
-//! Host command execution via `flatpak-spawn --host` is no longer used.
+//! (`~/.var/app/io.github.totoshko88.RustConn/cli/`). Tools that cannot be
+//! bundled (notably the host's KeePassXC) are still reached via
+//! `flatpak-spawn --host`, which requires `--talk-name=org.freedesktop.Flatpak`.
 
 use std::sync::OnceLock;
 
