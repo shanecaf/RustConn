@@ -1,6 +1,6 @@
 # RustConn User Guide
 
-**Version 0.16.9** | GTK4/libadwaita Connection Manager for Linux
+**Version 0.16.10** | GTK4/libadwaita Connection Manager for Linux
 
 RustConn is a modern connection manager designed for Linux with Wayland-first approach. It supports SSH, RDP, VNC, SPICE, MOSH, SFTP, Telnet, Serial, Kubernetes, Web protocols and Zero Trust integrations through a native GTK4/libadwaita interface.
 
@@ -580,11 +580,12 @@ transparently.
 
 #### Mouse Jiggler
 
-Prevents idle disconnect by sending periodic mouse movements to the remote RDP session.
+Keeps the remote RDP session awake and prevents the remote desktop from locking by sending periodic input.
 
 - Configure in Connection Dialog → RDP → Features: enable **Mouse Jiggler** and set the interval (10–600 seconds, default 60)
 - Auto-starts when the RDP session connects, auto-stops on disconnect
-- Works with both IronRDP embedded and FreeRDP external modes
+- Each tick sends a small mouse movement (keeps the session from idle-disconnecting) **and** a no-op Scroll Lock keystroke. The keystroke is required because Windows does not reset its workstation lock / screensaver timer on RDP-injected mouse motion alone
+- **Embedded (IronRDP) mode only.** The External FreeRDP client runs as a separate process with no input channel from RustConn, so the jiggler cannot drive it — switch to Embedded mode if you need this feature
 
 #### File Transfer
 

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.16.10] - 2026-06-19
+
+### Fixed
+
+- **RDP Mouse Jiggler did not prevent the remote desktop from locking** ([#185](https://github.com/totoshko88/RustConn/issues/185)) — in Embedded (IronRDP) mode the jiggler sent only a tiny mouse-move every interval. That is enough to keep the RDP *session* from idle-disconnecting, but Windows does **not** refresh its workstation lock / screensaver timer (`GetLastInputInfo`) on RDP-injected pointer motion alone, so unattended desktops still locked after the configured inactivity limit (e.g. 10 minutes) regardless of a 10-second jiggle interval. Each jiggle tick now also taps **Scroll Lock twice** (toggle on, then off) — a layout-independent keyboard event that reliably resets the lock timer, produces no character, triggers no action, and leaves the Scroll Lock state unchanged. The mouse-move is kept for session-level keep-alive
+
+### Known limitations
+
+- **Mouse Jiggler only works in Embedded (IronRDP) mode** — the External RDP client runs as a separate FreeRDP process with no input channel back to RustConn, so neither the mouse-move nor the keyboard keep-alive can be injected into it. The setting is silently inactive in External mode; use Embedded mode if you need the jiggler. (Earlier docs incorrectly claimed external-mode support)
+
+### Dependencies
+
+- **Updated**: cc 1.2.64→1.2.65
+- **FreeRDP (Flatpak)** 3.27.0→3.27.1 — bundled RDP backend updated to the latest upstream maintenance release
+
 ## [0.16.9] - 2026-06-19
 
 ### Removed

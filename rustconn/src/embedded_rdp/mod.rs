@@ -1343,10 +1343,19 @@ impl EmbeddedRdpWidget {
 
     /// Starts the mouse jiggler timer
     ///
-    /// Sends a tiny ±1px mouse movement every `interval_secs` seconds to
-    /// prevent the remote session from going idle and disconnecting.
-    /// Uses a toggling offset so the cursor oscillates in place without
-    /// drifting or jumping to the screen center.
+    /// Sends a tiny ±1px mouse movement **and** a no-op keyboard keystroke
+    /// every `interval_secs` seconds to keep the remote session awake.
+    ///
+    /// The mouse move alone is not enough: RDP-injected pointer motion keeps
+    /// the *session* alive (no idle disconnect) but does **not** reliably reset
+    /// the Windows workstation lock / screensaver timer, so an unattended desktop
+    /// still locked after its inactivity limit ([#185]). Windows only refreshes
+    /// `GetLastInputInfo` for the lock timer on *keyboard* input, so each tick
+    /// also taps Scroll Lock twice (toggle on, toggle off) — a layout-independent
+    /// keystroke that produces no character, triggers no action, and leaves the
+    /// lock state unchanged.
+    ///
+    /// [#185]: https://github.com/totoshko88/RustConn/issues/185
     pub fn start_jiggler(&self, interval_secs: u32) {
         self.stop_jiggler();
 
@@ -1362,6 +1371,12 @@ impl EmbeddedRdpWidget {
         let jiggle_toggle = Rc::new(std::cell::Cell::new(false));
 
         let source_id = glib::timeout_add_seconds_local(interval, move || {
+            // Scroll Lock keep-alive: a make/break pair resets the Windows
+            // lock timer, and a second pair restores the toggle state so the
+            // remote Scroll Lock LED/behaviour is left untouched.
+            // GDK keyval 0xFF14 / scancode 0x46 (set 1) are layout-independent.
+            const SCROLL_LOCK_KEYVAL: u32 = 0xFF14;
+
             let current_state = *state.borrow();
             if current_state != RdpConnectionState::Connected {
                 return glib::ControlFlow::Break;
@@ -1378,11 +1393,19 @@ impl EmbeddedRdpWidget {
             if using_ironrdp {
                 #[cfg(feature = "rdp-embedded")]
                 if let Some(ref tx) = *ironrdp_tx.borrow() {
+                    const SCROLL_LOCK_SCANCODE: u16 = 0x46;
                     let _ = tx.send(RdpClientCommand::PointerEvent {
                         x: (cx as i32 + offset).max(0) as u16,
                         y: cy as u16,
                         buttons: 0,
                     });
+                    for pressed in [true, false, true, false] {
+                        let _ = tx.send(RdpClientCommand::KeyEvent {
+                            scancode: SCROLL_LOCK_SCANCODE,
+                            pressed,
+                            extended: false,
+                        });
+                    }
                 }
             } else if let Some(ref thread) = *freerdp_thread.borrow() {
                 let _ = thread.send_command(RdpCommand::MouseEvent {
@@ -1391,6 +1414,12 @@ impl EmbeddedRdpWidget {
                     button: 0,
                     pressed: false,
                 });
+                for pressed in [true, false, true, false] {
+                    let _ = thread.send_command(RdpCommand::KeyEvent {
+                        keyval: SCROLL_LOCK_KEYVAL,
+                        pressed,
+                    });
+                }
             }
 
             tracing::trace!("Mouse jiggler tick");

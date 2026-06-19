@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.16.9
+Version:        0.16.10
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -242,6 +242,12 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Fri Jun 19 2026 Anton Isaiev <totoshko88@gmail.com> - 0.16.10-0
+- Fixed RDP Mouse Jiggler not preventing the remote desktop from locking (#185) — in Embedded (IronRDP) mode the jiggler only moved the mouse, which keeps the session alive but does not reset the Windows workstation lock timer; each tick now also taps Scroll Lock (a no-op, state-preserving keystroke) so unattended desktops stay unlocked
+- Documented that the Mouse Jiggler works in Embedded mode only (the External FreeRDP client has no input channel from RustConn)
+- Updated cc 1.2.64->1.2.65
+- FreeRDP (Flatpak) 3.27.0->3.27.1
+
 * Fri Jun 19 2026 Anton Isaiev <totoshko88@gmail.com> - 0.16.9-0
 - Fixed RDP Quick Actions and shell launchers typing wrong characters on non-QWERTY remote keyboard layouts (#184) — Run-dialog commands and the PowerShell/CMD launchers are now sent via layout-independent Unicode keyboard events instead of hard-coded US-QWERTY scancodes
 - Internal cleanup — removed the dead ad-hoc broadcast controller, the unused virtual-scroll tuning API and protocol-layout builder setters, and stale dead_code overrides; corrected stale doc comments
