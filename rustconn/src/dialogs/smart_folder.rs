@@ -116,15 +116,15 @@ impl SmartFolderDialog {
             .title(i18n("Smart Folder"))
             .build();
 
-        let (name_row, name_entry) = EntryRowBuilder::new(&i18n("Name"))
+        let (name_row, name_entry) = EntryRowBuilder::new(i18n("Name"))
             .placeholder("Prod SSH Servers")
             .build();
         name_row.set_activatable_widget(Some(&name_entry));
         name_group.add(&name_row);
 
-        let (icon_row, icon_entry) = EntryRowBuilder::new(&i18n("Icon"))
+        let (icon_row, icon_entry) = EntryRowBuilder::new(i18n("Icon"))
             .placeholder("📁")
-            .subtitle(&i18n("Optional emoji"))
+            .subtitle(i18n("Optional emoji"))
             .build();
         icon_row.set_activatable_widget(Some(&icon_entry));
         name_group.add(&icon_row);
@@ -155,23 +155,22 @@ impl SmartFolderDialog {
             }))
             .collect();
 
-        let (protocol_row, protocol_dropdown) =
-            DropdownRowBuilder::new(&i18n("Filter by Protocol"))
-                .items(&protocol_labels)
-                .selected(0)
-                .build();
+        let (protocol_row, protocol_dropdown) = DropdownRowBuilder::new(i18n("Filter by Protocol"))
+            .items(&protocol_labels)
+            .selected(0)
+            .build();
         filter_group.add(&protocol_row);
 
         // Host pattern
-        let (host_row, host_pattern_entry) = EntryRowBuilder::new(&i18n("Host Pattern"))
+        let (host_row, host_pattern_entry) = EntryRowBuilder::new(i18n("Host Pattern"))
             .placeholder("*.example.com")
             .build();
         host_row.set_activatable_widget(Some(&host_pattern_entry));
         filter_group.add(&host_row);
 
         // Tags
-        let (tags_row, tags_entry) = EntryRowBuilder::new(&i18n("Filter by Tags"))
-            .subtitle(&i18n("Comma or semicolon separated"))
+        let (tags_row, tags_entry) = EntryRowBuilder::new(i18n("Filter by Tags"))
+            .subtitle(i18n("Comma or semicolon separated"))
             .placeholder("web, production")
             .build();
         tags_row.set_activatable_widget(Some(&tags_entry));
@@ -179,7 +178,7 @@ impl SmartFolderDialog {
 
         // Group picker — starts with just "Any", populated later via set_groups()
         let any_group_label = i18n("Any");
-        let (group_row, group_dropdown) = DropdownRowBuilder::new(&i18n("Filter by Group"))
+        let (group_row, group_dropdown) = DropdownRowBuilder::new(i18n("Filter by Group"))
             .items(&[any_group_label.as_str()])
             .selected(0)
             .build();

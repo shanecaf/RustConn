@@ -149,7 +149,7 @@ impl StatisticsDialog {
             .title(i18n("Total connections"))
             .build();
         let total_label = Label::builder()
-            .label(&stats.total_connections.to_string())
+            .label(stats.total_connections.to_string())
             .css_classes(["dim-label"])
             .build();
         total_row.add_suffix(&total_label);
@@ -157,7 +157,7 @@ impl StatisticsDialog {
 
         let success_row = adw::ActionRow::builder().title(i18n("Successful")).build();
         let success_label = Label::builder()
-            .label(&stats.successful_connections.to_string())
+            .label(stats.successful_connections.to_string())
             .css_classes(["success"])
             .build();
         success_row.add_suffix(&success_label);
@@ -165,7 +165,7 @@ impl StatisticsDialog {
 
         let failed_row = adw::ActionRow::builder().title(i18n("Failed")).build();
         let failed_label = Label::builder()
-            .label(&stats.failed_connections.to_string())
+            .label(stats.failed_connections.to_string())
             .css_classes(["error"])
             .build();
         failed_row.add_suffix(&failed_label);
@@ -175,7 +175,7 @@ impl StatisticsDialog {
             .title(i18n("Success rate"))
             .build();
         let rate_label = Label::builder()
-            .label(&format!("{:.1}%", stats.success_rate()))
+            .label(format!("{:.1}%", stats.success_rate()))
             .css_classes(["dim-label"])
             .build();
         rate_row.add_suffix(&rate_label);
@@ -185,7 +185,7 @@ impl StatisticsDialog {
             .title(i18n("Total time connected"))
             .build();
         let duration_label = Label::builder()
-            .label(&ConnectionStatistics::format_duration(
+            .label(ConnectionStatistics::format_duration(
                 stats.total_duration_seconds,
             ))
             .css_classes(["dim-label"])
@@ -198,7 +198,7 @@ impl StatisticsDialog {
                 .title(i18n("Last connected"))
                 .build();
             let last_label = Label::builder()
-                .label(&last.format("%Y-%m-%d %H:%M").to_string())
+                .label(last.format("%Y-%m-%d %H:%M").to_string())
                 .css_classes(["dim-label"])
                 .build();
             last_row.add_suffix(&last_label);
@@ -212,7 +212,7 @@ impl StatisticsDialog {
                 .title(i18n("Average session"))
                 .build();
             let avg_label = Label::builder()
-                .label(&ConnectionStatistics::format_duration(avg.num_seconds()))
+                .label(ConnectionStatistics::format_duration(avg.num_seconds()))
                 .css_classes(["dim-label"])
                 .build();
             avg_row.add_suffix(&avg_label);
@@ -249,7 +249,7 @@ impl StatisticsDialog {
             .title(i18n("Total sessions"))
             .build();
         let total_label = Label::builder()
-            .label(&total_connections.to_string())
+            .label(total_connections.to_string())
             .css_classes(["dim-label"])
             .build();
         total_row.add_suffix(&total_label);
@@ -257,7 +257,7 @@ impl StatisticsDialog {
 
         let success_row = adw::ActionRow::builder().title(i18n("Successful")).build();
         let success_label = Label::builder()
-            .label(&total_successful.to_string())
+            .label(total_successful.to_string())
             .css_classes(["success"])
             .build();
         success_row.add_suffix(&success_label);
@@ -265,7 +265,7 @@ impl StatisticsDialog {
 
         let failed_row = adw::ActionRow::builder().title(i18n("Failed")).build();
         let failed_label = Label::builder()
-            .label(&total_failed.to_string())
+            .label(total_failed.to_string())
             .css_classes(["error"])
             .build();
         failed_row.add_suffix(&failed_label);
@@ -273,7 +273,7 @@ impl StatisticsDialog {
 
         let duration_row = adw::ActionRow::builder().title(i18n("Total time")).build();
         let duration_label = Label::builder()
-            .label(&ConnectionStatistics::format_duration(total_duration))
+            .label(ConnectionStatistics::format_duration(total_duration))
             .css_classes(["dim-label"])
             .build();
         duration_row.add_suffix(&duration_label);
@@ -294,7 +294,7 @@ impl StatisticsDialog {
             for (name, stat, protocol) in sorted.iter().take(3) {
                 let row = adw::ActionRow::builder()
                     .title(name.as_str())
-                    .subtitle(&format!(
+                    .subtitle(format!(
                         "{} • {} {} • {:.0}%",
                         protocol.to_uppercase(),
                         stat.total_connections,
@@ -304,7 +304,7 @@ impl StatisticsDialog {
                     .build();
 
                 let duration_label = Label::builder()
-                    .label(&ConnectionStatistics::format_duration(
+                    .label(ConnectionStatistics::format_duration(
                         stat.total_duration_seconds,
                     ))
                     .css_classes(["dim-label"])
@@ -342,7 +342,7 @@ impl StatisticsDialog {
 
                 let row = adw::ActionRow::builder()
                     .title(protocol)
-                    .subtitle(&format!(
+                    .subtitle(format!(
                         "{} {} ({:.0}%)",
                         count,
                         i18n("sessions"),
@@ -372,7 +372,7 @@ impl StatisticsDialog {
             for (name, stat, protocol) in stats {
                 let row = adw::ActionRow::builder()
                     .title(name)
-                    .subtitle(&format!(
+                    .subtitle(format!(
                         "{} • {} {} • {:.0}%",
                         protocol.to_uppercase(),
                         stat.total_connections,
@@ -382,7 +382,7 @@ impl StatisticsDialog {
                     .build();
 
                 let duration_label = Label::builder()
-                    .label(&ConnectionStatistics::format_duration(
+                    .label(ConnectionStatistics::format_duration(
                         stat.total_duration_seconds,
                     ))
                     .css_classes(["dim-label"])

@@ -368,6 +368,8 @@ impl RdmImporter {
             highlight_rules: Vec::new(),
             is_dynamic: false,
             retry_config: None,
+            knock_sequence: None,
+            spa_config: None,
         })
     }
 }

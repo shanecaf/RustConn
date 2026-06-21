@@ -258,4 +258,32 @@ impl MainWindow {
         });
         window.add_action(&manage_templates_action);
     }
+
+    /// Sets up workspace profile management action
+    pub(crate) fn setup_workspace_actions(
+        &self,
+        window: &adw::ApplicationWindow,
+        state: &SharedAppState,
+        terminal_notebook: &SharedNotebook,
+        sidebar: &SharedSidebar,
+    ) {
+        let manage_workspaces_action = gio::SimpleAction::new("manage-workspaces", None);
+        let window_weak = window.downgrade();
+        let state_clone = state.clone();
+        let notebook_clone = terminal_notebook.clone();
+        let sidebar_clone = sidebar.clone();
+        let monitoring_clone = self.monitoring.clone();
+        manage_workspaces_action.connect_activate(move |_, _| {
+            if let Some(win) = window_weak.upgrade() {
+                super::workspaces::show_workspace_manager(
+                    win.upcast_ref(),
+                    state_clone.clone(),
+                    notebook_clone.clone(),
+                    sidebar_clone.clone(),
+                    monitoring_clone.clone(),
+                );
+            }
+        });
+        window.add_action(&manage_workspaces_action);
+    }
 }

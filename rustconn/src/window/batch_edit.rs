@@ -59,9 +59,9 @@ pub fn show_batch_edit_dialog(
         .build();
 
     let header = adw::HeaderBar::new();
-    let cancel_btn = gtk4::Button::builder().label(&i18n("Cancel")).build();
+    let cancel_btn = gtk4::Button::builder().label(i18n("Cancel")).build();
     let apply_btn = gtk4::Button::builder()
-        .label(&i18n("Apply"))
+        .label(i18n("Apply"))
         .css_classes(["suggested-action"])
         .sensitive(false)
         .build();

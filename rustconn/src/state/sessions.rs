@@ -117,6 +117,63 @@ impl AppState {
             .map_err(|e| format!("Failed to save clusters: {e}"))
     }
 
+    // ========== Workspace Profile Operations ==========
+
+    /// Creates a new workspace profile
+    pub fn create_workspace_profile(
+        &mut self,
+        profile: rustconn_core::models::WorkspaceProfile,
+    ) -> Result<Uuid, String> {
+        self.workspace_manager
+            .create(profile)
+            .map_err(|e| format!("Failed to create workspace profile: {e}"))
+    }
+
+    /// Updates an existing workspace profile
+    pub fn update_workspace_profile(
+        &mut self,
+        id: Uuid,
+        profile: rustconn_core::models::WorkspaceProfile,
+    ) -> Result<(), String> {
+        self.workspace_manager
+            .update(id, profile)
+            .map_err(|e| format!("Failed to update workspace profile: {e}"))
+    }
+
+    /// Deletes a workspace profile
+    pub fn delete_workspace_profile(&mut self, id: Uuid) -> Result<(), String> {
+        self.workspace_manager
+            .delete(id)
+            .map_err(|e| format!("Failed to delete workspace profile: {e}"))
+    }
+
+    /// Renames a workspace profile
+    pub fn rename_workspace_profile(&mut self, id: Uuid, new_name: String) -> Result<(), String> {
+        self.workspace_manager
+            .rename(id, new_name)
+            .map_err(|e| format!("Failed to rename workspace profile: {e}"))
+    }
+
+    /// Gets a workspace profile by ID
+    pub fn get_workspace_profile(
+        &self,
+        id: Uuid,
+    ) -> Option<&rustconn_core::models::WorkspaceProfile> {
+        self.workspace_manager.get(id)
+    }
+
+    /// Lists all workspace profiles (sorted)
+    pub fn list_workspace_profiles(&self) -> Vec<&rustconn_core::models::WorkspaceProfile> {
+        self.workspace_manager.list()
+    }
+
+    /// Notifies workspace manager that a connection was deleted
+    pub fn workspace_on_connection_deleted(&mut self, connection_id: Uuid) {
+        if let Err(e) = self.workspace_manager.on_connection_deleted(connection_id) {
+            tracing::warn!("Failed to update workspaces after connection deletion: {e}");
+        }
+    }
+
     // ========== Template Operations ==========
 
     /// Adds a template and persists via `TemplateManager`

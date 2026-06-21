@@ -294,7 +294,7 @@ pub fn create_secrets_page() -> SecretsPageWidgets {
 
     // Save password checkbox for Bitwarden (encrypted in settings file)
     let bitwarden_status_label = Label::builder()
-        .label(&i18n("Detecting..."))
+        .label(i18n("Detecting..."))
         .halign(gtk4::Align::End)
         .valign(gtk4::Align::Center)
         .css_classes(["dim-label"])
@@ -519,7 +519,7 @@ pub fn create_secrets_page() -> SecretsPageWidgets {
 
     // Save password checkbox (encrypted in settings file)
     let onepassword_status_label = Label::builder()
-        .label(&i18n("Detecting..."))
+        .label(i18n("Detecting..."))
         .halign(gtk4::Align::End)
         .valign(gtk4::Align::Center)
         .css_classes(["dim-label"])
@@ -634,7 +634,7 @@ pub fn create_secrets_page() -> SecretsPageWidgets {
 
     // Save passphrase checkbox (encrypted in settings file)
     let passbolt_status_label = Label::builder()
-        .label(&i18n("Detecting..."))
+        .label(i18n("Detecting..."))
         .halign(gtk4::Align::End)
         .valign(gtk4::Align::Center)
         .css_classes(["dim-label"])
@@ -711,7 +711,7 @@ pub fn create_secrets_page() -> SecretsPageWidgets {
 
     // Store directory entry with browse button
     let pass_store_dir_entry = Entry::builder()
-        .placeholder_text(&i18n("~/.password-store"))
+        .placeholder_text(i18n("~/.password-store"))
         .hexpand(true)
         .valign(gtk4::Align::Center)
         .build();
@@ -741,7 +741,7 @@ pub fn create_secrets_page() -> SecretsPageWidgets {
 
     // Status label showing initialization status
     let pass_status_label = Label::builder()
-        .label(&i18n("Detecting..."))
+        .label(i18n("Detecting..."))
         .halign(gtk4::Align::End)
         .valign(gtk4::Align::Center)
         .css_classes(["dim-label"])

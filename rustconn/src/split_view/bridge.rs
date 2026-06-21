@@ -1315,27 +1315,27 @@ impl SplitViewBridge {
 
         // Basic info section
         let basic_frame = adw::PreferencesGroup::builder()
-            .title(&i18n("Basic Information"))
+            .title(i18n("Basic Information"))
             .build();
 
         // Protocol row
         let protocol_row = adw::ActionRow::builder()
-            .title(&i18n("Protocol"))
-            .subtitle(&format!("{:?}", connection.protocol))
+            .title(i18n("Protocol"))
+            .subtitle(format!("{:?}", connection.protocol))
             .build();
         basic_frame.add(&protocol_row);
 
         // Host row
         let host_row = adw::ActionRow::builder()
-            .title(&i18n("Host"))
-            .subtitle(&format!("{}:{}", connection.host, connection.port))
+            .title(i18n("Host"))
+            .subtitle(format!("{}:{}", connection.host, connection.port))
             .build();
         basic_frame.add(&host_row);
 
         // Username row
         if let Some(ref username) = connection.username {
             let username_row = adw::ActionRow::builder()
-                .title(&i18n("Username"))
+                .title(i18n("Username"))
                 .subtitle(username)
                 .build();
             basic_frame.add(&username_row);
@@ -1543,21 +1543,21 @@ impl SplitViewBridge {
         actions.set_halign(gtk4::Align::Center);
 
         let new_conn_btn = gtk4::Button::builder()
-            .label(&i18n("New Connection"))
+            .label(i18n("New Connection"))
             .css_classes(["suggested-action", "pill"])
             .action_name("win.new-connection")
             .build();
         actions.append(&new_conn_btn);
 
         let quick_btn = gtk4::Button::builder()
-            .label(&i18n("Quick Connect"))
+            .label(i18n("Quick Connect"))
             .css_classes(["pill"])
             .action_name("win.quick-connect")
             .build();
         actions.append(&quick_btn);
 
         let import_btn = gtk4::Button::builder()
-            .label(&i18n("Import"))
+            .label(i18n("Import"))
             .css_classes(["pill"])
             .action_name("win.import")
             .build();
@@ -1629,7 +1629,7 @@ impl SplitViewBridge {
 
         // Hint at the bottom
         let hint = gtk4::Label::builder()
-            .label(&i18n(
+            .label(i18n(
                 "Double-click a connection in the sidebar to get started",
             ))
             .css_classes(["dim-label"])
@@ -1648,7 +1648,7 @@ impl SplitViewBridge {
         col.set_hexpand(true);
 
         let features_group = adw::PreferencesGroup::builder()
-            .title(&i18n("Features"))
+            .title(i18n("Features"))
             .build();
 
         let features: [(&str, String); 9] = [
@@ -1724,7 +1724,7 @@ impl SplitViewBridge {
         col.set_hexpand(true);
 
         let shortcuts_group = adw::PreferencesGroup::builder()
-            .title(&i18n("Keyboard Shortcuts"))
+            .title(i18n("Keyboard Shortcuts"))
             .build();
 
         let shortcuts: [(&str, String); 9] = [
@@ -1760,7 +1760,7 @@ impl SplitViewBridge {
         col.set_hexpand(true);
 
         let quick_group = adw::PreferencesGroup::builder()
-            .title(&i18n("Quick Access"))
+            .title(i18n("Quick Access"))
             .build();
 
         let quick_features: [(&str, String); 4] = [
@@ -1784,7 +1784,7 @@ impl SplitViewBridge {
 
         // Import formats
         let formats_group = adw::PreferencesGroup::builder()
-            .title(&i18n("Import Formats"))
+            .title(i18n("Import Formats"))
             .margin_top(6)
             .build();
 
@@ -1925,7 +1925,7 @@ impl SplitViewBridge {
                     content.set_margin_end(12);
 
                     let label = gtk4::Label::builder()
-                        .label(&i18n("All tabs are already displayed in this split view"))
+                        .label(i18n("All tabs are already displayed in this split view"))
                         .css_classes(["dim-label"])
                         .build();
                     content.append(&label);
@@ -1964,7 +1964,7 @@ impl SplitViewBridge {
                 content.set_margin_end(12);
 
                 let title = gtk4::Label::builder()
-                    .label(&i18n("Select a tab to display"))
+                    .label(i18n("Select a tab to display"))
                     .css_classes(["heading"])
                     .halign(gtk4::Align::Start)
                     .build();

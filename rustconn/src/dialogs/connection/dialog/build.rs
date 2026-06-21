@@ -370,6 +370,13 @@ impl ConnectionDialog {
             retry_initial_delay_spin,
             retry_max_delay_spin,
             skip_port_check_toggle,
+            knock_sequence_entry,
+            spa_enabled_toggle,
+            spa_rij_key_entry,
+            spa_hmac_key_entry,
+            spa_access_entry,
+            spa_port_spin,
+            spa_allow_ip_combo,
         ) = crate::dialogs::connection::advanced_tab::create_advanced_tab();
         view_stack
             .add_titled(&advanced_tab, Some("advanced"), &i18n("Advanced"))
@@ -610,6 +617,13 @@ impl ConnectionDialog {
             &retry_initial_delay_spin,
             &retry_max_delay_spin,
             &skip_port_check_toggle,
+            &knock_sequence_entry,
+            &spa_enabled_toggle,
+            &spa_rij_key_entry,
+            &spa_hmac_key_entry,
+            &spa_access_entry,
+            &spa_port_spin,
+            &spa_allow_ip_combo,
         );
 
         let result = Self {
@@ -822,6 +836,13 @@ impl ConnectionDialog {
             retry_initial_delay_spin,
             retry_max_delay_spin,
             skip_port_check_toggle,
+            knock_sequence_entry,
+            spa_enabled_toggle,
+            spa_rij_key_entry,
+            spa_hmac_key_entry,
+            spa_access_entry,
+            spa_port_spin,
+            spa_allow_ip_combo,
             editing_id,
             on_save,
             connections_data,
@@ -1121,7 +1142,7 @@ impl ConnectionDialog {
                         Err(e) => rustconn_core::testing::TestResult::failure(
                             conn_id,
                             conn_name,
-                            &format!("Runtime error: {e}"),
+                            format!("Runtime error: {e}"),
                         ),
                     }
                 },

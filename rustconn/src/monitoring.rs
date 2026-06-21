@@ -192,7 +192,7 @@ impl MonitoringBar {
         icon.set_pixel_size(14);
 
         let label = gtk4::Label::builder()
-            .label(&format!("{name}:"))
+            .label(format!("{name}:"))
             .css_classes(["caption", "monitoring-label"])
             .build();
 

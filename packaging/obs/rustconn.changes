@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Sun Jun 22 2026 Anton Isaiev <totoshko88@gmail.com> - 0.16.12
+
+- Added workspace profiles — save and restore named sets of connections via Tools → Workspaces menu
+- Added built-in port knocking — send TCP/UDP knock sequences before connecting without external CLI tools
+- Added fwknop SPA configuration model (packet builder in next release)
+- Integrated port knock execution into the pre-connect chain
+- Added port knock sequence field in the Advanced connection editor tab
+
+-------------------------------------------------------------------
 Sat Jun 20 2026 Anton Isaiev <totoshko88@gmail.com> - 0.16.11
 
 - Fixed the connection wizard's "Zero Trust" card showing only a custom-command field instead of the provider list — it now restores the full provider picker (AWS SSM, GCP IAP, Azure, Cloudflare, Teleport, Tailscale, Boundary, Hoop.dev) and defaults to AWS Session Manager, like the Advanced editor

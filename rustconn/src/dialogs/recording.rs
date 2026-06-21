@@ -337,13 +337,13 @@ impl RecordingsDialog {
             .build();
 
         let duration_label = Label::builder()
-            .label(&format_duration(entry.metadata.duration_secs))
+            .label(format_duration(entry.metadata.duration_secs))
             .halign(gtk4::Align::Start)
             .css_classes(["dim-label", "caption"])
             .build();
 
         let size_label = Label::builder()
-            .label(&format_size(entry.metadata.total_size_bytes))
+            .label(format_size(entry.metadata.total_size_bytes))
             .halign(gtk4::Align::Start)
             .css_classes(["dim-label", "caption"])
             .build();

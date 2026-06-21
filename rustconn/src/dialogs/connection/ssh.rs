@@ -590,7 +590,7 @@ fn create_session_group() -> (
 
     // SSH Agent Socket entry
     let ssh_agent_socket_entry = adw::EntryRow::builder()
-        .title(&i18n("SSH Agent Socket"))
+        .title(i18n("SSH Agent Socket"))
         .build();
     ssh_agent_socket_entry.set_tooltip_text(Some(&i18n(
         "Overrides global setting and auto-detected socket for this connection",
@@ -812,7 +812,7 @@ pub fn add_port_forward_row_to_list(
     row_box.set_margin_end(12);
 
     let summary_label = Label::builder()
-        .label(&pf.display_summary())
+        .label(pf.display_summary())
         .hexpand(true)
         .halign(gtk4::Align::Start)
         .ellipsize(gtk4::pango::EllipsizeMode::End)

@@ -14,6 +14,7 @@ use crate::cluster::Cluster;
 use crate::error::{ConfigError, ConfigResult};
 use crate::models::{
     Connection, ConnectionGroup, ConnectionHistoryEntry, ConnectionTemplate, Snippet,
+    WorkspaceProfile,
 };
 
 use super::settings::AppSettings;
@@ -26,6 +27,7 @@ const CLUSTERS_FILE: &str = "clusters.toml";
 const TEMPLATES_FILE: &str = "templates.toml";
 const HISTORY_FILE: &str = "history.toml";
 const TRASH_FILE: &str = "trash.toml";
+const WORKSPACE_PROFILES_FILE: &str = "workspace_profiles.toml";
 const CONFIG_FILE: &str = "config.toml";
 
 /// Wrapper for serializing a list of connections
@@ -77,6 +79,13 @@ pub struct TrashFile {
     pub connections: Vec<(Connection, chrono::DateTime<chrono::Utc>)>,
     #[serde(default)]
     pub groups: Vec<(ConnectionGroup, chrono::DateTime<chrono::Utc>)>,
+}
+
+/// Wrapper for serializing workspace profiles
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
+struct WorkspaceProfilesFile {
+    #[serde(default)]
+    profiles: Vec<WorkspaceProfile>,
 }
 
 /// Configuration manager for `RustConn`
@@ -405,6 +414,36 @@ impl ConfigManager {
         let path = self.config_dir.join(TEMPLATES_FILE);
         let file = TemplatesFile {
             templates: templates.to_vec(),
+        };
+        self.save_toml_file(&path, &file)
+    }
+
+    // ========== Workspace Profiles ==========
+
+    /// Loads workspace profiles from the configuration file
+    ///
+    /// Returns an empty vector if the file doesn't exist.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the file exists but cannot be parsed.
+    pub fn load_workspace_profiles(&self) -> ConfigResult<Vec<WorkspaceProfile>> {
+        let path = self.config_dir.join(WORKSPACE_PROFILES_FILE);
+        Self::load_toml_file::<WorkspaceProfilesFile>(&path).map(|f| f.profiles)
+    }
+
+    /// Saves workspace profiles to the configuration file
+    ///
+    /// Creates the configuration directory if it doesn't exist.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the file cannot be written.
+    pub fn save_workspace_profiles(&self, profiles: &[WorkspaceProfile]) -> ConfigResult<()> {
+        self.ensure_config_dir()?;
+        let path = self.config_dir.join(WORKSPACE_PROFILES_FILE);
+        let file = WorkspaceProfilesFile {
+            profiles: profiles.to_vec(),
         };
         self.save_toml_file(&path, &file)
     }

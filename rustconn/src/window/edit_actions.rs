@@ -569,7 +569,7 @@ impl MainWindow {
             crate::utils::spawn_blocking_with_callback(
                 move || {
                     let rt = tokio::runtime::Runtime::new()
-                        .map_err(|e| rustconn_core::host_check::HostCheckError::Io(e))?;
+                        .map_err(rustconn_core::host_check::HostCheckError::Io)?;
                     rt.block_on(rustconn_core::host_check::poll_until_online(
                         &config,
                         &cancel,

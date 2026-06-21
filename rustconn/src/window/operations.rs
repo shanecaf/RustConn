@@ -579,9 +579,9 @@ pub fn show_move_selected_to_group_dialog(
         .build();
 
     let header = adw::HeaderBar::new();
-    let cancel_btn = gtk4::Button::builder().label(&i18n("Cancel")).build();
+    let cancel_btn = gtk4::Button::builder().label(i18n("Cancel")).build();
     let move_btn = gtk4::Button::builder()
-        .label(&i18n("Move"))
+        .label(i18n("Move"))
         .css_classes(["suggested-action"])
         .build();
     header.pack_start(&cancel_btn);

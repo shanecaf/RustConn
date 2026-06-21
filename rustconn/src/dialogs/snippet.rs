@@ -355,7 +355,7 @@ impl SnippetDialog {
             .build();
         let desc_entry = Entry::builder()
             .hexpand(true)
-            .placeholder_text(&i18n("Variable description"))
+            .placeholder_text(i18n("Variable description"))
             .build();
         if let Some(d) = description {
             desc_entry.set_text(d);
@@ -370,7 +370,7 @@ impl SnippetDialog {
             .build();
         let default_entry = Entry::builder()
             .hexpand(true)
-            .placeholder_text(&i18n("Default value"))
+            .placeholder_text(i18n("Default value"))
             .build();
         if let Some(d) = default {
             default_entry.set_text(d);

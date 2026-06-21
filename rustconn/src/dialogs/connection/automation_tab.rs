@@ -76,7 +76,7 @@ pub(super) fn create_automation_combined_tab() -> AutomationTabWidgets {
 
     // Info banner about variable substitution (consistent with group dialog)
     let variables_info = Label::builder()
-        .label(&i18n(
+        .label(i18n(
             "Responses support ${password}, ${username}, and ${VARIABLE_NAME} placeholders resolved at connection time",
         ))
         .wrap(true)
@@ -101,7 +101,7 @@ pub(super) fn create_automation_combined_tab() -> AutomationTabWidgets {
     rules_button_box.set_margin_top(12);
 
     let template_menu_button = gtk4::MenuButton::builder()
-        .label(&i18n("From Template"))
+        .label(i18n("From Template"))
         .tooltip_text(i18n("Add rules from a built-in template"))
         .build();
 
@@ -136,7 +136,7 @@ pub(super) fn create_automation_combined_tab() -> AutomationTabWidgets {
     template_menu_button.set_popover(Some(&template_popover));
 
     let add_rule_button = Button::builder()
-        .label(&i18n("Add Rule"))
+        .label(i18n("Add Rule"))
         .css_classes(["suggested-action"])
         .build();
     rules_button_box.append(&template_menu_button);
@@ -156,7 +156,7 @@ pub(super) fn create_automation_combined_tab() -> AutomationTabWidgets {
     let test_entry = Entry::builder()
         .hexpand(true)
         .valign(gtk4::Align::Center)
-        .placeholder_text(&i18n("Test text against patterns"))
+        .placeholder_text(i18n("Test text against patterns"))
         .build();
 
     let test_row = adw::ActionRow::builder().title(i18n("Test Input")).build();
@@ -164,7 +164,7 @@ pub(super) fn create_automation_combined_tab() -> AutomationTabWidgets {
     tester_expander.add_row(&test_row);
 
     let result_label = Label::builder()
-        .label(&i18n("Enter text to test"))
+        .label(i18n("Enter text to test"))
         .halign(gtk4::Align::Start)
         .wrap(true)
         .css_classes(["dim-label"])

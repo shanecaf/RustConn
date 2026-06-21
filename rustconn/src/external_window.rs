@@ -35,7 +35,7 @@ impl ExternalWindow {
     ) -> Self {
         let window = adw::ApplicationWindow::builder()
             .application(app)
-            .title(&format!("{} - RustConn", connection.name))
+            .title(format!("{} - RustConn", connection.name))
             .default_width(800)
             .default_height(600)
             .build();
@@ -95,7 +95,7 @@ impl ExternalWindow {
     ) -> Self {
         let window = adw::ApplicationWindow::builder()
             .application(app)
-            .title(&format!("{} - RustConn", connection.name))
+            .title(format!("{} - RustConn", connection.name))
             .decorated(false)
             .build();
 
@@ -224,11 +224,10 @@ impl ExternalWindowManager {
     /// Removes a window by session ID
     pub fn remove_window(&self, session_id: Uuid) -> Option<ExternalWindow> {
         let mut windows = self.windows.borrow_mut();
-        if let Some(pos) = windows.iter().position(|w| w.session_id == session_id) {
-            Some(windows.remove(pos))
-        } else {
-            None
-        }
+        windows
+            .iter()
+            .position(|w| w.session_id == session_id)
+            .map(|pos| windows.remove(pos))
     }
 
     /// Checks if a window exists for the given session ID

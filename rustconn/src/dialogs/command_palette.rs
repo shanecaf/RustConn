@@ -393,7 +393,7 @@ impl CommandPaletteDialog {
                     .iter()
                     .any(|t| t.to_lowercase().contains(&query_lower))
             })
-            .map(|c| Self::connection_to_item(c))
+            .map(Self::connection_to_item)
             .collect()
     }
 
@@ -429,7 +429,7 @@ impl CommandPaletteDialog {
                 c.group_id
                     .is_some_and(|gid| matching_group_ids.contains(&gid))
             })
-            .map(|c| Self::connection_to_item(c))
+            .map(Self::connection_to_item)
             .collect()
     }
 
@@ -445,7 +445,7 @@ impl CommandPaletteDialog {
             let mut recent: Vec<_> = connections.to_vec();
             recent.sort_by_key(|b| std::cmp::Reverse(b.last_connected));
             recent.truncate(20);
-            return recent.iter().map(|c| Self::connection_to_item(c)).collect();
+            return recent.iter().map(Self::connection_to_item).collect();
         }
 
         let search_query = SearchQuery::with_text(query);
@@ -456,7 +456,7 @@ impl CommandPaletteDialog {
                 connections
                     .iter()
                     .find(|c| c.id == r.connection_id)
-                    .map(|c| Self::connection_to_item(c))
+                    .map(Self::connection_to_item)
             })
             .take(20)
             .collect()

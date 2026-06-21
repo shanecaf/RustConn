@@ -227,6 +227,7 @@ pub fn create_app_menu() -> gio::Menu {
     let tools_submenu = gio::Menu::new();
     tools_submenu.append(Some(&i18n("Snippets...")), Some("win.manage-snippets"));
     tools_submenu.append(Some(&i18n("Clusters...")), Some("win.manage-clusters"));
+    tools_submenu.append(Some(&i18n("Workspaces...")), Some("win.manage-workspaces"));
     tools_submenu.append(Some(&i18n("Templates...")), Some("win.manage-templates"));
     tools_submenu.append(Some(&i18n("Variables...")), Some("win.manage-variables"));
 

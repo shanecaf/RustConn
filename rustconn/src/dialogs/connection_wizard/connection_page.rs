@@ -258,7 +258,7 @@ impl ConnectionPage {
         templates_group.set_margin_top(12);
 
         let templates_header = gtk4::Label::builder()
-            .label(&i18n("Templates"))
+            .label(i18n("Templates"))
             .halign(gtk4::Align::Start)
             .css_classes(["heading"])
             .build();
@@ -948,7 +948,7 @@ impl ConnectionPage {
         let btn = Button::builder()
             .child(&vbox)
             .css_classes(["flat"])
-            .tooltip_text(&i18n(predefined.description))
+            .tooltip_text(i18n(predefined.description))
             .width_request(90)
             .height_request(70)
             .build();
@@ -970,7 +970,7 @@ impl ConnectionPage {
         vbox.append(&icon);
 
         let label = gtk4::Label::builder()
-            .label(&i18n("More\u{2026}"))
+            .label(i18n("More\u{2026}"))
             .css_classes(["caption"])
             .build();
         vbox.append(&label);
@@ -978,7 +978,7 @@ impl ConnectionPage {
         let btn = Button::builder()
             .child(&vbox)
             .css_classes(["flat"])
-            .tooltip_text(&i18n("Browse all predefined templates"))
+            .tooltip_text(i18n("Browse all predefined templates"))
             .width_request(90)
             .height_request(70)
             .build();
@@ -1034,7 +1034,7 @@ impl ConnectionPage {
 
         if !user_zt_templates.is_empty() {
             let user_header = gtk4::Label::builder()
-                .label(&i18n("Your Templates"))
+                .label(i18n("Your Templates"))
                 .halign(gtk4::Align::Start)
                 .css_classes(["heading"])
                 .margin_top(4)
@@ -1105,7 +1105,7 @@ impl ConnectionPage {
 
             // Category header
             let header = gtk4::Label::builder()
-                .label(&i18n(category.display_name()))
+                .label(i18n(category.display_name()))
                 .halign(gtk4::Align::Start)
                 .css_classes(["heading"])
                 .margin_top(4)

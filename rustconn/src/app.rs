@@ -1114,7 +1114,7 @@ Serial, Kubernetes, and Zero Trust connections from a single application.",
         .copyright("© 2024-2026 Anton Isaiev")
         .application_icon("io.github.totoshko88.RustConn")
         // Translators: Replace this with your name and language, e.g. "John Doe (German)"
-        .translator_credits(&gettext("translator-credits"))
+        .translator_credits(gettext("translator-credits"))
         .debug_info(&debug_info)
         .debug_info_filename("rustconn-debug-info.txt")
         .build();

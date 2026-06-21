@@ -74,6 +74,8 @@ pub mod variables;
 pub mod vnc_client;
 pub mod wol;
 
+pub mod workspace;
+
 // =============================================================================
 // Convenience re-exports
 //
@@ -158,8 +160,9 @@ pub use models::{
     SerialConfig, SerialDataBits, SerialFlowControl, SerialParity, SerialStopBits, Snippet,
     SnippetTarget, SnippetVariable, SpiceConfig, SpiceImageCompression, SshAuthMethod, SshConfig,
     SshKeySource, StandaloneTunnel, TelnetBackspaceSends, TelnetConfig, TelnetDeleteSends,
-    TemplateError, TunnelStatus, VncConfig, WindowGeometry, WindowMode,
-    collect_descendant_group_ids, group_templates_by_protocol,
+    TemplateError, TunnelStatus, VncConfig, WindowGeometry, WindowMode, WorkspaceEntry,
+    WorkspaceProfile, WorkspaceSplitLayout, collect_descendant_group_ids,
+    group_templates_by_protocol,
 };
 pub use password_generator::{
     CharacterSet, PasswordGenerator, PasswordGeneratorConfig, PasswordGeneratorError,
@@ -301,6 +304,7 @@ pub use wol::{
     DEFAULT_BROADCAST_ADDRESS, DEFAULT_WOL_PORT, DEFAULT_WOL_WAIT_SECONDS, MAGIC_PACKET_SIZE,
     MacAddress, WolConfig, WolError, WolResult, generate_magic_packet, send_magic_packet, send_wol,
 };
+pub use workspace::WorkspaceProfileManager;
 
 pub use monitoring::{
     CollectorHandle, CpuSnapshot, DiskMetrics, LoadAverage, METRICS_COMMAND, MemoryMetrics,

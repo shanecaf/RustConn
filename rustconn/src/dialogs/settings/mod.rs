@@ -316,7 +316,7 @@ impl SettingsDialog {
             .build();
 
         let add_hl_button = Button::builder()
-            .label(&i18n("Add Rule"))
+            .label(i18n("Add Rule"))
             .valign(gtk4::Align::Center)
             .build();
         hl_group.set_header_suffix(Some(&add_hl_button));

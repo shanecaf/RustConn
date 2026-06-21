@@ -234,7 +234,7 @@ fn update_client_row(group: &adw::PreferencesGroup, row: &adw::ActionRow, client
     } else if client.has_embedded {
         // Show embedded indicator
         let embedded_label = Label::builder()
-            .label(&i18n("Embedded"))
+            .label(i18n("Embedded"))
             .valign(gtk4::Align::Center)
             .css_classes(["dim-label"])
             .build();
@@ -288,9 +288,9 @@ fn insert_row_at_position(group: &adw::PreferencesGroup, row: &adw::ActionRow, _
 fn detect_all_clients() -> (Vec<ClientInfo>, Vec<ClientInfo>, Vec<ClientInfo>) {
     // Run core and zero trust detection in parallel
     std::thread::scope(|s| {
-        let core_handle = s.spawn(|| detect_core_clients());
-        let zt_handle = s.spawn(|| detect_zerotrust_clients());
-        let k8s_handle = s.spawn(|| detect_k8s_clients());
+        let core_handle = s.spawn(detect_core_clients);
+        let zt_handle = s.spawn(detect_zerotrust_clients);
+        let k8s_handle = s.spawn(detect_k8s_clients);
 
         let core_clients = core_handle.join().unwrap_or_default();
         let zerotrust_clients = zt_handle.join().unwrap_or_default();

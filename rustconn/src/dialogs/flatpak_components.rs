@@ -293,7 +293,7 @@ impl FlatpakComponentsDialog {
         // Cancel button (hidden by default)
         let cancel_button = Button::builder()
             .icon_name("process-stop-symbolic")
-            .tooltip_text(&i18n("Cancel"))
+            .tooltip_text(i18n("Cancel"))
             .valign(Align::Center)
             .visible(false)
             .build();
@@ -306,7 +306,7 @@ impl FlatpakComponentsDialog {
         // Update button (visible only when installed and downloadable)
         let update_button = Button::builder()
             .icon_name("view-refresh-symbolic")
-            .tooltip_text(&i18n("Update"))
+            .tooltip_text(i18n("Update"))
             .valign(Align::Center)
             .visible(is_installed && component.is_downloadable())
             .build();
