@@ -83,7 +83,7 @@ pub fn save_password_to_vault(
             crate::utils::spawn_blocking_with_callback(
                 move || {
                     let kdbx = std::path::Path::new(&kdbx_path);
-                    let key = key_file.as_ref().map(|p| std::path::Path::new(p));
+                    let key = key_file.as_ref().map(std::path::Path::new);
                     rustconn_core::secret::KeePassStatus::save_password_to_kdbx(
                         kdbx,
                         db_password.as_ref(),
@@ -180,7 +180,7 @@ pub fn save_group_password_to_vault(
             crate::utils::spawn_blocking_with_callback(
                 move || {
                     let kdbx = std::path::Path::new(&kdbx_path);
-                    let key = key_file.as_ref().map(|p| std::path::Path::new(p));
+                    let key = key_file.as_ref().map(std::path::Path::new);
                     rustconn_core::secret::KeePassStatus::save_password_to_kdbx(
                         kdbx,
                         db_password.as_ref(),
@@ -264,7 +264,7 @@ pub fn rename_vault_credential(
             rustconn_core::secret::KeePassStatus::rename_entry_in_kdbx(
                 std::path::Path::new(kdbx_path),
                 settings.secrets.kdbx_password.as_ref(),
-                key_file.as_ref().map(|p| std::path::Path::new(p)),
+                key_file.as_ref().map(std::path::Path::new),
                 &old_key,
                 &new_key,
             )
@@ -366,7 +366,7 @@ pub fn rename_vault_credential_for_move(
             rustconn_core::secret::KeePassStatus::rename_entry_in_kdbx(
                 std::path::Path::new(kdbx_path),
                 settings.secrets.kdbx_password.as_ref(),
-                key_file.as_ref().map(|p| std::path::Path::new(p)),
+                key_file.as_ref().map(std::path::Path::new),
                 &old_key,
                 &new_key,
             )
@@ -468,7 +468,7 @@ pub fn migrate_vault_entries_on_group_change(
     crate::utils::spawn_blocking_with_callback(
         move || {
             let kdbx = std::path::Path::new(&kdbx_path);
-            let key = key_file.as_ref().map(|p| std::path::Path::new(p));
+            let key = key_file.as_ref().map(std::path::Path::new);
             let mut errors = Vec::new();
 
             for (old_key, new_key) in &rename_pairs {
@@ -535,7 +535,7 @@ pub fn save_variable_to_vault(
             if let Some(kdbx_path) = settings.kdbx_path.as_ref() {
                 let key_file = settings.kdbx_key_file.clone();
                 let kdbx = std::path::Path::new(kdbx_path);
-                let key = key_file.as_ref().map(|p| std::path::Path::new(p));
+                let key = key_file.as_ref().map(std::path::Path::new);
                 // Wrap intermediate plaintext copy in Zeroizing for the FFI call.
                 let pwd = zeroize::Zeroizing::new(password.expose_secret().to_string());
                 let result = rustconn_core::secret::KeePassStatus::save_password_to_kdbx(
@@ -614,7 +614,7 @@ pub fn load_variable_from_vault_with_path(
             if let Some(kdbx_path) = settings.kdbx_path.as_ref() {
                 let key_file = settings.kdbx_key_file.clone();
                 let kdbx = std::path::Path::new(kdbx_path);
-                let key = key_file.as_ref().map(|p| std::path::Path::new(p));
+                let key = key_file.as_ref().map(std::path::Path::new);
 
                 // Custom path → exact lookup (no RustConn/ prefix, no fallbacks)
                 // Default path → standard lookup with RustConn/ prefix and fallbacks
@@ -878,7 +878,7 @@ pub fn delete_vault_credential(
                 let entry_name = format!("{base_path} ({protocol_str})");
                 let key_file = settings.secrets.kdbx_key_file.clone();
                 let kdbx = std::path::Path::new(kdbx_path);
-                let key = key_file.as_ref().map(|p| std::path::Path::new(p));
+                let key = key_file.as_ref().map(std::path::Path::new);
                 // KeePass delete is done by saving empty entry — or we just log
                 // that KeePass entries should be cleaned manually, since the KDBX
                 // API doesn't expose a delete_entry method directly.
@@ -936,7 +936,7 @@ pub fn delete_group_vault_credential(
                     rustconn_core::secret::KeePassHierarchy::build_group_entry_path(group, groups);
                 let key_file = settings.secrets.kdbx_key_file.clone();
                 let kdbx = std::path::Path::new(kdbx_path);
-                let key = key_file.as_ref().map(|p| std::path::Path::new(p));
+                let key = key_file.as_ref().map(std::path::Path::new);
                 rustconn_core::secret::KeePassStatus::save_password_to_kdbx(
                     kdbx,
                     settings.secrets.kdbx_password.as_ref(),
@@ -991,7 +991,7 @@ pub fn copy_vault_credential(
             if let Some(kdbx_path) = settings.secrets.kdbx_path.as_ref() {
                 let key_file = settings.secrets.kdbx_key_file.clone();
                 let kdbx = std::path::Path::new(kdbx_path);
-                let key = key_file.as_ref().map(|p| std::path::Path::new(p));
+                let key = key_file.as_ref().map(std::path::Path::new);
 
                 // Read from old entry
                 let old_entry_path =

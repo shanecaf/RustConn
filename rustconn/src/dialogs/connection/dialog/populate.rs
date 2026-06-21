@@ -328,6 +328,34 @@ impl ConnectionDialog {
         // Set skip-port-check toggle (per-connection override)
         self.skip_port_check_toggle.set_active(conn.skip_port_check);
 
+        // Set port knock sequence entry
+        if let Some(ref knock_seq) = conn.knock_sequence {
+            self.knock_sequence_entry.set_text(&knock_seq.display());
+        } else {
+            self.knock_sequence_entry.set_text("");
+        }
+
+        // Set SPA (fwknop) config
+        if let Some(ref spa_cfg) = conn.spa_config {
+            self.spa_enabled_toggle.set_active(true);
+            if let Some(ref rij) = spa_cfg.rijndael_key_ref {
+                self.spa_rij_key_entry.set_text(rij);
+            }
+            if let Some(ref hmac) = spa_cfg.hmac_key_ref {
+                self.spa_hmac_key_entry.set_text(hmac);
+            }
+            self.spa_access_entry.set_text(&spa_cfg.access);
+            self.spa_port_spin.set_value(f64::from(spa_cfg.dest_port));
+            let allow_ip_idx = match &spa_cfg.allow_ip {
+                rustconn_core::connection::knock::SpaAllowIp::SourceIp => 0,
+                rustconn_core::connection::knock::SpaAllowIp::ResolvePublic => 1,
+                rustconn_core::connection::knock::SpaAllowIp::Explicit(_) => 2,
+            };
+            self.spa_allow_ip_combo.set_selected(allow_ip_idx);
+        } else {
+            self.spa_enabled_toggle.set_active(false);
+        }
+
         // Set highlight rules
         self.set_highlight_rules(&conn.highlight_rules);
 

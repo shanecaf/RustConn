@@ -1,6 +1,6 @@
 # RustConn User Guide
 
-**Version 0.16.11** | GTK4/libadwaita Connection Manager for Linux
+**Version 0.16.12** | GTK4/libadwaita Connection Manager for Linux
 
 RustConn is a modern connection manager designed for Linux with Wayland-first approach. It supports SSH, RDP, VNC, SPICE, MOSH, SFTP, Telnet, Serial, Kubernetes, Web protocols and Zero Trust integrations through a native GTK4/libadwaita interface.
 
@@ -1750,6 +1750,46 @@ Clusters group multiple connections for simultaneous management. The primary use
 - Rolling out configuration changes across multiple servers
 - Running the same diagnostic command on all nodes
 - Updating packages on a fleet of machines
+
+### Workspace Profiles
+
+Workspace profiles save your current set of open connections (with tab order) as a named snapshot that you can restore later with one click. Unlike session restore (which works automatically on restart), workspaces are named and can be switched manually at any time.
+
+**Save a workspace:**
+1. Open the connections you want in the workspace
+2. Menu → Tools → **Workspaces...**
+3. Click **Save Current** → enter a name → Save
+
+**Open a workspace:**
+1. Menu → Tools → **Workspaces...**
+2. Select the workspace → click **Open**
+3. All connections from the workspace are connected simultaneously
+
+**Use cases:**
+- "Production" workspace with monitoring + DB + web servers
+- "Development" workspace with staging servers + bastion
+- Quick context switching between projects
+
+Workspaces persist in `~/.config/rustconn/workspace_profiles.toml`. If a connection referenced by a workspace is deleted, the entry is automatically removed from the workspace.
+
+### Port Knocking
+
+Port knocking allows you to open firewall ports by sending a specific sequence of TCP/UDP packets before connecting. This works without any external tools — RustConn has a built-in implementation.
+
+**Configure per-connection:**
+1. Edit Connection → **Advanced** tab → **Connection Behavior** section
+2. Enter the knock sequence in the **Port Knock Sequence** field
+3. Format: `7000 8000/tcp 9000/udp` (space or comma separated, /tcp is default)
+
+**How it works:**
+- Before each connection, RustConn sends the knock sequence to the target host
+- Each knock is a TCP connect attempt or UDP datagram (the SYN itself is the knock)
+- After all knocks, a 200ms settle time allows the firewall to install its rule
+- Then the normal connection proceeds (port check → connect)
+
+**Timing defaults:**
+- Inter-knock delay: 100ms
+- Post-knock settle: 200ms
 
 ### Ad-hoc Broadcast
 

@@ -237,7 +237,7 @@ impl ClusterDialog {
         let icon = gtk4::Image::from_icon_name(icon_name);
 
         let label = Label::builder()
-            .label(&format!("{} ({})", connection.name, connection.host))
+            .label(format!("{} ({})", connection.name, connection.host))
             .halign(gtk4::Align::Start)
             .hexpand(true)
             .ellipsize(gtk4::pango::EllipsizeMode::End)
@@ -489,7 +489,7 @@ impl ClusterListDialog {
         // "(broadcast enabled)" indicator here that promises behaviour
         // the cluster machinery no longer delivers.
         let count_label = Label::builder()
-            .label(&i18n_f(
+            .label(i18n_f(
                 "{} connections",
                 &[&cluster.connection_count().to_string()],
             ))
@@ -504,7 +504,7 @@ impl ClusterListDialog {
         // Action buttons
         let connect_button = Button::builder()
             .icon_name("media-playback-start-symbolic")
-            .tooltip_text(&i18n("Connect to cluster"))
+            .tooltip_text(i18n("Connect to cluster"))
             .css_classes(["flat"])
             .build();
         connect_button.update_property(&[gtk4::accessible::Property::Label(&i18n(
@@ -513,7 +513,7 @@ impl ClusterListDialog {
 
         let disconnect_button = Button::builder()
             .icon_name("media-playback-stop-symbolic")
-            .tooltip_text(&i18n("Disconnect all cluster sessions"))
+            .tooltip_text(i18n("Disconnect all cluster sessions"))
             .css_classes(["flat"])
             .build();
         disconnect_button.update_property(&[gtk4::accessible::Property::Label(&i18n(
@@ -522,14 +522,14 @@ impl ClusterListDialog {
 
         let edit_button = Button::builder()
             .icon_name("document-edit-symbolic")
-            .tooltip_text(&i18n("Edit cluster"))
+            .tooltip_text(i18n("Edit cluster"))
             .css_classes(["flat"])
             .build();
         edit_button.update_property(&[gtk4::accessible::Property::Label(&i18n("Edit cluster"))]);
 
         let delete_button = Button::builder()
             .icon_name("user-trash-symbolic")
-            .tooltip_text(&i18n("Delete cluster"))
+            .tooltip_text(i18n("Delete cluster"))
             .css_classes(["flat", "destructive-action"])
             .build();
         delete_button

@@ -68,7 +68,7 @@ impl TerminalSearchDialog {
 
         // Search entry
         let search_entry = SearchEntry::builder()
-            .placeholder_text(&i18n("Search text..."))
+            .placeholder_text(i18n("Search text..."))
             .hexpand(true)
             .build();
         content.append(&search_entry);
@@ -81,13 +81,13 @@ impl TerminalSearchDialog {
 
         let regex_toggle = CheckButton::builder()
             .label(i18n("Regex"))
-            .tooltip_text(&i18n("Use regular expression pattern"))
+            .tooltip_text(i18n("Use regular expression pattern"))
             .build();
         options_box.append(&regex_toggle);
 
         let highlight_all = CheckButton::builder()
             .label(i18n("Highlight All"))
-            .tooltip_text(&i18n("Highlight all matches in terminal"))
+            .tooltip_text(i18n("Highlight all matches in terminal"))
             .active(true)
             .build();
         options_box.append(&highlight_all);
@@ -99,14 +99,14 @@ impl TerminalSearchDialog {
 
         let prev_btn = Button::builder()
             .icon_name("go-up-symbolic")
-            .tooltip_text(&i18n("Previous match"))
+            .tooltip_text(i18n("Previous match"))
             .build();
         prev_btn.update_property(&[gtk4::accessible::Property::Label(&i18n("Previous match"))]);
         nav_box.append(&prev_btn);
 
         let next_btn = Button::builder()
             .icon_name("go-down-symbolic")
-            .tooltip_text(&i18n("Next match"))
+            .tooltip_text(i18n("Next match"))
             .build();
         next_btn.update_property(&[gtk4::accessible::Property::Label(&i18n("Next match"))]);
         nav_box.append(&next_btn);

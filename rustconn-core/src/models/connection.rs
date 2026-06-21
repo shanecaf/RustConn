@@ -340,6 +340,16 @@ pub struct Connection {
     /// When `Some`, the configured retry policy (max attempts, backoff) is used.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub retry_config: Option<crate::connection::RetryConfig>,
+    /// Port knock sequence to execute before connecting
+    ///
+    /// Sends TCP SYN / UDP packets to open a firewall before the real connection.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub knock_sequence: Option<crate::connection::knock::KnockSequence>,
+    /// fwknop Single Packet Authorization configuration
+    ///
+    /// Sends an encrypted UDP packet to open a firewall rule for this client.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub spa_config: Option<crate::connection::knock::SpaConfig>,
 }
 
 impl Connection {
@@ -386,6 +396,8 @@ impl Connection {
             highlight_rules: Vec::new(),
             is_dynamic: false,
             retry_config: None,
+            knock_sequence: None,
+            spa_config: None,
         }
     }
 

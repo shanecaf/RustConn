@@ -231,6 +231,14 @@ pub(super) struct ConnectionDialogData<'a> {
     pub retry_max_delay_spin: &'a adw::SpinRow,
     // Skip pre-connect TCP port check for this connection
     pub skip_port_check_toggle: &'a adw::SwitchRow,
+    pub knock_sequence_entry: &'a gtk4::Entry,
+    // SPA (fwknop) fields
+    pub spa_enabled_toggle: &'a adw::SwitchRow,
+    pub spa_rij_key_entry: &'a adw::PasswordEntryRow,
+    pub spa_hmac_key_entry: &'a adw::PasswordEntryRow,
+    pub spa_access_entry: &'a adw::EntryRow,
+    pub spa_port_spin: &'a adw::SpinRow,
+    pub spa_allow_ip_combo: &'a adw::ComboRow,
 }
 impl ConnectionDialogData<'_> {
     pub(super) fn validate(&self) -> Result<(), String> {
@@ -485,6 +493,54 @@ impl ConnectionDialogData<'_> {
 
         // Set skip-port-check override
         conn.skip_port_check = self.skip_port_check_toggle.is_active();
+
+        // Set port knock sequence (parse from entry text)
+        let knock_text = self.knock_sequence_entry.text().to_string();
+        let knock_text = knock_text.trim();
+        conn.knock_sequence = if knock_text.is_empty() {
+            None
+        } else {
+            rustconn_core::connection::knock::KnockSequence::parse(knock_text).ok()
+        };
+
+        // Set SPA (fwknop) config if enabled
+        conn.spa_config = if self.spa_enabled_toggle.is_active() {
+            let rij_key = self.spa_rij_key_entry.text().to_string();
+            let hmac_key = self.spa_hmac_key_entry.text().to_string();
+            let access = self.spa_access_entry.text().trim().to_string();
+            #[expect(
+                clippy::cast_possible_truncation,
+                clippy::cast_sign_loss,
+                reason = "port range 1..65535 fits u16"
+            )]
+            let dest_port = self.spa_port_spin.value() as u16;
+            let allow_ip = match self.spa_allow_ip_combo.selected() {
+                1 => rustconn_core::connection::knock::SpaAllowIp::ResolvePublic,
+                2 => rustconn_core::connection::knock::SpaAllowIp::Explicit(String::new()),
+                _ => rustconn_core::connection::knock::SpaAllowIp::SourceIp,
+            };
+            Some(rustconn_core::connection::knock::SpaConfig {
+                rijndael_key_ref: if rij_key.is_empty() {
+                    None
+                } else {
+                    Some(rij_key)
+                },
+                hmac_key_ref: if hmac_key.is_empty() {
+                    None
+                } else {
+                    Some(hmac_key)
+                },
+                access: if access.is_empty() {
+                    "tcp/22".to_string()
+                } else {
+                    access
+                },
+                dest_port,
+                allow_ip,
+            })
+        } else {
+            None
+        };
 
         // Set highlight rules (filter out empty patterns)
         conn.highlight_rules = self

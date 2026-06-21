@@ -66,9 +66,7 @@ impl ConnectionDialog {
             let items: Vec<String> = if keys.is_empty() {
                 vec![i18n("No keys loaded")]
             } else {
-                keys.iter()
-                    .map(|key| Self::format_agent_key_short(key))
-                    .collect()
+                keys.iter().map(Self::format_agent_key_short).collect()
             };
 
             let string_list =

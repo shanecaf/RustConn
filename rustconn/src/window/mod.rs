@@ -30,6 +30,7 @@ mod templates;
 mod terminal_actions;
 pub mod types;
 mod ui;
+mod workspaces;
 
 use adw::prelude::*;
 use gtk4::prelude::*;
@@ -656,6 +657,7 @@ impl MainWindow {
         self.setup_snippet_actions(window, &state, &terminal_notebook, &sidebar);
         self.setup_cluster_actions(window, &state, &terminal_notebook, &sidebar);
         self.setup_template_actions(window, &state, &sidebar);
+        self.setup_workspace_actions(window, &state, &terminal_notebook, &sidebar);
         self.setup_split_view_actions(window);
         self.setup_document_actions(window, &state, &sidebar);
         self.setup_variables_actions(window, &state);
@@ -1653,6 +1655,88 @@ impl MainWindow {
                         ));
                         return types::ConnectionStartResult::Failed;
                     }
+                }
+            }
+        }
+
+        // Execute port knock sequence if configured (after pre-connect task, before protocol connect)
+        if let Some(ref knock_seq) = conn_clone.knock_sequence {
+            tracing::info!(
+                connection = %conn_clone.name,
+                knocks = knock_seq.knocks.len(),
+                "Executing port knock sequence"
+            );
+            match rustconn_core::connection::knock::execute_knock_sequence(
+                &conn_clone.host,
+                knock_seq,
+            ) {
+                Ok(result) => {
+                    tracing::info!(
+                        connection = %conn_clone.name,
+                        total_ms = result.total_ms,
+                        "Port knock sequence completed"
+                    );
+                }
+                Err(e) => {
+                    tracing::error!(
+                        connection = %conn_clone.name,
+                        error = %e,
+                        "Port knock sequence failed"
+                    );
+                    crate::toast::show_error_toast_on_active_window(&crate::i18n::i18n_f(
+                        "Port knock failed: {}",
+                        &[&e.to_string()],
+                    ));
+                    return types::ConnectionStartResult::Failed;
+                }
+            }
+        }
+
+        // Send fwknop SPA packet if configured (after knock, before port check)
+        if let Some(ref spa_cfg) = conn_clone.spa_config
+            && let (Some(rij_key_val), Some(hmac_key_val)) =
+                (&spa_cfg.rijndael_key_ref, &spa_cfg.hmac_key_ref)
+            && !rij_key_val.is_empty()
+            && !hmac_key_val.is_empty()
+        {
+            let rij_secret = secrecy::SecretString::new(rij_key_val.clone().into());
+            let hmac_secret = secrecy::SecretString::new(hmac_key_val.clone().into());
+            let username = conn_clone.username.as_deref().unwrap_or("root");
+
+            tracing::info!(
+                connection = %conn_clone.name,
+                dest_port = spa_cfg.dest_port,
+                access = %spa_cfg.access,
+                "Sending fwknop SPA packet"
+            );
+
+            match rustconn_core::connection::spa::send_spa(
+                &conn_clone.host,
+                spa_cfg.dest_port,
+                &rij_secret,
+                &hmac_secret,
+                &spa_cfg.access,
+                username,
+            ) {
+                Ok(result) => {
+                    tracing::info!(
+                        connection = %conn_clone.name,
+                        packet_size = result.packet_size,
+                        elapsed_ms = result.elapsed_ms,
+                        "SPA packet sent successfully"
+                    );
+                }
+                Err(e) => {
+                    tracing::error!(
+                        connection = %conn_clone.name,
+                        error = %e,
+                        "SPA packet send failed"
+                    );
+                    crate::toast::show_error_toast_on_active_window(&crate::i18n::i18n_f(
+                        "SPA failed: {}",
+                        &[&e.to_string()],
+                    ));
+                    return types::ConnectionStartResult::Failed;
                 }
             }
         }
@@ -2875,7 +2959,7 @@ impl MainWindow {
                 let last_resize = std::sync::Arc::new(std::sync::Mutex::new(
                     std::time::Instant::now()
                         .checked_sub(std::time::Duration::from_secs(1))
-                        .unwrap_or_else(|| std::time::Instant::now()),
+                        .unwrap_or_else(std::time::Instant::now),
                 ));
                 terminal.connect_char_size_changed(move |term, _width, _height| {
                     let rows = term.row_count();

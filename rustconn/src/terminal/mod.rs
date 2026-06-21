@@ -971,11 +971,10 @@ impl TerminalNotebook {
             Some(SessionWidget::Vnc(VncSessionWidget::new()))
         } else {
             drop(widgets);
-            if let Some(terminal) = self.terminals.borrow().get(&session_id) {
-                Some(SessionWidget::Ssh(terminal.clone()))
-            } else {
-                None
-            }
+            self.terminals
+                .borrow()
+                .get(&session_id)
+                .map(|terminal| SessionWidget::Ssh(terminal.clone()))
         }
     }
 
@@ -2422,8 +2421,8 @@ impl TerminalNotebook {
 
         let status = adw::StatusPage::builder()
             .icon_name("view-dual-symbolic")
-            .title(&i18n("Displayed in Split View"))
-            .description(&i18n("This session is shown in another tab's split layout"))
+            .title(i18n("Displayed in Split View"))
+            .description(i18n("This session is shown in another tab's split layout"))
             .build();
         placeholder.append(&status);
 

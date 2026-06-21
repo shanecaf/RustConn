@@ -15,6 +15,7 @@ mod smart_folder;
 mod snippet;
 mod template;
 mod tunnel;
+mod workspace;
 
 pub use connection::{
     AutomationConfig, Connection, ConnectionThemeOverride, PasswordSource, WindowGeometry,
@@ -44,3 +45,4 @@ pub use smart_folder::SmartFolder;
 pub use snippet::{ScriptDelivery, Snippet, SnippetTarget, SnippetVariable};
 pub use template::{ConnectionTemplate, TemplateError, group_templates_by_protocol};
 pub use tunnel::{StandaloneTunnel, TunnelStatus};
+pub use workspace::{WorkspaceEntry, WorkspaceProfile, WorkspaceSplitLayout};

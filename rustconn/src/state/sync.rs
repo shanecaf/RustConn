@@ -443,7 +443,7 @@ impl AppState {
                 );
                 let lookup_key = format!("{} ({})", name, protocol.as_str().to_lowercase());
 
-                match Self::store_credential_sync(&lookup_key, &creds) {
+                match Self::store_credential_sync(&lookup_key, creds) {
                     Ok(()) => {
                         stored += 1;
                         tracing::debug!(lookup_key, "Stored imported credential");

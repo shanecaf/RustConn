@@ -1060,7 +1060,7 @@ pub fn show_edit_group_dialog(
 
     // Info banner about variable substitution
     let variables_info = Label::builder()
-        .label(&i18n(
+        .label(i18n(
             "Responses support ${password}, ${username}, and ${VARIABLE_NAME} placeholders resolved at connection time",
         ))
         .wrap(true)
@@ -1090,7 +1090,7 @@ pub fn show_edit_group_dialog(
     expect_button_box.set_margin_top(12);
 
     let template_menu_button = gtk4::MenuButton::builder()
-        .label(&i18n("From Template"))
+        .label(i18n("From Template"))
         .tooltip_text(i18n("Add rules from a built-in template"))
         .build();
 
@@ -1160,7 +1160,7 @@ pub fn show_edit_group_dialog(
     }
 
     let add_rule_button = Button::builder()
-        .label(&i18n("Add Rule"))
+        .label(i18n("Add Rule"))
         .css_classes(["suggested-action"])
         .build();
     {
@@ -1172,7 +1172,7 @@ pub fn show_edit_group_dialog(
     }
 
     let clear_rules_button = Button::builder()
-        .label(&i18n("Clear All"))
+        .label(i18n("Clear All"))
         .css_classes(["flat"])
         .tooltip_text(i18n("Remove all expect rules"))
         .build();
@@ -1217,7 +1217,7 @@ pub fn show_edit_group_dialog(
         .placeholder_text(i18n("Enter text to test against patterns"))
         .build();
     let test_result_label = Label::builder()
-        .label(&i18n("Enter text to test"))
+        .label(i18n("Enter text to test"))
         .halign(gtk4::Align::Start)
         .wrap(true)
         .css_classes(["dim-label"])
@@ -1297,7 +1297,7 @@ pub fn show_edit_group_dialog(
     let group_post_login_scripts: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(Vec::new()));
 
     let add_script_button = Button::builder()
-        .label(&i18n("Add Script"))
+        .label(i18n("Add Script"))
         .css_classes(["suggested-action"])
         .build();
     {
@@ -1926,7 +1926,7 @@ fn add_group_expect_rule_row(
     // Row 1: Pattern entry (full width)
     let pattern_box = gtk4::Box::new(Orientation::Horizontal, 6);
     let pattern_label = Label::builder()
-        .label(&i18n("Pattern:"))
+        .label(i18n("Pattern:"))
         .halign(gtk4::Align::End)
         .width_chars(10)
         .build();
@@ -1942,7 +1942,7 @@ fn add_group_expect_rule_row(
     // Row 2: Response entry + "Insert Variable" button
     let response_box = gtk4::Box::new(Orientation::Horizontal, 6);
     let response_label = Label::builder()
-        .label(&i18n("Response:"))
+        .label(i18n("Response:"))
         .halign(gtk4::Align::End)
         .width_chars(10)
         .build();
@@ -1972,7 +1972,7 @@ fn add_group_expect_rule_row(
 
     // Built-in variables
     let builtin_header = Label::builder()
-        .label(&i18n("Built-in"))
+        .label(i18n("Built-in"))
         .halign(gtk4::Align::Start)
         .css_classes(["dim-label", "caption"])
         .build();
@@ -2012,7 +2012,7 @@ fn add_group_expect_rule_row(
 
     // Newline helper
     let special_header = Label::builder()
-        .label(&i18n("Special"))
+        .label(i18n("Special"))
         .halign(gtk4::Align::Start)
         .css_classes(["dim-label", "caption"])
         .margin_top(4)
@@ -2057,7 +2057,7 @@ fn add_group_expect_rule_row(
     settings_box.set_halign(gtk4::Align::Start);
 
     let priority_label = Label::builder()
-        .label(&i18n("Priority:"))
+        .label(i18n("Priority:"))
         .css_classes(["dim-label", "caption"])
         .build();
     let priority_adj = gtk4::Adjustment::new(0.0, -1000.0, 1000.0, 1.0, 10.0, 0.0);
@@ -2070,7 +2070,7 @@ fn add_group_expect_rule_row(
         .build();
 
     let timeout_label = Label::builder()
-        .label(&i18n("Timeout:"))
+        .label(i18n("Timeout:"))
         .css_classes(["dim-label", "caption"])
         .build();
     let timeout_adj = gtk4::Adjustment::new(0.0, 0.0, 60000.0, 100.0, 1000.0, 0.0);

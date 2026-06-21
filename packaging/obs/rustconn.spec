@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.16.11
+Version:        0.16.12
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -247,6 +247,13 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Sun Jun 21 2026 Anton Isaiev <totoshko88@gmail.com> - 0.16.12-0
+- Added workspace profiles — save and restore named sets of connections
+- Added built-in port knocking — TCP/UDP knock sequences before connecting
+- Added fwknop SPA configuration model
+- Integrated port knock into the pre-connect chain
+- Added port knock sequence field in Advanced connection editor
+
 * Sat Jun 20 2026 Anton Isaiev <totoshko88@gmail.com> - 0.16.11-0
 - Fixed the connection wizard's "Zero Trust" card showing only a custom-command field instead of the provider list — it now restores the full provider picker (AWS SSM, GCP IAP, Azure, Cloudflare, Teleport, Tailscale, Boundary, Hoop.dev) and defaults to AWS Session Manager, like the Advanced editor
 - Fixed the RDP Mouse Jiggler never actually running in Embedded (IronRDP) mode (#185) — the timer was only ever armed from set_state, which embedded connections bypass, so neither the mouse-move nor the Scroll Lock keep-alive was ever sent; it is now armed directly from the embedded connection events

@@ -47,6 +47,14 @@ pub(super) fn create_advanced_tab() -> (
     adw::SpinRow,
     adw::SpinRow,
     adw::SwitchRow,
+    gtk4::Entry,
+    // SPA fields
+    adw::SwitchRow,
+    adw::PasswordEntryRow,
+    adw::PasswordEntryRow,
+    adw::EntryRow,
+    adw::SpinRow,
+    adw::ComboRow,
 ) {
     let scrolled = ScrolledWindow::builder()
         .hscrollbar_policy(gtk4::PolicyType::Never)
@@ -455,7 +463,124 @@ pub(super) fn create_advanced_tab() -> (
         .build();
     connection_group.add(&skip_port_check_toggle);
 
+    // Port knock sequence entry with inline validation
+    let knock_sequence_entry = gtk4::Entry::builder()
+        .hexpand(true)
+        .valign(gtk4::Align::Center)
+        .placeholder_text(i18n("e.g., 7000 8000/tcp 9000/udp"))
+        .build();
+    let knock_row = adw::ActionRow::builder()
+        .title(i18n("Port Knock Sequence"))
+        .subtitle(i18n(
+            "Send TCP/UDP packets to open firewall before connecting",
+        ))
+        .build();
+    knock_row.add_suffix(&knock_sequence_entry);
+    connection_group.add(&knock_row);
+
+    // Inline validation: highlight invalid knock sequence
+    {
+        let entry_clone = knock_sequence_entry.clone();
+        knock_sequence_entry.connect_changed(move |_| {
+            let text = entry_clone.text();
+            let text = text.trim();
+            if text.is_empty() {
+                entry_clone.remove_css_class("error");
+                entry_clone.set_tooltip_text(None);
+                return;
+            }
+            if rustconn_core::connection::knock::KnockSequence::parse(text).is_ok() {
+                entry_clone.remove_css_class("error");
+                entry_clone.set_tooltip_text(None);
+            } else {
+                entry_clone.add_css_class("error");
+                entry_clone
+                    .set_tooltip_text(Some(&i18n("Invalid format. Use: 7000 8000/tcp 9000/udp")));
+            }
+        });
+    }
+
     content.append(&connection_group);
+
+    // === fwknop Single Packet Authorization (SPA) Section ===
+    let spa_group = adw::PreferencesGroup::builder().build();
+    let spa_expander = adw::ExpanderRow::builder()
+        .title(i18n("Single Packet Authorization (fwknop)"))
+        .subtitle(i18n(
+            "Send encrypted UDP packet to open firewall before connecting",
+        ))
+        .show_enable_switch(false)
+        .build();
+
+    let spa_enabled_toggle = adw::SwitchRow::builder()
+        .title(i18n("Enable SPA"))
+        .subtitle(i18n("Send fwknop packet before connecting"))
+        .active(false)
+        .build();
+    spa_expander.add_row(&spa_enabled_toggle);
+
+    let spa_rij_key_entry = adw::PasswordEntryRow::builder()
+        .title(i18n("Rijndael Key"))
+        .build();
+    spa_expander.add_row(&spa_rij_key_entry);
+
+    let spa_hmac_key_entry = adw::PasswordEntryRow::builder()
+        .title(i18n("HMAC Key"))
+        .build();
+    spa_expander.add_row(&spa_hmac_key_entry);
+
+    let spa_access_entry = adw::EntryRow::builder()
+        .title(i18n("Access"))
+        .text("tcp/22")
+        .build();
+    spa_expander.add_row(&spa_access_entry);
+
+    let spa_port_adj = gtk4::Adjustment::new(62201.0, 1.0, 65535.0, 1.0, 100.0, 0.0);
+    let spa_port_spin = adw::SpinRow::builder()
+        .title(i18n("Destination Port"))
+        .subtitle(i18n("UDP port for the SPA packet (default: 62201)"))
+        .adjustment(&spa_port_adj)
+        .build();
+    spa_expander.add_row(&spa_port_spin);
+
+    let spa_allow_ip_items = StringList::new(&[
+        &i18n("Source IP"),
+        &i18n("Resolve Public"),
+        &i18n("Explicit"),
+    ]);
+    let spa_allow_ip_combo = adw::ComboRow::builder()
+        .title(i18n("Allow IP"))
+        .subtitle(i18n("IP address to authorize in the SPA packet"))
+        .model(&spa_allow_ip_items)
+        .selected(0)
+        .build();
+    spa_expander.add_row(&spa_allow_ip_combo);
+
+    // Wire sensitivity: show/hide fields based on enabled toggle
+    {
+        let rij = spa_rij_key_entry.clone();
+        let hmac = spa_hmac_key_entry.clone();
+        let access = spa_access_entry.clone();
+        let port = spa_port_spin.clone();
+        let allow_ip = spa_allow_ip_combo.clone();
+        spa_enabled_toggle.connect_active_notify(move |toggle| {
+            let active = toggle.is_active();
+            rij.set_sensitive(active);
+            hmac.set_sensitive(active);
+            access.set_sensitive(active);
+            port.set_sensitive(active);
+            allow_ip.set_sensitive(active);
+        });
+        // Initial state: disabled
+        spa_rij_key_entry.set_sensitive(false);
+        spa_hmac_key_entry.set_sensitive(false);
+        spa_access_entry.set_sensitive(false);
+        spa_port_spin.set_sensitive(false);
+        spa_allow_ip_combo.set_sensitive(false);
+    }
+
+    spa_group.add(&spa_expander);
+    content.append(&spa_group);
 
     // === Highlight Rules Section (collapsible) ===
     let highlight_group = adw::PreferencesGroup::builder().build();
@@ -487,7 +612,7 @@ pub(super) fn create_advanced_tab() -> (
     hl_button_box.set_margin_top(12);
 
     let add_highlight_rule_button = Button::builder()
-        .label(&i18n("Add Rule"))
+        .label(i18n("Add Rule"))
         .css_classes(["suggested-action"])
         .build();
     hl_button_box.append(&add_highlight_rule_button);
@@ -635,6 +760,13 @@ pub(super) fn create_advanced_tab() -> (
         retry_initial_delay_spin,
         retry_max_delay_spin,
         skip_port_check_toggle,
+        knock_sequence_entry,
+        spa_enabled_toggle,
+        spa_rij_key_entry,
+        spa_hmac_key_entry,
+        spa_access_entry,
+        spa_port_spin,
+        spa_allow_ip_combo,
     )
 }
 

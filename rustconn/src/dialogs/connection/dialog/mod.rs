@@ -344,6 +344,15 @@ pub struct ConnectionDialog {
     retry_max_delay_spin: adw::SpinRow,
     // Skip pre-connect TCP port check for this connection
     skip_port_check_toggle: adw::SwitchRow,
+    // Port knock sequence entry
+    knock_sequence_entry: gtk4::Entry,
+    // SPA (fwknop) fields
+    spa_enabled_toggle: adw::SwitchRow,
+    spa_rij_key_entry: adw::PasswordEntryRow,
+    spa_hmac_key_entry: adw::PasswordEntryRow,
+    spa_access_entry: adw::EntryRow,
+    spa_port_spin: adw::SpinRow,
+    spa_allow_ip_combo: adw::ComboRow,
     // State
     editing_id: Rc<RefCell<Option<Uuid>>>,
     // Callback

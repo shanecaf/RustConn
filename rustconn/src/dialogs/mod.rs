@@ -31,6 +31,7 @@ mod variable_setup;
 mod variables;
 pub mod widgets;
 mod wol;
+mod workspace;
 
 pub use adw_dialogs::*;
 
@@ -65,6 +66,7 @@ pub use tunnel::TunnelManagerWindow;
 pub use variable_setup::{VariableSetupResponse, show_variable_setup_dialog};
 pub use variables::VariablesDialog;
 pub use wol::WolDialog;
+pub use workspace::WorkspaceManagerDialog;
 
 use rustconn_core::config::AppSettings;
 use rustconn_core::import::ImportResult;

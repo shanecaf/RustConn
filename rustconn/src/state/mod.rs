@@ -22,6 +22,7 @@ use rustconn_core::session::SessionManager;
 use rustconn_core::snippet::SnippetManager;
 use rustconn_core::sync::SyncManager;
 use rustconn_core::template::TemplateManager;
+use rustconn_core::workspace::WorkspaceProfileManager;
 use secrecy::SecretString;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -192,6 +193,8 @@ pub struct AppState {
     secret_backend_available: Option<bool>,
     /// Cloud Sync manager for export/import operations
     sync_manager: SyncManager,
+    /// Workspace profile manager for named session sets
+    workspace_manager: WorkspaceProfileManager,
     /// Shared folder connection tracker for conditional task execution
     folder_tracker: Arc<std::sync::Mutex<FolderConnectionTracker>>,
     /// Whether the KeePass keyring load at startup failed or timed out.
@@ -489,6 +492,13 @@ impl AppState {
         // Initialize Cloud Sync manager
         let sync_manager = SyncManager::new(settings.sync.clone());
 
+        // Initialize Workspace Profile manager
+        let workspace_manager = WorkspaceProfileManager::new(config_manager.clone())
+            .unwrap_or_else(|e| {
+                tracing::warn!("Failed to load workspace profiles: {e}");
+                WorkspaceProfileManager::new_empty(config_manager.clone())
+            });
+
         Ok(Self {
             connection_manager,
             session_manager,
@@ -507,6 +517,7 @@ impl AppState {
             history_dirty_tx: None,
             secret_backend_available: None,
             sync_manager,
+            workspace_manager,
             folder_tracker: Arc::new(std::sync::Mutex::new(FolderConnectionTracker::new())),
             kdbx_keyring_failed,
         })

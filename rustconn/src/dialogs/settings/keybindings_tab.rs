@@ -41,7 +41,7 @@ pub fn create_keybindings_page() -> (
     AccelLabels,
 ) {
     let page = adw::PreferencesPage::builder()
-        .title(&i18n("Keybindings"))
+        .title(i18n("Keybindings"))
         .icon_name("preferences-desktop-keyboard-symbolic")
         .build();
 
@@ -54,7 +54,7 @@ pub fn create_keybindings_page() -> (
 
     // Single group for all keybinding categories (collapsible expanders)
     let group = adw::PreferencesGroup::builder()
-        .title(&i18n("Keyboard Shortcuts"))
+        .title(i18n("Keyboard Shortcuts"))
         .build();
 
     // Build one ExpanderRow per category
@@ -68,13 +68,13 @@ pub fn create_keybindings_page() -> (
         }
 
         let expander = adw::ExpanderRow::builder()
-            .title(&i18n(category.label()))
+            .title(i18n(category.label()))
             .show_enable_switch(false)
             .build();
 
         for def in &cat_defs {
             let row = adw::ActionRow::builder()
-                .title(&i18n(&def.label))
+                .title(i18n(&def.label))
                 .subtitle(&def.action)
                 .build();
 
@@ -92,16 +92,16 @@ pub fn create_keybindings_page() -> (
 
             // Record button
             let record_btn = Button::builder()
-                .label(&i18n("Record"))
+                .label(i18n("Record"))
                 .valign(gtk4::Align::Center)
-                .tooltip_text(&i18n("Press a key combination to set a new shortcut"))
+                .tooltip_text(i18n("Press a key combination to set a new shortcut"))
                 .build();
 
             // Reset button
             let reset_btn = Button::builder()
                 .icon_name("edit-undo-symbolic")
                 .valign(gtk4::Align::Center)
-                .tooltip_text(&i18n("Reset to default"))
+                .tooltip_text(i18n("Reset to default"))
                 .css_classes(["flat"])
                 .build();
             reset_btn.update_property(&[gtk4::accessible::Property::Label(&i18n(
@@ -153,7 +153,7 @@ pub fn create_keybindings_page() -> (
     // Reset All button at the bottom
     let reset_all_group = adw::PreferencesGroup::new();
     let reset_all_btn = Button::builder()
-        .label(&i18n("Reset All to Defaults"))
+        .label(i18n("Reset All to Defaults"))
         .css_classes(["destructive-action"])
         .halign(gtk4::Align::Center)
         .build();
@@ -225,7 +225,7 @@ fn show_shortcut_recorder(
     }
 
     let dialog = adw::Dialog::builder()
-        .title(&i18n("Set Shortcut"))
+        .title(i18n("Set Shortcut"))
         .content_width(420)
         .build();
 
@@ -234,8 +234,8 @@ fn show_shortcut_recorder(
 
     let status = adw::StatusPage::builder()
         .icon_name("preferences-desktop-keyboard-symbolic")
-        .title(&i18n("Press the new shortcut"))
-        .description(&i18n("Press Backspace to reset, or Escape to cancel"))
+        .title(i18n("Press the new shortcut"))
+        .description(i18n("Press Backspace to reset, or Escape to cancel"))
         .build();
     // The status page is the explicit focus target for the key controller, so
     // Capture-phase key events are always delivered to it.

@@ -1104,8 +1104,8 @@ impl SplitViewAdapter {
         // Use tab-symbolic icon to indicate this is for selecting tabs
         let status_page = adw::StatusPage::builder()
             .icon_name("tab-new-symbolic")
-            .title(&i18n("Empty Panel"))
-            .description(&i18n("Select an existing tab to display in this panel"))
+            .title(i18n("Empty Panel"))
+            .description(i18n("Select an existing tab to display in this panel"))
             .hexpand(true)
             .vexpand(true)
             .build();
@@ -1115,8 +1115,8 @@ impl SplitViewAdapter {
         // Create "Select Tab" button as an alternative to drag-and-drop
         // This is useful because AdwTabBar intercepts drag events
         let select_button = Button::builder()
-            .label(&i18n("Select Tab..."))
-            .tooltip_text(&i18n("Choose an open tab to display in this panel"))
+            .label(i18n("Select Tab..."))
+            .tooltip_text(i18n("Choose an open tab to display in this panel"))
             .halign(Align::Center)
             .build();
         select_button.add_css_class("suggested-action");
@@ -1141,7 +1141,7 @@ impl SplitViewAdapter {
         // Create the close button
         let close_button = Button::builder()
             .icon_name("window-close-symbolic")
-            .tooltip_text(&i18n("Close panel"))
+            .tooltip_text(i18n("Close panel"))
             .halign(Align::End)
             .valign(Align::Start)
             .margin_top(6)
@@ -1183,7 +1183,7 @@ impl SplitViewAdapter {
     fn create_occupied_placeholder(&self) -> adw::StatusPage {
         adw::StatusPage::builder()
             .icon_name("content-loading-symbolic")
-            .title(&i18n("Loading..."))
+            .title(i18n("Loading..."))
             .hexpand(true)
             .vexpand(true)
             .build()

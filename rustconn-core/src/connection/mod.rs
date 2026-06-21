@@ -16,10 +16,12 @@
 
 pub mod automation_inheritance;
 mod interning;
+pub mod knock;
 mod lazy_loader;
 mod manager;
 mod port_check;
 mod retry;
+pub mod spa;
 pub mod ssh_inheritance;
 mod virtual_scroll;
 
@@ -27,8 +29,13 @@ pub use interning::{
     check_interning_stats, get_interning_stats, intern_connection_strings, intern_hostname,
     intern_protocol_name, intern_username, log_interning_stats, log_interning_stats_with_warning,
 };
+pub use knock::{
+    Knock, KnockError, KnockProtocol, KnockResult, KnockSequence, SpaAllowIp, SpaConfig,
+    execute_knock_sequence,
+};
 pub use lazy_loader::LazyGroupLoader;
 pub use manager::ConnectionManager;
 pub use port_check::{PortCheckError, PortCheckResult, check_port, check_port_async};
 pub use retry::{DEFAULT_BACKOFF_MULTIPLIER, RetryConfig, RetryState};
+pub use spa::{SpaError, SpaResult, build_spa_packet, send_spa};
 pub use virtual_scroll::SelectionState;

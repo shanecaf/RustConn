@@ -453,7 +453,7 @@ fn add_key_with_passphrase_dialog(
 
     // Create passphrase dialog using adw::Dialog
     let dialog = adw::Dialog::builder()
-        .title(&i18n_f("Add Key: {}", &[&key_name]))
+        .title(i18n_f("Add Key: {}", &[&key_name]))
         .content_width(400)
         .content_height(180)
         .build();

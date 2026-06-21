@@ -177,7 +177,7 @@ pub fn add_available_file_row(
 ) {
     let row = adw::ActionRow::builder()
         .title(filename)
-        .subtitle(&i18n("Available for import"))
+        .subtitle(i18n("Available for import"))
         .build();
 
     let import_btn = gtk4::Button::builder()

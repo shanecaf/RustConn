@@ -17,7 +17,7 @@ pub fn create_search_help_popover() -> Popover {
     box_container.set_margin_bottom(12);
 
     let title = Label::builder()
-        .label(&crate::i18n::i18n("Search Syntax"))
+        .label(crate::i18n::i18n("Search Syntax"))
         .halign(gtk4::Align::Start)
         .build();
     title.add_css_class("heading");
@@ -34,7 +34,7 @@ pub fn create_search_help_popover() -> Popover {
 
     for line in &help_lines {
         let row = Label::builder()
-            .label(&format!("• {line}"))
+            .label(format!("• {line}"))
             .halign(gtk4::Align::Start)
             .build();
         box_container.append(&row);

@@ -61,7 +61,7 @@ pub(super) fn create_data_tab() -> (GtkBox, ListBox, Button, ListBox, Button) {
 
     // Secondary list-management action — default style; the dialog's single
     // suggested-action is its primary Save button (GNOME HIG).
-    let add_variable_button = Button::builder().label(&i18n("Add Variable")).build();
+    let add_variable_button = Button::builder().label(i18n("Add Variable")).build();
     var_button_box.append(&add_variable_button);
 
     variables_group.add(&var_button_box);
@@ -95,7 +95,7 @@ pub(super) fn create_data_tab() -> (GtkBox, ListBox, Button, ListBox, Button) {
     prop_button_box.set_margin_top(12);
 
     // Secondary list-management action — default style (see above).
-    let add_property_button = Button::builder().label(&i18n("Add Property")).build();
+    let add_property_button = Button::builder().label(i18n("Add Property")).build();
     prop_button_box.append(&add_property_button);
 
     properties_group.add(&prop_button_box);

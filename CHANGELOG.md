@@ -5,6 +5,32 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.12] - 2026-06-21
+
+### Added
+
+- **Workspace profiles** — save currently open sessions as a named workspace and restore them all at once. Access via *Tools → Workspaces...* menu. Features:
+  - Save current set of active connections (with tab order) under a custom name
+  - Open a saved workspace to reconnect all its entries in one click
+  - Rename workspace profiles inline from the manager dialog
+  - Delete workspace profiles that are no longer needed
+  - Workspace profiles persist across restarts (`~/.config/rustconn/workspace_profiles.toml`)
+  - Workspace entries auto-clean when a referenced connection is deleted
+
+- **Port knocking** — built-in pre-connect port knock sequence, no external `knock` CLI needed. Configured per-connection (`Connection.knock_sequence`):
+  - TCP and UDP knocks with configurable inter-knock delay and post-knock settle time
+  - Parse from human-readable format: `"7000 8000/tcp 9000/udp"`
+  - Inline validation in the connection editor — invalid format highlighted immediately
+  - Works inside Flatpak sandbox (pure Rust, no shell command)
+  - Each knock logged via tracing for diagnostics
+
+- **fwknop Single Packet Authorization (SPA)** — built-in fwknop-compatible packet builder (AES-256-CBC + HMAC-SHA256, OpenSSL EVP_BytesToKey wire format). Sends an encrypted UDP packet to open firewall rules before connecting. Integrated into the pre-connect chain (knock → SPA → port check → connect). No external `fwknop` CLI needed — pure Rust implementation using existing `aes`/`cbc`/`ring` crates. Full GUI in the Advanced tab of the connection editor: Rijndael key, HMAC key (password entries with peek), access spec, destination port, and allow-IP mode (Source IP / Resolve Public / Explicit). Configure per-connection via `spa_config`
+
+### Dependencies
+
+- **Updated**: log 0.4.32→0.4.33
+- **Added** (direct, previously transitive): aes 0.9, cbc 0.2, md-5 0.11 — for fwknop SPA packet builder
+
 ## [0.16.11] - 2026-06-20
 
 ### Fixed

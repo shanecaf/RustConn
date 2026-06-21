@@ -211,6 +211,13 @@ impl ConnectionDialog {
         retry_initial_delay_spin: &adw::SpinRow,
         retry_max_delay_spin: &adw::SpinRow,
         skip_port_check_toggle: &adw::SwitchRow,
+        knock_sequence_entry: &gtk4::Entry,
+        spa_enabled_toggle: &adw::SwitchRow,
+        spa_rij_key_entry: &adw::PasswordEntryRow,
+        spa_hmac_key_entry: &adw::PasswordEntryRow,
+        spa_access_entry: &adw::EntryRow,
+        spa_port_spin: &adw::SpinRow,
+        spa_allow_ip_combo: &adw::ComboRow,
     ) {
         let dialog = dialog.clone();
         let on_save = on_save.clone();
@@ -399,6 +406,13 @@ impl ConnectionDialog {
         let retry_initial_delay_spin = retry_initial_delay_spin.clone();
         let retry_max_delay_spin = retry_max_delay_spin.clone();
         let skip_port_check_toggle = skip_port_check_toggle.clone();
+        let knock_sequence_entry = knock_sequence_entry.clone();
+        let spa_enabled_toggle = spa_enabled_toggle.clone();
+        let spa_rij_key_entry = spa_rij_key_entry.clone();
+        let spa_hmac_key_entry = spa_hmac_key_entry.clone();
+        let spa_access_entry = spa_access_entry.clone();
+        let spa_port_spin = spa_port_spin.clone();
+        let spa_allow_ip_combo = spa_allow_ip_combo.clone();
 
         save_btn.connect_clicked(move |_| {
             let local_variables = Self::collect_local_variables(&variables_rows);
@@ -592,6 +606,13 @@ impl ConnectionDialog {
                 retry_initial_delay_spin: &retry_initial_delay_spin,
                 retry_max_delay_spin: &retry_max_delay_spin,
                 skip_port_check_toggle: &skip_port_check_toggle,
+                knock_sequence_entry: &knock_sequence_entry,
+                spa_enabled_toggle: &spa_enabled_toggle,
+                spa_rij_key_entry: &spa_rij_key_entry,
+                spa_hmac_key_entry: &spa_hmac_key_entry,
+                spa_access_entry: &spa_access_entry,
+                spa_port_spin: &spa_port_spin,
+                spa_allow_ip_combo: &spa_allow_ip_combo,
             };
 
             if let Err(err) = data.validate() {

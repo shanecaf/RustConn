@@ -332,13 +332,13 @@ impl VariablesDialog {
         label_box.set_hexpand(true);
 
         let name_label_widget = Label::builder()
-            .label(&Self::build_expander_name(variable))
+            .label(Self::build_expander_name(variable))
             .css_classes(["heading"])
             .halign(gtk4::Align::Start)
             .build();
 
         let value_preview_widget = Label::builder()
-            .label(&Self::build_expander_value_preview(variable))
+            .label(Self::build_expander_value_preview(variable))
             .css_classes(["dim-label"])
             .halign(gtk4::Align::Start)
             .hexpand(true)

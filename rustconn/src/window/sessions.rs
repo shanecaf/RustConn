@@ -43,7 +43,7 @@ pub fn show_sessions_manager(
     let header = adw::HeaderBar::new();
     let refresh_btn = Button::builder()
         .icon_name("view-refresh-symbolic")
-        .tooltip_text(&i18n("Refresh"))
+        .tooltip_text(i18n("Refresh"))
         .build();
     refresh_btn.update_property(&[gtk4::accessible::Property::Label(&i18n(
         "Refresh session list",
@@ -90,15 +90,15 @@ pub fn show_sessions_manager(
     button_box.set_halign(gtk4::Align::End);
 
     let switch_btn = Button::builder()
-        .label(&i18n("Switch To"))
+        .label(i18n("Switch To"))
         .sensitive(false)
         .build();
     let send_text_btn = Button::builder()
-        .label(&i18n("Send Text"))
+        .label(i18n("Send Text"))
         .sensitive(false)
         .build();
     let terminate_btn = Button::builder()
-        .label(&i18n("Terminate"))
+        .label(i18n("Terminate"))
         .sensitive(false)
         .css_classes(["destructive-action"])
         .build();
@@ -322,9 +322,9 @@ pub fn show_send_text_dialog(
         .build();
 
     let header = adw::HeaderBar::new();
-    let cancel_btn = Button::builder().label(&i18n("Cancel")).build();
+    let cancel_btn = Button::builder().label(i18n("Cancel")).build();
     let send_btn = Button::builder()
-        .label(&i18n("Send"))
+        .label(i18n("Send"))
         .css_classes(["suggested-action"])
         .build();
     header.pack_start(&cancel_btn);
@@ -337,19 +337,19 @@ pub fn show_send_text_dialog(
     content.set_margin_end(12);
 
     let label = Label::builder()
-        .label(&i18n("Enter text to send to the session:"))
+        .label(i18n("Enter text to send to the session:"))
         .halign(gtk4::Align::Start)
         .build();
     content.append(&label);
 
     let entry = gtk4::Entry::builder()
-        .placeholder_text(&i18n("Text to send..."))
+        .placeholder_text(i18n("Text to send..."))
         .hexpand(true)
         .build();
     content.append(&entry);
 
     let newline_check = gtk4::CheckButton::builder()
-        .label(&i18n("Append newline (press Enter)"))
+        .label(i18n("Append newline (press Enter)"))
         .active(true)
         .build();
     content.append(&newline_check);
