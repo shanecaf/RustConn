@@ -259,7 +259,7 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
-* Mon Jun 22 2026 Anton Isaiev <totoshko88@gmail.com> - 0.17.0-0
+* Tue Jun 23 2026 Anton Isaiev <totoshko88@gmail.com> - 0.17.0-0
 - Packaging (openSUSE): pin the cargo linker to gcc in %prep to fix "linker `clang` not found" — the bare /usr/bin/clang symlink is not reliably present in the OBS build root
 - Security: kubectl and Zero Trust Generic sessions now spawn argv directly instead of via sh -c, preventing shell-metacharacter command injection from imported/untrusted configs
 - Security: removed the obsolete legacy XOR credential fallback (only AES-256-GCM credentials are read)
