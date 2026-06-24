@@ -5,7 +5,7 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.17.1] - Unreleased
+## [0.17.1] - 2026-06-24
 
 ### Added
 
@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Removed dead VNC FFI stub** (internal) — deleted `rustconn-core/src/ffi/` (`VncDisplay`, `FfiDisplay`, `ConnectionState`, `FfiError`). Despite documenting itself as a safe wrapper around the `gtk-vnc` C library, it had no `gtk-vnc` dependency, opened no connection (`open_host` only mutated in-memory state), and its signal callbacks were never invoked — so the `VncSessionWidget` "native" path it backed could never connect. Embedded VNC already runs through the native `vnc-rs` client (`EmbeddedVncWidget`) with an external-viewer fallback; the stub and its now-unreachable `VncSessionWidget` methods (`connect`, `provide_credentials`, `set_scaling`, `display`, `connect_auth_required`) were removed (YAGNI). Synced `docs/ARCHITECTURE.md` (dropped the stale `broadcast.rs` entry) and bumped the doc version headers.
 - **Removed archived-spec traceability comments** (internal) — stripped dangling `// Requirement X.Y` / `# Requirements Coverage` doc-comment references (~225 lines across 30 source files) that pointed at specs now under `.kiro/specs/_archive/`. Descriptive text was preserved (the requirement prefix removed), pure traceability sections deleted.
 - **Removed unused `performance` scaffolding** (internal) — deleted dead utilities from `rustconn-core` that had no production callers: object pool, compact string, batch processor, lazy init, shrinkable vec, virtual scroller, the performance-metrics timer, and the `MemoryOptimizer`/`MemoryTracker` machinery (~1900 LOC). The only live functionality — the connection string interner and the search debouncer — is retained; the global interner is now exposed directly as `performance::interner()`. Also synced `docs/ARCHITECTURE.md` (connection-dialog `dialog/` split, `builders.rs`/`web.rs`, `WebProtocol`, `performance/`, `tracing/`).
+
+### Dependencies
+
+- **Updated**: chacha20 0.10.0→0.10.1
 
 ## [0.17.0] - 2026-06-23
 
