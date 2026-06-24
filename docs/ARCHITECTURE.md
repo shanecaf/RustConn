@@ -739,6 +739,7 @@ pub struct ProtocolCapabilities {
 - `KubernetesProtocol`: Kubernetes via external `kubectl exec` (capabilities: terminal, split_view)
 - `SftpProtocol`: SFTP file transfer via file manager/mc (capabilities: file_transfer, external_fallback, split_view when mc mode is active)
 - `MoshProtocol`: MOSH mobile shell via external `mosh` client (capabilities: terminal, split_view)
+- `WebProtocol`: Web URLs opened in the system browser via `UriLauncher`/`xdg-open` (capabilities: external_fallback)
 
 ### Adding a New Protocol
 
@@ -988,7 +989,16 @@ rustconn/src/
 │   ├── widgets.rs         # Shared widget builders (CheckboxRow, EntryRow, SwitchRow, etc.)
 │   ├── connection/        # Connection dialog (modular)
 │   │   ├── mod.rs         # Module exports
-│   │   ├── dialog.rs      # Main ConnectionDialog (~7000 lines, coordination + set/build methods)
+│   │   ├── dialog/        # ConnectionDialog (split from the old ~7000-line dialog.rs)
+│   │   │   ├── mod.rs         # ConnectionDialog struct + public API
+│   │   │   ├── construction.rs # Widget construction / wiring
+│   │   │   ├── build.rs       # build_* methods (assemble Connection from UI)
+│   │   │   ├── populate.rs    # populate_* methods (fill UI from Connection)
+│   │   │   ├── rows.rs        # Reusable row builders
+│   │   │   ├── passwords.rs   # Credential/password row handling
+│   │   │   ├── save.rs        # Save / validation flow
+│   │   │   └── agent_variables.rs # SSH agent + variable rows
+│   │   ├── builders.rs    # Shared field/section builders for tabs
 │   │   ├── general_tab.rs # General tab: name, host, port, group, credentials
 │   │   ├── data_tab.rs    # Data tab: variables, custom properties
 │   │   ├── automation_tab.rs # Automation tab: expect rules, pre/post tasks
@@ -1004,6 +1014,7 @@ rustconn/src/
 │   │   ├── telnet.rs      # Telnet options
 │   │   ├── serial.rs      # Serial options
 │   │   ├── kubernetes.rs  # Kubernetes options
+│   │   ├── web.rs         # Web (browser) options
 │   │   └── zerotrust.rs   # Zero Trust provider options
 │   ├── keyboard.rs        # Keyboard navigation helpers
 │   ├── command_palette.rs # Command palette dialog (Ctrl+P)
@@ -1094,6 +1105,8 @@ rustconn-core/src/
 ├── sftp.rs                # SFTP URI/command builders, ssh-add, mc FISH VFS
 ├── flatpak.rs             # Flatpak sandbox detection, portal key path resolution, stable key copy
 ├── snap.rs                # Snap environment detection and paths
+├── performance/           # String interner (connection-string dedup) + search debouncer
+├── tracing/               # Structured tracing setup, span name constants
 └── ...
 ```
 

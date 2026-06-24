@@ -170,13 +170,7 @@ pub use password_generator::{
     CharacterSet, PasswordGenerator, PasswordGeneratorConfig, PasswordGeneratorError,
     PasswordGeneratorResult, PasswordStrength, estimate_crack_time,
 };
-pub use performance::{
-    AllocationStats, BatchProcessor, CompactString, Debouncer, InternerStats, LazyInit,
-    MemoryBreakdown, MemoryEstimate, MemoryOptimizer, MemoryPressure, MemorySnapshot,
-    MemoryTracker, ObjectPool, OperationStats, OptimizationCategory, OptimizationRecommendation,
-    PerformanceMetrics, PoolStats, ShrinkableVec, StringInterner, TimingGuard, VirtualScroller,
-    format_bytes, memory_optimizer, metrics,
-};
+pub use performance::{Debouncer, InternerStats, StringInterner, interner};
 pub use progress::{
     CallbackProgressReporter, CancelHandle, LocalProgressReporter, NoOpProgressReporter,
     ProgressReporter,

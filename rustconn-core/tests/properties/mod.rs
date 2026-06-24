@@ -90,7 +90,6 @@ mod variable_injection_tests;
 mod variable_tests;
 mod verification_tests;
 mod virt_viewer_tests;
-mod virtual_scrolling_tests;
 mod vnc_client_tests;
 mod window_mode_tests;
 mod wol_tests;

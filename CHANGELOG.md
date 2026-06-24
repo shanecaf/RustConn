@@ -5,6 +5,18 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.1] - Unreleased
+
+### Added
+
+- **Native PKCS#11 / YubiKey SSH authentication** ([#189](https://github.com/totoshko88/RustConn/issues/189)) — a new "PKCS#11 Provider" field in the SSH connection editor (Session group) lets you point at a hardware-token library (e.g. `/usr/lib64/libykcs11.so.2`); it maps to `-o PKCS11Provider=<path>`, so YubiKey/PIV/smart-card keys are offered without the SSH-agent workaround. The directive is also imported from `~/.ssh/config` (`PKCS11Provider`).
+  - **Works through SSH tunnels** — because `-o PKCS11Provider` is *not* inherited by `ProxyJump` child connections, the provider of a jump-host connection is now injected explicitly into the first hop's `ProxyCommand` (terminal SSH and RDP/VNC/SPICE tunnels). Enable PKCS#11 on the bastion connection to authenticate the jump itself with the token.
+  - PKCS#11 does not force `IdentitiesOnly`, so the token's keys are always offered. The PIN/touch prompt appears in the session terminal. Note: with a jump host the token may prompt once per hop (separate SSH processes).
+
+### Changed
+
+- **Removed unused `performance` scaffolding** (internal) — deleted dead utilities from `rustconn-core` that had no production callers: object pool, compact string, batch processor, lazy init, shrinkable vec, virtual scroller, the performance-metrics timer, and the `MemoryOptimizer`/`MemoryTracker` machinery (~1900 LOC). The only live functionality — the connection string interner and the search debouncer — is retained; the global interner is now exposed directly as `performance::interner()`. Also synced `docs/ARCHITECTURE.md` (connection-dialog `dialog/` split, `builders.rs`/`web.rs`, `WebProtocol`, `performance/`, `tracing/`).
+
 ## [0.17.0] - 2026-06-23
 
 A hardening release: targeted security, performance, and tech-debt fixes following a full codebase audit. No major new functionality.
