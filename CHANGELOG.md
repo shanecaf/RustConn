@@ -5,7 +5,7 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.17.2] - 2026-06-24
+## [0.17.2] - 2026-06-25
 
 A hardening release following a deep, per-feature codebase audit (15 actionable findings).
 
@@ -32,6 +32,10 @@ A hardening release following a deep, per-feature codebase audit (15 actionable 
 - **Tab groups persist in workspaces** — assigning a tab to a named group (e.g. "Production") was in-memory only and lost on restart. A workspace now stores each session's group and restores it when reopened. (Port-checked connections that start asynchronously are not regrouped on restore yet.)
 - **Jump-host / SSH-args resolution deduplicated** (internal) — initial connect and in-place reconnect each carried ~150 near-identical lines building the identity file, jump-host `ProxyCommand`/`-J` chain (with Flatpak known_hosts and first-hop PKCS#11), and waypipe detection, so a fix to one path could silently miss the other. Both now call a single `build_ssh_command_args()`; reconnect also gains the waypipe-fallback logging it previously lacked
 - **Dynamic-connection IDs are now stable across Rust versions** — IDs were derived from `std::collections::hash_map::DefaultHasher`, whose output is not guaranteed stable between toolchain releases, so a compiler upgrade could silently change every dynamic connection's UUID. They now use spec-defined UUID v5 (SHA-1, group as namespace, name+host+protocol as key). Upgrading to 0.17.2 regenerates dynamic-connection IDs once; they stay stable afterwards. Removed the now-unused `DynamicConnectionId` type
+
+### Dependencies
+
+- **Updated**: uuid 1.23.3→1.23.4, wasm-bindgen/js-sys/web-sys ecosystem (wasm-bindgen 0.2.125→0.2.126, js-sys 0.3.102→0.3.103, web-sys 0.3.102→0.3.103, wasm-bindgen-futures 0.4.75→0.4.76)
 
 ## [0.17.1] - 2026-06-24
 
