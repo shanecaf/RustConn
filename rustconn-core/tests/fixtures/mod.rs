@@ -147,6 +147,7 @@ pub fn sample_rdp_connection_with_domain() -> Connection {
         resolution: Some(Resolution::new(1920, 1080)),
         color_depth: Some(32),
         audio_redirect: true,
+        printer_enabled: false,
         gateway: None,
         shared_folders: Vec::new(),
         custom_args: Vec::new(),

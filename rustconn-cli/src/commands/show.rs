@@ -147,6 +147,12 @@ fn print_json(
                 "clipboard_enabled".to_string(),
                 serde_json::Value::Bool(config.clipboard_enabled),
             );
+            if config.audio_redirect {
+                map.insert("audio_redirect".to_string(), serde_json::Value::Bool(true));
+            }
+            if config.printer_enabled {
+                map.insert("printer_enabled".to_string(), serde_json::Value::Bool(true));
+            }
             if config.disable_nla {
                 map.insert("nla_disabled".to_string(), serde_json::Value::Bool(true));
             }
@@ -357,6 +363,12 @@ fn print_table(connection: &Connection, connections: &[Connection]) -> Result<()
             }
             if !config.clipboard_enabled {
                 println!("  Clipboard: disabled");
+            }
+            if config.audio_redirect {
+                println!("  Audio:    enabled");
+            }
+            if config.printer_enabled {
+                println!("  Printer:  enabled");
             }
             if let Some(jump_id) = config.jump_host_id {
                 println!("  Jump Host: {}", resolve_jump(jump_id));

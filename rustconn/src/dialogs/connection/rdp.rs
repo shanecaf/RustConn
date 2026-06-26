@@ -26,7 +26,7 @@ use crate::i18n::i18n;
 
 /// Creates the RDP options panel with all protocol-specific widgets.
 ///
-/// Returns a 28-element tuple matching the fields expected by `ConnectionDialog`.
+/// Returns a 31-element tuple matching the fields expected by `ConnectionDialog`.
 pub(super) fn create_rdp_options() -> (
     GtkBox,
     DropDown,
@@ -35,6 +35,7 @@ pub(super) fn create_rdp_options() -> (
     SpinButton,
     DropDown,
     DropDown,
+    adw::SwitchRow,
     adw::SwitchRow,
     Entry,
     SpinButton,
@@ -233,6 +234,14 @@ pub(super) fn create_rdp_options() -> (
         .active(false)
         .build();
     features_group.add(&audio_check);
+
+    // Printer redirection
+    let printer_check = adw::SwitchRow::builder()
+        .title(i18n("Printer Redirection"))
+        .subtitle(i18n("Share your local printer with the remote session"))
+        .active(false)
+        .build();
+    features_group.add(&printer_check);
 
     // Clipboard sharing
     let clipboard_check = adw::SwitchRow::builder()
@@ -672,6 +681,7 @@ pub(super) fn create_rdp_options() -> (
         color_dropdown,
         scale_override_dropdown,
         audio_check,
+        printer_check,
         gateway_entry,
         gateway_port_spin,
         gateway_username_entry,

@@ -5,11 +5,28 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.3] - 2026-06-26
+
+### Fixed
+
+- **Switching GNOME workspaces no longer breaks RDP keyboard input** ([#193](https://github.com/totoshko88/RustConn/issues/193)) — pressing `Super`+digit to switch workspace let the GNOME compositor grab the `Super` chord before its key-release reached the RDP widget, so the embedded session kept treating `Super` (and any modifier caught the same way, e.g. via Alt+Tab) as held down, mangling all further input until a full reconnect. The widget now releases every still-pressed key when it loses keyboard focus, so a compositor-grabbed modifier can no longer stick in the remote session
+- **RD Gateway connections work again with FreeRDP 3.x** ([#187](https://github.com/totoshko88/RustConn/issues/187)) — the external FreeRDP launcher emitted the FreeRDP 2.x gateway aliases `/g:`, `/gu:` and `/gp:`, which FreeRDP 3.x removed in favour of the unified `/gateway:` option. The 3.x client rejected `/g:` as an "Unexpected keyword" and exited before connecting (exit status 23). The launcher now builds `/gateway:g:<host>:<port>` (matching the working manual `xfreerdp /gateway:g:HOST /u:NAME /d:DOMAIN` command) and lets FreeRDP reuse the session credentials for the gateway. An explicit gateway user is added (`,u:<user>`) only when it differs from the session user; the broken `/gp:` args-file path is removed (a distinct gateway password is not stored yet and remains future work)
+- **Multi-hop (double) jump hosts work in Flatpak** — chaining through two or more bastions failed with `Connection closed by UNKNOWN port 65535` (issue #191 follow-up). The inner hops were reached with a plain `-J`, which does not inherit the identity key or the Flatpak-writable `known_hosts` from the outer command, so the second bastion had neither its key nor host-key verification. RustConn now nests a `ProxyCommand` per hop (terminal SSH, RDP/VNC/SPICE tunnels), passing the identity file and `known_hosts` to every hop. The remote-monitoring probe had the same chain bug in a sharper form — it passed the whole comma-joined chain as a single destination host — and is fixed the same way
+- **Multi-hop jump host order corrected outside Flatpak** — the plain `-J` path (native builds, terminal SSH, RDP/VNC/SPICE tunnels, and the monitoring probe) joined the bastions in RustConn's internal target-first order, but OpenSSH `-J` visits hops client-first, so a chain of three or more bastions was traversed in reverse and failed to connect. The hop list is now reversed for every `-J` call to match the corrected nested-`ProxyCommand` direction. Single-bastion connections (the common case) are unaffected
+
+### Added
+
+- **RDP printer redirection** — a new "Printer Redirection" toggle (RDP connection editor → Features) maps your local printer into the remote session, so you can print to it from the Windows side (issue #192). For the embedded IronRDP client, RustConn announces a virtual PostScript printer over the RDPDR channel and forwards each print job to the local CUPS spooler (`lp`) on a detached thread, so a large job never stalls the session's framebuffer or input; for the external `xfreerdp3` client it passes `/printer`. The setting is available in the GUI, via the CLI (`rustconn-cli add/update --printer`), and is imported from Windows `.rdp` files (`redirectprinters:i:1`). The template editor does not expose the toggle yet — configure it per connection
+
+### Changed
+
+- **External RDP now prefers the maintained SDL3 FreeRDP client** — client detection put the deprecated `wlfreerdp` first on Wayland sessions, even though FreeRDP 3.x prints a deprecation warning for it and steers users to the SDL3 client (`sdl-freerdp3`). External launches (RD Gateway, RemoteApp fallback, IronRDP fallback) now prefer `sdl-freerdp3`, which is actively maintained and parses the unified `/gateway:` option correctly. Embedded mode still uses `wlfreerdp` directly where present, so the in-tab Wayland-subsurface experience is unchanged
+
 ## [0.17.2] - 2026-06-25
 
 A hardening release following a deep, per-feature codebase audit (15 actionable findings).
 
-### Security
+### Securityпше 
 
 - **Generated passwords now auto-clear from the clipboard** — the password generator's "Copy" left the password on the clipboard indefinitely, unlike the connection "Copy Password" action (30 s auto-clear). It now clears after 30 seconds, but only if the clipboard still holds that password (so it never clobbers something you copied since)
 - **SSH password no longer lingers in memory after auto-login** — the injected password (initial connect and in-place reconnect) is now wrapped in `Zeroizing` so the plaintext is wiped immediately after it is handed to VTE, instead of remaining in a `String` until garbage collection

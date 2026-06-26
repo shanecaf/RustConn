@@ -222,12 +222,26 @@ pub fn resolve_jump_chain_for_tunnel(
             proxy_parts.push(format!("PKCS11Provider={}", provider.trim()));
         }
 
-        // ponytail: PKCS#11/identity reach only the first hop; deeper hops in
-        // `-J` still don't inherit -o. Fine for the common single-bastion case.
+        // ponytail: PKCS#11/identity reach only the first hop; deeper hops do
+        // not get the bastion's own PKCS#11 token. Fine for the common
+        // single-bastion case.
+        //
+        // Multi-hop: nest a ProxyCommand per remaining hop so EACH inherits the
+        // identity file and Flatpak known_hosts. Plain `-J b,c` would drop them
+        // and the deeper hops fail in Flatpak (issue #191 follow-up — double jump).
         if chain.len() > 1 {
-            let inner_chain = chain[1..].join(",");
-            proxy_parts.push("-J".to_string());
-            proxy_parts.push(inner_chain);
+            let inner_hops: Vec<&str> = chain[1..].iter().map(String::as_str).collect();
+            let inner = rustconn_core::ssh_tunnel::build_nested_proxy_command(
+                &inner_hops,
+                first_hop_identity.as_deref(),
+                flatpak_kh.as_deref(),
+                false,
+            );
+            proxy_parts.push("-o".to_string());
+            proxy_parts.push(format!(
+                "ProxyCommand={}",
+                rustconn_core::ssh_tunnel::shell_single_quote(&inner)
+            ));
         }
 
         // Add the first hop destination with proper -p port parsing
@@ -240,8 +254,9 @@ pub fn resolve_jump_chain_for_tunnel(
         );
         vec!["-o".to_string(), format!("ProxyCommand={proxy_cmd}")]
     } else {
-        // Non-Flatpak: use standard -J
-        let j_chain = chain.join(",");
+        // Non-Flatpak: use standard -J. RustConn resolves chains target-first,
+        // but OpenSSH `-J` visits hops client-first, so reverse them.
+        let j_chain = rustconn_core::ssh_tunnel::proxy_jump_arg(&chain.join(","));
         tracing::debug!(
             jump_chain = %j_chain,
             "Tunnel: using -J for jump host chain"

@@ -78,6 +78,40 @@ Auto-latest components (`SkipLatest`, no `pinned_version` — kubectl, Tailscale
 Teleport, Boundary, Bitwarden, 1Password, AWS CLI, gcloud, cloudflared, etc.)
 never require URL or version updates.
 
+### Flatpak runtime & bundled libraries
+
+File: `packaging/flatpak/io.github.totoshko88.RustConn.yml` (keep
+`packaging/flathub/io.github.totoshko88.RustConn.yml` in sync).
+
+Check each release:
+1. **GNOME runtime** — `runtime-version` of `org.gnome.Platform` / `org.gnome.Sdk`
+   (currently `'50'`). Compare against the latest stable GNOME runtime on Flathub.
+   A bump may unlock newer libadwaita (gate behind the `adw-1-8` feature).
+2. **Rust SDK extension** — `org.freedesktop.Sdk.Extension.rust-stable` tracks the
+   freedesktop base; note if the freedesktop runtime moved.
+3. **Bundled source modules** with a pinned version + `x-checker-data`
+   (FreeRDP `freerdp-X.Y.Z.tar.xz`, cJSON). For any upstream bump, update **both**
+   the version in the URL **and** the `sha256`. FreeRDP latest →
+   `pub.freerdp.com/releases` (or its `x-checker-data` project-id).
+
+Record bumps in CHANGELOG.md `### Changed` (e.g. `- Flatpak — FreeRDP 3.27.1→3.28.0`).
+
+### Snap base & extension
+
+File: `snap/snapcraft.yaml`.
+
+1. **Base + gnome extension** — `base: core24` with the `gnome` extension
+   (gnome-46-2404, ships libadwaita 1.5 → snap builds WITHOUT `adw-1-8`). The gnome
+   extension is only available for core22/core24. **Flag if a core26 gnome extension
+   has shipped** — it would let the snap match the Flatpak's GNOME 50 / libadwaita 1.8
+   instead of trading polish for strict confinement (issue #174).
+2. **Staged packages** — pinned `stage-packages` / `build-packages` (e.g. VTE,
+   waypipe, python3) against the core24 (noble) archive.
+
+> The `dependency-audit` hook automates all of the above (cargo + advisories + CLI +
+> flatpak + snap) on demand, and the `release-version` hook runs the same freshness
+> check (step 2) before bumping the version.
+
 ## Stage 3: Finalizing the release
 
 1. Ensure CHANGELOG.md contains a complete description of changes, including:

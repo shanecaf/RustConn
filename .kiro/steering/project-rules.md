@@ -64,15 +64,19 @@ bash po/update-pot.sh              # Regenerate POT after new i18n strings
 Delegate to `rust-quality-check` sub-agent for fmt+clippy+tests instead of running in main context.
 For quick single-file validation → `getDiagnostics`.
 
-### Self-Check Rules (no hooks — apply mentally)
+### Self-Check Rules (hooks + mental)
 
-When writing `.rs` files, verify BEFORE writing:
-- **Crate boundary**: `rustconn-core/` and `rustconn-cli/` must NOT contain `use gtk4`, `use adw`, `use vte4`, `gtk4::`, `adw::`, `vte4::`. Move GUI code to `rustconn/`.
-- **No unsafe**: never write `unsafe {`, `unsafe fn`, `unsafe impl`, `unsafe trait` — **except** in `rustconn-pty-sys` (the sole sanctioned FFI crate, M-UNSAFE). New `unsafe` outside it is forbidden.
+The hardest-to-reverse invariants are now enforced automatically by the
+`crate-boundary-guard` preToolUse hook (it denies the write if a `.rs` change
+adds GUI imports to `rustconn-core`/`rustconn-cli`, or `unsafe` outside
+`rustconn-pty-sys`). Still verify them yourself BEFORE writing — the hook is a
+safety net, not an excuse to skip thinking:
+- **Crate boundary**: `rustconn-core/` and `rustconn-cli/` must NOT contain `use gtk4`, `use adw`, `use vte4`, `gtk4::`, `adw::`, `vte4::`. Move GUI code to `rustconn/`. *(hook-enforced)*
+- **No unsafe**: never write `unsafe {`, `unsafe fn`, `unsafe impl`, `unsafe trait` — **except** in `rustconn-pty-sys` (the sole sanctioned FFI crate, M-UNSAFE). New `unsafe` outside it is forbidden. *(hook-enforced)*
 
-After writing `.rs` files in `rustconn/src/`, verify:
+After writing `.rs` files in `rustconn/src/`, verify (these stay mental — caught later by clippy + the `post-session-diagnostics` agentStop hook, not pre-write):
 - **i18n**: all user-facing strings (`.set_label()`, `.set_title()`, `.set_tooltip_text()`, `Button::with_label()`) wrapped in `i18n()` or `i18n_f()`. Ignore: tracing, CSS, icons, action names.
-- **Credentials** (in secret/password/credential files): `SecretString` for passwords, `.zeroize()` intermediates, no secrets in logs/args/errors.
+- **Credentials** (in secret/password/credential files): `SecretString` for passwords, `.zeroize()` intermediates, no secrets in logs/args/errors. *(editing these files also triggers the `security-review` hook → `security-reviewer` sub-agent)*
 - **Protocol files**: business logic in rustconn-core, GTK in rustconn.
 
 ### When to Run fmt/clippy/tests

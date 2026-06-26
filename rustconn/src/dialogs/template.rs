@@ -2465,6 +2465,10 @@ impl TemplateDialog {
             resolution: Some(resolution),
             color_depth: Some(color_depth),
             audio_redirect: audio_check.is_active(),
+            // ponytail: template editor doesn't expose printer redirection yet;
+            // configure it per-connection in the connection editor. Wire a switch
+            // here if templates need it.
+            printer_enabled: false,
             gateway: if gateway_text.is_empty() {
                 None
             } else {

@@ -3,6 +3,8 @@
 //! Contains keyboard, mouse, and scroll event handlers with coordinate
 //! transformation between widget space and RDP framebuffer space.
 
+#[cfg(feature = "rdp-embedded")]
+use gtk4::EventControllerFocus;
 use gtk4::gdk;
 use gtk4::glib::translate::IntoGlib;
 use gtk4::prelude::*;
@@ -11,6 +13,8 @@ use gtk4::{
     GestureClick,
 };
 use std::cell::RefCell;
+#[cfg(feature = "rdp-embedded")]
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use super::types::{RdpCommand, RdpConnectionState};
@@ -65,6 +69,32 @@ fn send_ironrdp_key(
     }
 }
 
+/// Releases every key currently tracked as pressed and clears the tracking set.
+///
+/// Invoked when the RDP widget loses keyboard focus. The compositor can grab a
+/// key chord (e.g. GNOME `Super`+digit to switch workspace) before its release
+/// reaches us, leaving the modifier stuck down in the remote session until a
+/// reconnect (#193). Sending a synthetic release on focus-out clears that state.
+#[cfg(feature = "rdp-embedded")]
+fn release_all_keys(
+    pressed_keys: &Rc<RefCell<HashMap<u32, gdk::Key>>>,
+    using_ironrdp: bool,
+    freerdp_thread: &Rc<RefCell<Option<super::FreeRdpThread>>>,
+    ironrdp_tx: &Rc<RefCell<Option<std::sync::mpsc::Sender<RdpClientCommand>>>>,
+) {
+    let keys: Vec<(u32, gdk::Key)> = pressed_keys.borrow_mut().drain().collect();
+    for (keycode, keyval) in keys {
+        if using_ironrdp {
+            send_ironrdp_key(keycode, keyval, false, ironrdp_tx);
+        } else if let Some(ref thread) = *freerdp_thread.borrow() {
+            let _ = thread.send_command(RdpCommand::KeyEvent {
+                keyval: keyval.into_glib(),
+                pressed: false,
+            });
+        }
+    }
+}
+
 impl super::EmbeddedRdpWidget {
     /// Sets up keyboard and mouse input handlers with coordinate transformation
     #[cfg(feature = "rdp-embedded")]
@@ -77,12 +107,20 @@ impl super::EmbeddedRdpWidget {
         let freerdp_thread = self.freerdp_thread.clone();
         let ironrdp_tx = self.ironrdp_command_tx.clone();
 
+        // Tracks keys currently held down (keycode -> keyval) so we can release
+        // them if the widget loses focus mid-press (#193). Shared between the
+        // press/release handlers and the focus controller below.
+        let pressed_keys: Rc<RefCell<HashMap<u32, gdk::Key>>> =
+            Rc::new(RefCell::new(HashMap::new()));
+        let pressed_keys_pressed = pressed_keys.clone();
+
         key_controller.connect_key_pressed(move |_controller, keyval, keycode, _modifier| {
             let current_state = *state.borrow();
             let embedded = *is_embedded.borrow();
             let using_ironrdp = *is_ironrdp.borrow();
 
             if embedded && current_state == RdpConnectionState::Connected {
+                pressed_keys_pressed.borrow_mut().insert(keycode, keyval);
                 if using_ironrdp {
                     send_ironrdp_key(keycode, keyval, true, &ironrdp_tx);
                 } else if let Some(ref thread) = *freerdp_thread.borrow() {
@@ -104,11 +142,14 @@ impl super::EmbeddedRdpWidget {
         let is_ironrdp = self.is_ironrdp.clone();
         let freerdp_thread = self.freerdp_thread.clone();
         let ironrdp_tx = self.ironrdp_command_tx.clone();
+        let pressed_keys_released = pressed_keys.clone();
 
         key_controller.connect_key_released(move |_controller, keyval, keycode, _modifier| {
             let current_state = *state.borrow();
             let embedded = *is_embedded.borrow();
             let using_ironrdp = *is_ironrdp.borrow();
+
+            pressed_keys_released.borrow_mut().remove(&keycode);
 
             if embedded && current_state == RdpConnectionState::Connected {
                 if using_ironrdp {
@@ -123,6 +164,26 @@ impl super::EmbeddedRdpWidget {
         });
 
         self.drawing_area.add_controller(key_controller);
+
+        // Release any held keys when the widget loses keyboard focus, so a
+        // modifier grabbed by the compositor (GNOME Super+digit workspace
+        // switch) does not stay stuck down in the remote session (#193).
+        let focus_controller = EventControllerFocus::new();
+        let is_ironrdp = self.is_ironrdp.clone();
+        let freerdp_thread = self.freerdp_thread.clone();
+        let ironrdp_tx = self.ironrdp_command_tx.clone();
+        let pressed_keys_focus = pressed_keys.clone();
+
+        focus_controller.connect_leave(move |_controller| {
+            release_all_keys(
+                &pressed_keys_focus,
+                *is_ironrdp.borrow(),
+                &freerdp_thread,
+                &ironrdp_tx,
+            );
+        });
+
+        self.drawing_area.add_controller(focus_controller);
 
         // Track current button state for motion events
         let button_state = Rc::new(RefCell::new(0u8));

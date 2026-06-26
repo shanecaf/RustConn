@@ -79,6 +79,7 @@ impl ConnectionDialog {
         rdp_color_dropdown: &DropDown,
         rdp_scale_override_dropdown: &DropDown,
         rdp_audio_check: &adw::SwitchRow,
+        rdp_printer_check: &adw::SwitchRow,
         rdp_gateway_entry: &Entry,
         rdp_gateway_port_spin: &SpinButton,
         rdp_gateway_username_entry: &Entry,
@@ -265,6 +266,7 @@ impl ConnectionDialog {
         let rdp_color_dropdown = rdp_color_dropdown.clone();
         let rdp_scale_override_dropdown = rdp_scale_override_dropdown.clone();
         let rdp_audio_check = rdp_audio_check.clone();
+        let rdp_printer_check = rdp_printer_check.clone();
         let rdp_gateway_entry = rdp_gateway_entry.clone();
         let rdp_gateway_port_spin = rdp_gateway_port_spin.clone();
         let rdp_gateway_username_entry = rdp_gateway_username_entry.clone();
@@ -465,6 +467,7 @@ impl ConnectionDialog {
                 rdp_color_dropdown: &rdp_color_dropdown,
                 rdp_scale_override_dropdown: &rdp_scale_override_dropdown,
                 rdp_audio_check: &rdp_audio_check,
+                rdp_printer_check: &rdp_printer_check,
                 rdp_gateway_entry: &rdp_gateway_entry,
                 rdp_gateway_port_spin: &rdp_gateway_port_spin,
                 rdp_gateway_username_entry: &rdp_gateway_username_entry,

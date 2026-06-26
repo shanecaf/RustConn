@@ -358,6 +358,7 @@ impl RdpLauncher {
         window_geometry: Option<(i32, i32, i32, i32)>,
         remember_window_position: bool,
         shared_folders: &[(String, std::path::PathBuf)],
+        printer_enabled: bool,
         ignore_certificate: bool,
         on_early_failure: impl FnOnce(String) + 'static,
     ) -> Result<(), EmbeddingError> {
@@ -427,6 +428,11 @@ impl RdpLauncher {
                 let safe_name = share_name.replace(',', "_");
                 cmd.arg(format!("/drive:{safe_name},{}", local_path.display()));
             }
+        }
+
+        // Map the local default printer into the session via CUPS.
+        if printer_enabled {
+            cmd.arg("/printer");
         }
 
         for arg in extra_args {

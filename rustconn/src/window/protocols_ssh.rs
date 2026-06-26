@@ -386,12 +386,33 @@ fn build_ssh_command_args(
             }
 
             // ponytail: PKCS#11/identity reach only the first hop; deeper
-            // hops in `-J b,c` still don't inherit -o. Fine for the common
-            // single-bastion case; per-hop ProxyCommand nesting if needed.
+            // hops still don't get the bastion's own PKCS#11 token. Fine for
+            // the common single-bastion case.
+            //
+            // Multi-hop: nest a ProxyCommand per remaining hop so EACH inherits
+            // the identity file and Flatpak known_hosts. Plain `-J b,c` here
+            // would drop them and the deeper hops fail key auth / host-key
+            // verification in Flatpak (issue #191 follow-up — double jump).
             if jump_hosts.len() > 1 {
-                let inner_chain = jump_hosts[1..].join(",");
-                proxy_parts.push("-J".to_string());
-                proxy_parts.push(inner_chain);
+                let identity_key = args
+                    .iter()
+                    .position(|a| a == "-i")
+                    .and_then(|pos| args.get(pos + 1))
+                    .map(String::as_str);
+                let inner_hops: Vec<&str> = jump_hosts[1..].iter().map(String::as_str).collect();
+                // accept_new = false: keep the existing host-key posture (the
+                // bastions are expected to already be in known_hosts).
+                let inner = rustconn_core::ssh_tunnel::build_nested_proxy_command(
+                    &inner_hops,
+                    identity_key,
+                    flatpak_known_hosts.as_deref(),
+                    false,
+                );
+                proxy_parts.push("-o".to_string());
+                proxy_parts.push(format!(
+                    "ProxyCommand={}",
+                    rustconn_core::ssh_tunnel::shell_single_quote(&inner)
+                ));
             }
 
             // Add the first hop destination (parse user@host:port into -p port user@host)
@@ -406,9 +427,10 @@ fn build_ssh_command_args(
             args.push("-o".to_string());
             args.push(format!("ProxyCommand={proxy_cmd}"));
         } else {
-            // Non-Flatpak: use standard -J
+            // Non-Flatpak: use standard -J. `chain` is target-first (RustConn's
+            // internal order); OpenSSH `-J` visits hops client-first, so reverse.
             args.push("-J".to_string());
-            args.push(chain.clone());
+            args.push(rustconn_core::ssh_tunnel::proxy_jump_arg(&chain));
         }
 
         Some(chain)

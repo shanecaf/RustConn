@@ -83,6 +83,7 @@ pub struct AddParams<'a> {
     pub disable_nla: bool,
     pub keyboard_layout: Option<u32>,
     pub audio_redirect: bool,
+    pub printer: bool,
     pub shared_folder: &'a [String],
     // VNC
     pub vnc_client_mode: Option<&'a str>,
@@ -319,6 +320,7 @@ pub fn cmd_add(config_path: Option<&Path>, params: AddParams<'_>) -> Result<(), 
         || params.disable_nla
         || params.keyboard_layout.is_some()
         || params.audio_redirect
+        || params.printer
         || !params.shared_folder.is_empty()
     {
         if let rustconn_core::models::ProtocolConfig::Rdp(ref mut cfg) = connection.protocol_config
@@ -327,7 +329,7 @@ pub fn cmd_add(config_path: Option<&Path>, params: AddParams<'_>) -> Result<(), 
         } else {
             tracing::warn!(
                 "RDP-specific options (--gateway, --remote-app-*, --resolution, --color-depth, \
-                 --disable-nla, --keyboard-layout, --audio-redirect, --shared-folder) \
+                 --disable-nla, --keyboard-layout, --audio-redirect, --printer, --shared-folder) \
                  are only applicable to RDP connections"
             );
         }
@@ -1037,6 +1039,11 @@ pub fn apply_rdp_fields(
     // Audio
     if params.audio_redirect {
         cfg.audio_redirect = true;
+    }
+
+    // Printer
+    if params.printer {
+        cfg.printer_enabled = true;
     }
 
     // Shared folders

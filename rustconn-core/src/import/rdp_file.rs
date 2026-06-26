@@ -15,6 +15,7 @@
 //! - `screen mode id` — 1 = windowed, 2 = fullscreen
 //! - `audiomode` — 0 = local, 1 = remote, 2 = none
 //! - `redirectclipboard` — 0/1
+//! - `redirectprinters` — 0/1
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -123,6 +124,9 @@ impl RdpFileImporter {
         // Clipboard
         let clipboard = fields.get_bool("redirectclipboard").unwrap_or(true);
 
+        // Printer redirection
+        let printer_enabled = fields.get_bool("redirectprinters").unwrap_or(false);
+
         // Gateway
         let gateway = fields
             .get("gatewayhostname")
@@ -149,6 +153,7 @@ impl RdpFileImporter {
             audio_redirect,
             gateway,
             clipboard_enabled: clipboard,
+            printer_enabled,
             remote_app_program: fields
                 .get("remoteapplicationprogram")
                 .filter(|s| !s.is_empty())

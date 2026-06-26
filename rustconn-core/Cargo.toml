@@ -57,8 +57,18 @@ vnc-rs = { version = "0.5", optional = true }
 spice-client = { version = "0.2.0", optional = true }
 # Pure Rust RDP client for embedded RDP sessions using IronRDP (crates.io)
 # native-tls instead of rustls to match rdw approach
-# Features: cliprdr (clipboard), rdpdr (shared folders), dvc (dynamic channels),
+# Features: cliprdr (clipboard), rdpdr (shared folders + printer), dvc (dynamic channels),
 # displaycontrol (dynamic resolution), rdpsnd (audio), echo (RTT measurement)
+#
+# ON UPGRADE — re-check whether these are now usable upstream (each currently
+# forces a fallback or is a dead config field; see analysis 2026-06):
+#   * RAIL / RemoteApp (MS-RDPERP): only opaque CapabilitySet::Rail buffer exists,
+#     no channel/handshake → RemoteApp still forces external xfreerdp3 fallback.
+#   * GFX pipeline + H.264/AVC444 (MS-RDPEGFX): graphics.rs GfxH264/GfxAvc444
+#     report is_supported()==false.
+#   * Audio input / microphone (MS-RDPEAI): no channel → microphone_enabled is dead.
+#   * Drive change notifications: needs ClientDriveNotifyChangeDirectoryResponse PDU
+#     (see TODO in rdp_client/rdpdr.rs::poll_directory_changes).
 ironrdp = { version = "0.16", features = [
     "connector", "session", "graphics", "pdu", "core", "svc",
     "cliprdr",        # Clipboard redirection

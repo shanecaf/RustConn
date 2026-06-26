@@ -140,6 +140,21 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.17.3" date="2026-06-26">
+      <description>
+        <p>Version 0.17.3 — RDP keyboard, RD Gateway, jump hosts, and printer:</p>
+        <ul>
+          <li>Fixed switching GNOME workspaces with Super+digit breaking RDP keyboard input — held keys are now released when the session loses focus, so a compositor-grabbed Super no longer sticks (issue #193)</li>
+          <li>Fixed RD Gateway connections with FreeRDP 3.x by switching to the unified /gateway: option the 3.x client expects (issue #187)</li>
+          <li>Fixed multi-hop (double) jump hosts in Flatpak — each hop now inherits the identity key and known_hosts via a nested ProxyCommand (issue #191 follow-up)</li>
+          <li>Fixed multi-hop jump host order outside Flatpak so chains of three or more bastions connect; single-bastion connections are unaffected</li>
+          <li>Added a "Printer Redirection" toggle that maps your local printer into the RDP session (issue #192)</li>
+          <li>The embedded IronRDP client announces a virtual PostScript printer over RDPDR and forwards print jobs to the local CUPS spooler; the external xfreerdp3 client passes /printer</li>
+          <li>Available in the GUI and the CLI (--printer), and imported from Windows .rdp files</li>
+          <li>External RDP now prefers the maintained SDL3 client (sdl-freerdp3) for RD Gateway, RemoteApp, and fallback launches</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.17.2" date="2026-06-25">
       <description>
         <p>Version 0.17.2 — a hardening release plus multi-device sync:</p>

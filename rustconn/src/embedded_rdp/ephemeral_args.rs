@@ -51,8 +51,8 @@ impl EphemeralRdpArgs {
     /// Writes one `/<flag>:<secret>` line per entry to a fresh file in
     /// `$XDG_RUNTIME_DIR` and returns a guard that removes the file on drop.
     ///
-    /// Used for the RemoteApp session password (`/p:`) and the RD Gateway
-    /// password (`/gp:`), neither of which may appear on argv.
+    /// Used for the RemoteApp session password (`/p:`), which may not appear
+    /// on argv.
     ///
     /// # Errors
     ///
@@ -100,9 +100,9 @@ impl EphemeralRdpArgs {
             })?;
 
         // FreeRDP /args-from:file: format is one argument per line. We put
-        // exactly the secret switches (e.g. `/p:`, `/gp:`) into the file;
-        // everything else is still passed on the command line so it stays
-        // visible in `ps` (helpful for debugging) without exposing secrets.
+        // exactly the secret switches (e.g. `/p:`) into the file; everything
+        // else is still passed on the command line so it stays visible in `ps`
+        // (helpful for debugging) without exposing secrets.
         let mut line = String::new();
         for (flag, secret) in args {
             line.push('/');

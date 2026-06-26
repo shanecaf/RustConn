@@ -328,6 +328,10 @@ pub enum Commands {
         #[arg(long)]
         audio_redirect: bool,
 
+        /// Enable printer redirection for RDP (maps local CUPS printer)
+        #[arg(long)]
+        printer: bool,
+
         /// Shared folder for RDP drive redirection (repeatable, format: NAME:PATH)
         #[arg(long, value_name = "NAME:PATH")]
         shared_folder: Vec<String>,
@@ -784,6 +788,10 @@ pub enum Commands {
         /// Enable audio redirection for RDP
         #[arg(long)]
         audio_redirect: bool,
+
+        /// Enable printer redirection for RDP (maps local CUPS printer)
+        #[arg(long)]
+        printer: bool,
 
         /// Shared folder for RDP drive redirection (repeatable, format: NAME:PATH)
         #[arg(long, value_name = "NAME:PATH")]

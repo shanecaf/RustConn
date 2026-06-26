@@ -396,6 +396,7 @@ impl super::EmbeddedRdpWidget {
             )
             .with_clipboard(config.clipboard_enabled)
             .with_shared_folders(shared_folders)
+            .with_printer(config.printer_enabled)
             .with_performance_mode(config.performance_mode)
             .with_color_depth(config.performance_mode.color_depth())
             .with_scale_factor(rdp_scale_percent);

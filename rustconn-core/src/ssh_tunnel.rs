@@ -546,6 +546,101 @@ pub fn append_proxy_command_destination(proxy_parts: &mut Vec<String>, jump_host
     proxy_parts.push(destination);
 }
 
+/// Single-quotes `s` for safe embedding inside a `sh -c` `ProxyCommand`,
+/// escaping any embedded single quote as `'\''`.
+///
+/// Needed because OpenSSH runs a `ProxyCommand` through `/bin/sh -c`, so a
+/// nested `ProxyCommand` value (which itself contains spaces) must be a single
+/// shell word.
+#[must_use]
+pub fn shell_single_quote(s: &str) -> String {
+    format!("'{}'", s.replace('\'', "'\\''"))
+}
+
+/// Converts a RustConn jump-host chain into the value for OpenSSH's `-J`
+/// (`ProxyJump`) option, fixing the hop direction.
+///
+/// RustConn resolves chains target-first (`chain[0]` is the bastion closest to
+/// the target, walking outward to the client), which is the order
+/// [`build_nested_proxy_command`] consumes directly. OpenSSH's `-J`, however,
+/// visits hops left-to-right starting from the client, so the comma-separated
+/// list must be reversed. Without this, a two-bastion chain `J_near,J_far`
+/// would be contacted as client→J_near→J_far→target instead of
+/// client→J_far→J_near→target (#191 — multi-hop direction).
+///
+/// Accepts a comma-separated chain; entries are trimmed and empty ones dropped.
+/// A single-hop chain is returned unchanged (the common case), so existing
+/// single-bastion connections are unaffected.
+#[must_use]
+pub fn proxy_jump_arg(chain_target_first: &str) -> String {
+    chain_target_first
+        .split(',')
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .rev()
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+/// Builds a (possibly nested) SSH `ProxyCommand` value that reaches `hops[0]`
+/// (the hop closest to the target) through every deeper hop in `hops[1..]`.
+///
+/// Each hop receives `identity_file`, `known_hosts`, and — when
+/// `accept_new_host_keys` — `StrictHostKeyChecking=accept-new`. This is
+/// required because ProxyJump (`-J`) children do NOT inherit `-i`/`-o` from the
+/// parent command: in Flatpak that breaks multi-hop chains, where deeper hops
+/// fail key auth and host-key verification (issue #191 follow-up — double jump).
+///
+/// Returns the bare command string (no `ProxyCommand=` prefix, no surrounding
+/// quotes). Nested levels are single-quoted so each `sh -c` re-parse keeps the
+/// inner command as one word.
+///
+/// # Panics
+/// Panics in debug builds if `hops` is empty (a programming bug — callers must
+/// only invoke this with at least one hop).
+#[must_use]
+pub fn build_nested_proxy_command(
+    hops: &[&str],
+    identity_file: Option<&str>,
+    known_hosts: Option<&std::path::Path>,
+    accept_new_host_keys: bool,
+) -> String {
+    debug_assert!(!hops.is_empty(), "build_nested_proxy_command needs >=1 hop");
+
+    let mut parts = vec!["ssh".to_string(), "-W".to_string(), "%h:%p".to_string()];
+
+    if accept_new_host_keys {
+        parts.push("-o".to_string());
+        parts.push("StrictHostKeyChecking=accept-new".to_string());
+    }
+    if let Some(kh) = known_hosts {
+        parts.push("-o".to_string());
+        parts.push(format!("UserKnownHostsFile={}", kh.display()));
+    }
+    if let Some(key) = identity_file {
+        parts.push("-i".to_string());
+        parts.push(key.to_string());
+        parts.push("-o".to_string());
+        parts.push("IdentitiesOnly=yes".to_string());
+    }
+
+    // Reach the deeper hops via a nested ProxyCommand so they inherit the same
+    // identity/known_hosts. `-J` here would silently drop them.
+    if hops.len() > 1 {
+        let inner = build_nested_proxy_command(
+            &hops[1..],
+            identity_file,
+            known_hosts,
+            accept_new_host_keys,
+        );
+        parts.push("-o".to_string());
+        parts.push(format!("ProxyCommand={}", shell_single_quote(&inner)));
+    }
+
+    append_proxy_command_destination(&mut parts, hops[0]);
+    parts.join(" ")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -617,5 +712,84 @@ mod tests {
         let mut parts = Vec::new();
         append_proxy_command_destination(&mut parts, "[fe80::1]");
         assert_eq!(parts, vec!["[fe80::1]"]);
+    }
+
+    #[test]
+    fn test_shell_single_quote_plain() {
+        assert_eq!(shell_single_quote("ssh -W %h:%p b"), "'ssh -W %h:%p b'");
+    }
+
+    #[test]
+    fn test_shell_single_quote_escapes_embedded_quote() {
+        // The classic close-quote / escaped-quote / reopen-quote dance, so a
+        // nested ProxyCommand survives the `sh -c` re-parse intact.
+        assert_eq!(shell_single_quote("a'b"), "'a'\\''b'");
+    }
+
+    #[test]
+    fn test_nested_proxy_single_hop_accept_new() {
+        let cmd = build_nested_proxy_command(&["bastion.example.com"], None, None, true);
+        assert_eq!(
+            cmd,
+            "ssh -W %h:%p -o StrictHostKeyChecking=accept-new bastion.example.com"
+        );
+        // A single hop must not wrap itself in a ProxyCommand.
+        assert!(!cmd.contains("ProxyCommand"));
+    }
+
+    #[test]
+    fn test_nested_proxy_single_hop_identity_and_known_hosts() {
+        let cmd = build_nested_proxy_command(
+            &["admin@bastion:2222"],
+            Some("/home/me/.ssh/id_ed25519"),
+            Some(std::path::Path::new("/run/kh")),
+            false,
+        );
+        // accept_new=false must not emit StrictHostKeyChecking.
+        assert!(!cmd.contains("StrictHostKeyChecking"));
+        assert_eq!(
+            cmd,
+            "ssh -W %h:%p -o UserKnownHostsFile=/run/kh -i /home/me/.ssh/id_ed25519 \
+             -o IdentitiesOnly=yes -p 2222 admin@bastion"
+        );
+    }
+
+    #[test]
+    fn test_nested_proxy_two_hops_nests_inner_command() {
+        // `hops[0]` (closest to the target) is the destination of the OUTER ssh;
+        // it is reached THROUGH `hops[1]` via the nested, single-quoted
+        // ProxyCommand. Reversing this would break double-jump chains (#191).
+        let cmd = build_nested_proxy_command(&["near", "far"], None, None, false);
+        assert_eq!(cmd, "ssh -W %h:%p -o ProxyCommand='ssh -W %h:%p far' near");
+    }
+
+    #[test]
+    fn test_nested_proxy_three_hops_orders_target_to_client() {
+        // chain[0] reached via chain[1] reached via chain[2]: the innermost
+        // command targets the hop closest to the client.
+        let cmd = build_nested_proxy_command(&["h0", "h1", "h2"], None, None, false);
+        assert_eq!(
+            cmd,
+            "ssh -W %h:%p -o ProxyCommand='ssh -W %h:%p -o ProxyCommand='\\''ssh -W %h:%p h2'\\'' h1' h0"
+        );
+    }
+
+    #[test]
+    fn test_proxy_jump_arg_single_hop_unchanged() {
+        // The common single-bastion case must be a no-op.
+        assert_eq!(proxy_jump_arg("bastion.example.com"), "bastion.example.com");
+    }
+
+    #[test]
+    fn test_proxy_jump_arg_reverses_multi_hop() {
+        // Target-first internal order -> client-first OpenSSH order.
+        assert_eq!(proxy_jump_arg("near,far"), "far,near");
+        assert_eq!(proxy_jump_arg("j0,j1,j2"), "j2,j1,j0");
+    }
+
+    #[test]
+    fn test_proxy_jump_arg_trims_and_drops_empty() {
+        assert_eq!(proxy_jump_arg(" a , , b "), "b,a");
+        assert_eq!(proxy_jump_arg(""), "");
     }
 }

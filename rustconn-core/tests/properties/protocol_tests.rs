@@ -142,6 +142,7 @@ fn arb_rdp_config() -> impl Strategy<Value = RdpConfig> {
                     resolution,
                     color_depth,
                     audio_redirect,
+                    printer_enabled: false,
                     gateway,
                     shared_folders,
                     custom_args,

@@ -300,26 +300,26 @@ fn create_askpass_script() -> Result<std::path::PathBuf, String> {
 fn build_jump_host_args(cmd: &mut Command, jump_host: &str, identity_file: Option<&str>) {
     let flatpak_kh = crate::flatpak::get_flatpak_known_hosts_path();
     if flatpak_kh.is_some() {
-        let mut proxy_parts = vec![
-            "ssh".to_string(),
-            "-W".to_string(),
-            "%h:%p".to_string(),
-            "-o".to_string(),
-            "StrictHostKeyChecking=accept-new".to_string(),
-        ];
-        if let Some(ref kh_path) = flatpak_kh {
-            proxy_parts.push("-o".to_string());
-            proxy_parts.push(format!("UserKnownHostsFile={}", kh_path.display()));
+        // The chain may carry several hops (`a,b,c`). Each must inherit the
+        // identity and Flatpak known_hosts, so nest a ProxyCommand per hop —
+        // `-J` alone drops them and the deeper hops fail (issue #191 follow-up).
+        let hops: Vec<&str> = jump_host
+            .split(',')
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .collect();
+        if hops.is_empty() {
+            cmd.arg("-J").arg(jump_host);
+            return;
         }
-        if let Some(key) = identity_file {
-            proxy_parts.push("-i".to_string());
-            proxy_parts.push(key.to_string());
-            proxy_parts.push("-o".to_string());
-            proxy_parts.push("IdentitiesOnly=yes".to_string());
-        }
-        // Parse user@host:port — for ProxyCommand, port must use -p flag
-        crate::ssh_tunnel::append_proxy_command_destination(&mut proxy_parts, jump_host);
-        let proxy_cmd = proxy_parts.join(" ");
+        // Monitoring probes have no controlling TTY, so unknown host keys are
+        // accepted automatically (accept-new) — they cannot be prompted for.
+        let proxy_cmd = crate::ssh_tunnel::build_nested_proxy_command(
+            &hops,
+            identity_file,
+            flatpak_kh.as_deref(),
+            true,
+        );
         tracing::debug!(
             protocol = "ssh",
             proxy_command = %proxy_cmd,
@@ -327,7 +327,10 @@ fn build_jump_host_args(cmd: &mut Command, jump_host: &str, identity_file: Optio
         );
         cmd.arg("-o").arg(format!("ProxyCommand={proxy_cmd}"));
     } else {
-        cmd.arg("-J").arg(jump_host);
+        // Non-Flatpak: standard -J. `jump_host` is target-first (RustConn's
+        // internal order); OpenSSH `-J` visits hops client-first, so reverse.
+        cmd.arg("-J")
+            .arg(crate::ssh_tunnel::proxy_jump_arg(jump_host));
     }
 }
 

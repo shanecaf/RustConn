@@ -1,20 +1,23 @@
 //! FreeRDP detection utilities
 //!
 //! This module provides functions for detecting available FreeRDP clients.
-//! Detection follows a Wayland-first strategy: on Wayland sessions,
-//! `wlfreerdp` variants are preferred over `xfreerdp`.
+//! Detection prefers the maintained SDL3 client (`sdl-freerdp3`); the
+//! deprecated `wlfreerdp` is kept only as a fallback and for embedded mode.
 
 use std::process::{Command, Stdio};
 
 /// Ordered candidate list for FreeRDP detection.
 ///
-/// Wayland-native variants come first, then SDL3 (works on both Wayland and X11
-/// via SDL3's native windowing), followed by X11 fallbacks.
+/// SDL3 (`sdl-freerdp3`) comes first: it is the maintained FreeRDP 3.x client
+/// and works natively on both Wayland and X11. The Wayland-native `wlfreerdp`
+/// is deprecated upstream (FreeRDP 3.x prints a deprecation warning and points
+/// users at the SDL3 client), so it is only a fallback here. X11 `xfreerdp`
+/// variants come last on Wayland sessions.
 const WAYLAND_FIRST_CANDIDATES: &[&str] = &[
-    "wlfreerdp3",   // FreeRDP 3.x Wayland-native (versioned)
-    "wlfreerdp",    // FreeRDP Wayland-native (unversioned, e.g. Flatpak)
-    "sdl-freerdp3", // FreeRDP 3.x SDL3 (versioned)
+    "sdl-freerdp3", // FreeRDP 3.x SDL3 — maintained, Wayland + X11 (versioned)
     "sdl-freerdp",  // FreeRDP SDL3 (unversioned, e.g. Flatpak)
+    "wlfreerdp3",   // FreeRDP 3.x Wayland-native — deprecated, fallback
+    "wlfreerdp",    // FreeRDP Wayland-native (unversioned) — deprecated, fallback
     "xfreerdp3",    // FreeRDP 3.x X11
     "xfreerdp",     // FreeRDP 2.x X11
 ];
@@ -80,10 +83,15 @@ pub fn detect_best_freerdp() -> Option<String> {
     None
 }
 
-/// Detects if a Wayland-native FreeRDP variant is available
+/// Detects if a Wayland-native FreeRDP variant is available for embedded mode.
+///
+/// Embedded mode (the managed `wlfreerdp` subsurface in [`super::thread`]) only
+/// makes sense on a Wayland session with an actual `wlfreerdp` binary, so this
+/// checks both directly instead of going through [`detect_best_freerdp`] — that
+/// now prefers the maintained SDL3 client, which cannot do subsurface embedding.
 #[must_use]
 pub fn detect_wlfreerdp() -> bool {
-    detect_best_freerdp().is_some_and(|b| b.starts_with("wl"))
+    is_wayland_session() && (binary_exists("wlfreerdp3") || binary_exists("wlfreerdp"))
 }
 
 /// Detects the best FreeRDP binary for RemoteApp (RAIL) sessions.
@@ -152,26 +160,26 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_wayland_candidates_include_wlfreerdp() {
+    fn test_wayland_candidates_prefer_sdl3() {
         assert!(WAYLAND_FIRST_CANDIDATES.contains(&"wlfreerdp3"));
         assert!(WAYLAND_FIRST_CANDIDATES.contains(&"wlfreerdp"));
         assert!(WAYLAND_FIRST_CANDIDATES.contains(&"sdl-freerdp3"));
         assert!(WAYLAND_FIRST_CANDIDATES.contains(&"sdl-freerdp"));
-        // Wayland variants should come before SDL3, SDL3 before X11
-        let wl_pos = WAYLAND_FIRST_CANDIDATES
-            .iter()
-            .position(|c| *c == "wlfreerdp3")
-            .unwrap();
+        // Maintained SDL3 first, deprecated wlfreerdp as fallback, X11 last.
         let sdl_pos = WAYLAND_FIRST_CANDIDATES
             .iter()
             .position(|c| *c == "sdl-freerdp3")
+            .unwrap();
+        let wl_pos = WAYLAND_FIRST_CANDIDATES
+            .iter()
+            .position(|c| *c == "wlfreerdp3")
             .unwrap();
         let x11_pos = WAYLAND_FIRST_CANDIDATES
             .iter()
             .position(|c| *c == "xfreerdp3")
             .unwrap();
-        assert!(wl_pos < sdl_pos);
-        assert!(sdl_pos < x11_pos);
+        assert!(sdl_pos < wl_pos);
+        assert!(wl_pos < x11_pos);
     }
 
     #[test]

@@ -117,6 +117,8 @@ pub struct RdpConfig {
     pub performance_mode: RdpPerformanceMode,
     /// Shared folders for drive redirection
     pub shared_folders: Vec<EmbeddedSharedFolder>,
+    /// Enable printer redirection (maps local CUPS printer into the session)
+    pub printer_enabled: bool,
     /// Additional FreeRDP arguments
     pub extra_args: Vec<String>,
     /// Window geometry for external mode (x, y, width, height)
@@ -182,6 +184,7 @@ impl Default for RdpConfig {
             clipboard_enabled: true,
             performance_mode: RdpPerformanceMode::default(),
             shared_folders: Vec::new(),
+            printer_enabled: false,
             extra_args: Vec::new(),
             window_geometry: None,
             remember_window_position: true,
@@ -272,6 +275,13 @@ impl RdpConfig {
     #[must_use]
     pub fn with_shared_folders(mut self, folders: Vec<EmbeddedSharedFolder>) -> Self {
         self.shared_folders = folders;
+        self
+    }
+
+    /// Enables or disables printer redirection
+    #[must_use]
+    pub const fn with_printer(mut self, enabled: bool) -> Self {
+        self.printer_enabled = enabled;
         self
     }
 

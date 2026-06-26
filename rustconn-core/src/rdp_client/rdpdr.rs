@@ -25,10 +25,11 @@ use ironrdp::rdpdr::pdu::efs::{
     FileFsAttributeInformation, FileFsFullSizeInformation, FileFsSizeInformation,
     FileFsVolumeInformation, FileInformationClass, FileInformationClassLevel,
     FileStandardInformation, FileSystemAttributes, FileSystemInformationClass,
-    FileSystemInformationClassLevel, Information, NtStatus, ServerDeviceAnnounceResponse,
-    ServerDriveIoRequest, ServerDriveLockControlRequest, ServerDriveNotifyChangeDirectoryRequest,
-    ServerDriveQueryDirectoryRequest, ServerDriveQueryInformationRequest,
-    ServerDriveQueryVolumeInformationRequest, ServerDriveSetInformationRequest,
+    FileSystemInformationClassLevel, Information, NtStatus, PrinterIoRequest,
+    ServerDeviceAnnounceResponse, ServerDriveIoRequest, ServerDriveLockControlRequest,
+    ServerDriveNotifyChangeDirectoryRequest, ServerDriveQueryDirectoryRequest,
+    ServerDriveQueryInformationRequest, ServerDriveQueryVolumeInformationRequest,
+    ServerDriveSetInformationRequest,
 };
 use ironrdp::rdpdr::pdu::esc::{ScardCall, ScardIoCtlCode};
 use ironrdp::svc::SvcMessage;
@@ -37,6 +38,7 @@ use std::fs::{File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::os::unix::fs::MetadataExt;
 use std::path::PathBuf;
+use std::process::{Command, Stdio};
 use tracing::{debug, trace, warn};
 
 /// RDPDR backend for Linux/Unix shared folders
@@ -58,6 +60,10 @@ pub struct RustConnRdpdrBackend {
     dir_entries: HashMap<u32, Vec<String>>,
     /// Map of file IDs to pending directory change notifications
     pending_notifications: HashMap<u32, PendingNotification>,
+    /// Accumulated print-job bytes keyed by printer file ID (MS-RDPEPC).
+    /// The server streams a PostScript document via Write IRPs; we buffer it
+    /// and hand it to CUPS on Close.
+    print_jobs: HashMap<u32, Vec<u8>>,
     /// Directory watcher for change notifications
     dir_watcher: Option<DirectoryWatcher>,
 }
@@ -119,6 +125,7 @@ impl RustConnRdpdrBackend {
             file_device_map: HashMap::new(),
             dir_entries: HashMap::new(),
             pending_notifications: HashMap::new(),
+            print_jobs: HashMap::new(),
             dir_watcher,
         }
     }
@@ -238,6 +245,66 @@ impl RdpdrBackend for RustConnRdpdrBackend {
     ) -> PduResult<()> {
         // Smart card not supported
         Ok(())
+    }
+
+    fn handle_printer_io_request(&mut self, req: PrinterIoRequest) -> PduResult<Vec<SvcMessage>> {
+        match req {
+            PrinterIoRequest::Create(create_req) => {
+                // Open a fresh spool buffer for this print job.
+                let file_id = self.alloc_file_id();
+                self.print_jobs.insert(file_id, Vec::new());
+                tracing::debug!("RDPDR printer: job opened (file_id={})", file_id);
+                Ok(vec![SvcMessage::from(RdpdrPdu::DeviceCreateResponse(
+                    DeviceCreateResponse {
+                        device_io_reply: DeviceIoResponse::new(
+                            create_req.device_io_request,
+                            NtStatus::SUCCESS,
+                        ),
+                        file_id,
+                        information: Information::FILE_OPENED,
+                    },
+                ))])
+            }
+            PrinterIoRequest::Write(write_req) => {
+                // Append streamed PostScript bytes; echo the length back.
+                let file_id = write_req.device_io_request.file_id;
+                let length = write_req.write_data.len() as u32;
+                if let Some(buf) = self.print_jobs.get_mut(&file_id) {
+                    buf.extend_from_slice(&write_req.write_data);
+                }
+                Ok(vec![SvcMessage::from(RdpdrPdu::DeviceWriteResponse(
+                    DeviceWriteResponse {
+                        device_io_reply: DeviceIoResponse::new(
+                            write_req.device_io_request,
+                            NtStatus::SUCCESS,
+                        ),
+                        length,
+                    },
+                ))])
+            }
+            PrinterIoRequest::Close(close_req) => {
+                // Job finished — hand the accumulated document to CUPS.
+                let file_id = close_req.device_io_request.file_id;
+                if let Some(job) = self.print_jobs.remove(&file_id)
+                    && !job.is_empty()
+                {
+                    // Spool off the session thread: `lp` copies the document
+                    // into the CUPS queue and can block on large jobs, and the
+                    // active session runs on a single-threaded runtime — doing
+                    // it inline would stall framebuffer updates and input until
+                    // `lp` returns. Best-effort, so the handle is detached.
+                    std::thread::spawn(move || spool_to_cups(&job));
+                }
+                Ok(vec![SvcMessage::from(RdpdrPdu::DeviceCloseResponse(
+                    DeviceCloseResponse {
+                        device_io_response: DeviceIoResponse::new(
+                            close_req.device_io_request,
+                            NtStatus::SUCCESS,
+                        ),
+                    },
+                ))])
+            }
+        }
     }
 
     fn handle_drive_io_request(&mut self, req: ServerDriveIoRequest) -> PduResult<Vec<SvcMessage>> {
@@ -1050,4 +1117,44 @@ fn get_file_attributes(meta: &std::fs::Metadata, file_name: &str) -> FileAttribu
     }
 
     attrs
+}
+
+/// Sends an accumulated print job to the local CUPS spooler.
+///
+/// The virtual printer is announced with a PostScript driver, so the buffer
+/// holds a PostScript document that `lp` can consume directly. Best-effort:
+/// failures are logged but never surfaced to the RDP session.
+///
+// ponytail: shells out to CUPS `lp` (default printer); fine for the common
+// Linux desktop. A native IPP client would drop the runtime dependency on
+// cups-client but pulls in another crate — not worth it until users ask.
+fn spool_to_cups(document: &[u8]) {
+    let mut child = match Command::new("lp")
+        .args(["-t", "RustConn RDP"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+    {
+        Ok(child) => child,
+        Err(e) => {
+            warn!("Failed to spawn `lp` for RDP printer redirection: {e}");
+            return;
+        }
+    };
+
+    // Write the document, then drop stdin to close the pipe so `lp` proceeds.
+    if let Some(mut stdin) = child.stdin.take()
+        && let Err(e) = stdin.write_all(document)
+    {
+        warn!("Failed to write print job to `lp`: {e}");
+    }
+
+    match child.wait() {
+        Ok(status) if status.success() => {
+            debug!("RDP print job sent to CUPS ({} bytes)", document.len());
+        }
+        Ok(status) => warn!("`lp` exited with {status} for RDP print job"),
+        Err(e) => warn!("Failed to wait for `lp`: {e}"),
+    }
 }

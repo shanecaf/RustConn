@@ -1,3 +1,32 @@
+rustconn (0.17.3-1) unstable; urgency=medium
+
+  * Fixed switching GNOME workspaces with Super+digit breaking RDP keyboard
+    input — the compositor grabbed the Super chord before its key-release
+    reached the widget, so the embedded session treated Super as stuck down
+    until a reconnect; held keys are now released when the widget loses focus
+    (#193)
+  * Fixed RD Gateway connections with FreeRDP 3.x — the launcher emitted the
+    removed 2.x aliases /g: /gu: /gp:, which 3.x rejects; it now builds the
+    unified /gateway:g:HOST:PORT option and reuses the session credentials
+    (#187)
+  * Fixed multi-hop (double) jump hosts in Flatpak — each hop now gets its own
+    nested ProxyCommand so it inherits the identity key and Flatpak known_hosts
+    (terminal SSH, RDP/VNC/SPICE tunnels, monitoring probe) (#191 follow-up)
+  * Fixed multi-hop jump host order outside Flatpak — the -J hop list is now
+    reversed to match OpenSSH's client-first order, so chains of three or more
+    bastions connect; single-bastion connections are unaffected
+  * Added RDP printer redirection: a "Printer Redirection" toggle maps the local
+    printer into the session (issue #192). The embedded IronRDP client announces
+    a virtual PostScript printer over RDPDR and forwards print jobs to the local
+    CUPS spooler off the session thread; the external xfreerdp3 client passes
+    /printer. Available in the GUI, the CLI (--printer), and imported from .rdp
+    files (redirectprinters)
+  * Changed: external RDP now prefers the maintained SDL3 client (sdl-freerdp3)
+    for RD Gateway, RemoteApp, and IronRDP fallback launches; embedded mode
+    still uses wlfreerdp where present
+
+ -- Anton Isaiev <totoshko88@gmail.com>  Fri, 26 Jun 2026 13:00:00 +0200
+
 rustconn (0.17.2-1) unstable; urgency=medium
 
   * Security: the password generator's Copy now auto-clears the clipboard after

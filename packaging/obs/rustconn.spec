@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.17.2
+Version:        0.17.3
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -259,6 +259,14 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Fri Jun 26 2026 Anton Isaiev <totoshko88@gmail.com> - 0.17.3-0
+- Fixed switching GNOME workspaces with Super+digit breaking RDP keyboard input — the compositor grabbed the Super chord before its key-release reached the widget, so the embedded session treated Super as stuck down until a reconnect; held keys are now released when the widget loses focus (#193)
+- Fixed RD Gateway connections with FreeRDP 3.x — the launcher emitted the removed 2.x aliases /g: /gu: /gp:, which 3.x rejects; it now builds the unified /gateway:g:HOST:PORT option and reuses the session credentials (#187)
+- Fixed multi-hop (double) jump hosts in Flatpak — each hop now gets its own nested ProxyCommand so it inherits the identity key and Flatpak known_hosts (terminal SSH, RDP/VNC/SPICE tunnels, monitoring probe) (#191 follow-up)
+- Fixed multi-hop jump host order outside Flatpak — the -J hop list is now reversed to match OpenSSH's client-first order, so chains of three or more bastions connect; single-bastion connections are unaffected
+- Added RDP printer redirection: a "Printer Redirection" toggle maps the local printer into the session (issue #192). The embedded IronRDP client announces a virtual PostScript printer over RDPDR and forwards print jobs to the local CUPS spooler (lp) off the session thread; the external xfreerdp3 client passes /printer. Available in the GUI, the CLI (--printer), and imported from .rdp files (redirectprinters)
+- Changed: external RDP now prefers the maintained SDL3 client (sdl-freerdp3) for RD Gateway, RemoteApp, and IronRDP fallback launches; embedded mode still uses wlfreerdp where present
+
 * Thu Jun 25 2026 Anton Isaiev <totoshko88@gmail.com> - 0.17.2-0
 - Security: the password generator's Copy now auto-clears the clipboard after 30 seconds (only if it still holds that password)
 - Security: the auto-login SSH password is wrapped in Zeroizing so plaintext is wiped right after it is handed to VTE

@@ -147,38 +147,26 @@ impl SafeFreeRdpLauncher {
             }
         }
 
-        // Secrets that must never appear on argv (`/proc/<pid>/cmdline`) are
-        // written into a single-use args file in $XDG_RUNTIME_DIR (mode 0600)
-        // and consumed via `/args-from:file:`. Two secrets can need this:
-        //   * the RemoteApp session password (`/p:`) — `/from-stdin` does not
-        //     work for RAIL sessions, and
-        //   * the RD Gateway password (`/gp:`) when a distinct gateway user is
-        //     configured. Option A: reuse the session password for the gateway,
-        //     covering the common case where the gateway authenticates against
-        //     the same account. A fully separate gateway credential is future
-        //     work. When no gateway user is set, FreeRDP already reuses the
-        //     session credentials for the gateway, so nothing is needed here.
+        // The RemoteApp session password must never appear on argv
+        // (`/proc/<pid>/cmdline`): `/from-stdin` does not work for RAIL
+        // sessions, so it is written into a single-use args file in
+        // $XDG_RUNTIME_DIR (mode 0600) and consumed via `/args-from:file:`.
         // The guard removes the file when this function returns, even on the
         // error path.
+        //
+        // The RD Gateway no longer needs a separate secret here: FreeRDP reuses
+        // the session credentials (the `/u:`, `/d:` and `/from-stdin` password)
+        // for the gateway, matching the working manual command
+        // `xfreerdp /gateway:g:HOST /u:NAME /d:DOMAIN`. The previous `/gp:` path
+        // used a FreeRDP 2.x alias that FreeRDP 3.x rejects (issue #187).
         let session_password = config
             .password
             .as_ref()
             .filter(|p| !p.expose_secret().is_empty());
-        let gateway_needs_password = config
-            .gateway_hostname
-            .as_ref()
-            .is_some_and(|h| !h.is_empty())
-            && config
-                .gateway_username
-                .as_ref()
-                .is_some_and(|u| !u.is_empty());
 
         let mut secret_args: Vec<(&str, &SecretString)> = Vec::new();
         if is_remote_app && let Some(p) = session_password {
             secret_args.push(("p", p));
-        }
-        if gateway_needs_password && let Some(p) = session_password {
-            secret_args.push(("gp", p));
         }
 
         let _password_guard = if secret_args.is_empty() {
@@ -347,20 +335,39 @@ impl SafeFreeRdpLauncher {
             cmd.arg(format!("/drive:{safe_name},{path}"));
         }
 
+        // Map the local default printer into the session via CUPS.
+        if config.printer_enabled {
+            cmd.arg("/printer");
+        }
+
         for arg in &config.extra_args {
             cmd.arg(arg);
         }
 
-        // Add gateway configuration for RD Gateway connections
+        // Add gateway configuration for RD Gateway connections.
+        //
+        // FreeRDP 3.x removed the short `/g:` / `/gu:` / `/gp:` aliases in
+        // favour of the unified `/gateway:` option (see xfreerdp3(1)); the old
+        // aliases are rejected as "Unexpected keyword" and the client exits
+        // before connecting (issue #187). FreeRDP reuses the session
+        // credentials (`/u:`, `/d:` and the `/from-stdin` password) for the
+        // gateway, exactly like the working manual command
+        // `xfreerdp /gateway:g:HOST /u:NAME /d:DOMAIN`. We only add an explicit
+        // gateway user when it differs from the session user; a distinct
+        // gateway account would also need its own password, which RustConn does
+        // not store yet (future work).
         if let Some(ref gw_host) = config.gateway_hostname
             && !gw_host.is_empty()
         {
-            cmd.arg(format!("/g:{gw_host}:{}", config.gateway_port));
+            let mut gateway = format!("g:{gw_host}:{}", config.gateway_port);
             if let Some(ref gw_user) = config.gateway_username
                 && !gw_user.is_empty()
+                && config.username.as_deref() != Some(gw_user.as_str())
             {
-                cmd.arg(format!("/gu:{gw_user}"));
+                gateway.push_str(",u:");
+                gateway.push_str(gw_user);
             }
+            cmd.arg(format!("/gateway:{gateway}"));
         }
 
         // Add RemoteApp arguments for launching individual applications
@@ -450,5 +457,79 @@ mod tests {
 
         // Should be empty when both are disabled
         assert!(env.is_empty());
+    }
+
+    /// Collects the argument vector that `add_connection_args` would pass to
+    /// FreeRDP, as owned `String`s for easy assertions.
+    fn connection_args(config: &RdpConfig) -> Vec<String> {
+        let mut cmd = Command::new("xfreerdp3");
+        SafeFreeRdpLauncher::add_connection_args(&mut cmd, config);
+        cmd.get_args()
+            .map(|a| a.to_string_lossy().into_owned())
+            .collect()
+    }
+
+    #[test]
+    fn test_gateway_uses_freerdp3_unified_syntax() {
+        // Regression for #187: FreeRDP 3.x rejects the old `/g:` / `/gu:`
+        // aliases with "Unexpected keyword", aborting the connection.
+        let config = RdpConfig {
+            host: "vm1.example.com".to_string(),
+            gateway_hostname: Some("gw.example.com".to_string()),
+            gateway_port: 443,
+            ..RdpConfig::default()
+        };
+
+        let args = connection_args(&config);
+        assert!(
+            args.iter().any(|a| a == "/gateway:g:gw.example.com:443"),
+            "expected unified /gateway: option, got {args:?}"
+        );
+        assert!(
+            !args.iter().any(|a| a.starts_with("/g:")),
+            "the removed /g: alias must not be emitted: {args:?}"
+        );
+        assert!(
+            !args.iter().any(|a| a.starts_with("/gu:")),
+            "the removed /gu: alias must not be emitted: {args:?}"
+        );
+    }
+
+    #[test]
+    fn test_gateway_omits_user_when_same_as_session() {
+        // The reported connection had gateway user == session user; FreeRDP
+        // then reuses the session credentials, so no explicit gateway user is
+        // needed (matching the working `xfreerdp /gateway:g:HOST` command).
+        let config = RdpConfig {
+            host: "vm1.example.com".to_string(),
+            username: Some("alice".to_string()),
+            gateway_hostname: Some("gw.example.com".to_string()),
+            gateway_username: Some("alice".to_string()),
+            ..RdpConfig::default()
+        };
+
+        let args = connection_args(&config);
+        assert!(
+            args.iter().any(|a| a == "/gateway:g:gw.example.com:443"),
+            "expected bare gateway option, got {args:?}"
+        );
+    }
+
+    #[test]
+    fn test_gateway_adds_user_when_distinct() {
+        let config = RdpConfig {
+            host: "vm1.example.com".to_string(),
+            username: Some("alice".to_string()),
+            gateway_hostname: Some("gw.example.com".to_string()),
+            gateway_username: Some("gwadmin".to_string()),
+            ..RdpConfig::default()
+        };
+
+        let args = connection_args(&config);
+        assert!(
+            args.iter()
+                .any(|a| a == "/gateway:g:gw.example.com:443,u:gwadmin"),
+            "expected gateway option with distinct user, got {args:?}"
+        );
     }
 }

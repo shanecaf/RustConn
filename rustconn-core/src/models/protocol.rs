@@ -1417,6 +1417,9 @@ pub struct RdpConfig {
     /// Enable audio redirection
     #[serde(default)]
     pub audio_redirect: bool,
+    /// Enable printer redirection (maps local CUPS printer into the session)
+    #[serde(default)]
+    pub printer_enabled: bool,
     /// RDP gateway configuration
     #[serde(skip_serializing_if = "Option::is_none")]
     pub gateway: Option<RdpGateway>,

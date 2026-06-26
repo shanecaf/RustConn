@@ -87,9 +87,10 @@ pub async fn establish_connection(
         tracing::debug!("Clipboard channel enabled");
     }
 
-    // Phase 2.6: Add RDPDR channel for shared folders if configured
-    // Note: RDPDR requires RDPSND channel to be present per MS-RDPEFS spec
-    if !config.shared_folders.is_empty() {
+    // Phase 2.6: Add RDPDR channel for shared folders and/or printer if configured.
+    // Note: RDPDR requires RDPSND channel to be present per MS-RDPEFS spec.
+    let needs_rdpdr = !config.shared_folders.is_empty() || config.printer_enabled;
+    if needs_rdpdr {
         // Add RDPSND channel first (required for RDPDR)
         // Use real audio backend if audio is enabled, otherwise noop
         let rdpsnd = if config.audio_enabled {
@@ -124,22 +125,30 @@ pub async fn establish_connection(
             })
             .collect();
 
-        // Create backend for shared folders with per-drive path mapping
-        if !config.shared_folders.is_empty() {
-            let drive_paths: std::collections::HashMap<u32, String> = config
-                .shared_folders
-                .iter()
-                .enumerate()
-                .map(|(idx, folder)| {
-                    let device_id = idx as u32 + 1;
-                    (device_id, folder.path.to_string_lossy().into_owned())
-                })
-                .collect();
-            let rdpdr_backend = RustConnRdpdrBackend::new(drive_paths);
-            let rdpdr = Rdpdr::new(Box::new(rdpdr_backend), computer_name)
-                .with_drives(Some(initial_drives));
-            connector.static_channels.insert(rdpdr);
+        // Per-drive path mapping for the backend (empty when printer-only).
+        let drive_paths: std::collections::HashMap<u32, String> = config
+            .shared_folders
+            .iter()
+            .enumerate()
+            .map(|(idx, folder)| {
+                let device_id = idx as u32 + 1;
+                (device_id, folder.path.to_string_lossy().into_owned())
+            })
+            .collect();
+
+        let rdpdr_backend = RustConnRdpdrBackend::new(drive_paths);
+        let mut rdpdr = Rdpdr::new(Box::new(rdpdr_backend), computer_name);
+        if !initial_drives.is_empty() {
+            rdpdr = rdpdr.with_drives(Some(initial_drives));
         }
+        if config.printer_enabled {
+            // Printer device id sits past the drive ids (1..=n). The backend
+            // accumulates the PostScript spool and forwards it to CUPS on close.
+            let printer_device_id = config.shared_folders.len() as u32 + 1;
+            rdpdr = rdpdr.with_printer(printer_device_id, "RustConn".to_string());
+            tracing::debug!("RDPDR: registering printer device {}", printer_device_id);
+        }
+        connector.static_channels.insert(rdpdr);
     } else if config.audio_enabled {
         // No shared folders but audio is enabled - add RDPSND channel
         let audio_backend = RustConnAudioBackend::new(event_tx.clone());

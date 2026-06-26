@@ -516,6 +516,9 @@ fn start_embedded_rdp_session(
         embedded_config = embedded_config.with_shared_folders(folders);
     }
 
+    // Enable printer redirection (maps local CUPS printer into the session)
+    embedded_config = embedded_config.with_printer(rdp_config.printer_enabled);
+
     // Pass keyboard layout override if configured
     embedded_config.keyboard_layout = rdp_config.keyboard_layout;
 
@@ -847,6 +850,7 @@ fn start_external_rdp_session(
         None,
         false,
         &shared_folders,
+        rdp_config.printer_enabled,
         rdp_config.ignore_certificate,
         on_early_failure,
     ) {
