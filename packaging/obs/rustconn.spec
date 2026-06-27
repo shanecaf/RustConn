@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.17.3
+Version:        0.17.4
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -259,6 +259,11 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Fri Jun 27 2026 Anton Isaiev <totoshko88@gmail.com> - 0.17.4-0
+- Fixed RDP vault login sending the correct domain — when credentials came from the secret vault, the domain field was passed as an empty string instead of the configured value, causing NLA/CredSSP to reject DOMAIN\user logins with STATUS_LOGON_FAILURE; the vault path now falls back to the connection's saved domain (#188)
+- Fixed Variable password auto-login on network equipment — the password auto-fill relied solely on VTE's contents-changed signal, which does not fire reliably for SSH password prompts in no-echo mode with cursor-positioning escapes; detection now also subscribes to cursor-moved (#194)
+- Changed: CUPS printer redirection forwards all local queues — the embedded IronRDP printer channel previously announced a single dummy "RustConn" printer; it now enumerates all local CUPS queues (or a configured subset via with_printers) and registers each as its own redirected printer, routing print jobs back to the correct local queue (#192)
+
 * Fri Jun 26 2026 Anton Isaiev <totoshko88@gmail.com> - 0.17.3-0
 - Fixed switching GNOME workspaces with Super+digit breaking RDP keyboard input — the compositor grabbed the Super chord before its key-release reached the widget, so the embedded session treated Super as stuck down until a reconnect; held keys are now released when the widget loses focus (#193)
 - Fixed RD Gateway connections with FreeRDP 3.x — the launcher emitted the removed 2.x aliases /g: /gu: /gp:, which 3.x rejects; it now builds the unified /gateway:g:HOST:PORT option and reuses the session credentials (#187)

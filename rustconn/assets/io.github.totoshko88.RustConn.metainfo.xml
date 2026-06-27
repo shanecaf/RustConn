@@ -140,6 +140,16 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.17.4" date="2026-06-27">
+      <description>
+        <p>Version 0.17.4 — vault domain fix, SSH prompt detection, and multi-printer CUPS:</p>
+        <ul>
+          <li>Fixed RDP vault login sending the correct domain — NLA/CredSSP no longer rejects DOMAIN\user logins when credentials come from the secret vault (issue #188)</li>
+          <li>Fixed Variable password auto-login on network equipment by also subscribing to VTE's cursor-moved signal for SSH prompts in no-echo mode (issue #194)</li>
+          <li>CUPS printer redirection now forwards all local queues (or a configured subset) instead of a single dummy "RustConn" printer; print jobs are routed back to the correct local queue (issue #192)</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.17.3" date="2026-06-26">
       <description>
         <p>Version 0.17.3 — RDP keyboard, RD Gateway, jump hosts, and printer:</p>

@@ -656,14 +656,17 @@ impl MainWindow {
             let domain = creds
                 .domain
                 .clone()
-                .or_else(|| {
-                    state
-                        .try_borrow()
-                        .ok()
-                        .and_then(|s| {
-                            s.get_connection(connection_id)
-                                .and_then(|c| c.domain.clone())
-                        })
+                .or_else(|| match state.try_borrow() {
+                    Ok(s) => s
+                        .get_connection(connection_id)
+                        .and_then(|c| c.domain.clone()),
+                    Err(_) => {
+                        tracing::warn!(
+                            "Cannot borrow state for domain lookup; \
+                             NLA may fail if the connection requires DOMAIN\\user"
+                        );
+                        None
+                    }
                 })
                 .unwrap_or_default();
             Self::start_rdp_session_with_credentials(

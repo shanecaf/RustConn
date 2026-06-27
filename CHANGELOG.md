@@ -5,11 +5,12 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.17.4] - Unreleased
+## [0.17.4] - 2026-06-27
 
 ### Fixed
 
 - **RDP vault login sends the correct domain** ([#188](https://github.com/totoshko88/RustConn/issues/188)) — when credentials came from the secret vault (Tresor), the domain field was passed as an empty string instead of the configured value, causing NLA/CredSSP to reject `DOMAIN\user` logins with `STATUS_LOGON_FAILURE`. The vault path now falls back to the connection's saved domain, matching the manual-prompt flow
+- **Variable password auto-login works on network equipment** ([#194](https://github.com/totoshko88/RustConn/issues/194)) — connections using a Variable password source resolved the secret from the vault correctly but never injected it into the SSH prompt. The password auto-fill relied solely on VTE's `contents-changed` signal, which does not fire reliably for SSH password prompts output in no-echo mode with cursor-positioning escape sequences (common on OLT/router SSH servers). The detection now also subscribes to VTE's `cursor-moved` signal, which fires for all cursor activity including prompts without a trailing newline
 
 ### Changed
 

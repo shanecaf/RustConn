@@ -140,8 +140,10 @@ pub async fn establish_connection(
         // the drive IDs (drives occupy 1..=N) so they never collide. Each
         // forwarded queue is announced as its own redirected printer, and the
         // backend uses this map to route each job back to the right local queue.
-        let mut printer_queues: std::collections::HashMap<u32, String> =
-            std::collections::HashMap::new();
+        // BTreeMap keeps insertion order by key, so no extra sort is needed for
+        // the announce loop (default printer has the highest ID → announced last).
+        let mut printer_queues: std::collections::BTreeMap<u32, String> =
+            std::collections::BTreeMap::new();
         if config.printer_enabled {
             let base = config.shared_folders.len() as u32;
 
@@ -168,23 +170,16 @@ pub async fn establish_connection(
             }
         }
 
-        // Announce each forwarded printer. Sort by device_id so announce order
-        // is deterministic and matches the "default announced last" intent.
-        let mut announce: Vec<(u32, &str)> = printer_queues
-            .iter()
-            .map(|(id, q)| (*id, q.as_str()))
-            .collect();
-        announce.sort_by_key(|(id, _)| *id);
-
-        let rdpdr_backend = RustConnRdpdrBackend::new(drive_paths, printer_queues);
+        let rdpdr_backend =
+            RustConnRdpdrBackend::new(drive_paths, printer_queues.clone().into_iter().collect());
         let mut rdpdr = Rdpdr::new(Box::new(rdpdr_backend), computer_name);
         if !initial_drives.is_empty() {
             rdpdr = rdpdr.with_drives(Some(initial_drives));
         }
 
-        for (device_id, queue) in announce {
+        for (device_id, queue) in &printer_queues {
             tracing::debug!("RDPDR: registering printer {device_id} -> '{queue}'");
-            rdpdr = rdpdr.with_printer(device_id, queue.to_owned());
+            rdpdr = rdpdr.with_printer(*device_id, queue.clone());
         }
 
         connector.static_channels.insert(rdpdr);

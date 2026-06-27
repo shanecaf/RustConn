@@ -1185,6 +1185,10 @@ fn spool_to_cups(document: &[u8], queue: Option<&str>) {
 ///
 /// Returns an empty vector if `lpstat` is unavailable or fails; callers should
 /// treat that as "no printers to forward" rather than an error.
+// ponytail: synchronous Command::output() — called from an async context on a
+// single-threaded runtime. Fine while lpstat responds in <100 ms (local IPC);
+// if CUPS hangs it will block the connection. Move to spawn_blocking if that
+// becomes a real issue.
 pub(crate) fn list_cups_printers() -> Vec<String> {
     let output = match Command::new("lpstat").arg("-e").output() {
         Ok(o) => o,
@@ -1210,6 +1214,8 @@ fn parse_cups_printers(stdout: &str) -> Vec<String> {
 ///
 /// Used only to decide announce ordering (default announced last so it wins the
 /// IronRDP `DEFAULTPRINTER` flag race).
+// ponytail: same blocking caveat as list_cups_printers(); acceptable for a
+// single lpstat -d invocation at connection start.
 pub(crate) fn cups_default_printer() -> Option<String> {
     let output = Command::new("lpstat").arg("-d").output().ok()?;
     parse_cups_default(&String::from_utf8_lossy(&output.stdout))

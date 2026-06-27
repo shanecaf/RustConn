@@ -1,3 +1,22 @@
+rustconn (0.17.4-1) unstable; urgency=medium
+
+  * Fixed RDP vault login sending the correct domain — when credentials came
+    from the secret vault, the domain field was passed as an empty string
+    instead of the configured value, causing NLA/CredSSP to reject DOMAIN\user
+    logins with STATUS_LOGON_FAILURE; the vault path now falls back to the
+    connection's saved domain (#188)
+  * Fixed Variable password auto-login on network equipment — the password
+    auto-fill relied solely on VTE's contents-changed signal, which does not
+    fire reliably for SSH password prompts in no-echo mode with cursor-
+    positioning escapes; detection now also subscribes to cursor-moved (#194)
+  * Changed: CUPS printer redirection forwards all local queues — the embedded
+    IronRDP printer channel previously announced a single dummy "RustConn"
+    printer; it now enumerates all local CUPS queues (or a configured subset
+    via with_printers) and registers each as its own redirected printer,
+    routing print jobs back to the correct local queue (#192)
+
+ -- Anton Isaiev <totoshko88@gmail.com>  Fri, 27 Jun 2026 00:00:00 +0000
+
 rustconn (0.17.3-1) unstable; urgency=medium
 
   * Fixed switching GNOME workspaces with Super+digit breaking RDP keyboard
