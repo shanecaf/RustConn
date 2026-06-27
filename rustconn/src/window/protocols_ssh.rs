@@ -116,7 +116,7 @@ fn jump_host_askpass_script() -> Option<std::path::PathBuf> {
                 _ => std::env::temp_dir().join(format!("rc-jh-askpass-{}.sh", Uuid::new_v4())),
             };
 
-            let script = format!("#!/bin/sh\nprintf '%s\\n' \"${JUMP_HOST_PW_ENV}\"\n");
+            let script = format!("#!/bin/sh\nprintf '%s\\n' \"${{{JUMP_HOST_PW_ENV}}}\"\n");
             if let Err(e) = std::fs::write(&path, script.as_bytes()) {
                 tracing::error!(error = %e, "Failed to create jump host askpass script");
                 return None;
@@ -252,7 +252,7 @@ fn build_ssh_command_args(
                                 .clone()
                                 .filter(|p| !p.trim().is_empty());
                             // Resolve the bastion's OWN password (issue #191).
-                            // Mirrors the RDP/VNC tunnel path in rdp_vnc.rs.
+                            // First try the in-memory cache (fast path).
                             first_hop_password = state_ref
                                 .get_cached_credentials(jid)
                                 .filter(|c| {
@@ -260,6 +260,85 @@ fn build_ssh_command_args(
                                     !c.password.expose_secret().is_empty()
                                 })
                                 .map(|c| c.password.clone());
+                            // Fallback: resolve from vault if not cached (issue #191).
+                            // By this point the vault is already unlocked (target
+                            // credentials were resolved first), so this is fast (~100ms).
+                            if first_hop_password.is_none() {
+                                let secret_settings = state_ref.settings().secrets.clone();
+                                let jump_name = jump_conn.name.clone();
+                                let jump_host = jump_conn.host.clone();
+                                let next_jump_id = jump_config.jump_host_id;
+                                let manual_proxy = jump_config.proxy_jump.clone();
+                                let backend_type =
+                                    crate::vault_ops::select_backend_for_load(&secret_settings);
+                                let lookup_key = crate::vault_ops::generate_store_key(
+                                    &jump_name,
+                                    &jump_host,
+                                    "ssh",
+                                    backend_type,
+                                );
+                                // Must drop state borrow before blocking vault call
+                                drop(state_ref);
+                                if let Ok(Some(creds)) = crate::vault_ops::dispatch_vault_op(
+                                    &secret_settings,
+                                    &lookup_key,
+                                    crate::vault_ops::VaultOp::Retrieve,
+                                ) && let Some(pw) = creds.expose_password()
+                                    && !pw.is_empty()
+                                {
+                                    let pw_secret = SecretString::from(pw.to_string());
+                                    // Cache for future use
+                                    if let Ok(mut state_mut) = state.try_borrow_mut() {
+                                        state_mut.cache_credentials(
+                                            jid,
+                                            creds.username.as_deref().unwrap_or(""),
+                                            pw,
+                                            "",
+                                        );
+                                    }
+                                    first_hop_password = Some(pw_secret);
+                                }
+                                // Prepend manual proxy from first hop (saved before drop)
+                                if let Some(p) = manual_proxy {
+                                    jump_hosts.insert(jump_hosts.len() - 1, p);
+                                }
+                                // Continue collecting the rest of the chain if multi-hop.
+                                // Re-borrow and resume from next_jump_id.
+                                if let Some(nid) = next_jump_id
+                                    && let Ok(state_ref2) = state.try_borrow()
+                                {
+                                    let mut cid = Some(nid);
+                                    for _ in 0..9 {
+                                        if let Some(id) = cid {
+                                            if visited.contains(&id) {
+                                                break;
+                                            }
+                                            visited.insert(id);
+                                            if let Some(jc) = state_ref2.get_connection(id) {
+                                                let mut hs = jc.host.clone();
+                                                if let Some(u) = &jc.username {
+                                                    hs = format!("{u}@{hs}");
+                                                }
+                                                if jc.port != 22 {
+                                                    hs = format!("{}:{}", hs, jc.port);
+                                                }
+                                                jump_hosts.push(hs);
+                                                cid = match &jc.protocol_config {
+                                                    rustconn_core::ProtocolConfig::Ssh(c) => {
+                                                        c.jump_host_id
+                                                    }
+                                                    _ => None,
+                                                };
+                                            } else {
+                                                break;
+                                            }
+                                        } else {
+                                            break;
+                                        }
+                                    }
+                                }
+                                break;
+                            }
                         }
                         // Prepend manual proxy if exists on jump host (unlikely but possible)
                         if let Some(p) = &jump_config.proxy_jump {
@@ -353,7 +432,11 @@ fn build_ssh_command_args(
             let mut proxy_parts: Vec<String> = Vec::new();
 
             // Env assignments scoped to the nested ssh only (issue #191).
+            // Use `env` command because OpenSSH ≥10 prepends `exec` to ProxyCommand,
+            // and `exec VAR=val cmd` is not valid POSIX sh (the shell treats it
+            // as a command path). `env VAR=val cmd` works in all shells.
             if let Some(ref script) = askpass_script {
+                proxy_parts.push("env".to_string());
                 proxy_parts.push(format!("SSH_ASKPASS={}", script.display()));
                 proxy_parts.push("SSH_ASKPASS_REQUIRE=force".to_string());
                 jump_host_password = first_hop_password.clone();
@@ -753,10 +836,12 @@ fn start_ssh_connection_internal(
     // is sent via feed_child() exactly once.
     // NOTE: Passphrase prompts ("Enter passphrase for key") are explicitly
     // excluded to avoid sending the wrong secret when SSH auth is PublicKey.
+    //
+    // We subscribe to BOTH `contents-changed` AND `cursor-moved` because
+    // `contents-changed` alone does not fire reliably for SSH password prompts
+    // output in no-echo mode with cursor positioning escapes (issue #194).
     if let Some(vault_password) = cached_password.clone() {
-        let notebook_clone = notebook.clone();
         let password_sent = std::rc::Rc::new(std::cell::Cell::new(false));
-        let password_sent_clone = password_sent.clone();
 
         tracing::info!(
             protocol = "ssh",
@@ -764,28 +849,44 @@ fn start_ssh_connection_internal(
             "Vault password available; will auto-fill on prompt"
         );
 
-        notebook.connect_contents_changed(session_id, move || {
-            if password_sent_clone.get() {
-                return;
-            }
-            let Some(text) = notebook_clone.get_terminal_text(session_id) else {
-                return;
-            };
+        // Shared closure logic extracted into an Rc to avoid duplicating
+        // the detection + injection code across two signal handlers.
+        let check_and_inject = {
+            let notebook_clone = notebook.clone();
+            let password_sent = password_sent.clone();
+            let vault_password = vault_password.clone();
+            std::rc::Rc::new(move || {
+                if password_sent.get() {
+                    return;
+                }
+                let Some(text) = notebook_clone.get_terminal_text(session_id) else {
+                    return;
+                };
 
-            if detect_password_prompt(&text) {
-                use secrecy::ExposeSecret;
-                // Wrap in Zeroizing so the plaintext password is wiped from memory
-                // immediately after it is handed to VTE, instead of lingering until GC.
-                let input =
-                    zeroize::Zeroizing::new(format!("{}\n", vault_password.expose_secret()));
-                notebook_clone.send_text_to_session(session_id, &input);
-                password_sent_clone.set(true);
-                tracing::info!(
-                    protocol = "ssh",
-                    "Password prompt detected; credentials sent via VTE"
-                );
-            }
-        });
+                if detect_password_prompt(&text) {
+                    use secrecy::ExposeSecret;
+                    // Wrap in Zeroizing so the plaintext password is wiped from memory
+                    // immediately after it is handed to VTE, instead of lingering until GC.
+                    let input =
+                        zeroize::Zeroizing::new(format!("{}\n", vault_password.expose_secret()));
+                    notebook_clone.send_text_to_session(session_id, &input);
+                    password_sent.set(true);
+                    tracing::info!(
+                        protocol = "ssh",
+                        "Password prompt detected; credentials sent via VTE"
+                    );
+                }
+            })
+        };
+
+        // contents-changed: fires for most terminal output
+        let on_contents_changed = check_and_inject.clone();
+        notebook.connect_contents_changed(session_id, move || on_contents_changed());
+
+        // cursor-moved: fires reliably for prompts using cursor positioning
+        // escapes without a trailing newline (SSH password prompt, issue #194)
+        let on_cursor_moved = check_and_inject;
+        notebook.connect_cursor_moved(session_id, move || on_cursor_moved());
     }
 
     // --- SSH status detection: mark sidebar "connected" once terminal output appears ---
@@ -1103,32 +1204,39 @@ pub fn reconnect_ssh_in_place(
         );
     }
 
-    // VTE password injection
+    // VTE password injection (issue #194: also subscribe to cursor-moved)
     // NOTE: Passphrase prompts ("Enter passphrase for key") are explicitly
     // excluded to avoid sending the wrong secret when SSH auth is PublicKey.
     if let Some(vault_password) = cached_password {
-        let notebook_clone = notebook.clone();
         let password_sent = std::rc::Rc::new(std::cell::Cell::new(false));
-        let password_sent_clone = password_sent.clone();
 
-        notebook.connect_contents_changed(session_id, move || {
-            if password_sent_clone.get() {
-                return;
-            }
-            let Some(text) = notebook_clone.get_terminal_text(session_id) else {
-                return;
-            };
+        let check_and_inject = {
+            let notebook_clone = notebook.clone();
+            let password_sent = password_sent.clone();
+            let vault_password = vault_password.clone();
+            std::rc::Rc::new(move || {
+                if password_sent.get() {
+                    return;
+                }
+                let Some(text) = notebook_clone.get_terminal_text(session_id) else {
+                    return;
+                };
 
-            if detect_password_prompt(&text) {
-                use secrecy::ExposeSecret;
-                // Wrap in Zeroizing so the plaintext password is wiped from memory
-                // immediately after it is handed to VTE, instead of lingering until GC.
-                let input =
-                    zeroize::Zeroizing::new(format!("{}\n", vault_password.expose_secret()));
-                notebook_clone.send_text_to_session(session_id, &input);
-                password_sent_clone.set(true);
-            }
-        });
+                if detect_password_prompt(&text) {
+                    use secrecy::ExposeSecret;
+                    let input =
+                        zeroize::Zeroizing::new(format!("{}\n", vault_password.expose_secret()));
+                    notebook_clone.send_text_to_session(session_id, &input);
+                    password_sent.set(true);
+                }
+            })
+        };
+
+        let on_contents_changed = check_and_inject.clone();
+        notebook.connect_contents_changed(session_id, move || on_contents_changed());
+
+        let on_cursor_moved = check_and_inject;
+        notebook.connect_cursor_moved(session_id, move || on_cursor_moved());
     }
 
     // SSH status detection

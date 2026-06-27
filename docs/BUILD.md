@@ -380,6 +380,42 @@ done
 
 ---
 
+## Notes for Downstream Packagers
+
+RustConn's test suite takes approximately **2 minutes** on modern hardware due to
+argon2-based property tests (deliberately slow — they verify password hashing
+round-trips at realistic cost). All tests run in CI on every commit and release
+tag, so **running tests during package build is unnecessary and not recommended**.
+
+### Recommended build command
+
+```bash
+cargo build --release
+```
+
+That is sufficient. Do **not** add `cargo test` to your `check()` / build phase
+unless you specifically want to re-verify the test suite locally.
+
+### Why tests are slow
+
+| Test group | Time | Reason |
+|------------|------|--------|
+| `property_tests` (argon2) | ~90 s | Real argon2id KDF rounds (not mocked) |
+| `integration_tests` | ~20 s | Full round-trip protocol tests |
+| Unit tests | ~5 s | Fast |
+
+### CI guarantees
+
+Every release tag published on GitHub has passed the full matrix:
+- `cargo fmt --check`
+- `cargo clippy --all-targets` (zero warnings)
+- `cargo test --workspace`
+
+on Ubuntu (latest), Fedora, and Arch runners. There is no benefit in repeating
+this during downstream packaging.
+
+---
+
 ## Quick Reference
 
 ```bash

@@ -2503,6 +2503,22 @@ impl TerminalNotebook {
         }
     }
 
+    /// Connects a callback for cursor movement in terminal.
+    ///
+    /// `cursor-moved` fires more reliably than `contents-changed` for output
+    /// that uses cursor positioning escape sequences without a trailing newline
+    /// (e.g. SSH password prompts in no-echo mode). See issue #194.
+    pub fn connect_cursor_moved<F>(&self, session_id: Uuid, callback: F)
+    where
+        F: Fn() + 'static,
+    {
+        if let Some(terminal) = self.get_terminal(session_id) {
+            terminal.connect_cursor_moved(move |_terminal| {
+                callback();
+            });
+        }
+    }
+
     /// Connects a callback for user input (commit signal - data sent to PTY)
     pub fn connect_commit<F>(&self, session_id: Uuid, callback: F)
     where
