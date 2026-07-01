@@ -175,9 +175,13 @@ apps:
 
 parts:
   rust-deps:
-    plugin: nil
+    plugin: rust
+    source: .
+    rust-channel: "1.95"
+    rust-path: []
     override-build: |
-      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.95 --profile minimal
+      # This part only installs the Rust toolchain; actual build is in 'rustconn'.
+      true
     prime:
       - -*
 
