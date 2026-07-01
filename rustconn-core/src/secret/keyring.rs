@@ -61,8 +61,9 @@ fn is_transport_failure(e: &oo7::dbus::Error) -> bool {
     use oo7::dbus::{Error, ServiceError};
     matches!(
         e,
-        Error::ZBus(_) | Error::IO(_) |
-Error::Service(ServiceError::ZBus(_) | ServiceError::NoSession(_))
+        Error::ZBus(_)
+            | Error::IO(_)
+            | Error::Service(ServiceError::ZBus(_) | ServiceError::NoSession(_))
     )
 }
 
