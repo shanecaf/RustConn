@@ -61,10 +61,8 @@ fn is_transport_failure(e: &oo7::dbus::Error) -> bool {
     use oo7::dbus::{Error, ServiceError};
     matches!(
         e,
-        Error::ZBus(_)
-            | Error::IO(_)
-            | Error::Service(ServiceError::ZBus(_))
-            | Error::Service(ServiceError::NoSession(_))
+        Error::ZBus(_) | Error::IO(_) |
+Error::Service(ServiceError::ZBus(_) | ServiceError::NoSession(_))
     )
 }
 
@@ -79,6 +77,10 @@ fn is_transport_failure(e: &oo7::dbus::Error) -> bool {
 /// Messages carry only oo7's `Display` (operation/attribute context) and never
 /// secret material.
 #[cfg(not(target_os = "macos"))]
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "mirrors the by-value map_err adapter signature; the three wrappers move the error in"
+)]
 fn map_oo7_error(
     e: oo7::dbus::Error,
     natural: fn(String) -> SecretError,
@@ -98,6 +100,10 @@ fn map_oo7_error(
 /// Establishing the connection is a pure transport/service concern, so any
 /// error here is always [`SecretError::BackendUnavailable`] (R9.3).
 #[cfg(not(target_os = "macos"))]
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "passed directly to Result::map_err, which hands the error over by value"
+)]
 pub(crate) fn map_oo7_service_error(e: oo7::dbus::Error) -> SecretError {
     SecretError::BackendUnavailable(format!("Secret Service unavailable: {e}"))
 }

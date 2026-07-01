@@ -22,6 +22,7 @@
 fn show_vault_save_error(err: &rustconn_core::error::SecretError) {
     use gtk4::prelude::*;
     use libadwaita as adw;
+    use libadwaita::prelude::*;
 
     // The cause is the SecretError Display string. Its variants embed only
     // operation context and backend diagnostics (e.g. secret-tool stderr),

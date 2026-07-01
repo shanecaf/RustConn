@@ -720,6 +720,53 @@ impl AppState {
         );
     }
 
+    /// Resolves a connection's password synchronously, returning only the
+    /// secret (or `None` when unset/empty).
+    ///
+    /// Shares the exact resolution logic of
+    /// [`Self::resolve_credentials_blocking`] — every `PasswordSource` (Vault,
+    /// Variable, Inherit, Script) and every backend (KeePassXC/KDBX included) —
+    /// so out-of-band consumers such as the SSH jump-host bastion resolver stay
+    /// in lockstep with normal connection login and never diverge on lookup key
+    /// or backend (issue #191).
+    ///
+    /// Performs a blocking vault call; GTK-thread callers MUST NOT hold any
+    /// other `AppState` borrow across it. An empty password resolves to `None`.
+    pub(crate) fn resolve_connection_password_blocking(
+        &self,
+        connection: &Connection,
+    ) -> Option<SecretString> {
+        use rustconn_core::sync::CredentialResolutionResult;
+        use secrecy::ExposeSecret;
+
+        let groups: Vec<ConnectionGroup> = self
+            .connection_manager
+            .list_groups()
+            .iter()
+            .cloned()
+            .cloned()
+            .collect();
+
+        let ctx = CredentialResolutionContext {
+            connection: connection.clone(),
+            groups,
+            kdbx_enabled: self.settings.secrets.kdbx_enabled,
+            kdbx_path: self.settings.secrets.kdbx_path.clone(),
+            kdbx_password: self.settings.secrets.kdbx_password.clone(),
+            kdbx_key_file: self.settings.secrets.kdbx_key_file.clone(),
+            secret_settings: self.settings.secrets.clone(),
+            secret_manager: self.secret_manager.clone(),
+            global_variables: self.settings.global_variables.clone(),
+        };
+
+        match Self::resolve_credentials_blocking(ctx) {
+            Ok(CredentialResolutionResult::Resolved(creds)) => {
+                creds.password.filter(|p| !p.expose_secret().is_empty())
+            }
+            _ => None,
+        }
+    }
+
     /// Internal blocking credential resolution (runs in background thread)
     ///
     /// This is extracted from `resolve_credentials` to be callable from a background
