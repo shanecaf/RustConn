@@ -116,7 +116,7 @@ Import/Export:
 
 Security:
 - KeePassXC (KDBX files and proxy)
-- libsecret (GNOME Keyring)
+- System keyring (GNOME Keyring / KDE Wallet)
 - Bitwarden CLI
 - 1Password CLI
 - Passbolt CLI
