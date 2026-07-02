@@ -11,6 +11,9 @@ rustconn (0.17.7-1) unstable; urgency=medium
   * Fixed Snap build failing on Launchpad with Snapcraft 9.0 — switched from
     plugin: rust (whose environment validation requires rustup before parts run)
     to plugin: nil with an explicit rustup install in the rust-deps part
+  * Security: updated quick-xml 0.39.4→0.41.0 to close RUSTSEC-2026-0194 and
+    RUSTSEC-2026-0195 — crafted XML could trigger unbounded allocation via
+    namespace/attribute flooding on the RoyalTS/libvirt import paths
   * Dependencies: updated inotify-sys 0.1.6→0.1.7, rand 0.10.1→0.10.2
 
  -- Anton Isaiev <totoshko88@gmail.com>  Thu, 02 Jul 2026 00:00:00 +0000

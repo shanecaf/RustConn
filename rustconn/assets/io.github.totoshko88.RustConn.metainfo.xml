@@ -147,6 +147,7 @@
           <li>Window controls no longer vanish on narrow widths; the window now shrinks smoothly to a measured minimum, sheds non-essential header buttons and auto-hides the sidebar as it narrows, and the welcome screen reflows its columns instead of wrapping shortcut labels character-by-character (issue #204)</li>
           <li>SSH multi-hop password chain: entry bastions in nested ProxyCommand now receive their own per-hop SSH_ASKPASS helper, fixing double-bastion password chains that crashed instantly (issue #203)</li>
           <li>Snap build fixed for Snapcraft 9.0 on Launchpad — switched to plugin: nil with explicit rustup install, bypassing the broken environment validation</li>
+          <li>Security: updated quick-xml to 0.41.0, closing two advisories (RUSTSEC-2026-0194/0195) where crafted XML could exhaust memory on the RoyalTS/libvirt import paths</li>
         </ul>
       </description>
     </release>

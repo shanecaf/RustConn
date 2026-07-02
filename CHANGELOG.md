@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Snap build fails on Launchpad with Snapcraft 9.0** — the `plugin: rust` environment validation runs before any part executes and expects `rustup` on PATH; on a clean Launchpad container it is absent. The previous no-op `rust-deps` part did not actually install a toolchain. Switched the main part to `plugin: nil` (bypassing the Rust plugin's validation entirely) and made `rust-deps` install Rust 1.95 via `rustup.rs` in `override-pull`. The `override-build` adds `$HOME/.cargo/bin` to PATH before invoking `cargo build`. Both amd64 and arm64 builds are fixed
 
+### Security
+
+- **Updated `quick-xml` 0.39.4→0.41.0** ([RUSTSEC-2026-0194](https://rustsec.org/advisories/RUSTSEC-2026-0194), [RUSTSEC-2026-0195](https://rustsec.org/advisories/RUSTSEC-2026-0195)) — the pinned `0.39` line was flagged by two advisories: a crafted XML document with a huge number of namespace declarations (or duplicate attributes) on one element could drive `quick-xml` into unbounded allocation and OOM-kill the process. RustConn only parses XML for the RoyalTS and libvirt import paths (`rustconn-core/src/import/`), so exposure is limited to importing an untrusted file, but the bump closes it regardless. 0.41 caps per-element namespace declarations and keeps duplicate-attribute checking linear; no code changes were needed for the upgrade
+
 ### Dependencies
 
 - **Updated** (semver-compatible refresh): `inotify-sys` 0.1.6→0.1.7, `rand` 0.10.1→0.10.2

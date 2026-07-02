@@ -263,6 +263,7 @@ done
 - Fixed narrow-window layout — window controls no longer vanish when narrow, the window shrinks smoothly to a measured minimum, non-essential header buttons are shed and the sidebar auto-hides, and the welcome screen reflows its columns instead of wrapping shortcut labels character-by-character (#204)
 - Fixed SSH multi-hop password chain — only one bastion received a password; entry bastions in nested ProxyCommand now get their own per-hop SSH_ASKPASS helper with indexed env vars (#203)
 - Fixed Snap build failing on Launchpad with Snapcraft 9.0 — switched from plugin: rust to plugin: nil with an explicit rustup install in the rust-deps part
+- Security: updated quick-xml 0.39.4→0.41.0 to close RUSTSEC-2026-0194 and RUSTSEC-2026-0195 — crafted XML could trigger unbounded allocation via namespace/attribute flooding on the RoyalTS/libvirt import paths
 - Dependencies: updated inotify-sys 0.1.6→0.1.7, rand 0.10.1→0.10.2
 
 * Wed Jul 01 2026 Anton Isaiev <totoshko88@gmail.com> - 0.17.6-0
