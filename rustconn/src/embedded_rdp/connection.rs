@@ -314,12 +314,10 @@ impl super::EmbeddedRdpWidget {
                     reason = "value range fits the target type and is non-negative by construction in this code path"
                 )]
                 let device_h = (f64::from(h.unsigned_abs()) * effective_scale) as u32;
-                // Exact widget size; MS-RDPEDISP requires even width, so clear
-                // its low bit. Height is used as-is.
-                let width = device_w & !1;
-                let height = device_h;
-                // Clamp to reasonable maximum (8K) and ensure minimum size
-                (width.clamp(640, 7680), height.clamp(480, 4320))
+                // Even dimensions + resolution ceiling (see round_rdp_desktop).
+                let (width, height) = super::round_rdp_desktop(device_w, device_h);
+                // Ensure a sane minimum (widget may still be mid-layout).
+                (width.max(640), height.max(480))
             } else {
                 // Widget not yet realized, use config values
                 (config.width, config.height)
@@ -674,25 +672,28 @@ impl super::EmbeddedRdpWidget {
                                         clippy::cast_sign_loss,
                                         reason = "value range fits the target type and is non-negative by construction in this code path"
                                     )]
-                                    // Exact size; width even (MS-RDPEDISP), height as-is.
-                                    let settled_w =
-                                        (f64::from(css_w) * effective_scale) as u32 & !1;
+                                    let dev_w = (f64::from(css_w) * effective_scale) as u32;
                                     #[expect(
                                         clippy::cast_possible_truncation,
                                         clippy::cast_sign_loss,
                                         reason = "value range fits the target type and is non-negative by construction in this code path"
                                     )]
-                                    let settled_h = (f64::from(css_h) * effective_scale) as u32;
+                                    let dev_h = (f64::from(css_h) * effective_scale) as u32;
+                                    // Even dimensions + ceiling (see round_rdp_desktop).
+                                    let (settled_w, settled_h) =
+                                        super::round_rdp_desktop(dev_w, dev_h);
 
                                     // Only when realized, a sane size, and actually
-                                    // different (tolerance absorbs the ≤1px even-width
-                                    // adjustment).
+                                    // different (slack absorbs the ≤1px even-rounding
+                                    // residual).
                                     if css_w > 100
                                         && css_h > 100
                                         && settled_w >= 640
                                         && settled_h >= 480
-                                        && (settled_w.abs_diff(server_w) > 4
-                                            || settled_h.abs_diff(server_h) > 4)
+                                        && (settled_w.abs_diff(server_w)
+                                            > super::DESKTOP_MATCH_SLACK_PX
+                                            || settled_h.abs_diff(server_h)
+                                                > super::DESKTOP_MATCH_SLACK_PX)
                                     {
                                         // Keep the stored config in sync
                                         let current_config = config.borrow().clone();

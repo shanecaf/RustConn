@@ -86,12 +86,13 @@ impl super::EmbeddedRdpWidget {
                         let css_buf_h = f64::from(buf_height) / effective_scale;
                         let scale_x = f64::from(width) / css_buf_w;
                         let scale_y = f64::from(height) / css_buf_h;
-                        // Within a pixel or two of the drawing area (the ≤1px
-                        // even-width residual): blit 1:1 for a sharp border instead of
-                        // a sub-pixel rescale. Larger mismatches (a resize in flight)
+                        // Within the match slack of the drawing area (the ≤1px
+                        // even-rounding residual): blit 1:1 for a sharp border instead
+                        // of a sub-pixel rescale. Larger mismatches (a resize in flight)
                         // still scale-to-fit with aspect preserved.
-                        let scale = if (css_buf_w - f64::from(width)).abs() <= 4.0
-                            && (css_buf_h - f64::from(height)).abs() <= 4.0
+                        let slack = f64::from(super::DESKTOP_MATCH_SLACK_PX);
+                        let scale = if (css_buf_w - f64::from(width)).abs() <= slack
+                            && (css_buf_h - f64::from(height)).abs() <= slack
                         {
                             1.0
                         } else {
@@ -156,12 +157,13 @@ impl super::EmbeddedRdpWidget {
                         let css_buf_h = f64::from(buf_height) / effective_scale;
                         let scale_x = f64::from(width) / css_buf_w;
                         let scale_y = f64::from(height) / css_buf_h;
-                        // Within a pixel or two of the drawing area (the ≤1px
-                        // even-width residual): blit 1:1 for a sharp border instead of
-                        // a sub-pixel rescale. Larger mismatches (a resize in flight)
+                        // Within the match slack of the drawing area (the ≤1px
+                        // even-rounding residual): blit 1:1 for a sharp border instead
+                        // of a sub-pixel rescale. Larger mismatches (a resize in flight)
                         // still scale-to-fit with aspect preserved.
-                        let scale = if (css_buf_w - f64::from(width)).abs() <= 4.0
-                            && (css_buf_h - f64::from(height)).abs() <= 4.0
+                        let slack = f64::from(super::DESKTOP_MATCH_SLACK_PX);
+                        let scale = if (css_buf_w - f64::from(width)).abs() <= slack
+                            && (css_buf_h - f64::from(height)).abs() <= slack
                         {
                             1.0
                         } else {

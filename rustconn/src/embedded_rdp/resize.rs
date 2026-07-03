@@ -134,10 +134,9 @@ impl super::EmbeddedRdpWidget {
                         let h_diff = (device_height as i32 - current_rdp_h as i32).unsigned_abs();
 
                         if w_diff > RESIZE_THRESHOLD_PX || h_diff > RESIZE_THRESHOLD_PX {
-                            // Request the exact device size.
-                            // Width must be even (MS-RDPEDISP); height is used as-is.
-                            let rounded_width = device_width & !1;
-                            let rounded_height = device_height;
+                            // Even dimensions + resolution ceiling (see round_rdp_desktop).
+                            let (rounded_width, rounded_height) =
+                                super::round_rdp_desktop(device_width, device_height);
 
                             // Guard against degenerate sizes (widget mid-layout
                             // or collapsed): never request a sub-640x480 desktop,
@@ -323,10 +322,8 @@ impl super::EmbeddedRdpWidget {
         )]
         let device_height = (f64::from(css_height) * effective_scale) as u32;
 
-        // Request the exact device size — RDP takes any resolution. Width must be
-        // even (MS-RDPEDISP hard requirement); height is used as-is.
-        let rounded_width = device_width & !1;
-        let rounded_height = device_height;
+        // Even dimensions + resolution ceiling (see round_rdp_desktop).
+        let (rounded_width, rounded_height) = super::round_rdp_desktop(device_width, device_height);
         if rounded_width < 640 || rounded_height < 480 {
             // Widget not laid out yet — nothing sensible to request
             return;
