@@ -85,12 +85,9 @@ pub async fn process_command<W: FramedWrite>(
             height,
             scale_percent,
         } => {
-            if let Some(result) = active_stage.encode_resize(
-                u32::from(width),
-                u32::from(height),
-                scale_percent,
-                None,
-            ) {
+            if let Some(result) =
+                active_stage.encode_resize(u32::from(width), u32::from(height), scale_percent, None)
+            {
                 match result {
                     Ok(frame) => {
                         let _ = writer.write_all(&frame).await;

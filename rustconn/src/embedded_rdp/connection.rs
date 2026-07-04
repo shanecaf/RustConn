@@ -1735,7 +1735,8 @@ impl super::EmbeddedRdpWidget {
             &bytes,
             dst_w * bpp,
         );
-        let cursor = gdk::Cursor::from_texture(&texture, hotspot_logical_x, hotspot_logical_y, None);
+        let cursor =
+            gdk::Cursor::from_texture(&texture, hotspot_logical_x, hotspot_logical_y, None);
         drawing_area.set_cursor(Some(&cursor));
     }
 
