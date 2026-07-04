@@ -1,6 +1,7 @@
-//! Property-based tests for SPICE client
+//! Property-based tests for SPICE external-viewer support
 //!
-//! Tests for the native SPICE client implementation and fallback mechanism.
+//! Tests for the SPICE viewer launch/config path (native embedding was removed
+//! in 0.18.0).
 //!
 //! # Requirements Coverage
 //!
@@ -9,9 +10,8 @@
 
 use proptest::prelude::*;
 use rustconn_core::spice_client::{
-    SpiceClientConfig, SpiceClientError, SpiceCompression, SpiceRect, SpiceSecurityProtocol,
+    SpiceClientConfig, SpiceClientError, SpiceCompression, SpiceSecurityProtocol,
     SpiceSharedFolder, SpiceViewerLaunchResult, build_spice_viewer_args, detect_spice_viewer,
-    is_embedded_spice_available,
 };
 
 // Strategy for generating valid hostnames
@@ -118,12 +118,6 @@ fn arb_spice_client_config() -> impl Strategy<Value = SpiceClientConfig> {
         )
 }
 
-// Strategy for generating SPICE rectangles
-fn arb_spice_rect() -> impl Strategy<Value = SpiceRect> {
-    (0u16..=1920, 0u16..=1080, 1u16..=1920, 1u16..=1080)
-        .prop_map(|(x, y, width, height)| SpiceRect::new(x, y, width, height))
-}
-
 // ============================================================================
 // Property Tests
 // ============================================================================
@@ -189,39 +183,6 @@ proptest! {
         }
     }
 
-    /// Property: SPICE rectangle area calculation is correct
-    ///
-    /// *For any* SPICE rectangle, the area should equal width * height.
-    #[test]
-    fn prop_spice_rect_area(rect in arb_spice_rect()) {
-        let expected_area = rect.width as u32 * rect.height as u32;
-        prop_assert_eq!(rect.area(), expected_area);
-    }
-
-    /// Property: SPICE rectangle validity check is correct
-    ///
-    /// *For any* SPICE rectangle, it should be valid iff both width and height are > 0.
-    #[test]
-    fn prop_spice_rect_validity(rect in arb_spice_rect()) {
-        let expected_valid = rect.width > 0 && rect.height > 0;
-        prop_assert_eq!(rect.is_valid(), expected_valid);
-    }
-
-    /// Property: SPICE rectangle bounds check is correct
-    ///
-    /// *For any* SPICE rectangle and bounds, the bounds check should be correct.
-    #[test]
-    fn prop_spice_rect_bounds(
-        rect in arb_spice_rect(),
-        max_width in 1u16..=4096,
-        max_height in 1u16..=4096
-    ) {
-        let end_x = rect.x as u32 + rect.width as u32;
-        let end_y = rect.y as u32 + rect.height as u32;
-        let expected_within = end_x <= max_width as u32 && end_y <= max_height as u32;
-        prop_assert_eq!(rect.is_within_bounds(max_width, max_height), expected_within);
-    }
-
     /// Property: SPICE server address format is correct
     ///
     /// *For any* SPICE config, the server address should be "host:port".
@@ -235,17 +196,6 @@ proptest! {
 // ============================================================================
 // Unit Tests
 // ============================================================================
-
-#[test]
-fn test_is_embedded_spice_available() {
-    // This test verifies the function compiles and returns a bool
-    let available = is_embedded_spice_available();
-    // The result depends on whether the spice-embedded feature is enabled
-    #[cfg(feature = "spice-embedded")]
-    assert!(available);
-    #[cfg(not(feature = "spice-embedded"))]
-    assert!(!available);
-}
 
 #[test]
 fn test_detect_spice_viewer() {
@@ -349,29 +299,6 @@ fn test_spice_config_validation_tls_with_skip_verify() {
         .with_tls(true)
         .with_skip_cert_verify(true);
     assert!(config.validate().is_ok());
-}
-
-#[test]
-fn test_spice_rect_full_screen() {
-    let rect = SpiceRect::full_screen(1920, 1080);
-    assert_eq!(rect.x, 0);
-    assert_eq!(rect.y, 0);
-    assert_eq!(rect.width, 1920);
-    assert_eq!(rect.height, 1080);
-    assert_eq!(rect.area(), 1920 * 1080);
-    assert!(rect.is_valid());
-    assert!(rect.is_within_bounds(1920, 1080));
-}
-
-#[test]
-fn test_spice_rect_zero_dimensions() {
-    let rect_zero_width = SpiceRect::new(0, 0, 0, 100);
-    let rect_zero_height = SpiceRect::new(0, 0, 100, 0);
-
-    assert!(!rect_zero_width.is_valid());
-    assert!(!rect_zero_height.is_valid());
-    assert_eq!(rect_zero_width.area(), 0);
-    assert_eq!(rect_zero_height.area(), 0);
 }
 
 /// `SpiceClientConfig` derives `Debug` while holding a password

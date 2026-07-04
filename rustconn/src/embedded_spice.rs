@@ -18,10 +18,6 @@ use std::cell::RefCell;
 use std::process::Child;
 use std::rc::Rc;
 
-#[cfg(feature = "spice-embedded")]
-use gtk4::glib;
-#[cfg(feature = "spice-embedded")]
-use rustconn_core::spice_client::{SpiceClient, SpiceClientCommand, SpiceClientEvent};
 use rustconn_core::spice_client::{SpiceClientConfig, SpiceClientError};
 
 /// Connection state for embedded SPICE widget
@@ -160,9 +156,9 @@ pub struct EmbeddedSpiceWidget {
     /// Toolbar with clipboard and special key buttons
     toolbar: GtkBox,
     /// Status label for feedback
-    #[cfg_attr(
-        not(feature = "spice-embedded"),
-        expect(dead_code, reason = "read only by embedded SPICE code paths")
+    #[expect(
+        dead_code,
+        reason = "part of the toolbar UI; transient status text was only updated by the removed native path"
     )]
     status_label: Label,
     /// Copy button
@@ -192,15 +188,15 @@ pub struct EmbeddedSpiceWidget {
     /// Current widget height
     height: Rc<RefCell<u32>>,
     /// SPICE server framebuffer width
-    #[cfg_attr(
-        not(feature = "spice-embedded"),
-        expect(dead_code, reason = "read only by embedded SPICE code paths")
+    #[expect(
+        dead_code,
+        reason = "tracked the remote framebuffer size for the removed native renderer"
     )]
     spice_width: Rc<RefCell<u32>>,
     /// SPICE server framebuffer height
-    #[cfg_attr(
-        not(feature = "spice-embedded"),
-        expect(dead_code, reason = "read only by embedded SPICE code paths")
+    #[expect(
+        dead_code,
+        reason = "tracked the remote framebuffer size for the removed native renderer"
     )]
     spice_height: Rc<RefCell<u32>>,
     /// State change callback
@@ -213,12 +209,6 @@ pub struct EmbeddedSpiceWidget {
     reconnect_banner: GtkBox,
     /// Reconnect button inside the banner
     reconnect_button: Button,
-    /// Native SPICE client (when spice-embedded feature is enabled)
-    #[cfg(feature = "spice-embedded")]
-    spice_client: Rc<RefCell<Option<SpiceClient>>>,
-    /// Command sender for the SPICE client
-    #[cfg(feature = "spice-embedded")]
-    command_sender: Rc<RefCell<Option<rustconn_core::SpiceCommandSender>>>,
 }
 
 impl EmbeddedSpiceWidget {
@@ -336,14 +326,9 @@ impl EmbeddedSpiceWidget {
             on_reconnect: Rc::new(RefCell::new(None)),
             reconnect_banner,
             reconnect_button,
-            #[cfg(feature = "spice-embedded")]
-            spice_client: Rc::new(RefCell::new(None)),
-            #[cfg(feature = "spice-embedded")]
-            command_sender: Rc::new(RefCell::new(None)),
         };
 
         widget.setup_drawing();
-        widget.setup_input_handlers();
         widget.setup_resize_handler();
         widget.setup_clipboard_buttons(&copy_button, &paste_button);
         widget.setup_ctrl_alt_del_button(&ctrl_alt_del_button);
@@ -499,264 +484,6 @@ impl EmbeddedSpiceWidget {
         });
     }
 
-    /// Sets up keyboard and mouse input handlers
-    fn setup_input_handlers(&self) {
-        #[cfg(feature = "spice-embedded")]
-        {
-            let command_sender = self.command_sender.clone();
-            let state = self.state.clone();
-            let is_embedded = self.is_embedded.clone();
-
-            // Keyboard event controller
-            let key_controller = gtk4::EventControllerKey::new();
-            let cmd_sender_key = command_sender.clone();
-            let state_key = state.clone();
-            let is_embedded_key = is_embedded.clone();
-
-            key_controller.connect_key_pressed(move |_, _keyval, keycode, _| {
-                let current_state = *state_key.borrow();
-                let embedded = *is_embedded_key.borrow();
-
-                if embedded && current_state == SpiceConnectionState::Connected {
-                    if let Some(ref sender) = *cmd_sender_key.borrow() {
-                        let _ = sender.send(SpiceClientCommand::KeyEvent {
-                            scancode: keycode,
-                            pressed: true,
-                        });
-                    }
-                    glib::Propagation::Stop
-                } else {
-                    glib::Propagation::Proceed
-                }
-            });
-
-            let cmd_sender_release = command_sender.clone();
-            let state_release = state.clone();
-            let is_embedded_release = is_embedded.clone();
-
-            key_controller.connect_key_released(move |_, _keyval, keycode, _| {
-                let current_state = *state_release.borrow();
-                let embedded = *is_embedded_release.borrow();
-
-                if embedded
-                    && current_state == SpiceConnectionState::Connected
-                    && let Some(ref sender) = *cmd_sender_release.borrow()
-                {
-                    let _ = sender.send(SpiceClientCommand::KeyEvent {
-                        scancode: keycode,
-                        pressed: false,
-                    });
-                }
-            });
-
-            self.drawing_area.add_controller(key_controller);
-
-            // Mouse motion controller
-            let motion_controller = gtk4::EventControllerMotion::new();
-            let cmd_sender_motion = command_sender.clone();
-            let state_motion = state.clone();
-            let is_embedded_motion = is_embedded.clone();
-            let width_motion = self.width.clone();
-            let height_motion = self.height.clone();
-            let spice_width_motion = self.spice_width.clone();
-            let spice_height_motion = self.spice_height.clone();
-
-            motion_controller.connect_motion(move |_, x, y| {
-                let current_state = *state_motion.borrow();
-                let embedded = *is_embedded_motion.borrow();
-
-                if embedded && current_state == SpiceConnectionState::Connected {
-                    let widget_w = f64::from(*width_motion.borrow());
-                    let widget_h = f64::from(*height_motion.borrow());
-                    let spice_w = f64::from(*spice_width_motion.borrow());
-                    let spice_h = f64::from(*spice_height_motion.borrow());
-
-                    if widget_w > 0.0 && widget_h > 0.0 && spice_w > 0.0 && spice_h > 0.0 {
-                        let scale_x = widget_w / spice_w;
-                        let scale_y = widget_h / spice_h;
-                        let scale = scale_x.min(scale_y);
-
-                        let scaled_w = spice_w * scale;
-                        let scaled_h = spice_h * scale;
-                        let offset_x = (widget_w - scaled_w) / 2.0;
-                        let offset_y = (widget_h - scaled_h) / 2.0;
-
-                        let rel_x = (x - offset_x) / scale;
-                        let rel_y = (y - offset_y) / scale;
-
-                        #[expect(
-                            clippy::cast_sign_loss,
-                            reason = "value is non-negative by construction in this code path"
-                        )]
-                        let spice_x = rel_x.clamp(0.0, spice_w - 1.0) as u16;
-                        #[expect(
-                            clippy::cast_sign_loss,
-                            reason = "value is non-negative by construction in this code path"
-                        )]
-                        let spice_y = rel_y.clamp(0.0, spice_h - 1.0) as u16;
-
-                        if let Some(ref sender) = *cmd_sender_motion.borrow() {
-                            let _ = sender.send(SpiceClientCommand::PointerEvent {
-                                x: spice_x,
-                                y: spice_y,
-                                buttons: 0,
-                            });
-                        }
-                    }
-                }
-            });
-
-            self.drawing_area.add_controller(motion_controller);
-
-            // Mouse click controller
-            let click_controller = gtk4::GestureClick::new();
-            click_controller.set_button(0); // All buttons
-            let cmd_sender_click = command_sender.clone();
-            let state_click = state.clone();
-            let is_embedded_click = is_embedded.clone();
-            let width_click = self.width.clone();
-            let height_click = self.height.clone();
-            let spice_width_click = self.spice_width.clone();
-            let spice_height_click = self.spice_height.clone();
-
-            click_controller.connect_pressed(move |gesture, _n_press, x, y| {
-                let current_state = *state_click.borrow();
-                let embedded = *is_embedded_click.borrow();
-
-                if embedded && current_state == SpiceConnectionState::Connected {
-                    let button = gesture.current_button();
-                    let button_mask = match button {
-                        1 => 1, // Left
-                        2 => 2, // Middle
-                        3 => 4, // Right
-                        _ => 0,
-                    };
-
-                    let widget_w = f64::from(*width_click.borrow());
-                    let widget_h = f64::from(*height_click.borrow());
-                    let spice_w = f64::from(*spice_width_click.borrow());
-                    let spice_h = f64::from(*spice_height_click.borrow());
-
-                    if widget_w > 0.0 && widget_h > 0.0 && spice_w > 0.0 && spice_h > 0.0 {
-                        let scale_x = widget_w / spice_w;
-                        let scale_y = widget_h / spice_h;
-                        let scale = scale_x.min(scale_y);
-
-                        let scaled_w = spice_w * scale;
-                        let scaled_h = spice_h * scale;
-                        let offset_x = (widget_w - scaled_w) / 2.0;
-                        let offset_y = (widget_h - scaled_h) / 2.0;
-
-                        let rel_x = (x - offset_x) / scale;
-                        let rel_y = (y - offset_y) / scale;
-
-                        #[expect(
-                            clippy::cast_sign_loss,
-                            reason = "value is non-negative by construction in this code path"
-                        )]
-                        let spice_x = rel_x.clamp(0.0, spice_w - 1.0) as u16;
-                        #[expect(
-                            clippy::cast_sign_loss,
-                            reason = "value is non-negative by construction in this code path"
-                        )]
-                        let spice_y = rel_y.clamp(0.0, spice_h - 1.0) as u16;
-
-                        if let Some(ref sender) = *cmd_sender_click.borrow() {
-                            let _ = sender.send(SpiceClientCommand::PointerEvent {
-                                x: spice_x,
-                                y: spice_y,
-                                buttons: button_mask,
-                            });
-                        }
-                    }
-                }
-            });
-
-            let cmd_sender_release = command_sender.clone();
-            let state_release = state.clone();
-            let is_embedded_release = is_embedded.clone();
-            let width_release = self.width.clone();
-            let height_release = self.height.clone();
-            let spice_width_release = self.spice_width.clone();
-            let spice_height_release = self.spice_height.clone();
-
-            click_controller.connect_released(move |_gesture, _n_press, x, y| {
-                let current_state = *state_release.borrow();
-                let embedded = *is_embedded_release.borrow();
-
-                if embedded && current_state == SpiceConnectionState::Connected {
-                    let widget_w = f64::from(*width_release.borrow());
-                    let widget_h = f64::from(*height_release.borrow());
-                    let spice_w = f64::from(*spice_width_release.borrow());
-                    let spice_h = f64::from(*spice_height_release.borrow());
-
-                    if widget_w > 0.0 && widget_h > 0.0 && spice_w > 0.0 && spice_h > 0.0 {
-                        let scale_x = widget_w / spice_w;
-                        let scale_y = widget_h / spice_h;
-                        let scale = scale_x.min(scale_y);
-
-                        let scaled_w = spice_w * scale;
-                        let scaled_h = spice_h * scale;
-                        let offset_x = (widget_w - scaled_w) / 2.0;
-                        let offset_y = (widget_h - scaled_h) / 2.0;
-
-                        let rel_x = (x - offset_x) / scale;
-                        let rel_y = (y - offset_y) / scale;
-
-                        #[expect(
-                            clippy::cast_sign_loss,
-                            reason = "value is non-negative by construction in this code path"
-                        )]
-                        let spice_x = rel_x.clamp(0.0, spice_w - 1.0) as u16;
-                        #[expect(
-                            clippy::cast_sign_loss,
-                            reason = "value is non-negative by construction in this code path"
-                        )]
-                        let spice_y = rel_y.clamp(0.0, spice_h - 1.0) as u16;
-
-                        if let Some(ref sender) = *cmd_sender_release.borrow() {
-                            let _ = sender.send(SpiceClientCommand::PointerEvent {
-                                x: spice_x,
-                                y: spice_y,
-                                buttons: 0,
-                            });
-                        }
-                    }
-                }
-            });
-
-            self.drawing_area.add_controller(click_controller);
-
-            // Scroll controller
-            let scroll_controller = gtk4::EventControllerScroll::new(
-                gtk4::EventControllerScrollFlags::VERTICAL
-                    | gtk4::EventControllerScrollFlags::HORIZONTAL,
-            );
-            let cmd_sender_scroll = command_sender;
-            let state_scroll = state;
-            let is_embedded_scroll = is_embedded;
-
-            scroll_controller.connect_scroll(move |_, dx, dy| {
-                let current_state = *state_scroll.borrow();
-                let embedded = *is_embedded_scroll.borrow();
-
-                if embedded && current_state == SpiceConnectionState::Connected {
-                    if let Some(ref sender) = *cmd_sender_scroll.borrow() {
-                        let _ = sender.send(SpiceClientCommand::WheelEvent {
-                            horizontal: (dx * 120.0) as i16,
-                            vertical: (-dy * 120.0) as i16,
-                        });
-                    }
-                    glib::Propagation::Stop
-                } else {
-                    glib::Propagation::Proceed
-                }
-            });
-
-            self.drawing_area.add_controller(scroll_controller);
-        }
-    }
-
     /// Sets up resize handler
     fn setup_resize_handler(&self) {
         let width = self.width.clone();
@@ -776,72 +503,18 @@ impl EmbeddedSpiceWidget {
 
     /// Sets up clipboard buttons
     fn setup_clipboard_buttons(&self, copy_btn: &Button, paste_btn: &Button) {
-        #[cfg(feature = "spice-embedded")]
-        {
-            let command_sender = self.command_sender.clone();
-            let status_label = self.status_label.clone();
-
-            // Paste button - send local clipboard to remote
-            let cmd_sender_paste = command_sender.clone();
-            let status_paste = status_label.clone();
-            paste_btn.connect_clicked(move |_| {
-                if let Some(ref sender) = *cmd_sender_paste.borrow() {
-                    // Get clipboard text and send to remote
-                    let display = gtk4::gdk::Display::default();
-                    if let Some(display) = display {
-                        let clipboard = display.clipboard();
-                        let sender_clone = sender.clone();
-                        let status_clone = status_paste.clone();
-                        clipboard.read_text_async(None::<&gtk4::gio::Cancellable>, move |result| {
-                            if let Ok(Some(text)) = result {
-                                let _ = sender_clone
-                                    .send(SpiceClientCommand::ClipboardText(text.to_string()));
-                                status_clone.set_text(&i18n("Pasted to remote"));
-                                status_clone.set_visible(true);
-                                glib::timeout_add_seconds_local_once(2, move || {
-                                    status_clone.set_visible(false);
-                                });
-                            }
-                        });
-                    }
-                }
-            });
-
-            // Copy button - request clipboard from remote (handled via events)
-            copy_btn.connect_clicked(move |_| {
-                status_label.set_text(&i18n("Copy requested"));
-                status_label.set_visible(true);
-                let status_clone = status_label.clone();
-                glib::timeout_add_seconds_local_once(2, move || {
-                    status_clone.set_visible(false);
-                });
-            });
-        }
-
-        #[cfg(not(feature = "spice-embedded"))]
-        {
-            let _ = copy_btn;
-            let _ = paste_btn;
-        }
+        // Clipboard sharing was handled by the removed native SPICE client; the
+        // external viewer manages its own clipboard. The buttons stay in the
+        // (hidden) toolbar for layout parity but have no handler.
+        let _ = copy_btn;
+        let _ = paste_btn;
     }
 
     /// Sets up Ctrl+Alt+Del button
     fn setup_ctrl_alt_del_button(&self, btn: &Button) {
-        #[cfg(feature = "spice-embedded")]
-        {
-            let command_sender = self.command_sender.clone();
-
-            btn.connect_clicked(move |_| {
-                if let Some(ref sender) = *command_sender.borrow() {
-                    let _ = sender.send(SpiceClientCommand::SendCtrlAltDel);
-                }
-            });
-        }
-
-        #[cfg(not(feature = "spice-embedded"))]
-        {
-            let _ = btn;
-        }
+        // Ctrl+Alt+Del forwarding required the removed native input channel;
+        // the external viewer provides its own send-key menu.
+        let _ = btn;
     }
 
     /// Returns the main container widget
@@ -920,190 +593,19 @@ impl EmbeddedSpiceWidget {
         }
     }
 
-    /// Connects to a SPICE server
+    /// Connects to a SPICE server by launching an external viewer.
     ///
-    /// Attempts native embedded connection first, falls back to external viewer.
+    /// # Errors
+    ///
+    /// Returns [`SpiceClientError::ConnectionFailed`] if no SPICE viewer is
+    /// installed or the viewer process fails to launch.
     pub fn connect(&self, config: &SpiceClientConfig) -> Result<(), SpiceClientError> {
         *self.config.borrow_mut() = Some(config.clone());
         self.set_state(SpiceConnectionState::Connecting);
-
-        // Try native embedded mode first
-        #[cfg(feature = "spice-embedded")]
-        {
-            if rustconn_core::is_embedded_spice_available() {
-                match self.connect_native(config) {
-                    Ok(()) => return Ok(()),
-                    Err(e) => {
-                        tracing::warn!(%e, "Native SPICE connection failed, trying fallback");
-                    }
-                }
-            }
-        }
-
-        // Fallback to external viewer
         self.connect_external(config)
     }
 
-    /// Connects using native SPICE client
-    #[cfg(feature = "spice-embedded")]
-    fn connect_native(&self, config: &SpiceClientConfig) -> Result<(), SpiceClientError> {
-        let mut client = SpiceClient::new(config.clone());
-
-        // Connect and get channels
-        client.connect()?;
-
-        let event_rx = client
-            .take_event_receiver()
-            .ok_or_else(|| SpiceClientError::ConnectionFailed("No event receiver".to_string()))?;
-
-        let command_tx = client
-            .command_sender()
-            .ok_or_else(|| SpiceClientError::ConnectionFailed("No command sender".to_string()))?;
-
-        *self.command_sender.borrow_mut() = Some(command_tx);
-        *self.spice_client.borrow_mut() = Some(client);
-        *self.is_embedded.borrow_mut() = true;
-
-        // Show toolbar for embedded mode
-        self.toolbar.set_visible(true);
-
-        // Hide local cursor if configured (avoids double cursor with remote)
-        if !config.show_local_cursor {
-            self.drawing_area.set_cursor_from_name(Some("none"));
-        }
-
-        // Start event polling
-        self.start_event_polling(event_rx);
-
-        Ok(())
-    }
-
-    /// Starts polling for SPICE client events
-    #[cfg(feature = "spice-embedded")]
-    fn start_event_polling(&self, event_rx: rustconn_core::SpiceEventReceiver) {
-        let pixel_buffer = self.pixel_buffer.clone();
-        let cairo_buffer = self.cairo_buffer.clone();
-        let state = self.state.clone();
-        let drawing_area = self.drawing_area.clone();
-        let toolbar = self.toolbar.clone();
-        let spice_width = self.spice_width.clone();
-        let spice_height = self.spice_height.clone();
-        let on_state_changed = self.on_state_changed.clone();
-        let on_error = self.on_error.clone();
-
-        glib::timeout_add_local(std::time::Duration::from_millis(16), move || {
-            // Poll for events
-            while let Ok(event) = event_rx.try_recv() {
-                match event {
-                    SpiceClientEvent::Connected { width, height } => {
-                        tracing::info!(width, height, "SPICE connected");
-                        *state.borrow_mut() = SpiceConnectionState::Connected;
-                        *spice_width.borrow_mut() = u32::from(width);
-                        *spice_height.borrow_mut() = u32::from(height);
-                        pixel_buffer
-                            .borrow_mut()
-                            .resize(u32::from(width), u32::from(height));
-                        cairo_buffer
-                            .borrow_mut()
-                            .resize(u32::from(width), u32::from(height));
-                        toolbar.set_visible(true);
-                        if let Some(ref callback) = *on_state_changed.borrow() {
-                            callback(SpiceConnectionState::Connected);
-                        }
-                        drawing_area.queue_draw();
-                    }
-                    SpiceClientEvent::Disconnected => {
-                        tracing::info!("SPICE disconnected");
-                        *state.borrow_mut() = SpiceConnectionState::Disconnected;
-                        toolbar.set_visible(false);
-                        if let Some(ref callback) = *on_state_changed.borrow() {
-                            callback(SpiceConnectionState::Disconnected);
-                        }
-                        drawing_area.queue_draw();
-                        return glib::ControlFlow::Break;
-                    }
-                    SpiceClientEvent::ResolutionChanged { width, height } => {
-                        tracing::debug!(width, height, "SPICE resolution changed");
-                        *spice_width.borrow_mut() = u32::from(width);
-                        *spice_height.borrow_mut() = u32::from(height);
-                        pixel_buffer
-                            .borrow_mut()
-                            .resize(u32::from(width), u32::from(height));
-                        cairo_buffer
-                            .borrow_mut()
-                            .resize(u32::from(width), u32::from(height));
-                        drawing_area.queue_draw();
-                    }
-                    SpiceClientEvent::FrameUpdate { rect, data } => {
-                        let stride = u32::from(rect.width) * 4;
-                        pixel_buffer.borrow_mut().update_region(
-                            u32::from(rect.x),
-                            u32::from(rect.y),
-                            u32::from(rect.width),
-                            u32::from(rect.height),
-                            &data,
-                            stride,
-                        );
-                        cairo_buffer.borrow_mut().update_region(
-                            u32::from(rect.x),
-                            u32::from(rect.y),
-                            u32::from(rect.width),
-                            u32::from(rect.height),
-                            &data,
-                            stride,
-                        );
-                        drawing_area.queue_draw();
-                    }
-                    SpiceClientEvent::FullFrameUpdate {
-                        width,
-                        height,
-                        data,
-                    } => {
-                        *spice_width.borrow_mut() = u32::from(width);
-                        *spice_height.borrow_mut() = u32::from(height);
-                        let mut buffer = pixel_buffer.borrow_mut();
-                        buffer.resize(u32::from(width), u32::from(height));
-                        let stride = u32::from(width) * 4;
-                        buffer.update_region(
-                            0,
-                            0,
-                            u32::from(width),
-                            u32::from(height),
-                            &data,
-                            stride,
-                        );
-                        drop(buffer);
-                        let mut cb = cairo_buffer.borrow_mut();
-                        cb.resize(u32::from(width), u32::from(height));
-                        cb.update_region(0, 0, u32::from(width), u32::from(height), &data, stride);
-                        drop(cb);
-                        drawing_area.queue_draw();
-                    }
-                    SpiceClientEvent::Error(msg) => {
-                        tracing::error!(error = %msg, "SPICE client error");
-                        *state.borrow_mut() = SpiceConnectionState::Error;
-                        toolbar.set_visible(false);
-                        if let Some(ref callback) = *on_error.borrow() {
-                            callback(&msg);
-                        }
-                        drawing_area.queue_draw();
-                    }
-                    SpiceClientEvent::ClipboardText(text) => {
-                        // Copy to local clipboard
-                        if let Some(display) = gtk4::gdk::Display::default() {
-                            let clipboard = display.clipboard();
-                            clipboard.set_text(&text);
-                        }
-                    }
-                    _ => {}
-                }
-            }
-
-            glib::ControlFlow::Continue
-        });
-    }
-
-    /// Connects using external SPICE viewer (fallback)
+    /// Connects using an external SPICE viewer.
     fn connect_external(&self, config: &SpiceClientConfig) -> Result<(), SpiceClientError> {
         use rustconn_core::spice_client::{SpiceViewerLaunchResult, launch_spice_viewer};
 
@@ -1131,15 +633,6 @@ impl EmbeddedSpiceWidget {
 
     /// Disconnects from the SPICE server
     pub fn disconnect(&self) {
-        #[cfg(feature = "spice-embedded")]
-        {
-            if let Some(ref sender) = *self.command_sender.borrow() {
-                let _ = sender.send(SpiceClientCommand::Disconnect);
-            }
-            *self.spice_client.borrow_mut() = None;
-            *self.command_sender.borrow_mut() = None;
-        }
-
         // Kill external process if any
         if let Some(mut process) = self.process.borrow_mut().take() {
             let _ = process.kill();
@@ -1236,12 +729,8 @@ impl crate::embedded_trait::EmbeddedWidget for EmbeddedSpiceWidget {
     }
 
     fn send_ctrl_alt_del(&self) {
-        #[cfg(feature = "spice-embedded")]
-        {
-            if let Some(ref sender) = *self.command_sender.borrow() {
-                let _ = sender.send(SpiceClientCommand::SendCtrlAltDel);
-            }
-        }
+        // No-op: SPICE runs in an external viewer, which handles special keys
+        // through its own UI. The native input channel was removed in 0.18.0.
     }
 
     fn protocol_name(&self) -> &'static str {

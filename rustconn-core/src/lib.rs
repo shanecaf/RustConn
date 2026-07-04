@@ -19,7 +19,9 @@
 //!
 //! - `vnc-embedded` - Native VNC client via `vnc-rs` (default)
 //! - `rdp-embedded` - Native RDP client via `IronRDP` (default)
-//! - `spice-embedded` - Native SPICE client
+//!
+//! SPICE sessions use an external viewer (virt-viewer/remote-viewer); the
+//! native embedded SPICE client was removed in 0.18.0.
 
 // Enable missing_docs warning for public API documentation
 #![warn(missing_docs)]
@@ -252,12 +254,10 @@ pub use snap::{
     is_interface_connected, is_sandboxed, is_snap,
 };
 pub use snippet::SnippetManager;
-#[cfg(feature = "spice-embedded")]
-pub use spice_client::{SpiceClient, SpiceClientState, SpiceCommandSender, SpiceEventReceiver};
 pub use spice_client::{
-    SpiceClientCommand, SpiceClientConfig, SpiceClientError, SpiceClientEvent, SpiceCompression,
-    SpiceRect, SpiceSecurityProtocol, SpiceSharedFolder, SpiceViewerLaunchResult,
-    build_spice_viewer_args, detect_spice_viewer, is_embedded_spice_available, launch_spice_viewer,
+    SpiceClientConfig, SpiceClientError, SpiceCompression, SpiceSecurityProtocol,
+    SpiceSharedFolder, SpiceViewerLaunchResult, build_spice_viewer_args, detect_spice_viewer,
+    launch_spice_viewer,
 };
 pub use sync::{
     Inventory, InventoryEntry, SYNC_TAG_PREFIX, SyncResult, default_port_for_protocol,

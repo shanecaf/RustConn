@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- **Native embedded SPICE client** (the `spice-embedded` feature) — a spike against the bundled `spice-client` 0.2 confirmed that embedded SPICE cannot work without forking the crate: its public API exposes no inputs channel (keyboard/mouse could never be forwarded — the handlers only logged events) and no way to read raw display frames after the event loop starts (`start_event_loop` moves the display channels into background tasks, and the only frame accessor is a WASM-oriented base64 data URL, not BGRA). The feature was already disabled by default in 0.17.10; it is now removed entirely, along with the `spice-client` dependency and its transitive tree. SPICE sessions continue to open in an external viewer (virt-viewer/remote-viewer), which is unchanged and fully functional. This deletes the dead native `SpiceClient`, the `SpiceClientEvent`/`SpiceClientCommand`/`SpiceRect` types, `is_embedded_spice_available()`, and the never-reachable input/render code paths in the SPICE widget
+
 ### Fixed
 
 - **Embedded VNC now decodes Tight/JPEG rectangles instead of showing noise** — the most bandwidth-efficient VNC encoding (Tight, which sends photographic regions as JPEG) was disabled in 0.17.10 because its JPEG sub-rectangles were forwarded to the renderer as if they were raw BGRA pixels, painting garbage. The client now decodes each JPEG rectangle to BGRA (via the pure-Rust `zune-jpeg`, already present transitively, so no new third-party crate enters the tree) and Tight is offered first again, falling back to ZRLE/CopyRect/Raw. Grayscale (Luma) and truecolor (RGB) JPEGs are both handled; a rectangle that fails to decode is skipped with a warning rather than tearing down the session

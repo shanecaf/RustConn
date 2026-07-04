@@ -8,7 +8,7 @@ use super::{Protocol, ProtocolCapabilities, ProtocolResult};
 /// SPICE protocol handler
 ///
 /// Implements the Protocol trait for SPICE connections.
-/// Native SPICE embedding is available via spice-client (`spice-embedded` feature flag, disabled by default).
+/// SPICE sessions open in an external viewer (virt-viewer/remote-viewer).
 #[derive(Debug)]
 pub struct SpiceProtocol;
 
