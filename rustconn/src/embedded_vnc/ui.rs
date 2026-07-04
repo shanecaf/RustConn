@@ -21,7 +21,7 @@ use super::EmbeddedVncWidget;
 #[cfg(feature = "vnc-embedded")]
 use super::VncClientCommand;
 use super::find_best_standard_resolution;
-use super::{VncConnectionState, VncPixelBuffer};
+use super::VncConnectionState;
 
 impl EmbeddedVncWidget {
     /// Creates a new embedded VNC widget
@@ -111,7 +111,6 @@ impl EmbeddedVncWidget {
 
         container.append(&reconnect_banner);
 
-        let pixel_buffer = Rc::new(RefCell::new(VncPixelBuffer::new(1280, 720)));
         let cairo_buffer = Rc::new(RefCell::new(crate::cairo_buffer::CairoBackedBuffer::new(
             1280, 720,
         )));
@@ -130,7 +129,6 @@ impl EmbeddedVncWidget {
             ctrl_alt_del_button: ctrl_alt_del_button.clone(),
             separator,
             drawing_area,
-            pixel_buffer,
             cairo_buffer,
             state,
             config: Rc::new(RefCell::new(None)),
@@ -198,7 +196,6 @@ impl EmbeddedVncWidget {
 
     /// Sets up the drawing function for the DrawingArea
     fn setup_drawing(&self) {
-        let pixel_buffer = self.pixel_buffer.clone();
         let cairo_buffer = self.cairo_buffer.clone();
         let state = self.state.clone();
         let is_embedded = self.is_embedded.clone();
@@ -236,42 +233,6 @@ impl EmbeddedVncWidget {
                         cr.scale(scale, scale);
                         let _ = cr.set_source_surface(surface, 0.0, 0.0);
                         let _ = cr.paint();
-                        return;
-                    }
-
-                    // Fallback: old VncPixelBuffer path (to_vec copy)
-                    #[expect(
-    clippy::items_after_statements,
-    reason = "local helper introduced inline next to its only call site; hoisting would scatter related logic"
-)]
-                    static WARN_ONCE: std::sync::Once = std::sync::Once::new();
-                    WARN_ONCE.call_once(|| {
-                        tracing::warn!("VNC: using fallback VncPixelBuffer with per-frame to_vec() copy — consider migrating to CairoBackedBuffer");
-                    });
-                    let fb = pixel_buffer.borrow();
-                    let fb_w = fb.width();
-                    let fb_h = fb.height();
-                    if fb_w > 0 && fb_h > 0 {
-                        let data = fb.data();
-                        if let Ok(surface) = gtk4::cairo::ImageSurface::create_for_data(
-                            data.to_vec(),
-                            gtk4::cairo::Format::ARgb32,
-                            crate::utils::dimension_to_i32(fb_w),
-                            crate::utils::dimension_to_i32(fb_h),
-                            crate::utils::stride_to_i32(fb.stride()),
-                        ) {
-                            let scale_x = f64::from(width) / f64::from(fb_w);
-                            let scale_y = f64::from(height) / f64::from(fb_h);
-                            let scale = scale_x.min(scale_y);
-
-                            let offset_x = f64::from(fb_w).mul_add(-scale, f64::from(width)) / 2.0;
-                            let offset_y = f64::from(fb_h).mul_add(-scale, f64::from(height)) / 2.0;
-
-                            cr.translate(offset_x, offset_y);
-                            cr.scale(scale, scale);
-                            let _ = cr.set_source_surface(&surface, 0.0, 0.0);
-                            let _ = cr.paint();
-                        }
                     }
                 } else {
                     // Show status overlay
@@ -641,7 +602,6 @@ impl EmbeddedVncWidget {
     fn setup_resize_handler(&self) {
         let width = self.width.clone();
         let height = self.height.clone();
-        let pixel_buffer = self.pixel_buffer.clone();
         let cairo_buffer = self.cairo_buffer.clone();
 
         self.drawing_area
@@ -652,8 +612,6 @@ impl EmbeddedVncWidget {
                 *width.borrow_mut() = new_width;
                 *height.borrow_mut() = new_height;
 
-                // Resize the pixel buffer
-                pixel_buffer.borrow_mut().resize(new_width, new_height);
                 cairo_buffer.borrow_mut().resize(new_width, new_height);
             });
     }

@@ -10,6 +10,11 @@
 //!
 //! Used by embedded RDP, VNC, and SPICE widgets.
 
+/// Maximum surface dimension per axis. A remote server controls the requested
+/// resolution (RDP/VNC resize events), so this clamps the allocation to guard
+/// against OOM from an absurd or malicious size (16384×16384×4 B ≈ 1 GB max).
+const MAX_DIMENSION: u32 = 16384;
+
 /// A pixel buffer backed by a persistent Cairo `ImageSurface`.
 pub struct CairoBackedBuffer {
     surface: Option<gtk4::cairo::ImageSurface>,
@@ -23,6 +28,8 @@ impl CairoBackedBuffer {
     /// Creates a new Cairo-backed buffer with the specified dimensions.
     #[must_use]
     pub fn new(width: u32, height: u32) -> Self {
+        let width = width.min(MAX_DIMENSION);
+        let height = height.min(MAX_DIMENSION);
         let stride = width * 4;
         let mut buf = Self {
             surface: None,
@@ -196,6 +203,8 @@ impl CairoBackedBuffer {
 
     /// Recreates the surface when dimensions change.
     pub fn resize(&mut self, width: u32, height: u32) {
+        let width = width.min(MAX_DIMENSION);
+        let height = height.min(MAX_DIMENSION);
         if self.width == width && self.height == height {
             return;
         }
