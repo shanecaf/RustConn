@@ -1,9 +1,8 @@
 //! Secret management module for `RustConn`
 //!
 //! This module provides secure credential storage through multiple backends:
-//! - `KeePassXC` via browser integration protocol (primary)
+//! - Direct KDBX file access (compatible with `KeePassXC`, GNOME Secrets, `OneKeePass`)
 //! - libsecret for GNOME Keyring/KDE Wallet integration (fallback)
-//! - Direct KDBX file access (compatible with GNOME Secrets, `OneKeePass`, KeePass)
 //! - Bitwarden CLI integration
 //! - 1Password CLI integration
 //!
@@ -17,7 +16,7 @@ mod detection;
 mod encrypted_file;
 pub mod hierarchy;
 mod kdbx;
-mod keepassxc;
+mod kdbx_keyring;
 pub mod keyring;
 #[cfg(not(target_os = "macos"))]
 mod libsecret;
@@ -58,8 +57,8 @@ pub use hierarchy::{
     GROUPS_SUBFOLDER, GroupCreationResult, KEEPASS_ROOT_GROUP, KeePassHierarchy, PATH_SEPARATOR,
 };
 pub use kdbx::KdbxExporter;
-pub use keepassxc::{
-    KeePassXcBackend, delete_kdbx_password_from_keyring, get_kdbx_password_from_keyring,
+pub use kdbx_keyring::{
+    delete_kdbx_password_from_keyring, get_kdbx_password_from_keyring,
     store_kdbx_password_in_keyring,
 };
 #[cfg(not(target_os = "macos"))]

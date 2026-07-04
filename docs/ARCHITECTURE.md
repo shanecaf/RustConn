@@ -602,7 +602,7 @@ pub trait SecretBackend: Send + Sync {
 
 **Implementations:**
 - `LibsecretBackend`: GNOME Keyring (default)
-- `KeePassXcBackend`: KeePassXC via CLI
+- `KdbxExporter` + `kdbx_keyring`: KeePassXC/KeePass via direct `.kdbx` file access
 - `BitwardenBackend`: Bitwarden via CLI
 - `OnePasswordBackend`: 1Password via CLI
 - `PassboltBackend`: Passbolt via CLI (`go-passbolt-cli`)
