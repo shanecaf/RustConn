@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.17.9
+Version:        0.17.10
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -259,6 +259,14 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Sat Jul 04 2026 Anton Isaiev <totoshko88@gmail.com> - 0.17.10-0
+- Fixed embedded RDP/VNC requesting a scale-inflated resolution on HiDPI displays — the remote desktop is now requested at the widget's logical size instead of device pixels, cutting HiDPI bandwidth roughly 4× at 2× scale; explicit Display Scale values still request a higher resolution for sharpness
+- Fixed embedded SPICE showing a black, unresponsive screen by default — spice-embedded is no longer a default feature; SPICE uses the external viewer (opt in with --features spice-embedded)
+- Fixed embedded VNC rendering garbage against TightVNC/TigerVNC — the Tight encoding is removed from the defaults; ZRLE, CopyRect and Raw remain
+- Fixed VNC input momentarily stalling the UI — commands are now sent non-blocking on the GTK main thread
+- Improved embedded RDP frame handling — removed a redundant per-frame buffer copy on the IronRDP path (~33 MB per frame at 4K)
+- Improved sidebar search — result lookup is now O(1) instead of O(n) per hit
+- Removed a dead multi-monitor detection placeholder; wrapped remaining user-facing strings for translation; dropped the unused futures dependency
 * Fri Jul 03 2026 Anton Isaiev <totoshko88@gmail.com> - 0.17.9-0
 - Fixed SSH multi-hop password chains still crashing when a bastion's host key is unknown — every hop authenticating via forced SSH_ASKPASS now sets StrictHostKeyChecking=accept-new, so a first-seen host-key prompt is no longer routed to the password helper; a changed key is still rejected, preserving MITM protection (#203)
 - Fixed the embedded RDP first frame being blurry and never sharpening — the desktop is re-requested at the drawing area's real size over MS-RDPEDISP once layout settles, so the first real frame arrives at a 1:1 pixel map (#206)

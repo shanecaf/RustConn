@@ -291,12 +291,12 @@ impl super::EmbeddedRdpWidget {
             "Starting connection generation"
         );
 
-        // Get actual widget size for initial resolution
-        // This ensures the RDP session matches the current window size
-        // Use scale override from config, falling back to system scale_factor
-        let effective_scale = config
-            .scale_override
-            .effective_scale(self.drawing_area.scale_factor());
+        // Get actual widget size for initial resolution. The remote desktop is
+        // requested at the widget's LOGICAL size (Auto = 1.0×) so we don't push
+        // scale-factor-inflated device resolutions over the network; the
+        // framebuffer is upscaled locally for HiDPI. Explicit Display Scale
+        // values raise the remote resolution for a sharper image.
+        let effective_scale = config.scale_override.effective_scale();
         let (actual_width, actual_height) = {
             let w = self.drawing_area.width();
             let h = self.drawing_area.height();
@@ -561,13 +561,10 @@ impl super::EmbeddedRdpWidget {
                 }
                 let server_w = *rdp_width_ref.borrow();
                 let server_h = *rdp_height_ref.borrow();
-                let effective_scale = config.borrow().as_ref().map_or_else(
-                    || f64::from(drawing_area.scale_factor().max(1)),
-                    |c| {
-                        c.scale_override
-                            .effective_scale(drawing_area.scale_factor())
-                    },
-                );
+                let effective_scale = config
+                    .borrow()
+                    .as_ref()
+                    .map_or(1.0, |c| c.scale_override.effective_scale());
                 let css_w = drawing_area.width().unsigned_abs();
                 let css_h = drawing_area.height().unsigned_abs();
                 #[expect(
@@ -861,16 +858,11 @@ impl super::EmbeddedRdpWidget {
                                     &data,
                                     u32::from(rect.width) * 4,
                                 );
-                                // Also update legacy pixel buffer (fallback)
-                                let mut buffer = pixel_buffer.borrow_mut();
-                                buffer.update_region(
-                                    u32::from(rect.x),
-                                    u32::from(rect.y),
-                                    u32::from(rect.width),
-                                    u32::from(rect.height),
-                                    &data,
-                                    u32::from(rect.width) * 4,
-                                );
+                                // NOTE: The legacy PixelBuffer is only read by the
+                                // FreeRDP fallback path (which populates it via
+                                // on_end_paint); on the IronRDP path the Cairo buffer
+                                // above is authoritative, so a second per-frame copy
+                                // here was pure overhead (~33 MB/frame at 4K).
                                 if !*first_frame_received.borrow()
                                     && let Some(t) = *connected_at.borrow()
                                 {
@@ -908,21 +900,9 @@ impl super::EmbeddedRdpWidget {
                                         u32::from(width) * 4,
                                     );
                                 }
-                                // Also update legacy pixel buffer (fallback)
-                                let mut buffer = pixel_buffer.borrow_mut();
-                                if buffer.width() != u32::from(width)
-                                    || buffer.height() != u32::from(height)
-                                {
-                                    buffer.resize(u32::from(width), u32::from(height));
-                                }
-                                buffer.update_region(
-                                    0,
-                                    0,
-                                    u32::from(width),
-                                    u32::from(height),
-                                    &data,
-                                    u32::from(width) * 4,
-                                );
+                                // Legacy PixelBuffer intentionally not updated here —
+                                // see the FrameUpdate handler above (IronRDP renders
+                                // from the Cairo buffer; PixelBuffer is FreeRDP-only).
                                 if !*first_frame_received.borrow()
                                     && let Some(t) = *connected_at.borrow()
                                 {

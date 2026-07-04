@@ -1290,14 +1290,22 @@ impl ScaleOverride {
         }
     }
 
-    /// Returns the effective scale factor given the system-reported widget scale.
+    /// Returns the resolution multiplier relative to the logical (CSS) size.
     ///
-    /// For `Auto`, returns the system scale factor (minimum 1).
-    /// For explicit values, returns the fixed multiplier.
+    /// `Auto` returns `1.0`: the remote desktop is requested at the widget's
+    /// logical resolution (device pixels ÷ compositor scale), which minimises
+    /// the pixels transmitted over the network — the framebuffer is upscaled
+    /// locally for HiDPI display. Explicit values request a proportionally
+    /// larger remote resolution for a sharper image at higher bandwidth.
+    ///
+    /// Note: this used to follow the system scale factor for `Auto`, which
+    /// pushed scale-inflated device resolutions (e.g. 3868×2518 on a 4K@200%
+    /// display) over the wire and slowed the session down for no real gain when
+    /// the server ignores the DPI hint.
     #[must_use]
-    pub fn effective_scale(self, system_scale: i32) -> f64 {
+    pub const fn effective_scale(self) -> f64 {
         match self {
-            Self::Auto => f64::from(system_scale.max(1)),
+            Self::Auto => 1.0,
             Self::Scale125 => 1.25,
             Self::Scale150 => 1.5,
             Self::Scale200 => 2.0,

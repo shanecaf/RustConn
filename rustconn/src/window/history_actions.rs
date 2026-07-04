@@ -85,11 +85,9 @@ impl MainWindow {
                                                  variable '{var_name_log}' \
                                                  to vault: {e}"
                                             );
-                                            toast_c.show_error(
-                                                "Failed to save secret \
-                                                 to vault. Check secret \
-                                                 backend in Settings.",
-                                            );
+                                            toast_c.show_error(&crate::i18n::i18n(
+                                                "Failed to save secret to vault. Check secret backend in Settings.",
+                                            ));
                                         } else {
                                             tracing::info!(
                                                 "Secret variable \

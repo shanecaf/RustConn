@@ -406,10 +406,9 @@ impl MainWindow {
                 return;
             };
             let Some(wol_config) = conn.get_wol_config() else {
-                toast_clone.show_warning(
-                    "No Wake On LAN configured. Edit the connection \
-                     to set a MAC address.",
-                );
+                toast_clone.show_warning(&crate::i18n::i18n(
+                    "No Wake On LAN configured. Edit the connection to set a MAC address.",
+                ));
                 return;
             };
             let wol_config = wol_config.clone();
@@ -676,19 +675,17 @@ impl MainWindow {
 
                 // Warn about password auth — mc FISH can't prompt
                 if uses_password && key_path.is_none() {
-                    toast_clone.show_warning(
-                        "mc requires SSH key in agent. \
-                         Password auth is not supported.",
-                    );
+                    toast_clone.show_warning(&crate::i18n::i18n(
+                        "mc requires SSH key in agent. Password auth is not supported.",
+                    ));
                 }
 
                 // Add SSH key to agent if configured
                 if let Some(ref kp) = key_path {
                     if !rustconn_core::sftp::is_ssh_agent_available() {
-                        toast_clone.show_warning(
-                            "SSH agent not running. Run \
-                             'eval $(ssh-agent)' and retry.",
-                        );
+                        toast_clone.show_warning(&crate::i18n::i18n(
+                            "SSH agent not running. Run 'eval $(ssh-agent)' and retry.",
+                        ));
                     }
                     tracing::info!(?kp, "Adding SSH key to agent for mc");
                     let mut ssh_add = std::process::Command::new("ssh-add");
@@ -861,10 +858,9 @@ impl MainWindow {
                         // pass our env to an already-running Dolphin.
                         Self::sftp_launch_file_manager(&uri_clone);
                         if !agent_ok {
-                            toast_cb.show_warning(
-                                "SSH agent not running — file manager \
-                                 may not authenticate.",
-                            );
+                            toast_cb.show_warning(&crate::i18n::i18n(
+                                "SSH agent not running — file manager may not authenticate.",
+                            ));
                         }
                     },
                 );

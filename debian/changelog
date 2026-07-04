@@ -1,3 +1,27 @@
+rustconn (0.17.10-1) unstable; urgency=medium
+
+  * Fixed embedded RDP/VNC requesting a scale-inflated resolution on HiDPI
+    displays — the remote desktop is now requested at the widget's logical size
+    (device pixels ÷ compositor scale) instead of device pixels, cutting HiDPI
+    bandwidth roughly 4× at 2× scale and restoring comfortable remote UI sizing;
+    explicit Display Scale values still request a higher resolution for sharpness
+  * Fixed embedded SPICE showing a black, unresponsive screen by default — the
+    bundled spice-client does not forward frames or input in embedded mode, so
+    the spice-embedded feature is no longer enabled by default; SPICE now uses
+    the working external viewer (opt in with --features spice-embedded)
+  * Fixed embedded VNC rendering garbage against TightVNC/TigerVNC — the Tight
+    encoding (whose JPEG rectangles were drawn as raw pixels) is removed from
+    the defaults; ZRLE, CopyRect and Raw remain
+  * Fixed VNC input momentarily stalling the UI — commands are now sent
+    non-blocking on the GTK main thread
+  * Improved embedded RDP frame handling — removed a redundant per-frame buffer
+    copy on the IronRDP path (~33 MB per frame at 4K)
+  * Improved sidebar search — result lookup is now O(1) instead of O(n) per hit
+  * Removed a dead multi-monitor detection placeholder; wrapped remaining
+    user-facing strings for translation; dropped the unused futures dependency
+
+ -- Anton Isaiev <totoshko88@gmail.com>  Sat, 04 Jul 2026 12:00:00 +0200
+
 rustconn (0.17.9-1) unstable; urgency=medium
 
   * Fixed SSH multi-hop password chains still crashing when a bastion's host

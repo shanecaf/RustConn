@@ -1,6 +1,6 @@
 name: rustconn
 base: core24
-version: '0.17.9'
+version: '0.17.10'
 title: RustConn
 summary: Manage remote connections easily
 description: |
@@ -9,54 +9,48 @@ description: |
   Zero Trust connections from a single application. Core protocols use embedded
   Rust implementations — no external dependencies required.
 
-  Protocols (embedded Rust implementations):
-  - SSH with embedded VTE terminal, split view, and scrollbar
-  - RDP via IronRDP (embedded, with FreeRDP fallback)
-  - VNC via vnc-rs (embedded, with TigerVNC fallback)
-  - SPICE via spice-client (embedded, with remote-viewer fallback)
-  - MOSH with predict mode and UDP port range
-  - Telnet via external telnet client
-  - Serial via picocom (RS-232/USB serial consoles)
-  - Kubernetes via kubectl exec (shell access to pods)
-  - Zero Trust: AWS SSM, GCP IAP, Azure Bastion, OCI Bastion,
-    Cloudflare, Teleport, Tailscale, Boundary, Hoop.dev
+  Supported protocols (embedded Rust implementations):
+  - SSH with a built-in VTE terminal, split view, and scrollbar
+  - RDP via IronRDP (embedded, with a FreeRDP fallback)
+  - VNC via vnc-rs (embedded, with a TigerVNC fallback)
+  - SPICE via spice-client (embedded, with a remote-viewer fallback)
+  - MOSH with predict mode and a UDP port range
+  - Telnet, Serial consoles (RS-232/USB), and Kubernetes pod shells
+  - Managed access gateways for the major cloud providers
 
-  Cloud Sync:
-  - Synchronize connections via shared directories (Google Drive,
-    Syncthing, Nextcloud, Dropbox, USB)
-  - Group Sync with Master/Import access model
-  - Simple Sync with UUID-based merge and tombstone deletion
+  Sync between your own devices:
+  - Share your connection list through a folder you already sync
+    (Google Drive, Syncthing, Nextcloud, Dropbox, USB)
+  - Group and simple sync modes with UUID-based merge
 
-  File Transfer:
-  - SFTP file browser via Midnight Commander with split-panel navigation
+  File transfer:
+  - SFTP file browser with split-panel navigation
 
   Organization:
   - Groups, tags, templates, and smart folders
   - Connection history and statistics
-  - Session logging and recording
+  - Optional session logs
   - Tab Overview, Tab Pinning, and Tab Switcher
 
   Import/Export:
-  - Asbru-CM, Remmina, SSH config, Ansible inventory, CSV
-  - Royal TS, MobaXterm, RDP files, libvirt, native format (.rcn)
+  - Asbru-CM, Remmina, SSH config, Ansible inventory, CSV,
+    RDP files, libvirt, and the native format (.rcn)
 
-  Security:
-  - KeePassXC (KDBX files and proxy)
+  Credential storage (all optional, user-configured):
   - System keyring (GNOME Keyring / KDE Wallet)
-  - Bitwarden CLI, 1Password CLI, Passbolt CLI, Pass (passwordstore.org)
+  - KeePassXC and popular password-manager CLIs
 
   Productivity:
   - Split terminals with multi-panel layouts
-  - Command snippets and cluster broadcast
+  - Reusable command snippets
   - Custom terminal themes and per-connection color overrides
-  - Remote host monitoring (CPU, memory, disk, network)
+  - Resource usage overview (CPU, memory, disk, network)
   - Wake-on-LAN with auto-connect
 
   Note: This snap uses strict confinement with embedded protocol clients
   (SSH, RDP via IronRDP, VNC via vnc-rs, SPICE) bundled in the snap. Optional
-  external CLIs (Zero Trust providers, password managers) are downloaded on
-  demand into the snap's writable user data and run inside the sandbox — no
-  host access is required.
+  helper CLIs are downloaded on demand into the snap's writable user data and
+  run inside the sandbox — no host access is required.
 
 grade: stable
 confinement: strict

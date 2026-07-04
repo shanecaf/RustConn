@@ -60,11 +60,12 @@ impl super::EmbeddedRdpWidget {
                 let css_width = new_width.unsigned_abs();
                 let css_height = new_height.unsigned_abs();
 
-                // Compute device pixels for RDP resolution requests
-                let effective_scale = config.borrow().as_ref().map_or_else(
-                    || f64::from(area.scale_factor().max(1)),
-                    |c| c.scale_override.effective_scale(area.scale_factor()),
-                );
+                // Requested resolution = logical widget size × scale multiplier
+                // (Auto = 1.0×, i.e. logical — keeps the network payload small).
+                let effective_scale = config
+                    .borrow()
+                    .as_ref()
+                    .map_or(1.0, |c| c.scale_override.effective_scale());
                 #[expect(
     clippy::cast_possible_truncation,
     clippy::cast_sign_loss,
@@ -302,13 +303,10 @@ impl super::EmbeddedRdpWidget {
         let css_width = drawing_area.width().unsigned_abs();
         let css_height = drawing_area.height().unsigned_abs();
 
-        let effective_scale = config.borrow().as_ref().map_or_else(
-            || f64::from(drawing_area.scale_factor().max(1)),
-            |c| {
-                c.scale_override
-                    .effective_scale(drawing_area.scale_factor())
-            },
-        );
+        let effective_scale = config
+            .borrow()
+            .as_ref()
+            .map_or(1.0, |c| c.scale_override.effective_scale());
         #[expect(
             clippy::cast_possible_truncation,
             clippy::cast_sign_loss,
