@@ -86,13 +86,7 @@ fn bench_search_scaling(c: &mut Criterion) {
         let query = SearchQuery::with_text("server");
 
         group.bench_with_input(BenchmarkId::new("connections", size), size, |b, _| {
-            b.iter(|| {
-                engine.search(
-                    black_box(&query),
-                    black_box(&conn_refs),
-                    black_box(&groups),
-                )
-            })
+            b.iter(|| engine.search(black_box(&query), black_box(&conn_refs), black_box(&groups)))
         });
     }
 
@@ -157,46 +151,22 @@ fn bench_search_with_filters(c: &mut Criterion) {
 
     group.bench_function("no_filter", |b| {
         let query = SearchQuery::with_text("server");
-        b.iter(|| {
-            engine.search(
-                black_box(&query),
-                black_box(&conn_refs),
-                black_box(&groups),
-            )
-        })
+        b.iter(|| engine.search(black_box(&query), black_box(&conn_refs), black_box(&groups)))
     });
 
     group.bench_function("protocol_filter", |b| {
         let query = SearchEngine::parse_query("server protocol:ssh").unwrap();
-        b.iter(|| {
-            engine.search(
-                black_box(&query),
-                black_box(&conn_refs),
-                black_box(&groups),
-            )
-        })
+        b.iter(|| engine.search(black_box(&query), black_box(&conn_refs), black_box(&groups)))
     });
 
     group.bench_function("tag_filter", |b| {
         let query = SearchEngine::parse_query("server tag:prod").unwrap();
-        b.iter(|| {
-            engine.search(
-                black_box(&query),
-                black_box(&conn_refs),
-                black_box(&groups),
-            )
-        })
+        b.iter(|| engine.search(black_box(&query), black_box(&conn_refs), black_box(&groups)))
     });
 
     group.bench_function("multiple_filters", |b| {
         let query = SearchEngine::parse_query("server protocol:ssh tag:prod").unwrap();
-        b.iter(|| {
-            engine.search(
-                black_box(&query),
-                black_box(&conn_refs),
-                black_box(&groups),
-            )
-        })
+        b.iter(|| engine.search(black_box(&query), black_box(&conn_refs), black_box(&groups)))
     });
 
     group.finish();
