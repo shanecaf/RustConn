@@ -579,5 +579,4 @@ mod tests {
         assert_eq!(SpiceConnectionState::Connected.to_string(), "Connected");
         assert_eq!(SpiceConnectionState::Error.to_string(), "Error");
     }
-
 }
