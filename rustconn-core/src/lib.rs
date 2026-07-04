@@ -270,8 +270,8 @@ pub use template::{
 // Split view types (tab-scoped layouts)
 pub use split::SplitDirection;
 pub use split::{
-    ColorId, ColorPool, DropResult, LeafPanel, PanelId, PanelNode, SPLIT_COLORS,
-    SessionId as SplitSessionId, SplitError, SplitLayoutModel, SplitNode, TabGroupManager, TabId,
+    ColorId, ColorPool, DropResult, LeafPanel, PanelId, PanelNode, SPLIT_COLORS, SplitError,
+    SplitLayoutModel, SplitNode, TabGroupManager, TabId,
 };
 pub use ssh_agent::{
     AgentError, AgentKey, AgentResult, AgentStatus, SshAgentManager, parse_agent_output,
@@ -281,10 +281,7 @@ pub use testing::{
     ConnectionTester, DEFAULT_CONCURRENCY, DEFAULT_TEST_TIMEOUT_SECS, TestError, TestResult,
     TestSummary,
 };
-pub use tracing::{
-    TracingConfig, TracingError, TracingLevel, TracingOutput, TracingResult, field_names,
-    get_tracing_config, init_tracing, is_tracing_initialized, span_names,
-};
+pub use tracing::span_names;
 pub use variables::{
     Variable, VariableError, VariableManager, VariableResult, VariableScope,
     variable_kdbx_lookup_key, variable_secret_key,
