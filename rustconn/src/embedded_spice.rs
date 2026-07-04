@@ -160,6 +160,10 @@ pub struct EmbeddedSpiceWidget {
     /// Toolbar with clipboard and special key buttons
     toolbar: GtkBox,
     /// Status label for feedback
+    #[cfg_attr(
+        not(feature = "spice-embedded"),
+        expect(dead_code, reason = "read only by embedded SPICE code paths")
+    )]
     status_label: Label,
     /// Copy button
     copy_button: Button,
@@ -188,8 +192,16 @@ pub struct EmbeddedSpiceWidget {
     /// Current widget height
     height: Rc<RefCell<u32>>,
     /// SPICE server framebuffer width
+    #[cfg_attr(
+        not(feature = "spice-embedded"),
+        expect(dead_code, reason = "read only by embedded SPICE code paths")
+    )]
     spice_width: Rc<RefCell<u32>>,
     /// SPICE server framebuffer height
+    #[cfg_attr(
+        not(feature = "spice-embedded"),
+        expect(dead_code, reason = "read only by embedded SPICE code paths")
+    )]
     spice_height: Rc<RefCell<u32>>,
     /// State change callback
     on_state_changed: Rc<RefCell<Option<StateCallback>>>,

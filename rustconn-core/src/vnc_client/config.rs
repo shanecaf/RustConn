@@ -39,12 +39,11 @@ impl Default for VncClientConfig {
             port: 5900,
             password: None,
             pixel_format: PixelFormat::Bgra,
-            encodings: vec![
-                VncEncoding::Tight,
-                VncEncoding::Zrle,
-                VncEncoding::CopyRect,
-                VncEncoding::Raw,
-            ],
+            // NOTE: Tight is intentionally omitted. Its JPEG sub-encoding is
+            // not decoded yet (the client would blit compressed JPEG bytes as
+            // raw BGRA → garbage). ZRLE gives comparable compression and is
+            // decoded correctly. Re-add Tight once a JPEG decoder is wired in.
+            encodings: vec![VncEncoding::Zrle, VncEncoding::CopyRect, VncEncoding::Raw],
             shared: true,
             view_only: false,
             timeout_secs: 30,
@@ -154,7 +153,11 @@ mod tests {
     #[test]
     fn test_default_encodings() {
         let config = VncClientConfig::default();
-        assert!(config.encodings.contains(&VncEncoding::Tight));
+        // Tight is intentionally excluded until JPEG decode lands (its JPEG
+        // sub-encoding would otherwise be blitted as raw pixels); ZRLE gives
+        // comparable compression and decodes correctly.
+        assert!(!config.encodings.contains(&VncEncoding::Tight));
+        assert!(config.encodings.contains(&VncEncoding::Zrle));
         assert!(config.encodings.contains(&VncEncoding::Raw));
     }
 }

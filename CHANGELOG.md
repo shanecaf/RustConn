@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.10] - 2026-07-04
+
+### Fixed
+
+- **Embedded RDP/VNC requested a scale-inflated resolution on HiDPI displays** — the remote desktop was requested in *device* pixels (widget logical size × compositor scale factor), so on a 4K screen at 200% the client negotiated resolutions like 3868×2518 and sent a DPI hint the server often ignored, leaving a huge, tiny-UI desktop and pushing far more pixels over the network than needed. `Display Scale = Auto` now requests the widget's *logical* resolution (device ÷ scale) and the framebuffer is upscaled locally for HiDPI, so a session uses roughly a quarter of the bandwidth at 2× scale and the remote UI is comfortably sized again. The explicit Display Scale values (125–400%) still request a proportionally higher remote resolution for a sharper image when the extra bandwidth is acceptable
+- **Embedded SPICE showed a black, unresponsive screen by default** — the bundled `spice-client` 0.2 does not forward frames or input in embedded mode (the client is moved into a background event-loop task while the command loop only emits connection events; key/pointer events were logged and dropped). Because the native path always returned `Ok`, the external-viewer fallback never fired, so the default SPICE experience was a blank window with no keyboard or mouse. The `spice-embedded` feature is no longer in the default set: SPICE now uses the external viewer (virt-viewer/remote-viewer), which works. Native embedded SPICE can still be opted into with `--features spice-embedded` and will return once native frame/input forwarding is implemented
+- **Embedded VNC rendered garbage against TightVNC/TigerVNC** — the client advertised the Tight encoding, whose JPEG sub-rectangles were passed straight through as if they were raw BGRA pixels, so JPEG-coded regions showed as noise. Tight is removed from the default encoding list (ZRLE, CopyRect and Raw remain — comparable compression, decoded correctly). Tight/JPEG returns once a JPEG decoder is wired in (see `docs/PLAN-0.18.0.md`)
+- **VNC input could momentarily stall the UI** — `send_command`/`disconnect` used `blocking_send` on the GTK main thread despite the method documenting itself as non-blocking; a full command channel would freeze the UI. They now use `try_send` (the channel has capacity 32; a rare input overflow is dropped rather than blocking the interface)
+
+### Performance
+
+- **Embedded RDP copied every frame twice** — on the IronRDP path each `FrameUpdate`/`FullFrameUpdate` was written into both the authoritative Cairo-backed buffer and a legacy `PixelBuffer` that is only ever read by the FreeRDP fallback renderer, costing an extra full-frame `memcpy` (~33 MB per frame at 4K). The redundant per-frame copy is removed; the FreeRDP fallback still populates its own buffer via `on_end_paint`
+- **Sidebar search did an O(n²) result lookup** — after ranking, each result was matched back to its connection with a linear `Vec::find`; results are now indexed by id once (`HashMap`) for O(1) lookup
+
+### Removed
+
+- **Dead `detect_monitors()` placeholder** (`rdp_client/multimonitor.rs`) — an uncalled public helper that always returned a hard-coded 1920×1080 layout; removed (YAGNI) to avoid callers relying on fake data
+
+### Internal
+
+- Wrapped nine remaining user-facing strings in `i18n()` (SSH connection options, Wake-on-LAN / mc / ssh-agent warnings, vault-save error)
+- Removed the unused `futures` dependency from the `rustconn` GUI crate
+
 ## [0.17.9] - 2026-07-03
 
 ### Fixed

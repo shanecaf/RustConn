@@ -479,15 +479,17 @@ fn create_connection_group() -> (
     connection_group.add(&proxy_command_row);
 
     // IdentitiesOnly switch
-    let (identities_row, identities_only) = CheckboxRowBuilder::new("Use Only Specified Key")
-        .subtitle("Prevents trying other keys (IdentitiesOnly)")
-        .build();
+    let (identities_row, identities_only) =
+        CheckboxRowBuilder::new(&i18n("Use Only Specified Key"))
+            .subtitle(&i18n("Prevents trying other keys (IdentitiesOnly)"))
+            .build();
     connection_group.add(&identities_row);
 
     // ControlMaster switch
-    let (control_master_row, control_master) = CheckboxRowBuilder::new("Connection Multiplexing")
-        .subtitle("Reuse connections (ControlMaster)")
-        .build();
+    let (control_master_row, control_master) =
+        CheckboxRowBuilder::new(&i18n("Connection Multiplexing"))
+            .subtitle(&i18n("Reuse connections (ControlMaster)"))
+            .build();
     connection_group.add(&control_master_row);
 
     // Keep-Alive Interval (ServerAliveInterval)

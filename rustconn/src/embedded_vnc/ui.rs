@@ -577,12 +577,12 @@ impl EmbeddedVncWidget {
         let last_requested: Rc<RefCell<(u32, u32)>> = Rc::new(RefCell::new((0, 0)));
 
         self.drawing_area
-            .connect_resize(move |area, new_width, new_height| {
+            .connect_resize(move |_area, new_width, new_height| {
                 // Apply scale override from config, falling back to system scale_factor
-                let effective_scale = config.borrow().as_ref().map_or_else(
-                    || f64::from(area.scale_factor().max(1)),
-                    |c| c.scale_override.effective_scale(area.scale_factor()),
-                );
+                let effective_scale = config
+                    .borrow()
+                    .as_ref()
+                    .map_or(1.0, |c| c.scale_override.effective_scale());
                 #[expect(
     clippy::cast_possible_truncation,
     clippy::cast_sign_loss,

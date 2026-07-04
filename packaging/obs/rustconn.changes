@@ -1,4 +1,15 @@
 -------------------------------------------------------------------
+Sat Jul 04 2026 Anton Isaiev <totoshko88@gmail.com> - 0.17.10
+
+- Fixed embedded RDP/VNC requesting a scale-inflated resolution on HiDPI displays — the remote desktop is now requested at the widget's logical size (device pixels ÷ compositor scale) instead of device pixels, cutting HiDPI bandwidth roughly 4× at 2× scale and restoring comfortable remote UI sizing; explicit Display Scale values still request a higher resolution for sharpness
+- Fixed embedded SPICE showing a black, unresponsive screen by default — the bundled spice-client does not forward frames or input in embedded mode, so the spice-embedded feature is no longer enabled by default; SPICE now uses the working external viewer (opt in with --features spice-embedded)
+- Fixed embedded VNC rendering garbage against TightVNC/TigerVNC — the Tight encoding, whose JPEG rectangles were drawn as raw pixels, is removed from the default encoding list; ZRLE, CopyRect and Raw remain
+- Fixed VNC input momentarily stalling the UI — commands are now sent non-blocking on the GTK main thread
+- Improved embedded RDP frame handling — removed a redundant per-frame buffer copy on the IronRDP path (~33 MB per frame at 4K)
+- Improved sidebar search — result lookup is now O(1) instead of O(n) per hit
+- Removed a dead multi-monitor detection placeholder; wrapped remaining user-facing strings for translation; dropped the unused futures dependency
+
+-------------------------------------------------------------------
 Fri Jul 03 2026 Anton Isaiev <totoshko88@gmail.com> - 0.17.9
 
 - Fixed SSH multi-hop password chains still crashing when a bastion's host key is unknown — every hop authenticating via forced SSH_ASKPASS now sets StrictHostKeyChecking=accept-new, so a first-seen host-key prompt is no longer routed to the password helper (which answered with the password and looped until the bastion dropped the connection); a changed key is still rejected, preserving MITM protection (#203)

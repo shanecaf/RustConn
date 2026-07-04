@@ -1492,9 +1492,13 @@ impl MainWindow {
             // Perform search with ranking
             let results = search_engine.search(&parsed_query, &connections, &groups);
 
+            // Index by id once so result lookup is O(1) instead of O(n) per hit.
+            let conn_by_id: std::collections::HashMap<_, _> =
+                connections.iter().map(|c| (c.id, c)).collect();
+
             // Display results sorted by relevance
             for result in results {
-                if let Some(conn) = connections.iter().find(|c| c.id == result.connection_id) {
+                if let Some(conn) = conn_by_id.get(&result.connection_id) {
                     let protocol = get_protocol_string(&conn.protocol_config);
 
                     // Create display name with relevance indicator

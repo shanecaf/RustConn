@@ -14,7 +14,6 @@ path = "src/main.rs"
 [dependencies]
 rustconn-core = { path = "../rustconn-core", version = "0.17.0" }
 tokio = { workspace = true }
-futures = { workspace = true }
 # Event-driven tray message delivery to the GTK main loop (no polling)
 async-channel = { workspace = true }
 gtk4 = { workspace = true, features = ["v4_14"] }
@@ -51,7 +50,12 @@ shell-words = "1"
 nix = { version = "0.31", features = ["signal", "process"] }
 
 [features]
-default = ["tray", "vnc-embedded", "rdp-embedded", "rdp-audio", "wayland-native", "spice-embedded"]
+# NOTE: `spice-embedded` is intentionally NOT in the default set. The bundled
+# spice-client 0.2 does not forward frames or input, so the embedded path shows
+# a black, unresponsive screen; the default SPICE path is the external viewer
+# (virt-viewer/remote-viewer), which works. Opt in with --features spice-embedded
+# once native rendering (frame + input forwarding) is implemented.
+default = ["tray", "vnc-embedded", "rdp-embedded", "rdp-audio", "wayland-native"]
 tray = ["dep:ksni", "dep:resvg"]
 tray-macos = ["dep:tray-icon", "dep:muda", "dep:resvg"]
 vnc-embedded = ["rustconn-core/vnc-embedded"]

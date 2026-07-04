@@ -218,27 +218,6 @@ impl MonitorLayout {
     }
 }
 
-/// Detects monitors from the system
-///
-/// This function attempts to detect the current monitor configuration.
-/// On Linux, it tries to parse output from xrandr or use Wayland protocols.
-///
-/// # Returns
-///
-/// A `MonitorLayout` with detected monitors, or a default single-monitor
-/// layout if detection fails.
-#[must_use]
-pub fn detect_monitors() -> MonitorLayout {
-    // Try to detect monitors from environment
-    // This is a placeholder - actual implementation would use:
-    // - Wayland: wl_output protocol
-    // - X11: xrandr
-    // - GTK: Gdk.Display.get_monitors() (but that's in GUI crate)
-
-    // For now, return a sensible default
-    MonitorLayout::single(1920, 1080)
-}
-
 /// Monitor arrangement for multi-monitor sessions
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum MonitorArrangement {

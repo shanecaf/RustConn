@@ -128,7 +128,11 @@ impl VncClient {
             .as_ref()
             .ok_or(VncClientError::NotConnected)?;
 
-        tx.blocking_send(command)
+        // Non-blocking: this runs on the GTK main thread. `blocking_send` here
+        // would stall the UI (and panics inside a Tokio worker). The command
+        // channel has ample capacity (32); input events that momentarily
+        // overflow are safe to drop rather than freeze the UI.
+        tx.try_send(command)
             .map_err(|e| VncClientError::ChannelError(e.to_string()))
     }
 
@@ -183,7 +187,7 @@ impl VncClient {
     /// Disconnects from the VNC server
     pub fn disconnect(&mut self) {
         if let Some(tx) = &self.command_tx {
-            let _ = tx.blocking_send(VncClientCommand::Disconnect);
+            let _ = tx.try_send(VncClientCommand::Disconnect);
         }
         self.command_tx = None;
         self.event_rx = None;
