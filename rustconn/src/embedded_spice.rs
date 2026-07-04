@@ -45,100 +45,6 @@ impl std::fmt::Display for SpiceConnectionState {
     }
 }
 
-/// Pixel buffer for SPICE frame data
-#[derive(Debug)]
-pub struct SpicePixelBuffer {
-    /// Raw pixel data in BGRA format
-    data: Vec<u8>,
-    /// Buffer width in pixels
-    width: u32,
-    /// Buffer height in pixels
-    height: u32,
-    /// Stride (bytes per row)
-    stride: u32,
-}
-
-impl SpicePixelBuffer {
-    /// Creates a new pixel buffer with the specified dimensions
-    #[must_use]
-    pub fn new(width: u32, height: u32) -> Self {
-        let stride = width * 4; // 4 bytes per pixel (BGRA)
-        let size = (stride * height) as usize;
-        Self {
-            data: vec![0; size],
-            width,
-            height,
-            stride,
-        }
-    }
-
-    /// Returns the buffer width
-    #[must_use]
-    pub const fn width(&self) -> u32 {
-        self.width
-    }
-
-    /// Returns the buffer height
-    #[must_use]
-    pub const fn height(&self) -> u32 {
-        self.height
-    }
-
-    /// Returns a reference to the raw pixel data
-    #[must_use]
-    pub fn data(&self) -> &[u8] {
-        &self.data
-    }
-
-    /// Resizes the buffer to new dimensions
-    pub fn resize(&mut self, width: u32, height: u32) {
-        self.width = width;
-        self.height = height;
-        self.stride = width * 4;
-        let size = (self.stride * height) as usize;
-        self.data.resize(size, 0);
-    }
-
-    /// Clears the buffer to black
-    pub fn clear(&mut self) {
-        self.data.fill(0);
-    }
-
-    /// Updates a region of the buffer with raw pixel data
-    pub fn update_region(
-        &mut self,
-        x: u32,
-        y: u32,
-        w: u32,
-        h: u32,
-        src_data: &[u8],
-        src_stride: u32,
-    ) {
-        let dst_stride = self.stride as usize;
-        let src_stride = src_stride as usize;
-        let bytes_per_pixel = 4;
-
-        for row in 0..h {
-            let dst_y = (y + row) as usize;
-            if dst_y >= self.height as usize {
-                break;
-            }
-
-            let dst_offset = dst_y * dst_stride + (x as usize * bytes_per_pixel);
-            let src_offset = row as usize * src_stride;
-            let copy_width =
-                (w as usize * bytes_per_pixel).min(dst_stride - (x as usize * bytes_per_pixel));
-
-            if src_offset + copy_width <= src_data.len()
-                && dst_offset + copy_width <= self.data.len()
-            {
-                self.data[dst_offset..dst_offset + copy_width]
-                    .copy_from_slice(&src_data[src_offset..src_offset + copy_width]);
-            }
-        }
-    }
-}
-
 /// Callback type for state change notifications
 type StateCallback = Box<dyn Fn(SpiceConnectionState) + 'static>;
 
@@ -171,10 +77,6 @@ pub struct EmbeddedSpiceWidget {
     separator: gtk4::Separator,
     /// Drawing area for rendering SPICE frames
     drawing_area: DrawingArea,
-    /// Pixel buffer for frame data
-    pixel_buffer: Rc<RefCell<SpicePixelBuffer>>,
-    /// Persistent Cairo-backed pixel buffer for zero-copy rendering
-    cairo_buffer: Rc<RefCell<crate::cairo_buffer::CairoBackedBuffer>>,
     /// Current connection state
     state: Rc<RefCell<SpiceConnectionState>>,
     /// Current configuration
@@ -292,10 +194,6 @@ impl EmbeddedSpiceWidget {
 
         container.append(&reconnect_banner);
 
-        let pixel_buffer = Rc::new(RefCell::new(SpicePixelBuffer::new(1280, 720)));
-        let cairo_buffer = Rc::new(RefCell::new(crate::cairo_buffer::CairoBackedBuffer::new(
-            1280, 720,
-        )));
         let state = Rc::new(RefCell::new(SpiceConnectionState::Disconnected));
         let width = Rc::new(RefCell::new(1280u32));
         let height = Rc::new(RefCell::new(720u32));
@@ -311,8 +209,6 @@ impl EmbeddedSpiceWidget {
             ctrl_alt_del_button: ctrl_alt_del_button.clone(),
             separator,
             drawing_area,
-            pixel_buffer,
-            cairo_buffer,
             state,
             config: Rc::new(RefCell::new(None)),
             process: Rc::new(RefCell::new(None)),
@@ -370,116 +266,41 @@ impl EmbeddedSpiceWidget {
 
     /// Sets up the drawing function for the DrawingArea
     fn setup_drawing(&self) {
-        let pixel_buffer = self.pixel_buffer.clone();
-        let cairo_buffer = self.cairo_buffer.clone();
         let state = self.state.clone();
-        let is_embedded = self.is_embedded.clone();
 
         self.drawing_area.set_draw_func(move |_area, cr, w, h| {
             use gtk4::cairo;
 
             let current_state = *state.borrow();
-            let embedded = *is_embedded.borrow();
 
             // Fill background
             cr.set_source_rgb(0.1, 0.1, 0.1);
             let _ = cr.paint();
 
-            if embedded && current_state == SpiceConnectionState::Connected {
-                // Fast path: use the persistent Cairo surface (zero-copy)
-                let buffer = cairo_buffer.borrow();
-                let buf_w = crate::utils::dimension_to_i32(buffer.width());
-                let buf_h = crate::utils::dimension_to_i32(buffer.height());
+            // SPICE renders in an external viewer window; the embedded drawing
+            // area only shows a status line.
+            cr.select_font_face("Sans", cairo::FontSlant::Normal, cairo::FontWeight::Normal);
+            cr.set_font_size(13.0);
 
-                let should_render = buf_w > 0 && buf_h > 0 && buffer.has_data();
+            let status_text = match current_state {
+                SpiceConnectionState::Disconnected => i18n("Session ended"),
+                SpiceConnectionState::Connecting => i18n("Connecting..."),
+                SpiceConnectionState::Connected => i18n("Session running in external window"),
+                SpiceConnectionState::Error => i18n("Connection error"),
+            };
 
-                if should_render && let Some(surface) = buffer.surface() {
-                    let scale_x = f64::from(w) / f64::from(buf_w);
-                    let scale_y = f64::from(h) / f64::from(buf_h);
-                    let scale = scale_x.min(scale_y);
+            let color = match current_state {
+                SpiceConnectionState::Connected => (0.6, 0.8, 0.6),
+                SpiceConnectionState::Connecting => (0.8, 0.8, 0.6),
+                SpiceConnectionState::Error | SpiceConnectionState::Disconnected => (0.8, 0.4, 0.4),
+            };
+            cr.set_source_rgb(color.0, color.1, color.2);
 
-                    let scaled_w = (f64::from(buf_w) * scale) as i32;
-                    let scaled_h = (f64::from(buf_h) * scale) as i32;
-                    let offset_x = (w - scaled_w) / 2;
-                    let offset_y = (h - scaled_h) / 2;
-
-                    cr.translate(f64::from(offset_x), f64::from(offset_y));
-                    cr.scale(scale, scale);
-                    let _ = cr.set_source_surface(surface, 0.0, 0.0);
-                    let _ = cr.paint();
-                    return;
-                }
-
-                // Fallback: old SpicePixelBuffer path (to_vec copy)
-                #[expect(
-    clippy::items_after_statements,
-    reason = "local helper introduced inline next to its only call site; hoisting would scatter related logic"
-)]
-                static WARN_ONCE: std::sync::Once = std::sync::Once::new();
-                WARN_ONCE.call_once(|| {
-                    tracing::warn!("SPICE: using fallback SpicePixelBuffer with per-frame to_vec() copy — consider migrating to CairoBackedBuffer");
-                });
-                let fb = pixel_buffer.borrow();
-                let fb_w = crate::utils::dimension_to_i32(fb.width());
-                let fb_h = crate::utils::dimension_to_i32(fb.height());
-
-                if fb_w > 0 && fb_h > 0 && !fb.data().is_empty() {
-                    let scale_x = f64::from(w) / f64::from(fb_w);
-                    let scale_y = f64::from(h) / f64::from(fb_h);
-                    let scale = scale_x.min(scale_y);
-
-                    let scaled_w = (f64::from(fb_w) * scale) as i32;
-                    let scaled_h = (f64::from(fb_h) * scale) as i32;
-                    let offset_x = (w - scaled_w) / 2;
-                    let offset_y = (h - scaled_h) / 2;
-
-                    let stride = cairo::Format::ARgb32
-                        .stride_for_width(fb.width())
-                        .unwrap_or(fb_w * 4);
-
-                    if let Ok(surface) = cairo::ImageSurface::create_for_data(
-                        fb.data().to_vec(),
-                        cairo::Format::ARgb32,
-                        fb_w,
-                        fb_h,
-                        stride,
-                    ) {
-                        cr.translate(f64::from(offset_x), f64::from(offset_y));
-                        cr.scale(scale, scale);
-                        let _ = cr.set_source_surface(&surface, 0.0, 0.0);
-                        let _ = cr.paint();
-                    }
-                }
-            } else {
-                // Show status text
-                cr.set_source_rgb(0.7, 0.7, 0.7);
-                cr.select_font_face("Sans", cairo::FontSlant::Normal, cairo::FontWeight::Normal);
-                cr.set_font_size(13.0);
-
-                let status_text = match current_state {
-                    SpiceConnectionState::Disconnected => i18n("Session ended"),
-                    SpiceConnectionState::Connecting => i18n("Connecting..."),
-                    SpiceConnectionState::Connected if !embedded => {
-                        i18n("Session running in external window")
-                    }
-                    SpiceConnectionState::Connected => i18n("Connected"),
-                    SpiceConnectionState::Error => i18n("Connection error"),
-                };
-
-                let color = match current_state {
-                    SpiceConnectionState::Connected => (0.6, 0.8, 0.6),
-                    SpiceConnectionState::Connecting => (0.8, 0.8, 0.6),
-                    SpiceConnectionState::Error => (0.8, 0.4, 0.4),
-                    SpiceConnectionState::Disconnected => (0.8, 0.4, 0.4),
-                };
-                cr.set_source_rgb(color.0, color.1, color.2);
-
-                if let Ok(extents) = cr.text_extents(&status_text) {
-                    let x = (f64::from(w) - extents.width()) / 2.0;
-                    let y = f64::midpoint(f64::from(h), extents.height());
-                    cr.move_to(x, y);
-                    let _ = cr.show_text(&status_text);
-                }
+            if let Ok(extents) = cr.text_extents(&status_text) {
+                let x = (f64::from(w) - extents.width()) / 2.0;
+                let y = f64::midpoint(f64::from(h), extents.height());
+                cr.move_to(x, y);
+                let _ = cr.show_text(&status_text);
             }
         });
     }
@@ -759,20 +580,4 @@ mod tests {
         assert_eq!(SpiceConnectionState::Error.to_string(), "Error");
     }
 
-    #[test]
-    fn test_pixel_buffer_new() {
-        let buffer = SpicePixelBuffer::new(100, 50);
-        assert_eq!(buffer.width(), 100);
-        assert_eq!(buffer.height(), 50);
-        assert_eq!(buffer.data().len(), 100 * 50 * 4);
-    }
-
-    #[test]
-    fn test_pixel_buffer_resize() {
-        let mut buffer = SpicePixelBuffer::new(100, 50);
-        buffer.resize(200, 100);
-        assert_eq!(buffer.width(), 200);
-        assert_eq!(buffer.height(), 100);
-        assert_eq!(buffer.data().len(), 200 * 100 * 4);
-    }
 }
