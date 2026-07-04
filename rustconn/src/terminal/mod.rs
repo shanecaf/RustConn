@@ -2661,13 +2661,6 @@ impl TerminalNotebook {
         self.tab_view.set_vexpand(true);
     }
 
-    /// Hides TabView content area (legacy — kept for backward compatibility)
-    #[expect(dead_code, reason = "Legacy method, TabView now always visible")]
-    pub fn hide_tab_view_content(&self) {
-        self.tab_view.set_visible(false);
-        self.tab_view.set_vexpand(false);
-    }
-
     /// Returns whether the TabView content is currently visible
     #[must_use]
     #[expect(
