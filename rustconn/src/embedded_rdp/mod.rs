@@ -46,7 +46,7 @@ mod input;
 mod resize;
 
 // Re-export types for external use
-pub use buffer::{CairoBackedBuffer, WaylandSurfaceHandle};
+pub use buffer::CairoBackedBuffer;
 pub use file_dnd::{FileDndCircuitBreaker, LocalFileInfo};
 pub use launcher::SafeFreeRdpLauncher;
 pub use thread::FreeRdpThread;
@@ -228,8 +228,6 @@ pub struct EmbeddedRdpWidget {
     separator: gtk4::Separator,
     /// Drawing area for rendering RDP frames
     drawing_area: DrawingArea,
-    /// Wayland surface handle
-    wl_surface: Rc<RefCell<WaylandSurfaceHandle>>,
     /// Persistent Cairo-backed pixel buffer for zero-copy rendering.
     /// Used by IronRDP embedded mode to avoid 33MB copies per frame at 4K.
     cairo_buffer: Rc<RefCell<CairoBackedBuffer>>,
@@ -671,7 +669,6 @@ impl EmbeddedRdpWidget {
             ctrl_alt_del_button: ctrl_alt_del_button.clone(),
             separator,
             drawing_area,
-            wl_surface: Rc::new(RefCell::new(WaylandSurfaceHandle::new())),
             cairo_buffer,
             state,
             config: Rc::new(RefCell::new(None)),

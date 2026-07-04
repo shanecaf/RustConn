@@ -233,9 +233,6 @@ pub struct PlaybackToolbar {
     pub repeat_btn: Button,
     /// Status label shown after playback completes.
     pub status_label: Label,
-    /// Quick search entry for filtering recordings.
-    #[expect(dead_code, reason = "Kept for future programmatic access")]
-    pub search_entry: SearchEntry,
     /// Popover containing the filtered recording list.
     pub search_popover: Popover,
     /// ListBox inside the popover.
@@ -357,7 +354,6 @@ pub fn create_playback_toolbar(recordings: &[RecordingEntry]) -> PlaybackToolbar
         stop_btn,
         repeat_btn,
         status_label,
-        search_entry,
         search_popover: popover,
         search_list,
     }

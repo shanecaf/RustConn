@@ -22,7 +22,7 @@
 // Re-export types for external use
 pub use crate::embedded_vnc_types::{
     EmbeddedVncError, ErrorCallback, FrameCallback, STANDARD_RESOLUTIONS, StateCallback, VncConfig,
-    VncConnectionState, VncPixelBuffer, VncWaylandSurface, find_best_standard_resolution,
+    VncConnectionState, VncPixelBuffer, find_best_standard_resolution,
 };
 
 mod ui;
@@ -89,8 +89,6 @@ pub struct EmbeddedVncWidget {
     separator: gtk4::Separator,
     /// Drawing area for rendering VNC frames
     drawing_area: DrawingArea,
-    /// Wayland surface handle
-    wl_surface: Rc<RefCell<VncWaylandSurface>>,
     /// Pixel buffer for frame data
     pixel_buffer: Rc<RefCell<VncPixelBuffer>>,
     /// Persistent Cairo-backed pixel buffer for zero-copy rendering
@@ -341,12 +339,6 @@ impl EmbeddedVncWidget {
             config.host,
             config.port
         );
-
-        // Initialize Wayland surface
-        self.wl_surface
-            .borrow_mut()
-            .initialize()
-            .map_err(|e| EmbeddedVncError::SubsurfaceCreation(e.to_string()))?;
 
         // Create VNC client configuration
         let vnc_config = VncClientConfig::new(&config.host)
@@ -768,9 +760,6 @@ impl EmbeddedVncWidget {
             let _ = child.wait();
         }
 
-        // Clean up Wayland surface
-        self.wl_surface.borrow_mut().cleanup();
-
         // Clear pixel buffer
         self.pixel_buffer.borrow_mut().clear();
 
@@ -790,9 +779,6 @@ impl EmbeddedVncWidget {
             let _ = child.kill();
             let _ = child.wait();
         }
-
-        // Clean up Wayland surface
-        self.wl_surface.borrow_mut().cleanup();
 
         // Clear pixel buffer
         self.pixel_buffer.borrow_mut().clear();
@@ -823,95 +809,6 @@ impl EmbeddedVncWidget {
                 "No previous configuration to reconnect".to_string(),
             ))
         }
-    }
-
-    /// Handles VNC frame buffer update
-    ///
-    /// This is called when the VNC server sends a frame buffer update.
-    /// The pixel data is blitted to the Wayland surface.
-    ///
-    /// # Arguments
-    ///
-    /// * `x` - X coordinate of the updated region
-    /// * `y` - Y coordinate of the updated region
-    /// * `width` - Width of the updated region
-    /// * `height` - Height of the updated region
-    /// * `data` - Pixel data for the region
-    /// * `stride` - Stride of the pixel data
-    pub fn on_frame_update(
-        &self,
-        x: u32,
-        y: u32,
-        width: u32,
-        height: u32,
-        data: &[u8],
-        stride: u32,
-    ) {
-        // Update the pixel buffer with the new frame data
-        self.pixel_buffer
-            .borrow_mut()
-            .update_region(x, y, width, height, data, stride);
-
-        // Damage the Wayland surface region
-        self.wl_surface.borrow().damage(
-            crate::utils::dimension_to_i32(x),
-            crate::utils::dimension_to_i32(y),
-            crate::utils::dimension_to_i32(width),
-            crate::utils::dimension_to_i32(height),
-        );
-
-        // Commit the surface
-        self.wl_surface.borrow().commit();
-
-        // Queue a redraw of the GTK widget
-        self.drawing_area.queue_draw();
-
-        // Notify frame update callback
-        if let Some(ref callback) = *self.on_frame_update.borrow() {
-            callback(x, y, width, height);
-        }
-    }
-
-    /// Handles VNC CopyRect update
-    ///
-    /// CopyRect is an efficient encoding where the server tells the client
-    /// to copy a region from one location to another.
-    ///
-    /// # Arguments
-    ///
-    /// * `src_x` - Source X coordinate
-    /// * `src_y` - Source Y coordinate
-    /// * `dst_x` - Destination X coordinate
-    /// * `dst_y` - Destination Y coordinate
-    /// * `width` - Width of the region
-    /// * `height` - Height of the region
-    pub fn on_copy_rect(
-        &self,
-        src_x: u32,
-        src_y: u32,
-        dst_x: u32,
-        dst_y: u32,
-        width: u32,
-        height: u32,
-    ) {
-        // Copy the region within the pixel buffer
-        self.pixel_buffer
-            .borrow_mut()
-            .copy_rect(src_x, src_y, dst_x, dst_y, width, height);
-
-        // Damage the destination region
-        self.wl_surface.borrow().damage(
-            crate::utils::dimension_to_i32(dst_x),
-            crate::utils::dimension_to_i32(dst_y),
-            crate::utils::dimension_to_i32(width),
-            crate::utils::dimension_to_i32(height),
-        );
-
-        // Commit the surface
-        self.wl_surface.borrow().commit();
-
-        // Queue a redraw
-        self.drawing_area.queue_draw();
     }
 
     /// Sends a keyboard event to the VNC server
@@ -1266,18 +1163,6 @@ mod tests {
         // Check destination
         let dst_offset = 5 * stride + 5 * 4;
         assert_eq!(buffer.data()[dst_offset + 2], 255); // Red channel
-    }
-
-    #[test]
-    fn test_wayland_surface_handle() {
-        let mut handle = VncWaylandSurface::new();
-        assert!(!handle.is_initialized());
-
-        handle.initialize().unwrap();
-        assert!(handle.is_initialized());
-
-        handle.cleanup();
-        assert!(!handle.is_initialized());
     }
 
     #[test]

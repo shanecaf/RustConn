@@ -1739,7 +1739,6 @@ impl super::EmbeddedRdpWidget {
         if let Some(mut thread) = self.freerdp_thread.borrow_mut().take() {
             thread.shutdown();
         }
-        self.wl_surface.borrow_mut().cleanup();
         *self.is_embedded.borrow_mut() = false;
     }
 
@@ -1763,12 +1762,6 @@ impl super::EmbeddedRdpWidget {
             port = config.port,
             "Attempting embedded FreeRDP connection"
         );
-
-        // Initialize Wayland surface
-        self.wl_surface
-            .borrow_mut()
-            .initialize()
-            .map_err(|e| EmbeddedRdpError::SubsurfaceCreation(e.to_string()))?;
 
         // Spawn FreeRDP in a dedicated thread to isolate Qt/GTK conflicts
         let freerdp_thread = FreeRdpThread::spawn(config)?;
@@ -1949,9 +1942,6 @@ impl super::EmbeddedRdpWidget {
 
         // Kill external process if running
         self.terminate_external_process();
-
-        // Clean up Wayland surface
-        self.wl_surface.borrow_mut().cleanup();
 
         // Clear Cairo-backed buffer
         self.cairo_buffer.borrow_mut().clear();

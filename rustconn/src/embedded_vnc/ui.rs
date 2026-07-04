@@ -21,7 +21,7 @@ use super::EmbeddedVncWidget;
 #[cfg(feature = "vnc-embedded")]
 use super::VncClientCommand;
 use super::find_best_standard_resolution;
-use super::{VncConnectionState, VncPixelBuffer, VncWaylandSurface};
+use super::{VncConnectionState, VncPixelBuffer};
 
 impl EmbeddedVncWidget {
     /// Creates a new embedded VNC widget
@@ -130,7 +130,6 @@ impl EmbeddedVncWidget {
             ctrl_alt_del_button: ctrl_alt_del_button.clone(),
             separator,
             drawing_area,
-            wl_surface: Rc::new(RefCell::new(VncWaylandSurface::new())),
             pixel_buffer,
             cairo_buffer,
             state,
