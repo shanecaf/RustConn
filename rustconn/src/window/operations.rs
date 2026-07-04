@@ -459,13 +459,14 @@ fn perform_bulk_delete(
 
         // Show results
         if failures.is_empty() {
-            alert::show_success(
+            // Non-blocking success feedback (GNOME HIG: use a toast, not a dialog).
+            crate::toast::show_toast_on_window(
                 &window,
-                &i18n("Deletion Complete"),
                 &i18n_f(
                     "Successfully deleted {} item(s).",
                     &[&success_count.to_string()],
                 ),
+                crate::toast::ToastType::Success,
             );
         } else {
             alert::show_error(

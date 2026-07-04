@@ -1120,7 +1120,8 @@ fn apply_import_result(
                         &[&count.to_string(), &source],
                     )
                 };
-                alert::show_success(&window, &i18n("Import Successful"), &msg);
+                // Non-blocking success feedback (GNOME HIG: toast, not dialog).
+                crate::toast::show_toast_on_window(&window, &msg, crate::toast::ToastType::Success);
             });
         }
         Err(e) => {

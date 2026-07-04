@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: rustconn 0.12.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-04 21:24+0300\n"
+"POT-Creation-Date: 2026-07-04 23:03+0300\n"
 "PO-Revision-Date: 2026-04-25 10:46+0000\n"
 "Last-Translator: RustConn Team\n"
 "Language-Team: Dutch\n"
@@ -42,9 +42,9 @@ msgstr "OK"
 #: rustconn/src/window/batch_edit.rs:62
 #: rustconn/src/window/connection_dialogs.rs:1046
 #: rustconn/src/window/edit_group.rs:1749
-#: rustconn/src/window/edit_group.rs:1797 rustconn/src/window/mod.rs:2696
+#: rustconn/src/window/edit_group.rs:1797 rustconn/src/window/mod.rs:2695
 #: rustconn/src/window/operations.rs:81 rustconn/src/window/operations.rs:414
-#: rustconn/src/window/operations.rs:582 rustconn/src/window/sessions.rs:325
+#: rustconn/src/window/operations.rs:583 rustconn/src/window/sessions.rs:325
 #: rustconn/src/window/workspaces.rs:197
 msgid "Cancel"
 msgstr "Annuleren"
@@ -168,7 +168,7 @@ msgid "Enter Password Manually"
 msgstr "Wachtwoord handmatig invoeren"
 
 #: rustconn/src/dialogs/backend_missing.rs:43 rustconn/src/vault_ops.rs:58
-#: rustconn/src/window/mod.rs:540
+#: rustconn/src/window/mod.rs:539
 msgid "Open Settings"
 msgstr "Instellingen openen"
 
@@ -3956,7 +3956,7 @@ msgstr "Exporteren..."
 msgid "Preparing export..."
 msgstr "Export voorbereiden..."
 
-#: rustconn/src/dialogs/export.rs:487 rustconn/src/window/mod.rs:3343
+#: rustconn/src/dialogs/export.rs:487
 msgid "Export Complete"
 msgstr "Export voltooid"
 
@@ -4095,7 +4095,7 @@ msgstr ""
 #: rustconn/src/dialogs/settings/cloud_sync_tab.rs:238
 #: rustconn/src/dialogs/tunnel_builder/mod.rs:586
 #: rustconn/src/dialogs/widgets.rs:459 rustconn/src/terminal/tab_menu.rs:358
-#: rustconn/src/vault_ops.rs:57 rustconn/src/window/mod.rs:2697
+#: rustconn/src/vault_ops.rs:57 rustconn/src/window/mod.rs:2696
 msgid "Close"
 msgstr "Sluiten"
 
@@ -4611,7 +4611,7 @@ msgstr ""
 "Groep '{}' wordt aangemaakt in importmodus."
 
 #: rustconn/src/dialogs/import/sources.rs:692
-#: rustconn/src/window/connection_dialogs.rs:1127
+#: rustconn/src/window/connection_dialogs.rs:1128
 msgid "Import Failed"
 msgstr "Import mislukt"
 
@@ -5984,8 +5984,8 @@ msgid "No database selected"
 msgstr "Geen database geselecteerd"
 
 #: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1318
-#: rustconn/src/embedded_rdp/ui.rs:164 rustconn/src/embedded_spice.rs:465
-#: rustconn/src/embedded_trait.rs:322 rustconn/src/sidebar/view.rs:561
+#: rustconn/src/embedded_rdp/ui.rs:164 rustconn/src/embedded_trait.rs:322
+#: rustconn/src/sidebar/view.rs:561
 msgid "Connected"
 msgstr "Verbonden"
 
@@ -7784,7 +7784,7 @@ msgid "Fetched from vault at connect time"
 msgstr "Opgehaald uit de kluis bij verbinden"
 
 #: rustconn/src/dialogs/widgets.rs:464 rustconn/src/embedded_rdp/mod.rs:505
-#: rustconn/src/embedded_spice.rs:239 rustconn/src/embedded_trait.rs:203
+#: rustconn/src/embedded_spice.rs:141 rustconn/src/embedded_trait.rs:203
 #: rustconn/src/embedded_vnc/ui.rs:51 rustconn/src/terminal/config.rs:161
 msgid "Copy"
 msgstr "Kopiëren"
@@ -7932,7 +7932,7 @@ msgid "No remote clipboard data"
 msgstr "Geen externe klembordgegevens"
 
 #: rustconn/src/embedded_rdp/clipboard.rs:193
-#: rustconn/src/embedded_vnc/ui.rs:735
+#: rustconn/src/embedded_vnc/ui.rs:693
 msgid "Pasted {} chars"
 msgstr "Geplakt: {} tekens"
 
@@ -8092,13 +8092,13 @@ msgstr "Extern bureaublad aanpassen aan venstergrootte"
 msgid "Copy remote clipboard to local (waiting for remote data...)"
 msgstr "Extern klembord naar lokaal kopiëren (wachten op externe gegevens...)"
 
-#: rustconn/src/embedded_rdp/mod.rs:513 rustconn/src/embedded_spice.rs:244
+#: rustconn/src/embedded_rdp/mod.rs:513 rustconn/src/embedded_spice.rs:146
 #: rustconn/src/embedded_trait.rs:211 rustconn/src/embedded_vnc/ui.rs:56
 #: rustconn/src/terminal/config.rs:162
 msgid "Paste"
 msgstr "Plakken"
 
-#: rustconn/src/embedded_rdp/mod.rs:514 rustconn/src/embedded_spice.rs:245
+#: rustconn/src/embedded_rdp/mod.rs:514 rustconn/src/embedded_spice.rs:147
 #: rustconn/src/embedded_trait.rs:212 rustconn/src/embedded_vnc/ui.rs:57
 msgid "Paste from local clipboard to remote session"
 msgstr "Plakken van lokaal klembord naar externe sessie"
@@ -8127,12 +8127,12 @@ msgstr "PowerShell-script uitvoeren op extern systeem"
 msgid "Run script on remote"
 msgstr "Script uitvoeren op extern systeem"
 
-#: rustconn/src/embedded_rdp/mod.rs:563 rustconn/src/embedded_spice.rs:255
+#: rustconn/src/embedded_rdp/mod.rs:563 rustconn/src/embedded_spice.rs:157
 #: rustconn/src/embedded_trait.rs:225 rustconn/src/embedded_vnc/ui.rs:67
 msgid "Ctrl+Alt+Del"
 msgstr "Ctrl+Alt+Del"
 
-#: rustconn/src/embedded_rdp/mod.rs:565 rustconn/src/embedded_spice.rs:257
+#: rustconn/src/embedded_rdp/mod.rs:565 rustconn/src/embedded_spice.rs:159
 #: rustconn/src/embedded_trait.rs:227 rustconn/src/embedded_trait.rs:229
 #: rustconn/src/embedded_vnc/ui.rs:69
 msgid "Send Ctrl+Alt+Del to remote session"
@@ -8150,19 +8150,19 @@ msgstr "Bestanden opslaan"
 msgid "Save files from remote clipboard"
 msgstr "Bestanden opslaan van extern klembord"
 
-#: rustconn/src/embedded_rdp/mod.rs:637 rustconn/src/embedded_spice.rs:283
+#: rustconn/src/embedded_rdp/mod.rs:637 rustconn/src/embedded_spice.rs:185
 #: rustconn/src/embedded_vnc/ui.rs:102 rustconn/src/terminal/mod.rs:1798
 msgid "Session disconnected"
 msgstr "Sessie verbroken"
 
-#: rustconn/src/embedded_rdp/mod.rs:640 rustconn/src/embedded_spice.rs:286
+#: rustconn/src/embedded_rdp/mod.rs:640 rustconn/src/embedded_spice.rs:188
 #: rustconn/src/embedded_trait.rs:234 rustconn/src/embedded_vnc/ui.rs:105
 #: rustconn/src/terminal/mod.rs:1314 rustconn/src/terminal/mod.rs:1403
 #: rustconn/src/terminal/mod.rs:1811
 msgid "Reconnect"
 msgstr "Opnieuw verbinden"
 
-#: rustconn/src/embedded_rdp/mod.rs:642 rustconn/src/embedded_spice.rs:288
+#: rustconn/src/embedded_rdp/mod.rs:642 rustconn/src/embedded_spice.rs:190
 #: rustconn/src/embedded_vnc/ui.rs:107 rustconn/src/terminal/mod.rs:1316
 #: rustconn/src/terminal/mod.rs:1405 rustconn/src/terminal/mod.rs:1813
 msgid "Reconnect to this session"
@@ -8211,7 +8211,7 @@ msgstr "Formaat wijzigen…"
 msgid "Reconnecting..."
 msgstr "Opnieuw verbinden..."
 
-#: rustconn/src/embedded_rdp/ui.rs:150 rustconn/src/embedded_spice.rs:460
+#: rustconn/src/embedded_rdp/ui.rs:150 rustconn/src/embedded_spice.rs:286
 msgid "Session ended"
 msgstr "Sessie beëindigd"
 
@@ -8240,7 +8240,7 @@ msgstr "Verbinding mislukt"
 msgid "Switch to the FreeRDP window to interact with the session"
 msgstr "Schakel over naar het FreeRDP-venster om met de sessie te werken"
 
-#: rustconn/src/embedded.rs:64 rustconn/src/embedded_spice.rs:461
+#: rustconn/src/embedded.rs:64 rustconn/src/embedded_spice.rs:287
 #: rustconn/src/embedded_trait.rs:318 rustconn/src/session/vnc.rs:188
 #: rustconn/src/session/vnc.rs:260
 msgid "Connecting..."
@@ -8278,17 +8278,17 @@ msgstr "Verbinding maken met {}…"
 msgid "Connected to {}"
 msgstr "Verbonden met {}"
 
-#: rustconn/src/embedded_spice.rs:240 rustconn/src/embedded_trait.rs:204
+#: rustconn/src/embedded_spice.rs:142 rustconn/src/embedded_trait.rs:204
 #: rustconn/src/embedded_vnc/ui.rs:52
 msgid "Copy from remote session to local clipboard"
 msgstr "Kopiëren van externe sessie naar lokaal klembord"
 
-#: rustconn/src/embedded_spice.rs:463 rustconn/src/embedded_trait.rs:320
+#: rustconn/src/embedded_spice.rs:288 rustconn/src/embedded_trait.rs:320
 #: rustconn/src/session/vnc.rs:338
 msgid "Session running in external window"
 msgstr "Sessie draait in extern venster"
 
-#: rustconn/src/embedded_spice.rs:466 rustconn/src/embedded_trait.rs:323
+#: rustconn/src/embedded_spice.rs:289 rustconn/src/embedded_trait.rs:323
 #: rustconn/src/session/vnc.rs:190 rustconn/src/session/vnc.rs:219
 msgid "Connection error"
 msgstr "Verbindingsfout"
@@ -8310,7 +8310,7 @@ msgstr "Opnieuw verbinden met de externe sessie"
 msgid "Disconnected"
 msgstr "Verbinding verbroken"
 
-#: rustconn/src/embedded_vnc/mod.rs:546
+#: rustconn/src/embedded_vnc/mod.rs:519
 msgid ""
 "VNC encryption not supported. Install TigerVNC and enable 'Accept "
 "Certificate'."
@@ -8318,7 +8318,7 @@ msgstr ""
 "VNC-versleuteling niet ondersteund. Installeer TigerVNC en schakel "
 "'Certificaat accepteren' in."
 
-#: rustconn/src/embedded_vnc/mod.rs:600
+#: rustconn/src/embedded_vnc/mod.rs:573
 msgid "Using external viewer (unsupported encryption)"
 msgstr "Externe viewer wordt gebruikt (niet-ondersteunde versleuteling)"
 
@@ -9146,7 +9146,7 @@ msgstr "Alleen aangevinkte velden worden op de selectie toegepast"
 msgid "Apply group change"
 msgstr "Groepswijziging toepassen"
 
-#: rustconn/src/window/batch_edit.rs:83 rustconn/src/window/operations.rs:662
+#: rustconn/src/window/batch_edit.rs:83 rustconn/src/window/operations.rs:663
 msgid "(No Group)"
 msgstr "(Geen groep)"
 
@@ -9366,10 +9366,6 @@ msgstr "Geïmporteerd: {} verbindingen en {} snippets naar groep '{}'"
 #: rustconn/src/window/connection_dialogs.rs:1119
 msgid "Imported {} connections to '{}' group"
 msgstr "Geïmporteerd: {} verbindingen naar groep '{}'"
-
-#: rustconn/src/window/connection_dialogs.rs:1123
-msgid "Import Successful"
-msgstr "Import geslaagd"
 
 #: rustconn/src/window/credentials.rs:269
 msgid "Encrypted file"
@@ -9808,7 +9804,7 @@ msgid "Delete script"
 msgstr "Script verwijderen"
 
 #: rustconn/src/window/groups.rs:56 rustconn/src/window/groups.rs:62
-#: rustconn/src/window/operations.rs:575 rustconn/src/window/operations.rs:584
+#: rustconn/src/window/operations.rs:576 rustconn/src/window/operations.rs:585
 msgid "Move"
 msgstr "Verplaatsen"
 
@@ -9816,7 +9812,7 @@ msgstr "Verplaatsen"
 msgid "Move '{}' to:"
 msgstr "'{}' verplaatsen naar:"
 
-#: rustconn/src/window/groups.rs:112 rustconn/src/window/operations.rs:664
+#: rustconn/src/window/groups.rs:112 rustconn/src/window/operations.rs:665
 msgid "(Root Level)"
 msgstr "(Hoofdniveau)"
 
@@ -9828,62 +9824,76 @@ msgstr "(Ongegroepeerd)"
 msgid "Error Moving Item"
 msgstr "Fout bij het verplaatsen van item"
 
-#: rustconn/src/window/history_actions.rs:89
+#: rustconn/src/window/history_actions.rs:99
+#, fuzzy
+msgid "Secret Not Saved"
+msgstr "Geheimbackend"
+
+#: rustconn/src/window/history_actions.rs:101
+#, fuzzy
+msgid ""
+"The secret for variable “{}” could not be saved to the vault and was not "
+"stored. Re-enter it and check your secret backend in Settings."
+msgstr ""
+"Het wachtwoord kon niet in de kluis worden opgeslagen. Controleer de "
+"geheimen-backend in Instellingen."
+
+#: rustconn/src/window/history_actions.rs:107
 msgid "Failed to save secret to vault. Check secret backend in Settings."
 msgstr ""
 "Geheim kon niet in de kluis worden opgeslagen. Controleer de geheim-backend "
 "in de instellingen."
 
-#: rustconn/src/window/mod.rs:527
+#: rustconn/src/window/mod.rs:526
 msgid "Dismiss"
 msgstr "Negeren"
 
-#: rustconn/src/window/mod.rs:1615
+#: rustconn/src/window/mod.rs:1614
 msgid "Connection to \\u{2018}{}\\u{2019} failed"
 msgstr "Verbinding met \\u{2018}{}\\u{2019} mislukt"
 
-#: rustconn/src/window/mod.rs:1804 rustconn/src/window/mod.rs:1818
+#: rustconn/src/window/mod.rs:1803 rustconn/src/window/mod.rs:1817
 msgid "Pre-connect task failed: {}"
 msgstr "Taak vóór verbinding mislukt: {}"
 
-#: rustconn/src/window/mod.rs:1852
+#: rustconn/src/window/mod.rs:1851
 msgid "Port knock failed: {}"
 msgstr "Port knock mislukt: {}"
 
-#: rustconn/src/window/mod.rs:1901
+#: rustconn/src/window/mod.rs:1900
 msgid "SPA failed: {}"
 msgstr "SPA mislukt: {}"
 
-#: rustconn/src/window/mod.rs:2086 rustconn/src/window/mod.rs:2261
+#: rustconn/src/window/mod.rs:2085 rustconn/src/window/mod.rs:2260
 msgid "Connection \\u{201c}{}\\u{201d} created"
 msgstr "Verbinding \\u{201c}{}\\u{201d} aangemaakt"
 
-#: rustconn/src/window/mod.rs:2690
+#: rustconn/src/window/mod.rs:2689
 msgid "Close RustConn?"
 msgstr "RustConn sluiten?"
 
-#: rustconn/src/window/mod.rs:2692
+#: rustconn/src/window/mod.rs:2691
 msgid "{} session tab(s) are open. Active connections will be disconnected."
 msgstr ""
 "{} sessietabblad(en) zijn geopend. Actieve verbindingen worden verbroken."
 
-#: rustconn/src/window/mod.rs:2727
+#: rustconn/src/window/mod.rs:2726
 msgid "Cloud sync failed for '{}': {}"
 msgstr "Cloudsynchronisatie mislukt voor ‘{}’: {}"
 
-#: rustconn/src/window/mod.rs:2889
+#: rustconn/src/window/mod.rs:2888
 msgid "Startup connection not found"
 msgstr "Opstartverbinding niet gevonden"
 
-#: rustconn/src/window/mod.rs:2925
+#: rustconn/src/window/mod.rs:2924
 msgid "Failed to open .rdp file"
 msgstr "Kan .rdp-bestand niet openen"
 
-#: rustconn/src/window/mod.rs:2961
+#: rustconn/src/window/mod.rs:2960
 msgid "Failed to open .vv file"
 msgstr "Kan .vv-bestand niet openen"
 
-#: rustconn/src/window/mod.rs:3345
+#: rustconn/src/window/mod.rs:3343
 msgid "Successfully exported {} connection(s). {} skipped."
 msgstr "{} verbinding(en) succesvol geëxporteerd. {} overgeslagen."
 
@@ -9998,71 +10008,67 @@ msgstr "Verbindingen in verwijderde groepen worden ongegroepeerd."
 msgid "Delete Selected Items?"
 msgstr "Geselecteerde items verwijderen?"
 
-#: rustconn/src/window/operations.rs:464
-msgid "Deletion Complete"
-msgstr "Verwijdering voltooid"
-
 #: rustconn/src/window/operations.rs:466
 msgid "Successfully deleted {} item(s)."
 msgstr "{} item(s) succesvol verwijderd."
 
-#: rustconn/src/window/operations.rs:473
+#: rustconn/src/window/operations.rs:474
 msgid "Deletion Partially Complete"
 msgstr "Verwijdering gedeeltelijk voltooid"
 
-#: rustconn/src/window/operations.rs:476
+#: rustconn/src/window/operations.rs:477
 msgid "Deleted {} item(s)."
 msgstr "{} item(s) verwijderd."
 
-#: rustconn/src/window/operations.rs:478
+#: rustconn/src/window/operations.rs:479
 msgid "Failed to delete {} item(s):"
 msgstr "Kan {} item(s) niet verwijderen:"
 
-#: rustconn/src/window/operations.rs:499 rustconn/src/window/operations.rs:545
+#: rustconn/src/window/operations.rs:500 rustconn/src/window/operations.rs:546
 msgid "No Selection"
 msgstr "Geen selectie"
 
-#: rustconn/src/window/operations.rs:500
+#: rustconn/src/window/operations.rs:501
 msgid "Select one or more items to delete."
 msgstr "Selecteer een of meer items om te verwijderen."
 
-#: rustconn/src/window/operations.rs:512
+#: rustconn/src/window/operations.rs:513
 msgid "{} connection(s)"
 msgstr "{} verbinding(en)"
 
-#: rustconn/src/window/operations.rs:513
+#: rustconn/src/window/operations.rs:514
 msgid "{} group(s)"
 msgstr "{} groep(en)"
 
-#: rustconn/src/window/operations.rs:515
+#: rustconn/src/window/operations.rs:516
 msgid "{} connection(s) and {} group(s)"
 msgstr "{} verbinding(en) en {} groep(en)"
 
-#: rustconn/src/window/operations.rs:546
+#: rustconn/src/window/operations.rs:547
 msgid "Please select one or more items to move."
 msgstr "Selecteer een of meer items om te verplaatsen."
 
-#: rustconn/src/window/operations.rs:598
+#: rustconn/src/window/operations.rs:599
 msgid "Select destination for {} connection(s) and {} group(s):"
 msgstr "Selecteer bestemming voor {} verbinding(en) en {} groep(en):"
 
-#: rustconn/src/window/operations.rs:606
+#: rustconn/src/window/operations.rs:607
 msgid "Select a group for {} connection(s):"
 msgstr "Selecteer een groep voor {} verbinding(en):"
 
-#: rustconn/src/window/operations.rs:611
+#: rustconn/src/window/operations.rs:612
 msgid "Select parent for {} group(s):"
 msgstr "Selecteer bovenliggende voor {} groep(en):"
 
-#: rustconn/src/window/operations.rs:746
+#: rustconn/src/window/operations.rs:747
 msgid "Move Partially Complete"
 msgstr "Verplaatsing gedeeltelijk voltooid"
 
-#: rustconn/src/window/operations.rs:749
+#: rustconn/src/window/operations.rs:750
 msgid "Moved {} item(s)."
 msgstr "{} item(s) verplaatst."
 
-#: rustconn/src/window/operations.rs:751
+#: rustconn/src/window/operations.rs:752
 msgid "Failed to move {} item(s):"
 msgstr "Kan {} item(s) niet verplaatsen:"
 
@@ -10491,18 +10497,17 @@ msgstr "RustConn"
 msgid "ssh;rdp;vnc;spice;mosh;telnet;zerotrust;connection;terminal;remote;kubernetes;k8s;serial;sftp;"
 msgstr "ssh;rdp;vnc;spice;mosh;telnet;zerotrust;connection;terminal;remote;kubernetes;k8s;serial;sftp;"
 
+#~ msgid "Import Successful"
+#~ msgstr "Import geslaagd"
+
+#~ msgid "Deletion Complete"
+#~ msgstr "Verwijdering voltooid"
+
 #~ msgid "Pasted to remote"
 #~ msgstr "Geplakt naar extern"
 
 #~ msgid "Copy requested"
 #~ msgstr "Kopiëren aangevraagd"
-
-#~ msgid ""
-#~ "The password could not be saved to the vault.                      Check "
-#~ "the secret backend in Settings."
-#~ msgstr ""
-#~ "Het wachtwoord kon niet in de kluis worden opgeslagen. Controleer de "
-#~ "geheimen-backend in Instellingen."
 
 #~ msgid "Password copied to clipboard"
 #~ msgstr "Wachtwoord gekopieerd naar klembord"

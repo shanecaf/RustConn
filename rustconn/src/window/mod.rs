@@ -46,7 +46,6 @@ use self::types::{
     SessionSplitBridges, SharedExternalWindowManager, SharedNotebook, SharedSidebar,
     SharedSplitView, get_protocol_string,
 };
-use crate::alert;
 use crate::toast::ToastOverlay;
 
 use crate::activity_coordinator::ActivityCoordinator;
@@ -3337,10 +3336,9 @@ impl MainWindow {
                     ExportDialog::open_output_location(first_file);
                 }
 
-                // Show success notification
-                alert::show_success(
+                // Non-blocking success feedback (GNOME HIG: toast, not dialog).
+                crate::toast::show_toast_on_window(
                     &window_clone,
-                    &crate::i18n::i18n("Export Complete"),
                     &crate::i18n::i18n_f(
                         "Successfully exported {} connection(s). {} skipped.",
                         &[
@@ -3348,6 +3346,7 @@ impl MainWindow {
                             &export_result.skipped_count.to_string(),
                         ],
                     ),
+                    crate::toast::ToastType::Success,
                 );
             }
         });
