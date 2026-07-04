@@ -98,13 +98,6 @@ impl PlaybackController {
         Ok(())
     }
 
-    /// Returns the current playback state.
-    #[must_use]
-    #[expect(dead_code, reason = "Public API for external state queries")]
-    pub fn state(&self) -> PlaybackState {
-        self.state.get()
-    }
-
     /// Sets the callback invoked whenever the playback state changes.
     pub fn set_on_state_changed<F: Fn(PlaybackState) + 'static>(&self, cb: F) {
         *self.on_state_changed.borrow_mut() = Some(Box::new(cb));

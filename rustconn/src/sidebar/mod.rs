@@ -1021,23 +1021,6 @@ impl ConnectionSidebar {
         *self.recording_checker.borrow_mut() = Some(Box::new(checker));
     }
 
-    /// Checks if a connection has an active recording session
-    #[must_use]
-    #[expect(dead_code, reason = "Public API for recording status checks")]
-    pub fn is_connection_recording(&self, connection_id: &str) -> bool {
-        self.recording_checker
-            .borrow()
-            .as_ref()
-            .is_some_and(|checker| checker(connection_id))
-    }
-
-    /// Returns a clone of the recording checker Rc for use in closures
-    #[must_use]
-    #[expect(dead_code, reason = "Public API for recording checker access")]
-    pub fn recording_checker_rc(&self) -> Rc<RefCell<Option<Box<dyn Fn(&str) -> bool>>>> {
-        Rc::clone(&self.recording_checker)
-    }
-
     /// Returns the search spinner widget
     /// Shows the search pending indicator
     pub fn show_search_pending(&self) {

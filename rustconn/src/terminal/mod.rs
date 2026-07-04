@@ -2706,29 +2706,6 @@ impl TerminalNotebook {
         tracing::debug!(session_id = %session_id, group = group_name, color_index, "Tab assigned to group");
     }
 
-    /// Removes a session from its tab group.
-    #[expect(dead_code, reason = "Public API for window-level tab group operations")]
-    pub fn remove_tab_group(&self, session_id: Uuid) {
-        if let Some(info) = self.session_info.borrow_mut().get_mut(&session_id) {
-            info.tab_group = None;
-            info.tab_color_index = None;
-        }
-
-        // Remove group label prefix from tab title
-        self.clear_group_color(session_id);
-
-        // Restore original tooltip (remove group suffix)
-        if let Some(page) = self.sessions.borrow().get(&session_id) {
-            let tooltip = page.tooltip().unwrap_or_default();
-            let tooltip_str = tooltip.as_str();
-            if let Some(base) = tooltip_str.rsplit_once("\n[") {
-                page.set_tooltip(base.0);
-            }
-        }
-
-        tracing::debug!(session_id = %session_id, "Tab removed from group");
-    }
-
     /// Returns the group name for a session, if any.
     #[must_use]
     pub fn get_tab_group(&self, session_id: Uuid) -> Option<String> {
@@ -2736,13 +2713,6 @@ impl TerminalNotebook {
             .borrow()
             .get(&session_id)
             .and_then(|i| i.tab_group.clone())
-    }
-
-    /// Returns all known group names from the tab group manager.
-    #[must_use]
-    #[expect(dead_code, reason = "Public API for window-level tab group operations")]
-    pub fn known_group_names(&self) -> Vec<String> {
-        self.tab_group_manager.borrow().group_names()
     }
 
     /// Applies a group label prefix to a tab title.
@@ -2764,19 +2734,6 @@ impl TerminalNotebook {
                 })
                 .unwrap_or(&current_title);
             page.set_title(&format!("[{group_name}] {base_title}"));
-        }
-    }
-
-    /// Removes a group label prefix from a tab title.
-    fn clear_group_color(&self, session_id: Uuid) {
-        if let Some(page) = self.sessions.borrow().get(&session_id) {
-            let current_title = page.title().to_string();
-            // Strip "[GroupName] " prefix if present
-            if let Some(pos) = current_title.find("] ")
-                && current_title.starts_with('[')
-            {
-                page.set_title(&current_title[pos + 2..]);
-            }
         }
     }
 
@@ -2998,15 +2955,6 @@ impl TerminalNotebook {
             .get(&cluster_id)
             .cloned()
             .unwrap_or_default()
-    }
-
-    /// Checks if a cluster has any active terminal sessions
-    #[expect(dead_code, reason = "Public API for future cluster status UI")]
-    pub fn has_active_cluster_sessions(&self, cluster_id: Uuid) -> bool {
-        self.cluster_sessions
-            .borrow()
-            .get(&cluster_id)
-            .is_some_and(|sessions| !sessions.is_empty())
     }
 
     // ── Ad-hoc Broadcast ──────────────────────────────────────────────
