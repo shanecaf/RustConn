@@ -395,8 +395,9 @@ async fn run_vnc_client(
             event = vnc.poll_event() => {
                 match event {
                     Ok(Some(event)) => {
-                        let client_event = convert_vnc_event(event);
-                        if event_tx.send(client_event).is_err() {
+                        if let Some(client_event) = convert_vnc_event(event)
+                            && event_tx.send(client_event).is_err()
+                        {
                             break;
                         }
                     }
@@ -420,9 +421,13 @@ async fn run_vnc_client(
     Ok(())
 }
 
-/// Converts vnc-rs events to our event type
-fn convert_vnc_event(event: VncEvent) -> VncClientEvent {
-    match event {
+/// Converts vnc-rs events to our event type.
+///
+/// Returns `None` for events that carry no update to forward (e.g. a JPEG
+/// sub-rectangle that failed to decode), so the caller simply skips them
+/// instead of tearing down the session.
+fn convert_vnc_event(event: VncEvent) -> Option<VncClientEvent> {
+    let mapped = match event {
         VncEvent::SetResolution(screen) => VncClientEvent::ResolutionChanged {
             width: u32::from(screen.width),
             height: u32::from(screen.height),
@@ -442,15 +447,61 @@ fn convert_vnc_event(event: VncEvent) -> VncClientEvent {
         VncEvent::Bell => VncClientEvent::Bell,
         VncEvent::Text(text) => VncClientEvent::ClipboardText(text),
         VncEvent::JpegImage(rect, data) => {
-            // JPEG images need decoding - for now treat as raw
-            // In a full implementation, we'd decode JPEG here
+            // Tight/JPEG sub-rectangle: decode to BGRA before forwarding,
+            // otherwise the GUI would blit compressed JPEG bytes as raw pixels.
+            let bgra = decode_jpeg_to_bgra(&data)?;
             VncClientEvent::FrameUpdate {
                 rect: VncRect::new(rect.x, rect.y, rect.width, rect.height),
-                data,
+                data: bgra,
             }
         }
         _ => VncClientEvent::Error("Unknown VNC event".to_string()),
+    };
+    Some(mapped)
+}
+
+/// Decodes a JPEG sub-rectangle (VNC Tight encoding) into BGRA pixels.
+///
+/// The embedded renderer expects BGRA at 4 bytes per pixel (stride
+/// `width * 4`); zune-jpeg outputs RGB (or Luma for grayscale), so the
+/// channels are reordered and an opaque alpha byte is appended.
+///
+/// Returns `None` (and logs a warning) if decoding fails or the colorspace
+/// is unsupported, so a single bad rectangle is skipped rather than crashing
+/// the session.
+fn decode_jpeg_to_bgra(jpeg: &[u8]) -> Option<Vec<u8>> {
+    use zune_jpeg::JpegDecoder;
+    use zune_jpeg::zune_core::bytestream::ZCursor;
+
+    let mut decoder = JpegDecoder::new(ZCursor::new(jpeg));
+    let pixels = match decoder.decode() {
+        Ok(p) => p,
+        Err(e) => {
+            tracing::warn!(error = %e, "VNC: failed to decode Tight JPEG rectangle");
+            return None;
+        }
+    };
+    let info = decoder.info()?;
+    let pixel_count = usize::from(info.width) * usize::from(info.height);
+    let mut bgra = Vec::with_capacity(pixel_count * 4);
+
+    match usize::from(info.components) {
+        3 => {
+            for px in pixels.chunks_exact(3) {
+                bgra.extend_from_slice(&[px[2], px[1], px[0], 0xFF]);
+            }
+        }
+        1 => {
+            for &gray in &pixels {
+                bgra.extend_from_slice(&[gray, gray, gray, 0xFF]);
+            }
+        }
+        other => {
+            tracing::warn!(components = other, "VNC: unsupported JPEG colorspace");
+            return None;
+        }
     }
+    Some(bgra)
 }
 
 impl Drop for VncClient {
