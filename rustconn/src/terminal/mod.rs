@@ -754,6 +754,11 @@ impl TerminalNotebook {
         page.set_tooltip(&tooltip);
 
         self.sessions.borrow_mut().insert(session_id, page.clone());
+        // Register the container so split (switch_tab_to_split) and unsplit /
+        // close-pane (reparent_terminal_to_tab) can swap this tab's content.
+        self.tab_containers
+            .borrow_mut()
+            .insert(session_id, tab_container);
         self.session_widgets
             .borrow_mut()
             .insert(session_id, SessionWidgetStorage::Vnc(vnc_widget));
@@ -821,6 +826,11 @@ impl TerminalNotebook {
         page.set_tooltip(&tooltip);
 
         self.sessions.borrow_mut().insert(session_id, page.clone());
+        // Register the container so split (switch_tab_to_split) and unsplit /
+        // close-pane (reparent_terminal_to_tab) can swap this tab's content.
+        self.tab_containers
+            .borrow_mut()
+            .insert(session_id, tab_container);
         self.session_widgets.borrow_mut().insert(
             session_id,
             SessionWidgetStorage::EmbeddedSpice(spice_widget),
@@ -882,6 +892,11 @@ impl TerminalNotebook {
         page.set_tooltip(title);
 
         self.sessions.borrow_mut().insert(session_id, page.clone());
+        // Register the container so split (switch_tab_to_split) and unsplit /
+        // close-pane (reparent_terminal_to_tab) can swap this tab's content.
+        self.tab_containers
+            .borrow_mut()
+            .insert(session_id, tab_container);
         self.session_widgets
             .borrow_mut()
             .insert(session_id, SessionWidgetStorage::EmbeddedRdp(widget));
@@ -2656,9 +2671,21 @@ impl TerminalNotebook {
         }
     }
 
-    /// Moves terminal back to its TabView page container
-    /// Call this when session exits split view and returns to TabView display
+    /// Moves a session's content widget back into its `TabView` page.
+    ///
+    /// Used by the split close-pane / unsplit paths: when a session leaves a
+    /// split panel, the *same* widget instance is reparented back into its
+    /// single-session tab. For an embedded RDP/VNC/SPICE viewer this moves the
+    /// live viewer widget (never disconnecting or recreating the connection);
+    /// for a VTE session it rebuilds the terminal + scrollbar layout.
     pub fn reparent_terminal_to_tab(&self, session_id: Uuid) {
+        // Embedded viewers have no VTE terminal — they travel as their own
+        // widget instance (carrying their in-container toolbar and reconnect
+        // banner). Handle them first; fall through to the VTE path otherwise.
+        if self.reparent_embedded_to_tab(session_id) {
+            return;
+        }
+
         let Some(terminal) = self.terminals.borrow().get(&session_id).cloned() else {
             return;
         };
@@ -2702,6 +2729,90 @@ impl TerminalNotebook {
         }
 
         terminal.set_visible(true);
+    }
+
+    /// Reparents an embedded viewer back into its single-session tab.
+    ///
+    /// Returns `true` when `session_id` is an embedded RDP/VNC/SPICE viewer and
+    /// was handled; `false` when it is not embedded (the caller then falls back
+    /// to the VTE terminal path). The same widget instance is moved, so the
+    /// live protocol connection is preserved — nothing is disconnected.
+    fn reparent_embedded_to_tab(&self, session_id: Uuid) -> bool {
+        // Resolve the concrete widget while scoping the borrow, so no
+        // `session_widgets` borrow is held across GTK reparenting.
+        enum Embedded {
+            Vnc(Rc<VncSessionWidget>),
+            Rdp(Rc<EmbeddedRdpWidget>),
+            Spice(Rc<EmbeddedSpiceWidget>),
+        }
+        let embedded = {
+            let widgets = self.session_widgets.borrow();
+            match widgets.get(&session_id) {
+                Some(SessionWidgetStorage::Vnc(w)) => Embedded::Vnc(Rc::clone(w)),
+                Some(SessionWidgetStorage::EmbeddedRdp(w)) => Embedded::Rdp(Rc::clone(w)),
+                Some(SessionWidgetStorage::EmbeddedSpice(w)) => Embedded::Spice(Rc::clone(w)),
+                _ => return false,
+            }
+        };
+
+        // Rebuild the single-mode content, mirroring the creation path so the
+        // embedded widget is wrapped exactly as when its tab was first built.
+        let container = GtkBox::new(Orientation::Vertical, 0);
+        container.set_hexpand(true);
+        container.set_vexpand(true);
+
+        match embedded {
+            Embedded::Vnc(w) => {
+                let widget = w.widget();
+                Self::detach_widget_from_parent(widget);
+                widget.set_hexpand(true);
+                widget.set_vexpand(true);
+                container.append(widget);
+                widget.set_visible(true);
+            }
+            Embedded::Spice(w) => {
+                let widget = w.widget();
+                Self::detach_widget_from_parent(widget.upcast_ref());
+                widget.set_hexpand(true);
+                widget.set_vexpand(true);
+                container.append(widget);
+                widget.set_visible(true);
+            }
+            Embedded::Rdp(w) => {
+                let widget = w.widget();
+                Self::detach_widget_from_parent(widget.upcast_ref());
+                // RDP is wrapped in a ToastOverlay for file-drop notifications;
+                // recreate it and re-register so DnD toasts keep working after
+                // the viewer returns from a split panel.
+                let toast_overlay = adw::ToastOverlay::new();
+                toast_overlay.set_child(Some(widget));
+                toast_overlay.set_hexpand(true);
+                toast_overlay.set_vexpand(true);
+                w.set_toast_overlay(toast_overlay.clone());
+                container.append(&toast_overlay);
+                widget.set_visible(true);
+            }
+        }
+
+        let mut containers = self.tab_containers.borrow_mut();
+        if let Some(tab_container) = containers.get_mut(&session_id) {
+            tab_container.switch_to_single(&container);
+        }
+        true
+    }
+
+    /// Detaches a widget from its current parent so the same instance can be
+    /// re-attached elsewhere (GTK widgets may only have one parent).
+    ///
+    /// A `GtkBox` parent uses `remove`; any other parent uses `unparent`.
+    fn detach_widget_from_parent(widget: &Widget) {
+        if let Some(parent) = widget.parent() {
+            if let Some(box_widget) = parent.downcast_ref::<GtkBox>() {
+                box_widget.remove(widget);
+            } else {
+                widget.unparent();
+            }
+        }
     }
 
     /// Shows TabView content area (for RDP/VNC/SPICE sessions)
