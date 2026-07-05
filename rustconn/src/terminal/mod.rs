@@ -3206,6 +3206,10 @@ mod split_eligibility_tests {
     }
 
     #[test]
+    // GTK can only be initialized from one thread per process; the default
+    // multi-threaded test harness makes this unsafe, so this widget-constructing
+    // test is opt-in.
+    #[ignore = "requires GTK init on a single thread; run with: cargo test -p rustconn -- --ignored --test-threads=1"]
     fn embedded_widget_variants_are_embeddable() {
         // The Vnc/EmbeddedRdp/EmbeddedSpice arms need real GTK widgets to
         // construct, so gate on a display; skip cleanly when headless.

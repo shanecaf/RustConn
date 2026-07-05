@@ -2321,6 +2321,10 @@ mod broadcast_gating_tests {
     // instances, so these tests need a display; skip cleanly when headless,
     // mirroring `terminal::split_eligibility_tests`.
     #[test]
+    // GTK can only be initialized from one thread per process; the default
+    // multi-threaded test harness makes this unsafe, so this widget-constructing
+    // test is opt-in.
+    #[ignore = "requires GTK init on a single thread; run with: cargo test -p rustconn -- --ignored --test-threads=1"]
     fn terminal_sessions_excludes_embedded_and_flags_embedded_panel() {
         if gtk4::init().is_err() {
             return;
@@ -2351,6 +2355,10 @@ mod broadcast_gating_tests {
     }
 
     #[test]
+    // GTK can only be initialized from one thread per process; the default
+    // multi-threaded test harness makes this unsafe, so this widget-constructing
+    // test is opt-in.
+    #[ignore = "requires GTK init on a single thread; run with: cargo test -p rustconn -- --ignored --test-threads=1"]
     fn pure_terminal_split_has_no_embedded_panel() {
         if gtk4::init().is_err() {
             return;
