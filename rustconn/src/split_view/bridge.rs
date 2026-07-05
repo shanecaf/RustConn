@@ -555,6 +555,31 @@ impl SplitViewBridge {
             .count()
     }
 
+    /// Returns the displayed sessions that are backed by a VTE terminal.
+    ///
+    /// Keystroke broadcast mirrors VTE `commit` signals, so only these
+    /// sessions can participate; embedded RDP/VNC/SPICE viewers are excluded.
+    #[must_use]
+    pub fn terminal_sessions(&self) -> Vec<Uuid> {
+        let terminals = self.terminals.borrow();
+        self.active_sessions()
+            .into_iter()
+            .filter(|sid| terminals.contains_key(sid))
+            .collect()
+    }
+
+    /// Returns true if any displayed session lacks a VTE terminal.
+    ///
+    /// Signals that an embedded viewer occupies a panel, which the broadcast
+    /// gating uses to keep keystroke mirroring terminal-only.
+    #[must_use]
+    pub fn has_embedded_panel(&self) -> bool {
+        let terminals = self.terminals.borrow();
+        self.active_sessions()
+            .iter()
+            .any(|sid| !terminals.contains_key(sid))
+    }
+
     /// Returns true if any pane has an active session
     #[must_use]
     pub fn has_active_sessions(&self) -> bool {
@@ -2284,5 +2309,79 @@ impl SplitViewBridge {
 impl Default for SplitViewBridge {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod broadcast_gating_tests {
+    use super::{SplitViewBridge, TerminalPane};
+    use uuid::Uuid;
+
+    // The bridge builds real GTK widgets (adapter panes) and `vte4::Terminal`
+    // instances, so these tests need a display; skip cleanly when headless,
+    // mirroring `terminal::split_eligibility_tests`.
+    #[test]
+    fn terminal_sessions_excludes_embedded_and_flags_embedded_panel() {
+        if gtk4::init().is_err() {
+            return;
+        }
+        let bridge = SplitViewBridge::new();
+        let term_id = Uuid::new_v4();
+        let embedded_id = Uuid::new_v4();
+
+        // Only the terminal session is registered in the VTE `terminals` map;
+        // the embedded session intentionally has no terminal.
+        bridge
+            .terminals
+            .borrow_mut()
+            .insert(term_id, vte4::Terminal::new());
+
+        {
+            let mut panes = bridge.panes.borrow_mut();
+            if let Some(pane) = panes.first_mut() {
+                pane.set_current_session(Some(term_id));
+            }
+            let mut extra = TerminalPane::new_with_id(Uuid::new_v4());
+            extra.set_current_session(Some(embedded_id));
+            panes.push(extra);
+        }
+
+        assert_eq!(bridge.terminal_sessions(), vec![term_id]);
+        assert!(bridge.has_embedded_panel());
+    }
+
+    #[test]
+    fn pure_terminal_split_has_no_embedded_panel() {
+        if gtk4::init().is_err() {
+            return;
+        }
+        let bridge = SplitViewBridge::new();
+        let a = Uuid::new_v4();
+        let b = Uuid::new_v4();
+        bridge
+            .terminals
+            .borrow_mut()
+            .insert(a, vte4::Terminal::new());
+        bridge
+            .terminals
+            .borrow_mut()
+            .insert(b, vte4::Terminal::new());
+
+        {
+            let mut panes = bridge.panes.borrow_mut();
+            if let Some(pane) = panes.first_mut() {
+                pane.set_current_session(Some(a));
+            }
+            let mut extra = TerminalPane::new_with_id(Uuid::new_v4());
+            extra.set_current_session(Some(b));
+            panes.push(extra);
+        }
+
+        let mut sessions = bridge.terminal_sessions();
+        sessions.sort();
+        let mut expected = vec![a, b];
+        expected.sort();
+        assert_eq!(sessions, expected);
+        assert!(!bridge.has_embedded_panel());
     }
 }
