@@ -57,7 +57,7 @@ impl CommandPaletteDialog {
     #[must_use]
     pub fn new(parent: Option<&impl IsA<gtk4::Window>>) -> Self {
         let dialog = adw::Dialog::builder()
-            .title("")
+            .title(i18n("Command Palette"))
             .content_width(500)
             .content_height(400)
             .build();
@@ -449,7 +449,8 @@ impl CommandPaletteDialog {
         }
 
         let search_query = SearchQuery::with_text(query);
-        let results = engine.search(&search_query, connections, groups);
+        let conn_refs: Vec<&Connection> = connections.iter().collect();
+        let results = engine.search(&search_query, &conn_refs, groups);
         results
             .iter()
             .filter_map(|r| {

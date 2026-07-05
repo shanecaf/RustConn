@@ -1,6 +1,6 @@
 # RustConn User Guide
 
-**Version 0.17.10** | GTK4/libadwaita Connection Manager for Linux
+**Version 0.18.0** | GTK4/libadwaita Connection Manager for Linux
 
 RustConn is a modern connection manager designed for Linux with Wayland-first approach. It supports SSH, RDP, VNC, SPICE, MOSH, SFTP, Telnet, Serial, Kubernetes, Web protocols and Zero Trust integrations through a native GTK4/libadwaita interface.
 
@@ -623,7 +623,15 @@ This uses the RDP clipboard channel (`CF_HDROP` / `FILEDESCRIPTORW` format) and 
 
 #### HiDPI Support
 
-On HiDPI/4K displays, the embedded IronRDP client automatically sends the correct scale factor to the Windows server (e.g. 200% on a 2× display), so remote UI elements render at the correct logical size. The Scale Override setting in the connection dialog allows manual adjustment if needed.
+On HiDPI/4K displays the embedded RDP/VNC session's remote resolution is governed by the **Display Scale** setting in the connection dialog:
+
+| Display Scale | Behaviour |
+|---------------|-----------|
+| **Auto (system)** *(default)* | Requests the widget's *logical* resolution and upscales the framebuffer locally. Uses the least bandwidth; the remote UI is comfortably sized. Best over slow links. |
+| **Native (full HiDPI)** | Follows the display's live scale factor, so a 2× screen requests a full-resolution ("retina") remote desktop for a crisp image. Adapts automatically if the window moves to a monitor with a different scale. Uses more bandwidth. |
+| **125% – 400%** | Requests a fixed multiple of the logical resolution — a sharper image at a scale you pick by hand, regardless of the monitor. |
+
+For embedded RDP, the chosen scale is also sent to the Windows server as its desktop DPI (MS-RDPEDISP), so remote UI elements render at the correct logical size, and it is re-applied on every dynamic resize.
 
 #### Dynamic Resolution on Resize
 
@@ -2773,9 +2781,11 @@ Quick checklist:
 
 ### KeePass Not Working
 
-1. Install KeePassXC → enable browser integration
-2. Configure KDBX path in Settings → Secrets
-3. Flatpak: KeePassXC on host is detected automatically via `flatpak-spawn --host`
+RustConn opens the KeePass database directly by file (`.kdbx`); it does not use KeePassXC's browser-integration protocol.
+
+1. Install KeePassXC (for the `keepassxc-cli` helper and the app itself)
+2. Select the KeePassXC/KDBX backend and set the KDBX path in Settings → Secrets, then unlock with the database password (optionally cached in the system keyring)
+3. Flatpak: `keepassxc-cli` on the host is detected automatically via `flatpak-spawn --host`
 
 ### Pass (passwordstore.org) Not Working
 

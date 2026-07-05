@@ -1,54 +1,28 @@
-//! Pure Rust SPICE client for embedded SPICE sessions
+//! SPICE session support via an external viewer.
 //!
-//! This module provides a SPICE client implementation for embedded SPICE sessions
-//! in GTK4 without external processes.
+//! SPICE sessions are handled by launching an external viewer
+//! (`remote-viewer`, `virt-viewer`, or `spicy`). This module provides the
+//! connection configuration ([`SpiceClientConfig`]), error type
+//! ([`SpiceClientError`]), and the helpers that detect a viewer and build its
+//! command line ([`detect_spice_viewer`], [`build_spice_viewer_args`],
+//! [`launch_spice_viewer`]).
 //!
-//! # Architecture
+//! # History
 //!
-//! The SPICE client runs in a background thread with its own Tokio runtime and
-//! communicates with the GUI through channels:
-//! - `SpiceClientEvent` channel: framebuffer updates, resolution changes, etc.
-//! - `SpiceClientCommand` channel: keyboard/mouse input, disconnect requests
-//!
-//! This follows the same pattern as the VNC and RDP clients.
-//!
-//! # Feature Flag
-//!
-//! The embedded SPICE client requires the `spice-embedded` feature flag:
-//!
-//! ```toml
-//! [dependencies]
-//! rustconn-core = { version = "0.1", features = ["spice-embedded"] }
-//! ```
-//!
-//! When the feature is disabled, the module still provides the types and
-//! configuration, but the `SpiceClient` struct is not available. In this case,
-//! the GUI falls back to virt-viewer subprocess.
+//! A native embedded SPICE client (behind a `spice-embedded` feature) was
+//! removed in 0.18.0: the bundled `spice-client` 0.2 exposes neither an inputs
+//! channel nor raw display frames through its public API, so embedded rendering
+//! and input forwarding were impossible without forking the crate. The external
+//! viewer is the supported path.
 
-#[cfg(feature = "spice-embedded")]
-mod client;
 mod config;
 mod error;
-mod event;
 
-#[cfg(feature = "spice-embedded")]
-pub use client::{SpiceClient, SpiceClientState, SpiceCommandSender, SpiceEventReceiver};
 pub use config::{
     SpiceClientConfig, SpiceImageCompression as SpiceCompression, SpiceSecurityProtocol,
     SpiceSharedFolder,
 };
 pub use error::SpiceClientError;
-pub use event::{SpiceClientCommand, SpiceClientEvent, SpiceRect};
-
-/// Check if embedded SPICE support is available
-///
-/// Returns true if the `spice-embedded` feature is enabled, which means
-/// the native SPICE client can be used. When false, the GUI should
-/// fall back to virt-viewer subprocess.
-#[must_use]
-pub const fn is_embedded_spice_available() -> bool {
-    cfg!(feature = "spice-embedded")
-}
 
 /// Detects available SPICE viewer applications for fallback mode
 ///
@@ -191,12 +165,6 @@ pub fn launch_spice_viewer(config: &SpiceClientConfig) -> SpiceViewerLaunchResul
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_is_embedded_spice_available() {
-        // This test just verifies the function compiles and returns a bool
-        let _available = is_embedded_spice_available();
-    }
 
     #[test]
     fn test_build_spice_viewer_args_basic() {

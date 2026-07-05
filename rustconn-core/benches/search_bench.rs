@@ -80,18 +80,13 @@ fn bench_search_scaling(c: &mut Criterion) {
 
     for size in [100, 500, 1000, 2000].iter() {
         let connections = create_test_connections(*size);
+        let conn_refs: Vec<&Connection> = connections.iter().collect();
         let groups = create_test_groups(size / 10);
         let engine = SearchEngine::new();
         let query = SearchQuery::with_text("server");
 
         group.bench_with_input(BenchmarkId::new("connections", size), size, |b, _| {
-            b.iter(|| {
-                engine.search(
-                    black_box(&query),
-                    black_box(&connections),
-                    black_box(&groups),
-                )
-            })
+            b.iter(|| engine.search(black_box(&query), black_box(&conn_refs), black_box(&groups)))
         });
     }
 
@@ -150,51 +145,28 @@ fn bench_query_parsing(c: &mut Criterion) {
 fn bench_search_with_filters(c: &mut Criterion) {
     let mut group = c.benchmark_group("search_with_filters");
     let connections = create_test_connections(500);
+    let conn_refs: Vec<&Connection> = connections.iter().collect();
     let groups = create_test_groups(20);
     let engine = SearchEngine::new();
 
     group.bench_function("no_filter", |b| {
         let query = SearchQuery::with_text("server");
-        b.iter(|| {
-            engine.search(
-                black_box(&query),
-                black_box(&connections),
-                black_box(&groups),
-            )
-        })
+        b.iter(|| engine.search(black_box(&query), black_box(&conn_refs), black_box(&groups)))
     });
 
     group.bench_function("protocol_filter", |b| {
         let query = SearchEngine::parse_query("server protocol:ssh").unwrap();
-        b.iter(|| {
-            engine.search(
-                black_box(&query),
-                black_box(&connections),
-                black_box(&groups),
-            )
-        })
+        b.iter(|| engine.search(black_box(&query), black_box(&conn_refs), black_box(&groups)))
     });
 
     group.bench_function("tag_filter", |b| {
         let query = SearchEngine::parse_query("server tag:prod").unwrap();
-        b.iter(|| {
-            engine.search(
-                black_box(&query),
-                black_box(&connections),
-                black_box(&groups),
-            )
-        })
+        b.iter(|| engine.search(black_box(&query), black_box(&conn_refs), black_box(&groups)))
     });
 
     group.bench_function("multiple_filters", |b| {
         let query = SearchEngine::parse_query("server protocol:ssh tag:prod").unwrap();
-        b.iter(|| {
-            engine.search(
-                black_box(&query),
-                black_box(&connections),
-                black_box(&groups),
-            )
-        })
+        b.iter(|| engine.search(black_box(&query), black_box(&conn_refs), black_box(&groups)))
     });
 
     group.finish();

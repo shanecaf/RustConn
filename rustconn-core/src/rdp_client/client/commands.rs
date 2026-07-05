@@ -80,9 +80,13 @@ pub async fn process_command<W: FramedWrite>(
                 send_input_events(active_stage, image, writer, &[event]).await;
             }
         }
-        RdpClientCommand::SetDesktopSize { width, height } => {
+        RdpClientCommand::SetDesktopSize {
+            width,
+            height,
+            scale_percent,
+        } => {
             if let Some(result) =
-                active_stage.encode_resize(u32::from(width), u32::from(height), None, None)
+                active_stage.encode_resize(u32::from(width), u32::from(height), scale_percent, None)
             {
                 match result {
                     Ok(frame) => {

@@ -34,6 +34,7 @@ impl MainWindow {
 
                 let state_for_save = state_clone.clone();
                 let toast_for_save = toast.clone();
+                let win_weak_for_save = win.downgrade();
                 dialog.run(move |result| {
                     if let Some(variables) = result {
                         // Store secret variable values in vault,
@@ -72,6 +73,7 @@ impl MainWindow {
                                 let var_name_log = var_name.clone();
                                 let secrets_c = settings.secrets.clone();
                                 let toast_c = toast_for_save.clone();
+                                let win_weak_c = win_weak_for_save.clone();
                                 crate::utils::spawn_blocking_with_callback(
                                     move || {
                                         crate::state::save_variable_to_vault(
@@ -85,9 +87,26 @@ impl MainWindow {
                                                  variable '{var_name_log}' \
                                                  to vault: {e}"
                                             );
-                                            toast_c.show_error(&crate::i18n::i18n(
-                                                "Failed to save secret to vault. Check secret backend in Settings.",
-                                            ));
+                                            // Data-loss risk: the plaintext value is cleared
+                                            // from settings after this spawn, so a failed
+                                            // vault write means the secret is gone. Use a
+                                            // blocking AlertDialog (GNOME HIG) so the user
+                                            // must acknowledge and can re-enter it — a
+                                            // transient toast could be missed.
+                                            if let Some(win) = win_weak_c.upgrade() {
+                                                crate::alert::show_error(
+                                                    &win,
+                                                    &crate::i18n::i18n("Secret Not Saved"),
+                                                    &crate::i18n::i18n_f(
+                                                        "The secret for variable “{}” could not be saved to the vault and was not stored. Re-enter it and check your secret backend in Settings.",
+                                                        &[&var_name_log],
+                                                    ),
+                                                );
+                                            } else {
+                                                toast_c.show_error(&crate::i18n::i18n(
+                                                    "Failed to save secret to vault. Check secret backend in Settings.",
+                                                ));
+                                            }
                                         } else {
                                             tracing::info!(
                                                 "Secret variable \

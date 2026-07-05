@@ -98,13 +98,6 @@ impl PlaybackController {
         Ok(())
     }
 
-    /// Returns the current playback state.
-    #[must_use]
-    #[expect(dead_code, reason = "Public API for external state queries")]
-    pub fn state(&self) -> PlaybackState {
-        self.state.get()
-    }
-
     /// Sets the callback invoked whenever the playback state changes.
     pub fn set_on_state_changed<F: Fn(PlaybackState) + 'static>(&self, cb: F) {
         *self.on_state_changed.borrow_mut() = Some(Box::new(cb));
@@ -233,9 +226,6 @@ pub struct PlaybackToolbar {
     pub repeat_btn: Button,
     /// Status label shown after playback completes.
     pub status_label: Label,
-    /// Quick search entry for filtering recordings.
-    #[expect(dead_code, reason = "Kept for future programmatic access")]
-    pub search_entry: SearchEntry,
     /// Popover containing the filtered recording list.
     pub search_popover: Popover,
     /// ListBox inside the popover.
@@ -357,7 +347,6 @@ pub fn create_playback_toolbar(recordings: &[RecordingEntry]) -> PlaybackToolbar
         stop_btn,
         repeat_btn,
         status_label,
-        search_entry,
         search_popover: popover,
         search_list,
     }

@@ -12,7 +12,7 @@ name = "rustconn"
 path = "src/main.rs"
 
 [dependencies]
-rustconn-core = { path = "../rustconn-core", version = "0.17.0" }
+rustconn-core = { path = "../rustconn-core", version = "0.18.0" }
 tokio = { workspace = true }
 # Event-driven tray message delivery to the GTK main loop (no polling)
 async-channel = { workspace = true }
@@ -35,33 +35,31 @@ ksni = { version = "0.3", features = ["blocking"], optional = true }
 # SVG rendering for tray icon (renders SVG to ARGB32 pixmap)
 resvg = { version = "0.47", optional = true }
 # macOS tray icon via NSStatusItem (cross-platform crate, used only on macOS)
-tray-icon = { version = "0.20", optional = true }
+tray-icon = { version = "0.24", optional = true }
 # Menu builder for macOS tray (companion to tray-icon)
-muda = { version = "0.16", optional = true }
+muda = { version = "0.19", optional = true }
 # Internationalization (gettext)
 gettext-rs = { version = "0.7", features = ["gettext-system"] }
 # Tracing for structured logging
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 # Audio playback for RDP embedded mode
-cpal = { version = "0.17.3", optional = true }
+cpal = { version = "0.18", optional = true }
 serde = { workspace = true, features = ["derive"] }
 shell-words = "1"
 nix = { version = "0.31", features = ["signal", "process"] }
 
 [features]
-# NOTE: `spice-embedded` is intentionally NOT in the default set. The bundled
-# spice-client 0.2 does not forward frames or input, so the embedded path shows
-# a black, unresponsive screen; the default SPICE path is the external viewer
-# (virt-viewer/remote-viewer), which works. Opt in with --features spice-embedded
-# once native rendering (frame + input forwarding) is implemented.
+# SPICE sessions always use an external viewer (virt-viewer/remote-viewer).
+# The native embedded SPICE path was removed in 0.18.0: spice-client 0.2 exposes
+# neither an inputs channel nor raw display frames, so embedding was impossible
+# without forking the crate.
 default = ["tray", "vnc-embedded", "rdp-embedded", "rdp-audio", "wayland-native"]
 tray = ["dep:ksni", "dep:resvg"]
 tray-macos = ["dep:tray-icon", "dep:muda", "dep:resvg"]
 vnc-embedded = ["rustconn-core/vnc-embedded"]
 rdp-embedded = ["rustconn-core/rdp-embedded"]
 rdp-audio = ["rdp-embedded", "dep:cpal"]
-spice-embedded = ["rustconn-core/spice-embedded"]
 wayland-native = ["dep:gdk4-wayland"]
 # Enable libadwaita 1.6+ widgets (AdwSpinner, CSS variables, accent colors)
 # Requires libadwaita >= 1.6 at build time (GNOME 50 Flatpak runtime or Fedora 44+)
@@ -117,4 +115,4 @@ redundant_closure = "allow"
 nix = { version = "0.31", features = ["term", "process", "signal"] }
 # Isolated FFI helper for the native PTY controlling-terminal setup (#175).
 # Lives in its own crate because it contains the workspace's only `unsafe`.
-rustconn-pty-sys = { path = "../rustconn-pty-sys", version = "0.17.0" }
+rustconn-pty-sys = { path = "../rustconn-pty-sys", version = "0.18.0" }

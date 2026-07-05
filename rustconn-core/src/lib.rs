@@ -19,7 +19,9 @@
 //!
 //! - `vnc-embedded` - Native VNC client via `vnc-rs` (default)
 //! - `rdp-embedded` - Native RDP client via `IronRDP` (default)
-//! - `spice-embedded` - Native SPICE client
+//!
+//! SPICE sessions use an external viewer (virt-viewer/remote-viewer); the
+//! native embedded SPICE client was removed in 0.18.0.
 
 // Enable missing_docs warning for public API documentation
 #![warn(missing_docs)]
@@ -230,9 +232,8 @@ pub use secret::{
     AsyncCredentialResolver, AsyncCredentialResult, CACHE_TTL_SECONDS, CancellationToken,
     CredentialResolver, CredentialStatus, CredentialVerificationManager, DialogPreFillData,
     GroupCreationResult, KEEPASS_ROOT_GROUP, KdbxExporter, KeePassHierarchy, KeePassStatus,
-    KeePassXcBackend, PassBackend, PendingCredentialResolution, SecretBackend, SecretManager,
-    VerifiedCredentials, parse_keepassxc_version, resolve_with_callback,
-    spawn_credential_resolution,
+    PassBackend, PendingCredentialResolution, SecretBackend, SecretManager, VerifiedCredentials,
+    parse_keepassxc_version, resolve_with_callback, spawn_credential_resolution,
 };
 // `LibSecretBackend` is compiled only on non-macOS (macOS uses the Keychain and
 // never builds the oo7-backed libsecret client), so its re-export is split out
@@ -252,12 +253,10 @@ pub use snap::{
     is_interface_connected, is_sandboxed, is_snap,
 };
 pub use snippet::SnippetManager;
-#[cfg(feature = "spice-embedded")]
-pub use spice_client::{SpiceClient, SpiceClientState, SpiceCommandSender, SpiceEventReceiver};
 pub use spice_client::{
-    SpiceClientCommand, SpiceClientConfig, SpiceClientError, SpiceClientEvent, SpiceCompression,
-    SpiceRect, SpiceSecurityProtocol, SpiceSharedFolder, SpiceViewerLaunchResult,
-    build_spice_viewer_args, detect_spice_viewer, is_embedded_spice_available, launch_spice_viewer,
+    SpiceClientConfig, SpiceClientError, SpiceCompression, SpiceSecurityProtocol,
+    SpiceSharedFolder, SpiceViewerLaunchResult, build_spice_viewer_args, detect_spice_viewer,
+    launch_spice_viewer,
 };
 pub use sync::{
     Inventory, InventoryEntry, SYNC_TAG_PREFIX, SyncResult, default_port_for_protocol,
@@ -271,8 +270,8 @@ pub use template::{
 // Split view types (tab-scoped layouts)
 pub use split::SplitDirection;
 pub use split::{
-    ColorId, ColorPool, DropResult, LeafPanel, PanelId, PanelNode, SPLIT_COLORS,
-    SessionId as SplitSessionId, SplitError, SplitLayoutModel, SplitNode, TabGroupManager, TabId,
+    ColorId, ColorPool, DropResult, LeafPanel, PanelId, PanelNode, SPLIT_COLORS, SplitError,
+    SplitLayoutModel, SplitNode, TabGroupManager, TabId,
 };
 pub use ssh_agent::{
     AgentError, AgentKey, AgentResult, AgentStatus, SshAgentManager, parse_agent_output,
@@ -282,10 +281,7 @@ pub use testing::{
     ConnectionTester, DEFAULT_CONCURRENCY, DEFAULT_TEST_TIMEOUT_SECS, TestError, TestResult,
     TestSummary,
 };
-pub use tracing::{
-    TracingConfig, TracingError, TracingLevel, TracingOutput, TracingResult, field_names,
-    get_tracing_config, init_tracing, is_tracing_initialized, span_names,
-};
+pub use tracing::span_names;
 pub use variables::{
     Variable, VariableError, VariableManager, VariableResult, VariableScope,
     variable_kdbx_lookup_key, variable_secret_key,

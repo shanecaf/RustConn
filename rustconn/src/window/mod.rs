@@ -46,7 +46,6 @@ use self::types::{
     SessionSplitBridges, SharedExternalWindowManager, SharedNotebook, SharedSidebar,
     SharedSplitView, get_protocol_string,
 };
-use crate::alert;
 use crate::toast::ToastOverlay;
 
 use crate::activity_coordinator::ActivityCoordinator;
@@ -1407,13 +1406,10 @@ impl MainWindow {
 
         let state_ref = state.borrow();
 
-        // Get connections and groups for search
-        let connections: Vec<_> = state_ref
-            .list_connections()
-            .iter()
-            .cloned()
-            .cloned()
-            .collect();
+        // Get connections and groups for search. `list_connections()` already
+        // returns borrowed `&Connection`s, so the search runs on references —
+        // no per-keystroke deep clone of every connection.
+        let connections: Vec<&rustconn_core::models::Connection> = state_ref.list_connections();
         let groups: Vec<_> = state_ref.list_groups().iter().cloned().cloned().collect();
 
         // Check for single protocol filter syntax (protocol:rdp, proto:ssh, p:vnc)
@@ -1494,7 +1490,7 @@ impl MainWindow {
 
             // Index by id once so result lookup is O(1) instead of O(n) per hit.
             let conn_by_id: std::collections::HashMap<_, _> =
-                connections.iter().map(|c| (c.id, c)).collect();
+                connections.iter().map(|c| (c.id, *c)).collect();
 
             // Display results sorted by relevance
             for result in results {
@@ -1615,7 +1611,7 @@ impl MainWindow {
                         let name = conn.name.clone();
                         drop(state_ref);
                         crate::toast::show_error_toast_on_active_window(&crate::i18n::i18n_f(
-                            "Connection to \u{2018}{}\u{2019} failed",
+                            "Connection to ‘{}’ failed",
                             &[&name],
                         ));
                     }
@@ -2086,7 +2082,7 @@ impl MainWindow {
                         glib::idle_add_local_once(move || {
                             Self::reload_sidebar_preserving_state(&state_c, &sidebar_c);
                             toast_c.show_success(&crate::i18n::i18n_f(
-                                "Connection \u{201c}{}\u{201d} created",
+                                "Connection “{}” created",
                                 &[&name],
                             ));
                         });
@@ -2261,7 +2257,7 @@ impl MainWindow {
                     glib::idle_add_local_once(move || {
                         Self::reload_sidebar_preserving_state(&state_c, &sidebar_c);
                         toast_c.show_success(&crate::i18n::i18n_f(
-                            "Connection \u{201c}{}\u{201d} created",
+                            "Connection “{}” created",
                             &[&conn_name],
                         ));
                     });
@@ -3340,10 +3336,9 @@ impl MainWindow {
                     ExportDialog::open_output_location(first_file);
                 }
 
-                // Show success notification
-                alert::show_success(
+                // Non-blocking success feedback (GNOME HIG: toast, not dialog).
+                crate::toast::show_toast_on_window(
                     &window_clone,
-                    &crate::i18n::i18n("Export Complete"),
                     &crate::i18n::i18n_f(
                         "Successfully exported {} connection(s). {} skipped.",
                         &[
@@ -3351,6 +3346,7 @@ impl MainWindow {
                             &export_result.skipped_count.to_string(),
                         ],
                     ),
+                    crate::toast::ToastType::Success,
                 );
             }
         });

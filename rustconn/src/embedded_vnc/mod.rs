@@ -22,7 +22,7 @@
 // Re-export types for external use
 pub use crate::embedded_vnc_types::{
     EmbeddedVncError, ErrorCallback, FrameCallback, STANDARD_RESOLUTIONS, StateCallback, VncConfig,
-    VncConnectionState, VncPixelBuffer, VncWaylandSurface, find_best_standard_resolution,
+    VncConnectionState, find_best_standard_resolution,
 };
 
 mod ui;
@@ -89,10 +89,6 @@ pub struct EmbeddedVncWidget {
     separator: gtk4::Separator,
     /// Drawing area for rendering VNC frames
     drawing_area: DrawingArea,
-    /// Wayland surface handle
-    wl_surface: Rc<RefCell<VncWaylandSurface>>,
-    /// Pixel buffer for frame data
-    pixel_buffer: Rc<RefCell<VncPixelBuffer>>,
     /// Persistent Cairo-backed pixel buffer for zero-copy rendering
     cairo_buffer: Rc<RefCell<crate::cairo_buffer::CairoBackedBuffer>>,
     /// Current connection state
@@ -342,12 +338,6 @@ impl EmbeddedVncWidget {
             config.port
         );
 
-        // Initialize Wayland surface
-        self.wl_surface
-            .borrow_mut()
-            .initialize()
-            .map_err(|e| EmbeddedVncError::SubsurfaceCreation(e.to_string()))?;
-
         // Create VNC client configuration
         let vnc_config = VncClientConfig::new(&config.host)
             .with_port(config.port)
@@ -383,18 +373,12 @@ impl EmbeddedVncWidget {
         *self.vnc_client.borrow_mut() = Some(client.clone());
         *self.is_embedded.borrow_mut() = true;
 
-        // Resize pixel buffer to match config
-        self.pixel_buffer
-            .borrow_mut()
-            .resize(config.width, config.height);
-
         // Hide local cursor if configured (avoids double cursor with remote)
         if !config.show_local_cursor {
             self.drawing_area.set_cursor_from_name(Some("none"));
         }
 
         // Clone references for the event polling timer
-        let pixel_buffer = self.pixel_buffer.clone();
         let cairo_buffer = self.cairo_buffer.clone();
         let state = self.state.clone();
         let drawing_area = self.drawing_area.clone();
@@ -474,20 +458,11 @@ impl EmbeddedVncWidget {
                         tracing::debug!("[EmbeddedVNC] Resolution changed: {}x{}", width, height);
                         *vnc_width_ref.borrow_mut() = width;
                         *vnc_height_ref.borrow_mut() = height;
-                        pixel_buffer.borrow_mut().resize(width, height);
                         cairo_buffer.borrow_mut().resize(width, height);
                         drawing_area.queue_draw();
                     }
                     VncClientEvent::FrameUpdate { rect, data } => {
                         let stride = u32::from(rect.width) * 4;
-                        pixel_buffer.borrow_mut().update_region(
-                            u32::from(rect.x),
-                            u32::from(rect.y),
-                            u32::from(rect.width),
-                            u32::from(rect.height),
-                            &data,
-                            stride,
-                        );
                         cairo_buffer.borrow_mut().update_region(
                             u32::from(rect.x),
                             u32::from(rect.y),
@@ -507,7 +482,7 @@ impl EmbeddedVncWidget {
                         drawing_area.queue_draw();
                     }
                     VncClientEvent::CopyRect { dst, src } => {
-                        pixel_buffer.borrow_mut().copy_rect(
+                        cairo_buffer.borrow_mut().copy_rect(
                             u32::from(src.x),
                             u32::from(src.y),
                             u32::from(dst.x),
@@ -758,12 +733,6 @@ impl EmbeddedVncWidget {
             let _ = child.wait();
         }
 
-        // Clean up Wayland surface
-        self.wl_surface.borrow_mut().cleanup();
-
-        // Clear pixel buffer
-        self.pixel_buffer.borrow_mut().clear();
-
         // Hide toolbar
         self.toolbar.set_visible(false);
 
@@ -780,12 +749,6 @@ impl EmbeddedVncWidget {
             let _ = child.kill();
             let _ = child.wait();
         }
-
-        // Clean up Wayland surface
-        self.wl_surface.borrow_mut().cleanup();
-
-        // Clear pixel buffer
-        self.pixel_buffer.borrow_mut().clear();
 
         // Hide toolbar
         self.toolbar.set_visible(false);
@@ -813,95 +776,6 @@ impl EmbeddedVncWidget {
                 "No previous configuration to reconnect".to_string(),
             ))
         }
-    }
-
-    /// Handles VNC frame buffer update
-    ///
-    /// This is called when the VNC server sends a frame buffer update.
-    /// The pixel data is blitted to the Wayland surface.
-    ///
-    /// # Arguments
-    ///
-    /// * `x` - X coordinate of the updated region
-    /// * `y` - Y coordinate of the updated region
-    /// * `width` - Width of the updated region
-    /// * `height` - Height of the updated region
-    /// * `data` - Pixel data for the region
-    /// * `stride` - Stride of the pixel data
-    pub fn on_frame_update(
-        &self,
-        x: u32,
-        y: u32,
-        width: u32,
-        height: u32,
-        data: &[u8],
-        stride: u32,
-    ) {
-        // Update the pixel buffer with the new frame data
-        self.pixel_buffer
-            .borrow_mut()
-            .update_region(x, y, width, height, data, stride);
-
-        // Damage the Wayland surface region
-        self.wl_surface.borrow().damage(
-            crate::utils::dimension_to_i32(x),
-            crate::utils::dimension_to_i32(y),
-            crate::utils::dimension_to_i32(width),
-            crate::utils::dimension_to_i32(height),
-        );
-
-        // Commit the surface
-        self.wl_surface.borrow().commit();
-
-        // Queue a redraw of the GTK widget
-        self.drawing_area.queue_draw();
-
-        // Notify frame update callback
-        if let Some(ref callback) = *self.on_frame_update.borrow() {
-            callback(x, y, width, height);
-        }
-    }
-
-    /// Handles VNC CopyRect update
-    ///
-    /// CopyRect is an efficient encoding where the server tells the client
-    /// to copy a region from one location to another.
-    ///
-    /// # Arguments
-    ///
-    /// * `src_x` - Source X coordinate
-    /// * `src_y` - Source Y coordinate
-    /// * `dst_x` - Destination X coordinate
-    /// * `dst_y` - Destination Y coordinate
-    /// * `width` - Width of the region
-    /// * `height` - Height of the region
-    pub fn on_copy_rect(
-        &self,
-        src_x: u32,
-        src_y: u32,
-        dst_x: u32,
-        dst_y: u32,
-        width: u32,
-        height: u32,
-    ) {
-        // Copy the region within the pixel buffer
-        self.pixel_buffer
-            .borrow_mut()
-            .copy_rect(src_x, src_y, dst_x, dst_y, width, height);
-
-        // Damage the destination region
-        self.wl_surface.borrow().damage(
-            crate::utils::dimension_to_i32(dst_x),
-            crate::utils::dimension_to_i32(dst_y),
-            crate::utils::dimension_to_i32(width),
-            crate::utils::dimension_to_i32(height),
-        );
-
-        // Commit the surface
-        self.wl_surface.borrow().commit();
-
-        // Queue a redraw
-        self.drawing_area.queue_draw();
     }
 
     /// Sends a keyboard event to the VNC server
@@ -1054,9 +928,6 @@ impl EmbeddedVncWidget {
         *self.width.borrow_mut() = width;
         *self.height.borrow_mut() = height;
 
-        // Resize pixel buffer
-        self.pixel_buffer.borrow_mut().resize(width, height);
-
         // In a real implementation, this would:
         // 1. Send SetDesktopSize message if server supports it
         // rfb_send_set_desktop_size(width, height)
@@ -1187,87 +1058,6 @@ mod tests {
 
         let config = VncConfig::new("host").with_compression(20);
         assert_eq!(config.compression, Some(9)); // Clamped to max 9
-    }
-
-    #[test]
-    fn test_pixel_buffer_new() {
-        let buffer = VncPixelBuffer::new(100, 50);
-        assert_eq!(buffer.width(), 100);
-        assert_eq!(buffer.height(), 50);
-        assert_eq!(buffer.stride(), 400); // 100 * 4 bytes per pixel
-        assert_eq!(buffer.bpp(), 32);
-        assert_eq!(buffer.data().len(), 20000); // 100 * 50 * 4
-    }
-
-    #[test]
-    fn test_pixel_buffer_resize() {
-        let mut buffer = VncPixelBuffer::new(100, 50);
-        buffer.resize(200, 100);
-        assert_eq!(buffer.width(), 200);
-        assert_eq!(buffer.height(), 100);
-        assert_eq!(buffer.stride(), 800);
-        assert_eq!(buffer.data().len(), 80000);
-    }
-
-    #[test]
-    fn test_pixel_buffer_clear() {
-        let mut buffer = VncPixelBuffer::new(10, 10);
-        buffer.data_mut()[0] = 255;
-        buffer.data_mut()[100] = 128;
-        buffer.clear();
-        assert!(buffer.data().iter().all(|&b| b == 0));
-    }
-
-    #[test]
-    fn test_pixel_buffer_update_region() {
-        let mut buffer = VncPixelBuffer::new(10, 10);
-
-        // Create a 2x2 red region (BGRA format: B=0, G=0, R=255, A=255)
-        let src_data = vec![
-            0, 0, 255, 255, // Pixel (0,0)
-            0, 0, 255, 255, // Pixel (1,0)
-            0, 0, 255, 255, // Pixel (0,1)
-            0, 0, 255, 255, // Pixel (1,1)
-        ];
-
-        buffer.update_region(2, 2, 2, 2, &src_data, 8);
-
-        // Check that the region was updated
-        let stride = buffer.stride() as usize;
-        let offset = 2 * stride + 2 * 4; // Row 2, Column 2
-        assert_eq!(buffer.data()[offset + 2], 255); // Red channel
-    }
-
-    #[test]
-    fn test_pixel_buffer_copy_rect() {
-        let mut buffer = VncPixelBuffer::new(10, 10);
-
-        // Set a pixel at (1, 1) to red
-        let stride = buffer.stride() as usize;
-        let src_offset = stride + 4; // row 1, col 1
-        buffer.data_mut()[src_offset] = 0; // B
-        buffer.data_mut()[src_offset + 1] = 0; // G
-        buffer.data_mut()[src_offset + 2] = 255; // R
-        buffer.data_mut()[src_offset + 3] = 255; // A
-
-        // Copy 1x1 region from (1,1) to (5,5)
-        buffer.copy_rect(1, 1, 5, 5, 1, 1);
-
-        // Check destination
-        let dst_offset = 5 * stride + 5 * 4;
-        assert_eq!(buffer.data()[dst_offset + 2], 255); // Red channel
-    }
-
-    #[test]
-    fn test_wayland_surface_handle() {
-        let mut handle = VncWaylandSurface::new();
-        assert!(!handle.is_initialized());
-
-        handle.initialize().unwrap();
-        assert!(handle.is_initialized());
-
-        handle.cleanup();
-        assert!(!handle.is_initialized());
     }
 
     #[test]
