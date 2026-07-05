@@ -172,6 +172,16 @@ impl EmbeddedSpiceWidget {
 
         container.append(&drawing_area);
 
+        // Adaptive toolbar overflow: fold Copy/Paste into a "⋯" popover on
+        // narrow panels/windows, keeping Ctrl+Alt+Del directly visible. The
+        // separator stays in the toolbar as a primary layout element.
+        crate::embedded_toolbar_overflow::ToolbarOverflow::new(
+            &toolbar,
+            vec![copy_button.clone().upcast(), paste_button.clone().upcast()],
+            crate::embedded_toolbar_overflow::SPICE_VNC_OVERFLOW_THRESHOLD_PX,
+        )
+        .attach(&drawing_area);
+
         // Reconnect banner (shown when disconnected, at bottom like VTE sessions)
         let reconnect_banner = GtkBox::new(Orientation::Horizontal, 6);
         reconnect_banner.set_margin_start(12);

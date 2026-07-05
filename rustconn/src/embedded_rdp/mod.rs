@@ -624,6 +624,28 @@ impl EmbeddedRdpWidget {
 
         container.append(&drawing_area);
 
+        // Adaptive toolbar overflow: fold the secondary actions into a "⋯"
+        // popover on narrow panels/windows, keeping Fit resolution and
+        // Ctrl+Alt+Del directly visible. Existing widgets are reparented, so
+        // their handlers (wired below) stay bound.
+        {
+            let mut secondary: Vec<gtk4::Widget> = vec![
+                copy_button.clone().upcast(),
+                paste_button.clone().upcast(),
+                autotype_button.clone().upcast(),
+                scripts_button.clone().upcast(),
+                quick_actions_button.clone().upcast(),
+            ];
+            #[cfg(feature = "rdp-embedded")]
+            secondary.push(save_files_button.clone().upcast());
+            crate::embedded_toolbar_overflow::ToolbarOverflow::new(
+                &toolbar,
+                secondary,
+                crate::embedded_toolbar_overflow::RDP_OVERFLOW_THRESHOLD_PX,
+            )
+            .attach(&drawing_area);
+        }
+
         // Reconnect banner (shown when disconnected, at bottom like VTE sessions)
         let reconnect_banner = GtkBox::new(Orientation::Horizontal, 6);
         reconnect_banner.set_margin_start(12);
