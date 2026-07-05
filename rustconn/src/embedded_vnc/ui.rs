@@ -574,6 +574,14 @@ impl EmbeddedVncWidget {
                 let embedded = *is_embedded.borrow();
 
                 if embedded && current_state == VncConnectionState::Connected {
+                    // ponytail: VNC keeps its standard-resolution snapping rather
+                    // than the RDP adaptive helper
+                    // (`display_geometry::desktop_request_for_area`): RFB
+                    // `SetDesktopSize` carries no DPI `scale_percent` channel, so
+                    // the helper's sub-minimum legibility boost (200/300%) cannot
+                    // be forwarded, and many servers only accept known-good
+                    // resolutions. Small panels fall back to scale-to-fit of the
+                    // snapped frame (R13.3 documented fallback).
                     // Find the best standard resolution that fits the scaled window
                     let (best_w, best_h) =
                         find_best_standard_resolution(scaled_width, scaled_height);

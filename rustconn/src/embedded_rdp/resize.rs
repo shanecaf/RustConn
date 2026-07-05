@@ -136,16 +136,31 @@ impl super::EmbeddedRdpWidget {
                         let h_diff = (device_height as i32 - current_rdp_h as i32).unsigned_abs();
 
                         if w_diff > RESIZE_THRESHOLD_PX || h_diff > RESIZE_THRESHOLD_PX {
-                            // Even dimensions + resolution ceiling (see round_rdp_desktop).
-                            let (rounded_width, rounded_height) =
-                                super::round_rdp_desktop(device_width, device_height);
+                            // Adaptive resolution (R13.1, R13.2): instead of
+                            // skipping requests for small/oddly-shaped panels
+                            // below 640x480, ask the pure core helper for a
+                            // >=min, aspect-preserving, even-dimensioned request.
+                            // When the panel is below minimum the helper raises
+                            // scale_percent (200/300) and returns a min-clamped
+                            // resolution so the panel fills with legible content.
+                            #[expect(
+                                clippy::cast_possible_truncation,
+                                reason = "RDP scale percent is a small value (100–300) that fits u16"
+                            )]
+                            let base_scale_percent =
+                                super::rdp_scale_percent(effective_scale) as u16;
+                            let req = rustconn_core::display_geometry::desktop_request_for_area(
+                                device_width,
+                                device_height,
+                                640,
+                                480,
+                                base_scale_percent,
+                            );
 
-                            // Guard against degenerate sizes (widget mid-layout
-                            // or collapsed): never request a sub-640x480 desktop,
-                            // matching apply_resolution_sync.
-                            if rounded_width < 640 || rounded_height < 480 {
-                                return;
-                            }
+                            // Preserve the MS-RDPEDISP max-desktop ceiling
+                            // (round_rdp_desktop also re-affirms even dimensions).
+                            let (rounded_width, rounded_height) =
+                                super::round_rdp_desktop(req.width, req.height);
 
                             // Update config with new resolution
                             {
@@ -166,9 +181,9 @@ impl super::EmbeddedRdpWidget {
                                     let _ = sender.send(RdpClientCommand::SetDesktopSize {
                                         width: w,
                                         height: h,
-                                        scale_percent: Some(super::rdp_scale_percent(
-                                            effective_scale,
-                                        )),
+                                        // Helper-raised DPI scale (200/300 for
+                                        // sub-minimum panels) keeps content legible.
+                                        scale_percent: Some(u32::from(req.scale_percent)),
                                     });
                                 }
 
@@ -324,12 +339,26 @@ impl super::EmbeddedRdpWidget {
         )]
         let device_height = (f64::from(css_height) * effective_scale) as u32;
 
-        // Even dimensions + resolution ceiling (see round_rdp_desktop).
-        let (rounded_width, rounded_height) = super::round_rdp_desktop(device_width, device_height);
-        if rounded_width < 640 || rounded_height < 480 {
-            // Widget not laid out yet — nothing sensible to request
-            return;
-        }
+        // Adaptive resolution (R13.1, R13.2): small/oddly-shaped panels below
+        // 640x480 are filled by upscaling the request and raising the DPI scale
+        // via the pure core helper instead of being skipped. The helper returns
+        // a >=min, aspect-preserving, even-dimensioned request.
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "RDP scale percent is a small value (100–300) that fits u16"
+        )]
+        let base_scale_percent = super::rdp_scale_percent(effective_scale) as u16;
+        let req = rustconn_core::display_geometry::desktop_request_for_area(
+            device_width,
+            device_height,
+            640,
+            480,
+            base_scale_percent,
+        );
+
+        // Preserve the MS-RDPEDISP max-desktop ceiling (round_rdp_desktop also
+        // re-affirms even dimensions).
+        let (rounded_width, rounded_height) = super::round_rdp_desktop(req.width, req.height);
 
         // Persist the new resolution in the config
         {
@@ -362,7 +391,9 @@ impl super::EmbeddedRdpWidget {
                 let _ = sender.send(RdpClientCommand::SetDesktopSize {
                     width: w,
                     height: h,
-                    scale_percent: Some(super::rdp_scale_percent(effective_scale)),
+                    // Helper-raised DPI scale (200/300 for sub-minimum panels)
+                    // keeps content legible.
+                    scale_percent: Some(u32::from(req.scale_percent)),
                 });
             }
 

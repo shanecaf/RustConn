@@ -317,6 +317,12 @@ impl EmbeddedSpiceWidget {
 
     /// Sets up resize handler
     fn setup_resize_handler(&self) {
+        // ponytail: SPICE runs via the external viewer here, which owns its own
+        // resolution negotiation — there is no in-process live-resize command to
+        // drive with `display_geometry::desktop_request_for_area`. Small/narrow
+        // panels therefore keep the external viewer's scale-to-fit of the fixed
+        // frame (R13.3 documented fallback). Wire the helper here if/when an
+        // in-process SPICE resize channel returns.
         let width = self.width.clone();
         let height = self.height.clone();
 
