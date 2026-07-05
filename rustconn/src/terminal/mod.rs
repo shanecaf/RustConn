@@ -1041,7 +1041,6 @@ impl TerminalNotebook {
 
     /// Reports whether a session can be split, keyed on its stored widget kind.
     #[must_use]
-    #[expect(dead_code, reason = "wired into split_view_actions.rs in Task 4")]
     pub fn split_eligibility(&self, session_id: Uuid) -> SplitEligibility {
         // Scope each borrow so we never hold two RefCell borrows at once.
         let from_widget = {

@@ -98,31 +98,26 @@ impl MainWindow {
                 return; // No active session to split
             };
 
-            // Check if protocol supports split view (only VTE terminal-based sessions)
-            // RDP, VNC, SPICE are not supported because they use embedded widgets, not VTE terminals
-            if let Some(info) = notebook_for_split_h.get_session_info(current_session) {
-                let protocol = &info.protocol;
-                if protocol != "ssh"
-                    && protocol != "local"
-                    && protocol != "sftp"
-                    && protocol != "telnet"
-                    && protocol != "serial"
-                    && protocol != "kubernetes"
-                    && !protocol.starts_with("zerotrust")
-                {
+            // Gate split on the session's eligibility rather than a hardcoded
+            // protocol allowlist: VTE terminals and in-process embedded viewers
+            // (RDP/VNC/SPICE) are Embeddable; external-process viewers are declined.
+            match notebook_for_split_h.split_eligibility(current_session) {
+                crate::terminal::SplitEligibility::Embeddable => {}
+                crate::terminal::SplitEligibility::ExternalViewer => {
                     tracing::debug!(
-                        "split-horizontal: protocol '{}' not supported for split view",
-                        protocol
+                        "split-horizontal: session {:?} uses an external viewer, declining split",
+                        current_session
                     );
                     if let Some(win) = window_weak_h.upgrade() {
                         crate::toast::show_toast_on_window(
                             &win,
-                            &crate::i18n::i18n("Split view is available for terminal-based sessions only"),
+                            &crate::i18n::i18n("Split view is not available for external-viewer sessions. Switch this connection to embedded mode to use split."),
                             crate::toast::ToastType::Warning,
                         );
                     }
                     return;
                 }
+                crate::terminal::SplitEligibility::None => return,
             }
 
             tracing::debug!("split-horizontal: splitting session {:?}", current_session);
@@ -258,20 +253,17 @@ impl MainWindow {
                 let notebook_for_broadcast_h = notebook_for_split_h.clone();
                 split_view.setup_select_tab_callback_with_provider(
                     move || {
-                        // Get all sessions from the notebook, excluding those already in THIS split
-                        // Only show VTE-based sessions (SSH, ZeroTrust, Local Shell, Telnet, Serial, Kubernetes)
-                        // RDP/VNC/SPICE not supported in split view
+                        // Get all sessions from the notebook, excluding those already in THIS split.
+                        // Include VTE terminals and in-process embedded viewers (Embeddable);
+                        // external-process viewers are excluded via eligibility (R4.3).
                         notebook_for_provider
                             .get_all_sessions()
                             .into_iter()
                             .filter(|s| {
-                                s.protocol == "ssh"
-                                    || s.protocol == "local"
-                                    || s.protocol == "sftp"
-                                    || s.protocol == "telnet"
-                                    || s.protocol == "serial"
-                                    || s.protocol == "kubernetes"
-                                    || s.protocol.starts_with("zerotrust")
+                                matches!(
+                                    notebook_for_provider.split_eligibility(s.id),
+                                    crate::terminal::SplitEligibility::Embeddable
+                                )
                             })
                             .map(|s| (s.id, s.name))
                             .filter(|(id, _)| !split_view_for_provider.is_session_displayed(*id))
@@ -412,31 +404,26 @@ impl MainWindow {
                 return; // No active session to split
             };
 
-            // Check if protocol supports split view (only VTE terminal-based sessions)
-            // RDP, VNC, SPICE are not supported because they use embedded widgets, not VTE terminals
-            if let Some(info) = notebook_for_split_v.get_session_info(current_session) {
-                let protocol = &info.protocol;
-                if protocol != "ssh"
-                    && protocol != "local"
-                    && protocol != "sftp"
-                    && protocol != "telnet"
-                    && protocol != "serial"
-                    && protocol != "kubernetes"
-                    && !protocol.starts_with("zerotrust")
-                {
+            // Gate split on the session's eligibility rather than a hardcoded
+            // protocol allowlist: VTE terminals and in-process embedded viewers
+            // (RDP/VNC/SPICE) are Embeddable; external-process viewers are declined.
+            match notebook_for_split_v.split_eligibility(current_session) {
+                crate::terminal::SplitEligibility::Embeddable => {}
+                crate::terminal::SplitEligibility::ExternalViewer => {
                     tracing::debug!(
-                        "split-vertical: protocol '{}' not supported for split view",
-                        protocol
+                        "split-vertical: session {:?} uses an external viewer, declining split",
+                        current_session
                     );
                     if let Some(win) = window_weak_v.upgrade() {
                         crate::toast::show_toast_on_window(
                             &win,
-                            &crate::i18n::i18n("Split view is available for terminal-based sessions only"),
+                            &crate::i18n::i18n("Split view is not available for external-viewer sessions. Switch this connection to embedded mode to use split."),
                             crate::toast::ToastType::Warning,
                         );
                     }
                     return;
                 }
+                crate::terminal::SplitEligibility::None => return,
             }
 
             tracing::debug!("split-vertical: splitting session {:?}", current_session);
@@ -572,20 +559,17 @@ impl MainWindow {
                 let notebook_for_broadcast_v = notebook_for_split_v.clone();
                 split_view.setup_select_tab_callback_with_provider(
                     move || {
-                        // Get all sessions from the notebook, excluding those already in THIS split
-                        // Only show VTE-based sessions (SSH, ZeroTrust, Local Shell, Telnet, Serial, Kubernetes)
-                        // RDP/VNC/SPICE not supported in split view
+                        // Get all sessions from the notebook, excluding those already in THIS split.
+                        // Include VTE terminals and in-process embedded viewers (Embeddable);
+                        // external-process viewers are excluded via eligibility (R4.3).
                         notebook_for_provider
                             .get_all_sessions()
                             .into_iter()
                             .filter(|s| {
-                                s.protocol == "ssh"
-                                    || s.protocol == "local"
-                                    || s.protocol == "sftp"
-                                    || s.protocol == "telnet"
-                                    || s.protocol == "serial"
-                                    || s.protocol == "kubernetes"
-                                    || s.protocol.starts_with("zerotrust")
+                                matches!(
+                                    notebook_for_provider.split_eligibility(s.id),
+                                    crate::terminal::SplitEligibility::Embeddable
+                                )
                             })
                             .map(|s| (s.id, s.name))
                             .filter(|(id, _)| !split_view_for_provider.is_session_displayed(*id))
