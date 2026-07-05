@@ -55,7 +55,6 @@ The Flatpak includes all core protocol clients — no separate installation need
 | VTE 0.80 | Terminal emulation (SSH, Telnet, Serial, Kubernetes) |
 | IronRDP | Embedded RDP client |
 | vnc-rs | Embedded VNC client |
-| spice-client | Embedded SPICE client |
 | inetutils | Telnet client |
 | picocom | Serial console (RS-232/USB) |
 | Midnight Commander | SFTP file browser |
@@ -356,8 +355,9 @@ for the full list.
 
 ### Optional Protocol Clients
 
-RustConn uses embedded Rust implementations for RDP, VNC, and SPICE by default.
+RustConn uses embedded Rust implementations for RDP and VNC by default.
 External clients serve as fallbacks when the embedded client fails (e.g., RD Gateway).
+SPICE always uses an external viewer (remote-viewer / virt-viewer).
 
 FreeRDP detection priority: `wlfreerdp3` > `wlfreerdp` > `sdl-freerdp3` > `sdl-freerdp` > `xfreerdp3` > `xfreerdp`
 

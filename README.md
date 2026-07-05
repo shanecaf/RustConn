@@ -41,8 +41,8 @@ More screenshots on the [Flathub listing](https://flathub.org/apps/io.github.tot
 | **File Transfer** | SFTP file browser via system file manager (sftp:// URI, D-Bus portal) |
 | **Organization** | Groups, tags, templates, custom icons (emoji/GTK), connection history & statistics |
 | **Monitoring** | Remote host metrics bar (CPU, RAM, disk, network, load, system info) — agentless, per-connection toggle |
-| **Import/Export** | Asbru-CM, Remmina, SSH config, Ansible inventory, Royal TS, MobaXterm, SecureCRT, Remote Desktop Manager, RDP files (.rdp), virt-viewer (.vv), libvirt XML, CSV, native (.rcn) |
-| **Security** | KeePassXC (KDBX), libsecret, Bitwarden CLI, 1Password CLI, Passbolt CLI, Pass (passwordstore.org), script credentials; hardware-token SSH auth (FIDO2 security keys, PKCS#11 / YubiKey / smart cards) |
+| **Import/Export** | Asbru-CM, Remmina, SSH config, Ansible inventory, Royal TS, MobaXterm, SecureCRT, Remote Desktop Manager, RDP files (.rdp), virt-viewer (.vv), libvirt (XML + daemon), CSV, native (.rcn) |
+| **Security** | KeePassXC (KDBX), libsecret, macOS Keychain, Bitwarden CLI, 1Password CLI, Passbolt CLI, Pass (passwordstore.org), script credentials, encrypted-file fallback (no keyring required); hardware-token SSH auth (FIDO2 security keys, PKCS#11 / YubiKey / smart cards) |
 | **Terminal** | Split terminals, command snippets, text highlighting rules, session recording, custom terminal themes, tab overview, tab pinning |
 | **Automation** | Expect rules, key sequences, pre/post-connect tasks, cluster & ad-hoc broadcast, session reconnect, Wake-on-LAN |
 | **Workflow** | Smart folders, SSH port forwarding, visual SSH tunnel builder, workspace profiles (save/restore open sessions), settings backup/restore, .rdp file association |
@@ -57,7 +57,7 @@ More screenshots on the [Flathub listing](https://flathub.org/apps/io.github.tot
 | SSH | VTE terminal (port forwarding: -L/-R/-D) | Embedded |
 | RDP | IronRDP / FreeRDP fallback (bundled in Flatpak) | Embedded + external |
 | VNC | vnc-rs / vncviewer fallback | Embedded + external |
-| SPICE | spice-client / remote-viewer fallback | Embedded + external |
+| SPICE | remote-viewer / virt-viewer | External |
 | Telnet | VTE terminal | Embedded |
 | Serial | picocom via VTE | External (bundled in Flatpak) |
 | Kubernetes | kubectl exec via VTE | External |

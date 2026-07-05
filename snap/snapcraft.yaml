@@ -13,7 +13,7 @@ description: |
   - SSH with a built-in VTE terminal, split view, and scrollbar
   - RDP via IronRDP (embedded, with a FreeRDP fallback)
   - VNC via vnc-rs (embedded, with a TigerVNC fallback)
-  - SPICE via spice-client (embedded, with a remote-viewer fallback)
+  - SPICE via an external viewer (remote-viewer / virt-viewer)
   - MOSH with predict mode and a UDP port range
   - Telnet, Serial consoles (RS-232/USB), and Kubernetes pod shells
   - Managed access gateways for the major cloud providers
@@ -48,7 +48,7 @@ description: |
   - Wake-on-LAN with auto-connect
 
   Note: This snap uses strict confinement with embedded protocol clients
-  (SSH, RDP via IronRDP, VNC via vnc-rs, SPICE) bundled in the snap. Optional
+  (SSH, RDP via IronRDP, VNC via vnc-rs) bundled in the snap. Optional
   helper CLIs are downloaded on demand into the snap's writable user data and
   run inside the sandbox — no host access is required.
 

@@ -72,7 +72,7 @@ is the canonical source.
 
 ## Hooks
 
-`.kiro/hooks/` currently holds **16** hooks. Grouped by trigger:
+`.kiro/hooks/` currently holds **20** hooks. Grouped by trigger:
 
 ### `fileEdited` — react to saves
 | Hook | Watches | Enabled | Action |
@@ -81,6 +81,7 @@ is the canonical source.
 | `flatpak-manifest-check` | `Cargo.lock` | ✅ | Warn if `cargo-sources.json` is stale |
 | `translation-sync` | `rustconn/src/**/*.rs` | ✅ | Add file to `POTFILES.in` when new `i18n()` appears |
 | `uk-translation-review` | `po/uk.po` | ✅ | Invoke `uk-translation-reviewer` sub-agent |
+| `security-review` | secret/credential/password `*.rs` | ✅ | Invoke `security-reviewer` sub-agent (SecretString, zeroize, stdin pipes, no secrets in logs) |
 | `sync-package-versions` | `Cargo.toml` | ❌ disabled | Superseded by `release-version` (see below) |
 
 ### KiroGraph index upkeep (`fileCreated` / `fileEdited` / `fileDeleted` / `agentStop`)
@@ -95,6 +96,7 @@ is the canonical source.
 | Hook | Scope | Action |
 |------|-------|--------|
 | `pre-commit-checks` | shell commands | Before `git commit`/`push`: `fmt` + `clippy` must pass |
+| `crate-boundary-guard` | write tools (`.rs`) | Deny writes that add GUI imports to `rustconn-core`/`rustconn-cli`, or `unsafe` outside `rustconn-pty-sys` |
 
 ### `userTriggered` — manual buttons
 | Hook | Action |
@@ -103,12 +105,14 @@ is the canonical source.
 | `post-task-tests` ("Run Tests") | On-demand `cargo test --workspace` with duplicate-process guard |
 | `dependency-audit` | Read-only: crate updates, advisories, CLI version drift |
 | `commit-message-helper` | Generate a conventional-commit message from the diff |
+| `ponytail-debt` | Read-only ledger of all `// ponytail:` markers; flags any missing a ceiling + upgrade path |
 | `release-version` | **Release finalize**: bump version in all packaging files, propagate changelog, regenerate `cargo-sources.json`, verify consistency (no git) |
 
-### Session lifecycle
+### Session / task lifecycle
 | Hook | Trigger | Action |
 |------|---------|--------|
 | `post-session-diagnostics` | `agentStop` | Post-session diagnostics on touched files |
+| `post-task-diagnostics` | `postTaskExecution` | `getDiagnostics` on `.rs` files a spec task changed (terminal-free, no cargo) |
 
 > **Release note:** version-string propagation is done by the manual
 > `release-version` hook at finalize time, **not** automatically on every

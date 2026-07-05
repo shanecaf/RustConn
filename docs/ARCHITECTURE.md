@@ -1062,11 +1062,15 @@ rustconn-core/src/
 │   ├── hierarchy.rs       # KeePass hierarchical paths
 │   ├── keyring.rs         # Shared system keyring via secret-tool
 │   ├── libsecret.rs       # GNOME Keyring backend
-│   ├── keepassxc.rs       # KeePassXC backend
+│   ├── kdbx.rs            # KDBX file backend (KeePass-compatible)
+│   ├── kdbx_keyring.rs    # KDBX database keyring helpers
 │   ├── bitwarden.rs       # Bitwarden backend (with keyring storage)
 │   ├── onepassword.rs     # 1Password backend (with keyring storage)
 │   ├── passbolt.rs        # Passbolt backend (with keyring storage)
 │   ├── pass.rs            # Pass (passwordstore.org) backend
+│   ├── macos_keychain.rs  # macOS Keychain backend (Security.framework)
+│   ├── encrypted_file.rs  # App-managed AES-256-GCM file (no keyring needed)
+│   ├── local_crypto.rs    # AES-256-GCM + Argon2id primitives
 │   ├── detection.rs       # Password manager detection
 │   ├── status.rs          # KeePass status detection
 │   └── ...
@@ -1097,7 +1101,7 @@ rustconn-core/src/
 │   ├── backend.rs         # RdpBackendSelector
 │   ├── quick_actions.rs   # Windows admin quick actions (key sequences)
 │   └── ...
-├── cli_download.rs        # Flatpak CLI download manager
+├── cli_download/          # Flatpak CLI download manager
 ├── dynamic_folder.rs      # Dynamic folder executor — script execution, JSON parsing, entry→Connection conversion
 ├── highlight.rs           # Text highlighting rules engine (CompiledHighlightRules, find_matches)
 ├── smart_folder.rs        # SmartFolderManager — dynamic connection grouping with filter evaluation
@@ -1105,7 +1109,7 @@ rustconn-core/src/
 ├── flatpak.rs             # Flatpak sandbox detection, portal key path resolution, stable key copy
 ├── snap.rs                # Snap environment detection and paths
 ├── performance/           # String interner (connection-string dedup) + search debouncer
-├── tracing/               # Structured tracing setup, span name constants
+├── tracing/               # Span name constants for structured tracing
 └── ...
 ```
 

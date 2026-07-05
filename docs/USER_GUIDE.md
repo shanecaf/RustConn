@@ -842,7 +842,7 @@ VNC connections support embedded (vnc-rs) or external (TigerVNC) client modes. C
 
 ### SPICE
 
-SPICE connections support TLS encryption, CA certificate validation, USB redirection, clipboard sharing, image compression (Auto/Off/GLZ/LZ/QUIC), proxy URL, and shared folders. Available as embedded (spice-client) or external (remote-viewer).
+SPICE connections support TLS encryption, CA certificate validation, USB redirection, clipboard sharing, image compression (Auto/Off/GLZ/LZ/QUIC), proxy URL, and shared folders. SPICE opens in an external viewer (remote-viewer / virt-viewer).
 
 ### MOSH Protocol
 
@@ -1073,7 +1073,7 @@ rustconn-cli add --name "AWS Console" --protocol web --host "https://console.aws
 | SSH | Embedded VTE terminal tab |
 | RDP | Embedded IronRDP or external FreeRDP (bundled in Flatpak) |
 | VNC | Embedded vnc-rs or external TigerVNC |
-| SPICE | Embedded spice-client or external remote-viewer |
+| SPICE | External viewer (remote-viewer / virt-viewer) |
 | MOSH | MOSH via VTE terminal (external `mosh` client) |
 | Telnet | Embedded VTE terminal tab (external `telnet` client) |
 | Serial | Embedded VTE terminal tab (external `picocom` client) |
@@ -2659,12 +2659,14 @@ Instead of storing passwords directly per-connection, you can use **Global Varia
 | Backend | Best For | Security Level |
 |---------|----------|---------------|
 | System Keyring (libsecret) | Desktop Linux with GNOME Keyring or KDE Wallet | High — OS-managed, session-locked |
+| macOS Keychain | macOS (default there) | High — OS-managed via Security.framework |
 | KeePassXC | Users who already use KeePassXC | High — AES-256 encrypted database |
 | Bitwarden | Teams using Bitwarden | High — cloud-synced, E2E encrypted |
 | 1Password | Teams using 1Password | High — cloud-synced, E2E encrypted |
 | Passbolt | Self-hosted team password management | High — GPG-based |
 | Pass (passwordstore.org) | CLI-oriented users, git-synced passwords | High — GPG-encrypted files |
 | KDBX File | Offline/air-gapped environments | High — AES-256, local file only |
+| Encrypted-file fallback | Systems with no usable keyring (headless, minimal desktops) | Medium — AES-256-GCM, but key sits on the same disk (obfuscation at rest, not a boundary) |
 
 Configure your preferred backend in Settings → Secrets. RustConn falls back to the system keyring if the preferred backend is unavailable.
 
@@ -2702,7 +2704,7 @@ When the preferred backend (e.g., KeePassXC) cannot be reached — database pass
 ### Frequently Asked Questions
 
 **Where are my passwords stored?**
-Depending on your configured secret backend: libsecret (desktop keyring), KeePassXC (database), KDBX file (local encrypted file), Bitwarden/1Password/Passbolt (cloud vault), or Pass (GPG-encrypted files). Connection files themselves never contain actual passwords.
+Depending on your configured secret backend: libsecret (desktop keyring), macOS Keychain (on macOS), KeePassXC (database), KDBX file (local encrypted file), Bitwarden/1Password/Passbolt (cloud vault), Pass (GPG-encrypted files), or the app-managed encrypted-file fallback (AES-256-GCM, used when no keyring is available). Connection files themselves never contain actual passwords.
 
 **How do I migrate RustConn to another machine?**
 Use [Backup & Restore](#backup--restore): Backup on old machine → copy ZIP → Restore on new machine → restart. Re-enter passwords or configure the same secret backend.

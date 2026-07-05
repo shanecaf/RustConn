@@ -96,7 +96,6 @@ cargo build --release      # release, all crates
 | `vnc-embedded` | ✓ | Embedded VNC client (vnc-rs) |
 | `rdp-embedded` | ✓ | Embedded RDP client (IronRDP) |
 | `rdp-audio` | ✓ | RDP session audio (cpal); enables `rdp-embedded` |
-| `spice-embedded` | ✓ | Embedded SPICE client |
 | `wayland-native` | ✓ | Wayland surface support (gdk4-wayland) |
 | `adw-1-6` | — | libadwaita 1.6+ (AdwSpinner, CSS variables) |
 | `adw-1-7` | — | libadwaita 1.7+ (AdwWrapBox); enables `adw-1-6` |
@@ -124,7 +123,6 @@ cargo build --release -p rustconn --features adw-1-7
 |------|:-------:|-------------|
 | `vnc-embedded` | ✓ | vnc-rs |
 | `rdp-embedded` | ✓ | IronRDP |
-| `spice-embedded` | ✓ | spice-client |
 
 ---
 
