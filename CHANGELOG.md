@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+The 0.18.1 development line extends split view to embedded remote-desktop sessions. Headline change: RDP, VNC, and SPICE sessions rendered by the in-process embedded viewer can now be placed in split panels — alongside or mixed with terminal sessions — and embedded viewers adapt their toolbar and resolution to narrow panels and small windows.
+
+Changes are grouped by type in the sections below (Added, Changed).
+
+### Added
+
+- **Split view now works for embedded RDP, VNC, and SPICE sessions** — previously only terminal-based tabs (SSH, Telnet, Serial, Kubernetes, Local Shell, and SFTP in mc mode) could be split. Embedded remote desktops can now be split horizontally/vertically, dragged between panels, placed via Select Tab, focused, closed, and evicted to a new tab just like terminals, and each session keeps its live connection while it moves. Terminals and embedded desktops can be mixed in one split, and every panel shares the split container's color
+- **Embedded viewers adapt to narrow panels and small windows** — when a split panel, or a small/narrow application window, gets tight, the embedded toolbar collapses its secondary actions (Copy, Paste, Autotype, Scripts, Quick actions, Save Files) into an overflow ("⋯") menu while the primary actions (Fit resolution and Ctrl+Alt+Del) stay directly visible, and the remote desktop rescales so a small or oddly-shaped area stays fully filled and legible instead of letterboxed. This also benefits a single embedded tab in a small window
+
+### Changed
+
+- **Splitting an external-viewer session is now declined with a clear message** — a session shown through an external viewer (xfreerdp, vncviewer, or an external SPICE viewer) has no in-process widget to place in a panel, so a split attempt now shows "Split view is not available for external-viewer sessions. Switch this connection to embedded mode to use split." and leaves the layout unchanged. The old "Split view is available for terminal-based sessions only" message is gone
+- **Keystroke broadcast is restricted to terminal sessions** — the broadcast toggle appears only when a split holds at least two terminal sessions and a terminal panel is focused, and mirroring never targets an embedded remote desktop. In a split that mixes terminals and embedded desktops, keystrokes are mirrored only among the terminals
+- **Disconnecting inside a split keeps the panel open** — when an embedded session in a panel loses its connection, the panel stays open showing the in-widget reconnect banner instead of collapsing the split; reconnecting restores the session in the same panel
+
 ## [0.18.0] - 2026-07-05
 
 RustConn 0.18.0 is a **HiDPI and cleanup** release. Headline changes: a new *Native (full HiDPI)* Display Scale option plus sharper RDP scaling and cursor rendering on 4K/retina screens ([#207](https://github.com/totoshko88/RustConn/pull/207)); embedded VNC now decodes Tight/JPEG and no longer leaves stale regions after a scroll or window move; and a large internal cleanup removes the abandoned native-SPICE experiment, an unused KeePassXC browser backend, dead render buffers, and a parallel tracing subsystem. Rounding it out are translation fixes (typographic strings now actually localise), fewer per-search allocations, and refreshed desktop-integration dependencies.

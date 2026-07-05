@@ -633,6 +633,8 @@ On HiDPI/4K displays the embedded RDP/VNC session's remote resolution is governe
 
 For embedded RDP, the chosen scale is also sent to the Windows server as its desktop DPI (MS-RDPEDISP), so remote UI elements render at the correct logical size, and it is re-applied on every dynamic resize.
 
+When the available area is smaller than the minimum remote desktop resolution (640×480) — for example a very small split panel or a narrow window — the embedded viewer requests an aspect-matched resolution scaled up to that minimum, raises the remote scale so content stays legible, and locally downscales the frame to fully fill the area. The result is that a small or oddly-shaped area is filled without letterboxing rather than clipping the remote view.
+
 #### Dynamic Resolution on Resize
 
 When you resize the RustConn window, the embedded RDP session automatically adjusts its resolution to match the new window size. This works in two ways depending on server capabilities:
@@ -1124,7 +1126,9 @@ The **Display Mode** setting in the connection dialog (Advanced tab → Window M
 
 ### Split View
 
-Split view works with terminal-based sessions: SSH, Telnet, Serial, Kubernetes, Local Shell, and SFTP (mc mode).
+Split view works with terminal-based sessions (SSH, Telnet, Serial, Kubernetes, Local Shell, and SFTP in mc mode) and with embedded RDP, VNC, and SPICE sessions. You can mix terminals and embedded remote desktops in the same split, and an embedded session keeps its live connection when it moves between panels.
+
+Sessions shown through an external viewer (xfreerdp, vncviewer, or an external SPICE viewer) cannot be placed in a split — attempting to split one shows "Split view is not available for external-viewer sessions. Switch this connection to embedded mode to use split." and leaves the layout unchanged.
 
 - **Horizontal Split** — Ctrl+Shift+H splits the current tab horizontally (side by side)
 - **Vertical Split** — Ctrl+Shift+S splits the current tab vertically (top and bottom)
@@ -1133,6 +1137,8 @@ Split view works with terminal-based sessions: SSH, Telnet, Serial, Kubernetes, 
 - **Select Tab** — click the "Select Tab..." button in an empty pane to pick which session to display; sessions already in other split views show a colored indicator
 - **Move between splits** — a session can be moved from one split to another via "Select Tab"; the original split keeps a placeholder in the vacated panel, and the session's own tab shows a "Displayed in Split View" page with a "Go to Split View" button
 - **Tab Overview** — split-view tabs render correctly in Tab Overview (Ctrl+Shift+O) with live thumbnails showing the split layout
+
+Embedded viewers adapt to narrow panels: the toolbar collapses its secondary actions into an overflow ("⋯") menu (Fit resolution and Ctrl+Alt+Del stay visible), and the remote desktop rescales to fully fill a small or oddly-shaped panel. The same adaptation applies to a single embedded tab in a small or narrow application window. Keystroke broadcast (Ctrl+Shift+B) applies only to terminals — its toggle appears when a split holds at least two terminal sessions and a terminal panel is focused, and mirroring never targets an embedded remote desktop.
 
 ### Status Indicators
 
