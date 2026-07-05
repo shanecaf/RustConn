@@ -140,6 +140,22 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.18.0" date="2026-07-05">
+      <description>
+        <p>Version 0.18.0 — HiDPI remote desktops and a large internal cleanup:</p>
+        <ul>
+          <li>Added a Native (full HiDPI) Display Scale option for embedded RDP/VNC — a retina mode that follows the live display scale, alongside Auto and 125–400%</li>
+          <li>Fixed embedded VNC showing noise on Tight/JPEG rectangles — the client now decodes JPEG and re-enables the Tight encoding</li>
+          <li>Fixed embedded VNC leaving stale regions after a server-side scroll or window move</li>
+          <li>Fixed the RDP display scale being lost on dynamic resize, and the HiDPI cursor rendering half-missing and mis-sized</li>
+          <li>Fixed several interface strings never being translated because of an escape-encoding bug; typographic text now localises correctly</li>
+          <li>Changed operation-result feedback to non-blocking toasts, and a secret-save failure to a blocking dialog to prevent silent credential loss</li>
+          <li>Improved performance — fewer allocations in search results and removed redundant per-frame video buffer copies</li>
+          <li>Removed the abandoned native embedded SPICE experiment, an unused KeePassXC browser-integration backend, and other dead code (SPICE still works via the external viewer)</li>
+          <li>Updated desktop-integration dependencies (cpal, muda, tray-icon)</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.17.10" date="2026-07-04">
       <description>
         <p>Version 0.17.10 — audit-driven protocol, performance and cleanup fixes:</p>

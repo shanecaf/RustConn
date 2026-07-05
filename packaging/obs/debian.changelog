@@ -1,3 +1,27 @@
+rustconn (0.18.0-1) unstable; urgency=medium
+
+  * Added a Native (full HiDPI) Display Scale option for embedded RDP/VNC — a
+    "retina" mode that follows the live display scale, alongside Auto and
+    125–400% (#207)
+  * Fixed embedded VNC showing noise on Tight/JPEG rectangles — the client now
+    decodes JPEG to BGRA and re-enables the Tight encoding
+  * Fixed embedded VNC leaving stale regions after a server-side scroll or
+    window move — CopyRect is now mirrored into the Cairo-backed buffer
+  * Fixed the RDP display scale being lost on dynamic resize, and the HiDPI
+    cursor rendering half-missing and mis-sized (#207)
+  * Fixed several UI strings never being translated because their \u{…} escapes
+    leaked into the message catalog; typographic strings now localise correctly
+  * Changed operation-result feedback to non-blocking toasts, and a secret-save
+    failure to a blocking dialog to prevent silent credential loss
+  * Improved performance — fewer allocations in search results, removed
+    redundant per-frame VNC/RDP buffer copies, no per-keystroke connection clone
+  * Removed the abandoned native embedded SPICE experiment, an unused KeePassXC
+    browser-integration backend, a parallel tracing-init subsystem, and dead
+    render buffers / Wayland placeholders (SPICE still works via external viewer)
+  * Updated dependencies — cpal 0.18, muda 0.19, tray-icon 0.24
+
+ -- Anton Isaiev <totoshko88@gmail.com>  Sun, 05 Jul 2026 12:00:00 +0200
+
 rustconn (0.17.10-1) unstable; urgency=medium
 
   * Fixed embedded RDP/VNC requesting a scale-inflated resolution on HiDPI

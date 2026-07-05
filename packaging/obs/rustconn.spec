@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.17.10
+Version:        0.18.0
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -259,6 +259,17 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Sun Jul 05 2026 Anton Isaiev <totoshko88@gmail.com> - 0.18.0-0
+- Added a Native (full HiDPI) Display Scale option for embedded RDP/VNC — a "retina" mode that follows the live display scale, alongside Auto and 125–400% (#207)
+- Fixed embedded VNC showing noise on Tight/JPEG rectangles — the client now decodes JPEG to BGRA and re-enables the Tight encoding
+- Fixed embedded VNC leaving stale regions after a server-side scroll or window move — CopyRect is mirrored into the Cairo-backed buffer
+- Fixed the RDP display scale being lost on dynamic resize, and the HiDPI cursor rendering half-missing and mis-sized (#207)
+- Fixed several UI strings never being translated because their \u{…} escapes leaked into the message catalog; typographic strings now localise correctly
+- Changed operation-result feedback to non-blocking toasts, and a secret-save failure to a blocking dialog to prevent silent credential loss
+- Improved performance — fewer allocations in search results, removed redundant per-frame VNC/RDP buffer copies, no per-keystroke connection cloning
+- Removed the abandoned native embedded SPICE experiment, an unused KeePassXC browser-integration backend, a parallel tracing-init subsystem, and dead render buffers / Wayland placeholders
+- Updated dependencies — cpal 0.18, muda 0.19, tray-icon 0.24
+
 * Sat Jul 04 2026 Anton Isaiev <totoshko88@gmail.com> - 0.17.10-0
 - Fixed embedded RDP/VNC requesting a scale-inflated resolution on HiDPI displays — the remote desktop is now requested at the widget's logical size instead of device pixels, cutting HiDPI bandwidth roughly 4× at 2× scale; explicit Display Scale values still request a higher resolution for sharpness
 - Fixed embedded SPICE showing a black, unresponsive screen by default — spice-embedded is no longer a default feature; SPICE uses the external viewer (opt in with --features spice-embedded)

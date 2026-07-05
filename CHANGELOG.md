@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-07-05
+
+RustConn 0.18.0 is a **HiDPI and cleanup** release. Headline changes: a new *Native (full HiDPI)* Display Scale option plus sharper RDP scaling and cursor rendering on 4K/retina screens ([#207](https://github.com/totoshko88/RustConn/pull/207)); embedded VNC now decodes Tight/JPEG and no longer leaves stale regions after a scroll or window move; and a large internal cleanup removes the abandoned native-SPICE experiment, an unused KeePassXC browser backend, dead render buffers, and a parallel tracing subsystem. Rounding it out are translation fixes (typographic strings now actually localise), fewer per-search allocations, and refreshed desktop-integration dependencies.
+
+Changes are grouped by type in the sections below (Added, Performance, Removed, Changed, Internal, Fixed, Dependencies).
+
 ### Added
 
 - **RDP/VNC Display Scale gained a "Native (full HiDPI)" option** ([#207](https://github.com/totoshko88/RustConn/pull/207)) — the embedded Display Scale dropdown offered `Auto` (logical resolution, bandwidth-saving) and fixed steps (125–400%), but to get a crisp "retina" remote desktop the user had to know their monitor's scale and pick the matching percentage by hand, which then broke if the window moved to a differently-scaled monitor. The new `Native` option follows the display's live scale factor, so a HiDPI screen gets a full-resolution image that adapts across monitors — the one-toggle "full retina" behaviour requested on #207, without displacing the bandwidth-saving `Auto` default. Implemented by resolving the scale multiplier against the widget's runtime `scale_factor()` (a new `ScaleOverride::resolved_scale`) instead of a compile-time constant
@@ -35,7 +41,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Internal
 
 - **Command Palette dialog now has an accessible title** — the `adw::Dialog` was created with an empty title, leaving screen readers without a name for the window; it is now titled "Command Palette". Also wrapped the smart-folder example placeholders ("Prod SSH Servers", host pattern, example tags) in `i18n()` so they are translatable, and refreshed the translation template (16 languages)
-- **Bumped desktop-integration dependencies** — `cpal` 0.17 → 0.18 (audio output for embedded RDP; migrated to the new by-value `StreamConfig` argument of `build_output_stream`, streams are still started explicitly via `play()` which the new version no longer does implicitly), and the macOS tray stack `muda` 0.16 → 0.19 and `tray-icon` 0.20 → 0.24 (drop-in for the menu/icon/builder API used here). No user-facing change; the remaining transitive `windows-*` 0.42 duplicates were dropped from the lockfile
 
 ### Fixed
 
@@ -44,6 +49,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **RDP display scale was lost on dynamic resize** ([#207](https://github.com/totoshko88/RustConn/pull/207)) — the MS-RDPEDISP `SetDesktopSize` path sent the new resolution without a desktop scale factor (`encode_resize(.., None, None)`), so after any dynamic resize (e.g. toggling the sidebar with F9) the server reverted to 100% DPI and an explicitly-scaled HiDPI session shrank to a tiny UI. The requested scale is now threaded through `SetDesktopSize → encode_resize` and re-sent on every dynamic resize and on the initial settle-snap, so an explicit Display Scale (e.g. 200%) stays crisp across resizes. With `Display Scale = Auto` the factor is 100% on the logical-sized desktop, as introduced in 0.17.10. Based on the contribution by @dwetscher
 - **Embedded RDP HiDPI cursor was partly missing and mis-sized** ([#207](https://github.com/totoshko88/RustConn/pull/207)) — on a scaled session the pointer bitmap arrives at the session DPI (2× on 200%) and was downscaled to logical size with a nearest-neighbor sampler that dropped every other row/column, erasing the thin 1px strokes of HiDPI cursors (the "half-missing" pointer). Cursor downscaling is now an alpha-weighted area average (box filter) over every covered source pixel, preserving thin strokes, with correct premultiplied-alpha edge blending and R↔B swap for GDK. At `Display Scale = Auto` (100% session) it is an identity copy. Based on the contribution by @dwetscher
 - **Several UI strings were never translated because their `\u{…}` escapes leaked into the message catalog** — user-facing strings that embedded typographic characters via Rust unicode escapes (e.g. `"Connection \u{201c}{}\u{201d} created"`, `"Advanced\u{2026}"`, the variable-setup prompt) were extracted by `xgettext --language=C`, which does not understand Rust's `\u{XXXX}` syntax and stored the literal backslash-escape as the `msgid`. At runtime the lookup key is the *real* character (`"Connection "{}" created"`), so it never matched the catalog and the string always fell back to English in every locale. The escapes are now written as the actual UTF-8 characters (`… ‘ ’ " "`) in the source, and the 16 translation catalogs were converted in place so their existing translations are preserved, then re-merged against the refreshed template
+
+### Dependencies
+
+- **Updated**: `cpal` 0.17 → 0.18 (embedded-RDP audio output — migrated to the new by-value `StreamConfig` argument of `build_output_stream`; streams are still started explicitly via `play()`), `muda` 0.16 → 0.19 and `tray-icon` 0.20 → 0.24 (macOS menu-bar tray stack — drop-in for the menu/icon/builder API used here). No user-facing change; the stale transitive `windows-*` 0.42 crates were dropped from `Cargo.lock`
+- **CLI downloads** — no changes; all seven pinned Flatpak CLI tools verified current against upstream (`./scripts/check-cli-versions.sh` → all ✅)
 
 ## [0.17.10] - 2026-07-04
 
