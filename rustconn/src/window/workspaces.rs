@@ -88,7 +88,7 @@ pub fn show_workspace_manager(
             // immediate apply_layout (existing 2-panel behavior).
             // Also: if owner is a Local Shell (nil UUID), it appears synchronously
             // as the first tab — no need to defer, immediate apply works.
-            let owner_is_sync = owner_connection_id.map_or(false, |id| id.is_nil());
+            let owner_is_sync = owner_connection_id.is_some_and(|id| id.is_nil());
             let needs_deferred_layout = profile.split_layout.is_split
                 && owner_connection_id.is_some()
                 && profile.split_layout.extra_splits > 0
@@ -99,7 +99,12 @@ pub fn show_workspace_manager(
                 // apply_layout fires splits on idle; for sync guests we schedule
                 // placement on a SECOND idle (runs after splits create panels).
                 if let Some(win) = window_for_open.upgrade() {
-                    crate::split_view::apply_layout(&win, &profile.split_layout);
+                    crate::split_view::apply_layout(
+                        &win,
+                        &profile.split_layout,
+                        &notebook_for_open,
+                        &session_bridges_for_open,
+                    );
                 }
                 // For sync owner with guests: schedule deferred placement
                 // on idle AFTER the split idle creates the panels.
@@ -139,27 +144,25 @@ pub fn show_workspace_manager(
                                     }
                                     if let Some(content) =
                                         notebook_for_sync.get_session_display_widget(sid)
-                                    {
-                                        if let Ok(color_index) =
+                                        && let Ok(color_index) =
                                             bridge.move_session_to_panel(empty_pane, sid, &content)
+                                    {
+                                        bridges_for_sync
+                                            .borrow_mut()
+                                            .insert(sid, bridge.clone());
+                                        if let Some(owner_sid) =
+                                            bridge.active_sessions().first().copied()
                                         {
-                                            bridges_for_sync
-                                                .borrow_mut()
-                                                .insert(sid, bridge.clone());
-                                            if let Some(owner_sid) =
-                                                bridge.active_sessions().first().copied()
-                                            {
-                                                notebook_for_sync
-                                                    .show_in_split_placeholder(sid, owner_sid);
-                                            }
                                             notebook_for_sync
-                                                .set_tab_split_color(sid, color_index);
-                                            monitoring_for_sync.suspend_monitoring(sid);
-                                            placed += 1;
-                                            tracing::debug!(
-                                                "Workspace restore: placed sync guest {sid} ({placed}/{total_sync})"
-                                            );
+                                                .show_in_split_placeholder(sid, owner_sid);
                                         }
+                                        notebook_for_sync
+                                            .set_tab_split_color(sid, color_index);
+                                        monitoring_for_sync.suspend_monitoring(sid);
+                                        placed += 1;
+                                        tracing::debug!(
+                                            "Workspace restore: placed sync guest {sid} ({placed}/{total_sync})"
+                                        );
                                     }
                                 }
                             }
@@ -251,7 +254,12 @@ pub fn show_workspace_manager(
                             // win.split-* targets the correct session.
                             notebook_for_guest.switch_to_tab(session_id);
                             if let Some(win) = window_for_deferred.upgrade() {
-                                crate::split_view::apply_layout(&win, &layout_for_deferred);
+                                crate::split_view::apply_layout(
+                                    &win,
+                                    &layout_for_deferred,
+                                    &notebook_for_guest,
+                                    &bridges_for_guest,
+                                );
                             }
                             layout_applied.set(true);
                             tracing::debug!(
@@ -471,7 +479,9 @@ fn save_current_workspace(
                 .first()
                 .and_then(|&owner_sid| notebook.get_session_info(owner_sid))
                 .and_then(|info| {
-                    entries.iter().position(|e| e.connection_id == info.connection_id)
+                    entries
+                        .iter()
+                        .position(|e| e.connection_id == info.connection_id)
                 });
 
             // Collect ALL guest sessions (everything after the first/owner).
@@ -486,10 +496,9 @@ fn save_current_workspace(
                 .skip(1) // skip the owner
                 .filter_map(|&guest_sid| notebook.get_session_info(guest_sid))
                 .filter_map(|info| {
-                    let idx = entries.iter().enumerate()
-                        .position(|(i, e)| {
-                            e.connection_id == info.connection_id && !used_indices.contains(&i)
-                        });
+                    let idx = entries.iter().enumerate().position(|(i, e)| {
+                        e.connection_id == info.connection_id && !used_indices.contains(&i)
+                    });
                     if let Some(i) = idx {
                         used_indices.push(i);
                     }

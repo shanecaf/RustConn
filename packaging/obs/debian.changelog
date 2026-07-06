@@ -6,8 +6,13 @@ rustconn (0.18.1-1) unstable; urgency=medium
   * External-viewer sessions declined from split with a clear message
   * Keystroke broadcast restricted to terminal sessions
   * Disconnecting inside a split keeps the panel open
+  * Fixed split-owner tab close stranding guest sessions on placeholder
   * Fixed embedded RDP small-window scaling (huge cursor), blank-after-unsplit, and resize loop
-  * Updated dependencies: cc, lzma-rust2, num-bigint
+  * Fixed clicking on embedded panel in split not passing mouse events to remote desktop
+  * Fixed SSH ProxyCommand parallel connections failing with "Permission denied (publickey)"
+  * Fixed workspace restore skipping RDP/VNC/SPICE connections (vault credential resolution)
+  * Fixed workspace split restore for async connections, Local Shell tabs, multi-panel layouts, balanced splitting, and duplicate guest indices
+  * Updated dependencies: cc, crossbeam-channel, crossbeam-deque, crossbeam-epoch, crossbeam-utils, inotify, jobserver, lzma-rust2, num-bigint, zerocopy, zerocopy-derive
 
  -- Anton Isaiev <totoshko88@gmail.com>  Mon, 06 Jul 2026 12:00:00 +0200
 

@@ -2962,7 +2962,10 @@ impl TerminalNotebook {
     }
 
     /// Clears the `on_tab_added` callback.
-    #[expect(dead_code, reason = "public API for manual callback teardown; workspace restore uses Rc<Cell<bool>> flag instead")]
+    #[expect(
+        dead_code,
+        reason = "public API for manual callback teardown; workspace restore uses Rc<Cell<bool>> flag instead"
+    )]
     pub fn clear_on_tab_added(&self) {
         *self.on_tab_added.borrow_mut() = None;
     }
