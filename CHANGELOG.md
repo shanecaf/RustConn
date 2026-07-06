@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.18.1] - 2026-07-06
+## [0.18.1] - 2026-07-07
 
 RustConn 0.18.1 generalizes split view from VTE terminals to **any in-process (embedded) tab**. Headline change: split eligibility is now decided by the session's *widget kind*, not by whether it runs in a VTE terminal — so RDP, VNC, and SPICE sessions rendered by the in-process embedded viewer can now be placed in split panels alongside or mixed with terminal sessions, while only external-viewer sessions are declined. Embedded viewers also adapt their toolbar and resolution to narrow panels and small windows, and a batch of embedded-RDP rendering/scaling fixes lands alongside.
 

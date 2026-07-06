@@ -259,7 +259,7 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
-* Mon Jul 06 2026 Anton Isaiev <totoshko88@gmail.com> - 0.18.1-0
+* Tue Jul 07 2026 Anton Isaiev <totoshko88@gmail.com> - 0.18.1-0
 - Version bump to 0.18.1
 - Split view generalized to embedded RDP/VNC/SPICE tabs
 - Embedded viewers adapt toolbar/resolution to narrow panels
