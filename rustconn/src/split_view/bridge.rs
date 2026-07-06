@@ -487,10 +487,32 @@ impl SplitViewBridge {
         self.adapter.borrow().root_split()
     }
 
+    /// Returns the direction of every split in the tree (pre-order DFS).
+    #[must_use]
+    pub fn all_split_directions(&self) -> Vec<rustconn_core::split::SplitDirection> {
+        self.adapter.borrow().all_split_directions()
+    }
+
     /// Returns all pane UUIDs (legacy compatibility)
     #[must_use]
     pub fn pane_ids(&self) -> Vec<Uuid> {
         self.panel_uuid_map.borrow().values().copied().collect()
+    }
+
+    /// Returns the UUID of the first pane that has no session placed in it.
+    ///
+    /// Used by workspace restore to find the empty panel created by
+    /// `apply_layout` so the deferred guest session can be placed there.
+    #[must_use]
+    pub fn first_empty_pane_uuid(&self) -> Option<Uuid> {
+        let adapter = self.adapter.borrow();
+        let map = self.panel_uuid_map.borrow();
+        for (&panel_id, &uuid) in map.iter() {
+            if adapter.get_panel_session(panel_id).is_none() {
+                return Some(uuid);
+            }
+        }
+        None
     }
 
     /// Returns the focused pane UUID

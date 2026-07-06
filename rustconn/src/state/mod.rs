@@ -791,6 +791,17 @@ impl AppState {
         let secret_settings = ctx.secret_settings;
         let secret_manager = ctx.secret_manager;
 
+        // PasswordSource::None means the connection does not use a vault/variable
+        // password (e.g. key-based SSH, agent auth). Skip the expensive vault
+        // fallback lookup entirely — it wastes 3-6s per Bitwarden CLI call for
+        // connections that will never have a vault entry.
+        // ponytail: legacy migration (enable_fallback) preserved only in
+        // resolver.resolve_with_hierarchy; if a migrated connection still has
+        // PasswordSource::None with a vault entry, user should set source to Vault.
+        if connection.password_source == PasswordSource::None {
+            return Ok(CredentialResolutionResult::NotNeeded);
+        }
+
         // For Variable password source — resolve directly via vault backend
         if let PasswordSource::Variable(ref var_name) = connection.password_source {
             tracing::debug!(

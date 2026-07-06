@@ -45,13 +45,30 @@ fn arb_workspace_entry() -> impl Strategy<Value = WorkspaceEntry> {
 }
 
 fn arb_split_layout() -> impl Strategy<Value = WorkspaceSplitLayout> {
-    (any::<bool>(), any::<bool>(), 0.0f64..=1.0f64).prop_map(|(is_split, horizontal, ratio)| {
-        WorkspaceSplitLayout {
-            is_split,
-            horizontal,
-            split_ratio: ratio,
-        }
-    })
+    (
+        any::<bool>(),
+        any::<bool>(),
+        0.0f64..=1.0f64,
+        proptest::option::of(0usize..8),
+        prop::collection::vec(0usize..8, 0..4),
+        0usize..4,
+        prop::collection::vec(any::<bool>(), 0..4),
+        proptest::option::of(0usize..8),
+    )
+        .prop_map(
+            |(is_split, horizontal, ratio, guest_idx, guests, extra, dirs, owner_idx)| {
+                WorkspaceSplitLayout {
+                    is_split,
+                    horizontal,
+                    split_ratio: ratio,
+                    split_guest_entry_index: guest_idx,
+                    split_guests: guests,
+                    extra_splits: extra,
+                    split_directions: dirs,
+                    split_owner_entry_index: owner_idx,
+                }
+            },
+        )
 }
 
 fn arb_workspace_profile() -> impl Strategy<Value = WorkspaceProfile> {

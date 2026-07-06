@@ -239,6 +239,12 @@ impl SplitViewAdapter {
         self.model.borrow().root_split()
     }
 
+    /// Returns the direction of every split in the tree (pre-order DFS).
+    #[must_use]
+    pub fn all_split_directions(&self) -> Vec<SplitDirection> {
+        self.model.borrow().all_split_directions()
+    }
+
     /// Returns the total number of panels in the layout.
     #[must_use]
     pub fn panel_count(&self) -> usize {
@@ -1227,9 +1233,10 @@ impl SplitViewAdapter {
         click.set_propagation_phase(gtk4::PropagationPhase::Capture);
 
         click.connect_pressed(move |gesture, _, x, y| {
-            // Check if the click lands on an interactive child widget (button or
-            // VTE terminal). If so, fire the focus callback but do NOT claim the
-            // event — let the child handle it (button activation, mouse tracking).
+            // Check if the click lands on an interactive child widget (button,
+            // VTE terminal, or DrawingArea/GLArea used by embedded viewers).
+            // If so, fire the focus callback but do NOT claim the event — let
+            // the child handle it (button activation, mouse tracking, RDP input).
             if let Some(gesture_widget) = gesture.widget()
                 && let Some(target_widget) = gesture_widget.pick(x, y, gtk4::PickFlags::DEFAULT)
             {
@@ -1250,6 +1257,19 @@ impl SplitViewAdapter {
                     if widget.type_().name() == "VteTerminal" {
                         tracing::debug!(
                             "Panel click handler: click on terminal in panel {}, denying gesture",
+                            panel_id
+                        );
+                        callback(panel_id);
+                        gesture.set_state(gtk4::EventSequenceState::Denied);
+                        return;
+                    }
+                    // Let DrawingArea/GLArea (embedded RDP/VNC/SPICE viewers)
+                    // receive mouse events for remote-desktop interaction.
+                    if widget.downcast_ref::<gtk4::DrawingArea>().is_some()
+                        || widget.downcast_ref::<gtk4::GLArea>().is_some()
+                    {
+                        tracing::debug!(
+                            "Panel click handler: click on drawing surface in panel {}, denying gesture",
                             panel_id
                         );
                         callback(panel_id);

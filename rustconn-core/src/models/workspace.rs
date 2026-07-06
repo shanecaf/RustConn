@@ -75,6 +75,35 @@ pub struct WorkspaceSplitLayout {
     pub horizontal: bool,
     /// Split ratio (0.0 to 1.0)
     pub split_ratio: f64,
+    /// Index (into `WorkspaceProfile::entries`) of the session that occupies the
+    /// second (guest) panel. Used for deferred split restore when the guest
+    /// session connects asynchronously (e.g. RDP/VNC via vault credential
+    /// resolution).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub split_guest_entry_index: Option<usize>,
+    /// Indices (into `WorkspaceProfile::entries`) of ALL guest sessions in the
+    /// split, ordered by panel position. For a single split this has at most
+    /// one element (same as `split_guest_entry_index`); for multi-panel splits
+    /// (3+ panels) it lists every guest beyond the owner.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub split_guests: Vec<usize>,
+    /// Number of additional splits beyond the first (0 = simple 2-panel split).
+    /// Each additional split adds one empty panel to the bridge. Used to
+    /// recreate the correct number of panels during restore.
+    #[serde(default)]
+    pub extra_splits: usize,
+    /// Direction for each split in tree order (pre-order DFS). First element
+    /// is the root split, subsequent are extra splits. `true` = horizontal,
+    /// `false` = vertical. When empty, falls back to `horizontal` field for
+    /// all splits (backward compat with old profiles).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub split_directions: Vec<bool>,
+    /// Index (into `WorkspaceProfile::entries`) of the session that OWNS the
+    /// split — the tab on which `win.split-*` must fire during restore.
+    /// Without this, `apply_layout` targets whatever tab happens to be active
+    /// at idle time (usually the last-created tab), breaking multi-panel restore.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub split_owner_entry_index: Option<usize>,
 }
 
 impl Default for WorkspaceSplitLayout {
@@ -83,6 +112,11 @@ impl Default for WorkspaceSplitLayout {
             is_split: false,
             horizontal: true,
             split_ratio: 0.5,
+            split_guest_entry_index: None,
+            split_guests: Vec::new(),
+            extra_splits: 0,
+            split_directions: Vec::new(),
+            split_owner_entry_index: None,
         }
     }
 }
@@ -287,6 +321,11 @@ mod tests {
             is_split: true,
             horizontal: false,
             split_ratio: 0.6,
+            split_guest_entry_index: None,
+            split_guests: Vec::new(),
+            extra_splits: 0,
+            split_directions: Vec::new(),
+            split_owner_entry_index: None,
         });
 
         let toml_str = toml::to_string(&ws).expect("serialize");

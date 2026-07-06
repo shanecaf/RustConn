@@ -140,6 +140,11 @@ pub struct TerminalNotebook {
     /// setup such as activity monitoring — covers every terminal protocol
     /// and both synchronous and async (port-checked) connection paths.
     on_session_created: Rc<RefCell<Option<Box<dyn Fn(Uuid, Uuid)>>>>,
+    /// One-shot callback fired when ANY tab is added (terminal, VNC, SPICE,
+    /// RDP, external). Used by workspace restore to detect when an
+    /// asynchronously-connected session finally appears so it can be placed
+    /// in the split panel. Receives (session_id, connection_id).
+    on_tab_added: Rc<RefCell<Option<Box<dyn Fn(Uuid, Uuid)>>>>,
     /// Callback for recording start/stop (`connection_id`, recording) —
     /// drives the sidebar recording indicator
     on_recording_changed: Rc<RefCell<Option<Box<dyn Fn(Uuid, bool)>>>>,
@@ -270,6 +275,7 @@ impl TerminalNotebook {
             sessions: Rc::new(RefCell::new(HashMap::new())),
             on_page_closed: Rc::new(RefCell::new(None)),
             on_session_created: Rc::new(RefCell::new(None)),
+            on_tab_added: Rc::new(RefCell::new(None)),
             on_recording_changed: Rc::new(RefCell::new(None)),
             on_split_cleanup: Rc::new(RefCell::new(None)),
             terminals: Rc::new(RefCell::new(HashMap::new())),
@@ -712,6 +718,8 @@ impl TerminalNotebook {
             callback(session_id, connection_id);
         }
 
+        self.notify_tab_added(session_id, connection_id);
+
         session_id
     }
 
@@ -784,6 +792,7 @@ impl TerminalNotebook {
         if *self.color_tabs_by_protocol.borrow() {
             self.apply_protocol_color(session_id, "vnc");
         }
+        self.notify_tab_added(session_id, connection_id);
         session_id
     }
 
@@ -857,6 +866,7 @@ impl TerminalNotebook {
         if *self.color_tabs_by_protocol.borrow() {
             self.apply_protocol_color(session_id, "spice");
         }
+        self.notify_tab_added(session_id, connection_id);
         session_id
     }
 
@@ -922,6 +932,7 @@ impl TerminalNotebook {
         if *self.color_tabs_by_protocol.borrow() {
             self.apply_protocol_color(session_id, "rdp");
         }
+        self.notify_tab_added(session_id, connection_id);
     }
 
     /// Adds an embedded session tab (for RDP/VNC external processes)
@@ -974,6 +985,7 @@ impl TerminalNotebook {
         if *self.color_tabs_by_protocol.borrow() {
             self.apply_protocol_color(session_id, protocol);
         }
+        self.notify_tab_added(session_id, connection_id);
     }
 
     /// Gets the VNC session widget for a session
@@ -2934,6 +2946,48 @@ impl TerminalNotebook {
         F: Fn(Uuid, Uuid) + 'static,
     {
         *self.on_session_created.borrow_mut() = Some(Box::new(callback));
+    }
+
+    /// Sets a callback fired when ANY tab is added (all protocols).
+    ///
+    /// Unlike `on_session_created` (terminal-only), this fires for VNC, SPICE,
+    /// embedded RDP, and external-process tabs too. Designed for one-shot use
+    /// by workspace restore: the callback should clear itself once the target
+    /// session is detected.
+    pub fn set_on_tab_added<F>(&self, callback: F)
+    where
+        F: Fn(Uuid, Uuid) + 'static,
+    {
+        *self.on_tab_added.borrow_mut() = Some(Box::new(callback));
+    }
+
+    /// Clears the `on_tab_added` callback.
+    #[expect(dead_code, reason = "public API for manual callback teardown; workspace restore uses Rc<Cell<bool>> flag instead")]
+    pub fn clear_on_tab_added(&self) {
+        *self.on_tab_added.borrow_mut() = None;
+    }
+
+    /// Fires the `on_tab_added` callback if set.
+    fn notify_tab_added(&self, session_id: Uuid, connection_id: Uuid) {
+        // Take the callback out to avoid holding a borrow across the call —
+        // the callback may call `clear_on_tab_added()` which also borrows.
+        let callback = self.on_tab_added.borrow_mut().take();
+        if let Some(cb) = callback {
+            cb(session_id, connection_id);
+            // Restore the callback for future tab creations UNLESS it was
+            // consumed. Convention: the callback sets the `on_tab_added` slot
+            // to a new value (or the slot stays None if consumed). If the slot
+            // is still None after the call, the callback was NOT self-clearing
+            // from within (because take already emptied it), so we restore.
+            // If the workspace callback wants to signal "done", it must NOT
+            // call clear_on_tab_added — instead it signals via a shared flag
+            // captured in the closure. We simply always restore here; the
+            // workspace code uses an `Rc<Cell<bool>>` to stop re-firing.
+            let mut slot = self.on_tab_added.borrow_mut();
+            if slot.is_none() {
+                *slot = Some(cb);
+            }
+        }
     }
 
     /// Sets the callback invoked when terminal (VTE) focus changes.

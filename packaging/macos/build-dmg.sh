@@ -17,11 +17,11 @@ echo "=== Building RustConn for macOS ==="
 echo "Building binary ($BUILD_TYPE)..."
 if [ "$BUILD_TYPE" = "--release" ]; then
     cargo build -p rustconn --release --no-default-features \
-        --features "tray-macos,vnc-embedded,rdp-embedded,rdp-audio,spice-embedded"
+        --features "tray-macos,vnc-embedded,rdp-embedded,rdp-audio"
     BINARY="$PROJECT_DIR/target/release/rustconn"
 else
     cargo build -p rustconn --no-default-features \
-        --features "tray-macos,vnc-embedded,rdp-embedded,rdp-audio,spice-embedded"
+        --features "tray-macos,vnc-embedded,rdp-embedded,rdp-audio"
     BINARY="$PROJECT_DIR/target/debug/rustconn"
 fi
 

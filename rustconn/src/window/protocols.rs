@@ -93,6 +93,38 @@ pub(super) fn append_proxy_command_destination(proxy_parts: &mut Vec<String>, ju
     rustconn_core::ssh_tunnel::append_proxy_command_destination(proxy_parts, jump_host);
 }
 
+/// Parses a jump-host string (`[user@]host[:port]`) for tunnel ControlPath.
+fn parse_jump_host_for_tunnel_control(jump_host: &str) -> (String, u16) {
+    let host_port = jump_host
+        .rfind('@')
+        .map_or(jump_host, |at| &jump_host[at + 1..]);
+
+    let (host, port_str) = if host_port.starts_with('[') {
+        if let Some(end) = host_port.find(']') {
+            let after = &host_port[end + 1..];
+            if let Some(p) = after.strip_prefix(':') {
+                (&host_port[1..end], Some(p))
+            } else {
+                (&host_port[1..end], None)
+            }
+        } else {
+            (host_port, None)
+        }
+    } else if let Some(pos) = host_port.rfind(':') {
+        let p = &host_port[pos + 1..];
+        if !p.is_empty() && p.bytes().all(|b| b.is_ascii_digit()) {
+            (&host_port[..pos], Some(p))
+        } else {
+            (host_port, None)
+        }
+    } else {
+        (host_port, None)
+    };
+
+    let port = port_str.and_then(|p| p.parse().ok()).unwrap_or(22);
+    (host.to_string(), port)
+}
+
 /// Resolves the recursive jump host chain for a given connection and returns
 /// extra SSH args (`-J` or `-o ProxyCommand`) needed to reach it.
 ///
@@ -220,6 +252,17 @@ pub fn resolve_jump_chain_for_tunnel(
         if let Some(ref provider) = first_hop_pkcs11 {
             proxy_parts.push("-o".to_string());
             proxy_parts.push(format!("PKCS11Provider={}", provider.trim()));
+        }
+
+        // Reuse the jump host's ControlMaster socket so parallel tunnel
+        // establishments share the already-authenticated link. Only set
+        // ControlPath — if the master exists, SSH multiplexes; if not, it
+        // connects standalone (no auth issues from missing identity).
+        {
+            let (jh_host, jh_port) = parse_jump_host_for_tunnel_control(&chain[0]);
+            let jh_control = rustconn_core::ssh_control_path(&jh_host, jh_port);
+            proxy_parts.push("-o".to_string());
+            proxy_parts.push(format!("ControlPath={jh_control}"));
         }
 
         // ponytail: PKCS#11/identity reach only the first hop; deeper hops do

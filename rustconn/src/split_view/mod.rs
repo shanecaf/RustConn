@@ -62,11 +62,10 @@ use rustconn_core::models::WorkspaceSplitLayout;
 
 /// Restores a saved workspace split layout onto the active window.
 ///
-/// `WorkspaceSplitLayout` captures a single split (direction only), so this reuses
-/// the working per-session split machinery by activating the window's `split-*`
-/// action instead of duplicating the bridge/adapter wiring. The split is deferred
-/// to the next main-loop iteration so freshly-opened session tabs are registered
-/// before the active session is split.
+/// Creates the initial split plus any extra splits needed for multi-panel
+/// layouts. All splits fire in a single idle iteration so the active tab
+/// does not change between them (SSH tabs connecting in the background
+/// could steal focus between timeouts).
 ///
 /// ponytail: restores split direction only, not `split_ratio` (panes open 50/50);
 /// upgrade path: expose a ratio setter on `SplitViewBridge` and apply it post-split.
@@ -74,14 +73,27 @@ pub fn apply_layout(window: &gtk4::Window, layout: &WorkspaceSplitLayout) {
     if !layout.is_split {
         return;
     }
-    let action = if layout.horizontal {
-        "win.split-horizontal"
+    let extra = layout.extra_splits;
+    // Use per-split directions if available, otherwise fall back to the
+    // single `horizontal` field for all splits (backward compat).
+    let directions: Vec<bool> = if layout.split_directions.is_empty() {
+        vec![layout.horizontal; extra + 1]
     } else {
-        "win.split-vertical"
+        layout.split_directions.clone()
     };
     let window_weak = window.downgrade();
     gtk4::glib::idle_add_local_once(move || {
-        if let Some(win) = window_weak.upgrade() {
+        let Some(win) = window_weak.upgrade() else {
+            return;
+        };
+        // Fire all splits in one go — the bridge accumulates panels
+        // synchronously within the same main-loop iteration.
+        for i in 0..=extra {
+            let action = if directions.get(i).copied().unwrap_or(true) {
+                "win.split-horizontal"
+            } else {
+                "win.split-vertical"
+            };
             let _ = WidgetExt::activate_action(&win, action, None);
         }
     });
