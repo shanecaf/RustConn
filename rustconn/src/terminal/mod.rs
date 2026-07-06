@@ -519,10 +519,6 @@ impl TerminalNotebook {
     }
 
     /// Creates a new terminal tab for an SSH session with default settings
-    #[expect(
-        dead_code,
-        reason = "kept alive for GTK widget lifecycle / future API exposure"
-    )]
     pub fn create_terminal_tab(
         &self,
         connection_id: Uuid,
@@ -1027,10 +1023,6 @@ impl TerminalNotebook {
 
     /// Gets the session widget (VNC) for a session
     #[must_use]
-    #[expect(
-        dead_code,
-        reason = "kept alive for GTK widget lifecycle / future API exposure"
-    )]
     pub fn get_session_widget(&self, session_id: Uuid) -> Option<SessionWidget> {
         let widgets = self.session_widgets.borrow();
         if let Some(SessionWidgetStorage::Vnc(_)) = widgets.get(&session_id) {
@@ -1086,10 +1078,6 @@ impl TerminalNotebook {
 
     /// Gets the session state for a VNC session
     #[must_use]
-    #[expect(
-        dead_code,
-        reason = "kept alive for GTK widget lifecycle / future API exposure"
-    )]
     pub fn get_session_state(&self, session_id: Uuid) -> Option<SessionState> {
         let widgets = self.session_widgets.borrow();
         match widgets.get(&session_id) {
@@ -2479,10 +2467,6 @@ impl TerminalNotebook {
     /// Switches a session's tab page back to single-terminal mode.
     ///
     /// Removes the split widget and restores the single-terminal content.
-    #[expect(
-        dead_code,
-        reason = "Used when unsplitting restores single-terminal mode"
-    )]
     pub fn switch_tab_to_single(&self, session_id: Uuid, content: &GtkBox) {
         let mut containers = self.tab_containers.borrow_mut();
         if let Some(container) = containers.get_mut(&session_id) {
@@ -2528,10 +2512,6 @@ impl TerminalNotebook {
 
     /// Returns the number of open tabs
     #[must_use]
-    #[expect(
-        dead_code,
-        reason = "kept alive for GTK widget lifecycle / future API exposure"
-    )]
     pub fn tab_count(&self) -> u32 {
         self.tab_view.n_pages() as u32
     }
@@ -2846,10 +2826,6 @@ impl TerminalNotebook {
 
     /// Returns whether the TabView content is currently visible
     #[must_use]
-    #[expect(
-        dead_code,
-        reason = "kept alive for GTK widget lifecycle / future API exposure"
-    )]
     pub fn is_tab_view_content_visible(&self) -> bool {
         self.tab_view.is_visible()
     }
@@ -2962,10 +2938,6 @@ impl TerminalNotebook {
     }
 
     /// Clears the `on_tab_added` callback.
-    #[expect(
-        dead_code,
-        reason = "public API for manual callback teardown; workspace restore uses Rc<Cell<bool>> flag instead"
-    )]
     pub fn clear_on_tab_added(&self) {
         *self.on_tab_added.borrow_mut() = None;
     }

@@ -16,6 +16,10 @@ use crate::window::types::{SessionSplitBridges, SharedMonitoring, SharedNotebook
 use rustconn_core::models::{WorkspaceEntry, WorkspaceProfile, WorkspaceSplitLayout};
 
 /// Shows the workspace manager dialog
+#[expect(
+    clippy::too_many_arguments,
+    reason = "orchestration entry point — each dependency is distinct and required"
+)]
 pub fn show_workspace_manager(
     window: &gtk4::Window,
     state: SharedAppState,
