@@ -1,8 +1,8 @@
 class Rustconn < Formula
   desc "Manage remote connections easily - SSH, RDP, VNC, SPICE, Telnet, Serial"
   homepage "https://github.com/totoshko88/RustConn"
-  url "https://github.com/totoshko88/RustConn/archive/refs/tags/v0.13.16.tar.gz"
-  sha256 "274269d7c7326bb9e25443058f5c62358e57d07466209cb35d2cbf6883244b77"
+  url "https://github.com/totoshko88/RustConn/archive/refs/tags/v0.18.0.tar.gz"
+  sha256 "54f345e618ef9066e1a81e821c4c1ba252abb1a0fd631a9e7ca265558ffa4a7f"
   license "GPL-3.0-or-later"
   head "https://github.com/totoshko88/RustConn.git", branch: "main"
 
@@ -24,7 +24,7 @@ class Rustconn < Formula
     # Build GUI with macOS-specific features (no wayland, no D-Bus tray)
     system "cargo", "install", *std_cargo_args(path: "rustconn"),
            "--no-default-features",
-           "--features", "tray-macos,vnc-embedded,rdp-embedded,rdp-audio,spice-embedded"
+           "--features", "tray-macos,vnc-embedded,rdp-embedded,rdp-audio"
 
     # Build CLI
     system "cargo", "install", *std_cargo_args(path: "rustconn-cli")

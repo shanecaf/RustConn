@@ -7,6 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.1] - 2026-07-07
+
+RustConn 0.18.1 generalizes split view from VTE terminals to **any in-process (embedded) tab**. Headline change: split eligibility is now decided by the session's *widget kind*, not by whether it runs in a VTE terminal — so RDP, VNC, and SPICE sessions rendered by the in-process embedded viewer can now be placed in split panels alongside or mixed with terminal sessions, while only external-viewer sessions are declined. Embedded viewers also adapt their toolbar and resolution to narrow panels and small windows, and a batch of embedded-RDP rendering/scaling fixes lands alongside.
+
+Changes are grouped by type in the sections below (Added, Changed, Fixed, Dependencies).
+
+### Added
+
+- **Split view now works for any embedded tab, not just VTE terminals** — previously only terminal-based tabs (SSH, Telnet, Serial, Kubernetes, Local Shell, and SFTP in mc mode) could be split; eligibility is now keyed on the session's widget kind, so any in-process embedded viewer qualifies. In practice this adds embedded RDP, VNC, and SPICE remote desktops: they can now be split horizontally/vertically, dragged between panels, placed via Select Tab, focused, closed, and evicted to a new tab just like terminals, and each session keeps its live connection while it moves. Terminals and embedded desktops can be mixed in one split, and every panel shares the split container's color
+- **Embedded viewers adapt to narrow panels and small windows** — when a split panel, or a small/narrow application window, gets tight, the embedded toolbar collapses its secondary actions (Copy, Paste, Autotype, Scripts, Quick actions, Save Files) into an overflow ("⋯") menu while the primary actions (Fit resolution and Ctrl+Alt+Del) stay directly visible, and the remote desktop rescales so a small or oddly-shaped area stays fully filled and legible instead of letterboxed. This also benefits a single embedded tab in a small window
+
+### Changed
+
+- **Splitting an external-viewer session is now declined with a clear message** — a session shown through an external viewer (xfreerdp, vncviewer, or an external SPICE viewer) has no in-process widget to place in a panel, so a split attempt now shows "Split view is not available for external-viewer sessions. Switch this connection to embedded mode to use split." and leaves the layout unchanged. The old "Split view is available for terminal-based sessions only" message is gone
+- **Keystroke broadcast is restricted to terminal sessions** — the broadcast toggle appears only when a split holds at least two terminal sessions and a terminal panel is focused, and mirroring never targets an embedded remote desktop. In a split that mixes terminals and embedded desktops, keystrokes are mirrored only among the terminals
+- **Disconnecting inside a split keeps the panel open** — when an embedded session in a panel loses its connection, the panel stays open showing the in-widget reconnect banner instead of collapsing the split; reconnecting restores the session in the same panel
+
+### Fixed
+
+#### Split view
+
+- **Closing the tab that owns a split stranded its other sessions on the "Displayed in Split View" placeholder** — the tab-close cleanup only cleared the closing session from the split bridge; it never returned guest sessions to their home tabs. It now reparents every guest back to its own tab and resumes suspended monitoring before the owner tab is torn down, so both terminal- and RDP-owner splits recover correctly
+- **Clicking on an embedded RDP/VNC panel in split view only changed focus but did not pass mouse events to the remote desktop** — the split panel's capture-phase `GestureClick` recognised only buttons and VTE terminals as interactive, consuming clicks meant for the `DrawingArea`. The handler now also recognises `DrawingArea` and `GLArea` as interactive, so mouse events propagate to the embedded viewer's input controllers
+
+#### Embedded RDP rendering
+
+- **Embedded RDP on a small window rendered a huge cursor/UI instead of a dense, fully-visible desktop** — on a scaled display the server rendered at the full display DPI, producing a tiny logical desktop with oversized UI. Resolution is now keyed on *logical* size via `desktop_request_for_area`: below 640×480 the client requests a ≥-minimum desktop at 100% DPI and downscales locally. All four request paths (initial, settle-snap, resize, Fit button) share one guard
+- **Embedded RDP went blank after unsplitting** — re-wrapping the returning RDP widget in a fresh `adw::ToastOverlay` broke the `DrawingArea`'s draw function. The viewer is now reparented directly (like VNC/SPICE), rendering immediately after unsplit
+- **Embedded RDP could enter a resize feedback loop on small windows** — the debounced handler's threshold comparison always triggered, causing endless resize ping-pong. It now compares the *computed request* to current resolution and adds a 48 px hysteresis, so minor allocation nudges are ignored
+
+#### Workspace restore
+
+- **Workspace restore skipped RDP/VNC/SPICE connections** — restore now uses `start_connection_with_credential_resolution` for all entries, so non-SSH sessions resolve vault credentials correctly
+- **Workspace split restore failed for async connections (RDP/VNC/SPICE)** — the profile now persists guest entries and recreates multi-panel splits with a deferred placement callback that moves each guest session into its panel the moment its tab is created
+- **Workspace restore dropped Local Shell tabs** — restore now detects Local Shell entries by `connection_id.is_nil() && protocol == "local"` and spawns them via the manual "Local Shell" path
+- **Multi-panel split restore (3+ panels) applied splits to the wrong tab** — save now records `split_owner_entry_index`, and restore defers split actions until the owner's tab appears
+- **Multi-panel restore lost guest sessions that connected before the owner** — early-arriving guests are now buffered and placed via a deferred idle callback after splits complete
+- **Workspace split restore created all panels in one direction** — save now captures per-split directions from the bridge's tree (DFS) and fires the correct action for each split
+- **Workspace split restore produced unbalanced layouts** — restore now uses a balanced splitting algorithm that picks the largest panel and divides along its longest side, yielding a uniform grid regardless of original action order
+- **Workspace save recorded duplicate guest indices for multiple Local Shell sessions** — save now tracks used entry indices and finds the next unused match for each duplicate `Uuid::nil()` connection ID
+- **Workspace restore with sync owner (Local Shell) left guest panels empty** — a dedicated idle-deferred placement path now scans the notebook after splits complete and places all sync guests in one pass
+
+#### Networking
+
+- **SSH connections via jump host (ProxyCommand) failed with "Permission denied (publickey)" when opened in parallel** — the resolved identity key is now passed directly to the ProxyCommand, and a `ControlPath` (slave-only) is set so that re-authentication is skipped when the master socket exists
+
+### Dependencies
+
+- **Updated**: `cc` 1.2.65→1.2.66, `crossbeam-channel` 0.5.15→0.5.16, `crossbeam-deque` 0.8.6→0.8.7, `crossbeam-epoch` 0.9.18→0.9.20, `crossbeam-utils` 0.8.21→0.8.22, `inotify` 0.11.2→0.11.3, `jobserver` 0.1.34→0.1.35, `lzma-rust2` 0.16.4→0.16.5, `num-bigint` 0.4.7→0.4.8, `zerocopy` 0.8.52→0.8.53, `zerocopy-derive` 0.8.52→0.8.53 (transitive build/utility crates; no user-facing change)
+
 ## [0.18.0] - 2026-07-05
 
 RustConn 0.18.0 is a **HiDPI and cleanup** release. Headline changes: a new *Native (full HiDPI)* Display Scale option plus sharper RDP scaling and cursor rendering on 4K/retina screens ([#207](https://github.com/totoshko88/RustConn/pull/207)); embedded VNC now decodes Tight/JPEG and no longer leaves stale regions after a scroll or window move; and a large internal cleanup removes the abandoned native-SPICE experiment, an unused KeePassXC browser backend, dead render buffers, and a parallel tracing subsystem. Rounding it out are translation fixes (typographic strings now actually localise), fewer per-search allocations, and refreshed desktop-integration dependencies.

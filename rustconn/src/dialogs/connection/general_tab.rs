@@ -284,7 +284,7 @@ pub(super) fn create_basic_tab() -> BasicTabWidgets {
         "Load password from vault",
     ))]);
     let vault_test_button = Button::builder()
-        .icon_name("emblem-ok-symbolic")
+        .icon_name("object-select-symbolic")
         .tooltip_text(i18n("Test credential resolution"))
         .valign(gtk4::Align::Center)
         .build();

@@ -274,6 +274,8 @@ impl MainWindow {
         let sidebar_clone = sidebar.clone();
         let monitoring_clone = self.monitoring.clone();
         let bridges_clone = self.session_split_bridges.clone();
+        let split_view_clone = self.split_view.clone();
+        let activity_clone = self.activity_coordinator.clone();
         manage_workspaces_action.connect_activate(move |_, _| {
             if let Some(win) = window_weak.upgrade() {
                 super::workspaces::show_workspace_manager(
@@ -283,6 +285,8 @@ impl MainWindow {
                     sidebar_clone.clone(),
                     monitoring_clone.clone(),
                     bridges_clone.clone(),
+                    split_view_clone.clone(),
+                    activity_clone.clone(),
                 );
             }
         });

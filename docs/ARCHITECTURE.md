@@ -1,6 +1,6 @@
 # RustConn Architecture Guide
 
-**Version 0.18.0** | Last updated: July 2026
+**Version 0.18.1** | Last updated: July 2026
 
 This document describes the internal architecture of RustConn for contributors and maintainers.
 
@@ -741,6 +741,20 @@ pub struct ProtocolCapabilities {
 - `MoshProtocol`: MOSH mobile shell via external `mosh` client (capabilities: terminal, split_view)
 - `WebProtocol`: Web URLs opened in the system browser via `UriLauncher`/`xdg-open` (capabilities: external_fallback)
 
+> **Split-view eligibility is not the `split_view` capability flag.** Since 0.18.1, whether a session
+> can be placed in a split panel is decided at the *widget* level by
+> `TerminalNotebook::split_eligibility()` (`rustconn/src/terminal/mod.rs`), keyed on the stored
+> widget kind rather than the protocol's `ProtocolCapabilities.split_view` flag:
+> - **Any in-process embedded widget is `Embeddable`** — a VTE terminal *or* an embedded viewer
+>   (`EmbeddedRdp`, `Vnc`, `EmbeddedSpice`). Split view is no longer VTE-only; it works for every
+>   embedded tab, including RDP/VNC/SPICE remote desktops.
+> - An `ExternalProcess` session (xfreerdp/vncviewer/external SPICE viewer) is `ExternalViewer` and
+>   is declined — it has no in-process widget to reparent into a panel.
+> - A session with no live widget is `None`.
+>
+> The `ProtocolCapabilities.split_view` flag therefore remains `true` only for the terminal-based
+> protocols above and is no longer the gate for embedded remote desktops.
+
 ### Adding a New Protocol
 
 1. Create `rustconn-core/src/protocol/myprotocol.rs`
@@ -1062,11 +1076,15 @@ rustconn-core/src/
 │   ├── hierarchy.rs       # KeePass hierarchical paths
 │   ├── keyring.rs         # Shared system keyring via secret-tool
 │   ├── libsecret.rs       # GNOME Keyring backend
-│   ├── keepassxc.rs       # KeePassXC backend
+│   ├── kdbx.rs            # KDBX file backend (KeePass-compatible)
+│   ├── kdbx_keyring.rs    # KDBX database keyring helpers
 │   ├── bitwarden.rs       # Bitwarden backend (with keyring storage)
 │   ├── onepassword.rs     # 1Password backend (with keyring storage)
 │   ├── passbolt.rs        # Passbolt backend (with keyring storage)
 │   ├── pass.rs            # Pass (passwordstore.org) backend
+│   ├── macos_keychain.rs  # macOS Keychain backend (Security.framework)
+│   ├── encrypted_file.rs  # App-managed AES-256-GCM file (no keyring needed)
+│   ├── local_crypto.rs    # AES-256-GCM + Argon2id primitives
 │   ├── detection.rs       # Password manager detection
 │   ├── status.rs          # KeePass status detection
 │   └── ...
@@ -1097,7 +1115,7 @@ rustconn-core/src/
 │   ├── backend.rs         # RdpBackendSelector
 │   ├── quick_actions.rs   # Windows admin quick actions (key sequences)
 │   └── ...
-├── cli_download.rs        # Flatpak CLI download manager
+├── cli_download/          # Flatpak CLI download manager
 ├── dynamic_folder.rs      # Dynamic folder executor — script execution, JSON parsing, entry→Connection conversion
 ├── highlight.rs           # Text highlighting rules engine (CompiledHighlightRules, find_matches)
 ├── smart_folder.rs        # SmartFolderManager — dynamic connection grouping with filter evaluation
@@ -1105,7 +1123,7 @@ rustconn-core/src/
 ├── flatpak.rs             # Flatpak sandbox detection, portal key path resolution, stable key copy
 ├── snap.rs                # Snap environment detection and paths
 ├── performance/           # String interner (connection-string dedup) + search debouncer
-├── tracing/               # Structured tracing setup, span name constants
+├── tracing/               # Span name constants for structured tracing
 └── ...
 ```
 

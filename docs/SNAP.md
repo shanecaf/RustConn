@@ -77,7 +77,6 @@ The snap includes all core protocol clients — no separate installation needed:
 | openssh-client | SSH client |
 | IronRDP | Embedded RDP client |
 | vnc-rs | Embedded VNC client |
-| spice-client | Embedded SPICE client |
 | inetutils-telnet | Telnet client |
 | picocom | Serial console (RS-232/USB) |
 | Midnight Commander | SFTP file browser |
@@ -90,7 +89,7 @@ The snap includes all core protocol clients — no separate installation needed:
 | SSH | VTE terminal | Always embedded |
 | RDP | IronRDP | Embedded; FreeRDP fallback via Components |
 | VNC | vnc-rs | Embedded; TigerVNC fallback via Components |
-| SPICE | spice-client | Embedded; remote-viewer fallback via Components |
+| SPICE | remote-viewer (Components) | External viewer; no embedded client |
 | Telnet | Bundled inetutils | VTE terminal session |
 | Serial | Bundled picocom | VTE terminal session; requires `serial-port` interface |
 | Kubernetes | Components kubectl | Requires `kube-credentials` |
@@ -242,7 +241,8 @@ snap connections rustconn
 |---------|---------------|---------|-------------------|
 | Security | High (strict) | High (sandbox) | Medium |
 | Setup | Manual interfaces | Automatic | None needed |
-| SSH/RDP/VNC/SPICE | Embedded | Embedded | Embedded |
+| SSH/RDP/VNC | Embedded | Embedded | Embedded |
+| SPICE | External (remote-viewer) | External (remote-viewer) | External (remote-viewer) |
 | SSH agent | Not available (no snapd interface) | Host agent via `ssh-auth` socket | Host agent |
 | Telnet | Bundled | Bundled | Host CLI |
 | Serial | Bundled | Bundled | Host CLI |

@@ -62,6 +62,43 @@ fn jump_host_askpass_script() -> Option<std::path::PathBuf> {
     jump_host_askpass_script_for_env(JUMP_HOST_PW_ENV)
 }
 
+/// Parses a jump-host string (`[user@]host[:port]`) and returns `(host, port)`
+/// for `ssh_control_path()`. Handles IPv6 in brackets.
+fn parse_jump_host_for_control(jump_host: &str) -> (String, u16) {
+    // Strip user@ prefix
+    let host_port = if let Some(at_pos) = jump_host.rfind('@') {
+        &jump_host[at_pos + 1..]
+    } else {
+        jump_host
+    };
+
+    let (host, port_str) = if host_port.starts_with('[') {
+        // IPv6: [addr]:port
+        if let Some(bracket_end) = host_port.find(']') {
+            let after = &host_port[bracket_end + 1..];
+            if let Some(p) = after.strip_prefix(':') {
+                (&host_port[1..bracket_end], Some(p))
+            } else {
+                (&host_port[1..bracket_end], None)
+            }
+        } else {
+            (host_port, None)
+        }
+    } else if let Some(colon_pos) = host_port.rfind(':') {
+        let maybe_port = &host_port[colon_pos + 1..];
+        if !maybe_port.is_empty() && maybe_port.bytes().all(|b| b.is_ascii_digit()) {
+            (&host_port[..colon_pos], Some(maybe_port))
+        } else {
+            (host_port, None)
+        }
+    } else {
+        (host_port, None)
+    };
+
+    let port = port_str.and_then(|p| p.parse().ok()).unwrap_or(22);
+    (host.to_string(), port)
+}
+
 /// Creates (or returns cached) an askpass script that prints the value of
 /// `env_var_name`. Each unique env var gets its own on-disk script so that
 /// nested ProxyCommand hops read their own password (issue #203).
@@ -509,10 +546,10 @@ fn build_ssh_command_args(
                 proxy_parts.push("StrictHostKeyChecking=accept-new".to_string());
             }
 
-            // Pass identity file to jump host if we have one
-            if let Some(pos) = args.iter().position(|a| a == "-i")
-                && let Some(key_path) = args.get(pos + 1)
-            {
+            // Pass identity file to jump host if we have one.
+            // `key` is the resolved identity (removed from `args` to avoid
+            // duplication in the outer ssh command) — use it directly.
+            if let Some(ref key_path) = key {
                 proxy_parts.push("-i".to_string());
                 proxy_parts.push(key_path.clone());
                 proxy_parts.push("-o".to_string());
@@ -529,6 +566,20 @@ fn build_ssh_command_args(
             if let Some(ref kh_path) = flatpak_known_hosts {
                 proxy_parts.push("-o".to_string());
                 proxy_parts.push(format!("UserKnownHostsFile={}", kh_path.display()));
+            }
+
+            // Reuse the jump host's ControlMaster socket (created by the direct
+            // jump-host tab) so parallel ProxyCommand connections share the
+            // already-authenticated link instead of each opening a new TCP.
+            // Only set ControlPath (no ControlMaster=auto): if the socket
+            // exists, SSH uses it as slave transparently; if not, SSH ignores
+            // the option and connects standalone — no identity/auth issues.
+            {
+                let jump_host_str = &jump_hosts[0];
+                let (jh_host, jh_port) = parse_jump_host_for_control(jump_host_str);
+                let jh_control = rustconn_core::ssh_control_path(&jh_host, jh_port);
+                proxy_parts.push("-o".to_string());
+                proxy_parts.push(format!("ControlPath={jh_control}"));
             }
 
             // ponytail: PKCS#11/identity reach only the first hop; deeper

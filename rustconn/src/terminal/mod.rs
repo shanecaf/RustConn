@@ -84,6 +84,42 @@ struct RemoteRecordingInfo {
     ssh_params: SshRecordingParams,
 }
 
+/// Whether a session can be hosted in a split panel, and how.
+///
+/// Keyed on the stored widget kind rather than a protocol string, so an
+/// external-process viewer is declined even when its protocol is rdp/vnc/spice.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SplitEligibility {
+    /// VTE terminal or an in-process embedded viewer — can be split.
+    Embeddable,
+    /// rdp/vnc/spice running via an external process/viewer — cannot be embedded.
+    ExternalViewer,
+    /// No live session/widget for this id.
+    None,
+}
+
+/// Maps a session's stored state to its split eligibility (pure, GTK-free).
+///
+/// `session_widgets` storage wins over `has_terminal`: an embedded viewer or
+/// external process is classified by its variant; otherwise a live VTE terminal
+/// is `Embeddable`; anything unknown is `None`.
+#[must_use]
+fn eligibility_from(
+    has_terminal: bool,
+    storage: Option<&SessionWidgetStorage>,
+) -> SplitEligibility {
+    match storage {
+        Some(
+            SessionWidgetStorage::Vnc(_)
+            | SessionWidgetStorage::EmbeddedRdp(_)
+            | SessionWidgetStorage::EmbeddedSpice(_),
+        ) => SplitEligibility::Embeddable,
+        Some(SessionWidgetStorage::ExternalProcess(_)) => SplitEligibility::ExternalViewer,
+        None if has_terminal => SplitEligibility::Embeddable,
+        None => SplitEligibility::None,
+    }
+}
+
 /// Terminal notebook widget for managing multiple terminal sessions
 /// Now using adw::TabView for modern GNOME HIG compliance
 pub struct TerminalNotebook {
@@ -104,6 +140,11 @@ pub struct TerminalNotebook {
     /// setup such as activity monitoring — covers every terminal protocol
     /// and both synchronous and async (port-checked) connection paths.
     on_session_created: Rc<RefCell<Option<Box<dyn Fn(Uuid, Uuid)>>>>,
+    /// One-shot callback fired when ANY tab is added (terminal, VNC, SPICE,
+    /// RDP, external). Used by workspace restore to detect when an
+    /// asynchronously-connected session finally appears so it can be placed
+    /// in the split panel. Receives (session_id, connection_id).
+    on_tab_added: Rc<RefCell<Option<Box<dyn Fn(Uuid, Uuid)>>>>,
     /// Callback for recording start/stop (`connection_id`, recording) —
     /// drives the sidebar recording indicator
     on_recording_changed: Rc<RefCell<Option<Box<dyn Fn(Uuid, bool)>>>>,
@@ -234,6 +275,7 @@ impl TerminalNotebook {
             sessions: Rc::new(RefCell::new(HashMap::new())),
             on_page_closed: Rc::new(RefCell::new(None)),
             on_session_created: Rc::new(RefCell::new(None)),
+            on_tab_added: Rc::new(RefCell::new(None)),
             on_recording_changed: Rc::new(RefCell::new(None)),
             on_split_cleanup: Rc::new(RefCell::new(None)),
             terminals: Rc::new(RefCell::new(HashMap::new())),
@@ -477,10 +519,6 @@ impl TerminalNotebook {
     }
 
     /// Creates a new terminal tab for an SSH session with default settings
-    #[expect(
-        dead_code,
-        reason = "kept alive for GTK widget lifecycle / future API exposure"
-    )]
     pub fn create_terminal_tab(
         &self,
         connection_id: Uuid,
@@ -676,6 +714,8 @@ impl TerminalNotebook {
             callback(session_id, connection_id);
         }
 
+        self.notify_tab_added(session_id, connection_id);
+
         session_id
     }
 
@@ -718,6 +758,11 @@ impl TerminalNotebook {
         page.set_tooltip(&tooltip);
 
         self.sessions.borrow_mut().insert(session_id, page.clone());
+        // Register the container so split (switch_tab_to_split) and unsplit /
+        // close-pane (reparent_terminal_to_tab) can swap this tab's content.
+        self.tab_containers
+            .borrow_mut()
+            .insert(session_id, tab_container);
         self.session_widgets
             .borrow_mut()
             .insert(session_id, SessionWidgetStorage::Vnc(vnc_widget));
@@ -743,6 +788,7 @@ impl TerminalNotebook {
         if *self.color_tabs_by_protocol.borrow() {
             self.apply_protocol_color(session_id, "vnc");
         }
+        self.notify_tab_added(session_id, connection_id);
         session_id
     }
 
@@ -785,6 +831,11 @@ impl TerminalNotebook {
         page.set_tooltip(&tooltip);
 
         self.sessions.borrow_mut().insert(session_id, page.clone());
+        // Register the container so split (switch_tab_to_split) and unsplit /
+        // close-pane (reparent_terminal_to_tab) can swap this tab's content.
+        self.tab_containers
+            .borrow_mut()
+            .insert(session_id, tab_container);
         self.session_widgets.borrow_mut().insert(
             session_id,
             SessionWidgetStorage::EmbeddedSpice(spice_widget),
@@ -811,6 +862,7 @@ impl TerminalNotebook {
         if *self.color_tabs_by_protocol.borrow() {
             self.apply_protocol_color(session_id, "spice");
         }
+        self.notify_tab_added(session_id, connection_id);
         session_id
     }
 
@@ -846,6 +898,11 @@ impl TerminalNotebook {
         page.set_tooltip(title);
 
         self.sessions.borrow_mut().insert(session_id, page.clone());
+        // Register the container so split (switch_tab_to_split) and unsplit /
+        // close-pane (reparent_terminal_to_tab) can swap this tab's content.
+        self.tab_containers
+            .borrow_mut()
+            .insert(session_id, tab_container);
         self.session_widgets
             .borrow_mut()
             .insert(session_id, SessionWidgetStorage::EmbeddedRdp(widget));
@@ -871,6 +928,7 @@ impl TerminalNotebook {
         if *self.color_tabs_by_protocol.borrow() {
             self.apply_protocol_color(session_id, "rdp");
         }
+        self.notify_tab_added(session_id, connection_id);
     }
 
     /// Adds an embedded session tab (for RDP/VNC external processes)
@@ -923,6 +981,7 @@ impl TerminalNotebook {
         if *self.color_tabs_by_protocol.borrow() {
             self.apply_protocol_color(session_id, protocol);
         }
+        self.notify_tab_added(session_id, connection_id);
     }
 
     /// Gets the VNC session widget for a session
@@ -964,10 +1023,6 @@ impl TerminalNotebook {
 
     /// Gets the session widget (VNC) for a session
     #[must_use]
-    #[expect(
-        dead_code,
-        reason = "kept alive for GTK widget lifecycle / future API exposure"
-    )]
     pub fn get_session_widget(&self, session_id: Uuid) -> Option<SessionWidget> {
         let widgets = self.session_widgets.borrow();
         if let Some(SessionWidgetStorage::Vnc(_)) = widgets.get(&session_id) {
@@ -983,10 +1038,6 @@ impl TerminalNotebook {
 
     /// Gets the GTK widget for a session (for display in split view)
     #[must_use]
-    #[expect(
-        dead_code,
-        reason = "kept alive for GTK widget lifecycle / future API exposure"
-    )]
     pub fn get_session_display_widget(&self, session_id: Uuid) -> Option<Widget> {
         let widgets = self.session_widgets.borrow();
         if let Some(storage) = widgets.get(&session_id) {
@@ -1007,12 +1058,26 @@ impl TerminalNotebook {
             .map(|t| t.clone().upcast())
     }
 
+    /// Reports whether a session can be split, keyed on its stored widget kind.
+    #[must_use]
+    pub fn split_eligibility(&self, session_id: Uuid) -> SplitEligibility {
+        // Scope each borrow so we never hold two RefCell borrows at once.
+        let from_widget = {
+            let widgets = self.session_widgets.borrow();
+            widgets
+                .get(&session_id)
+                .map(|storage| eligibility_from(false, Some(storage)))
+        };
+        if let Some(eligibility) = from_widget {
+            return eligibility;
+        }
+
+        let has_terminal = self.terminals.borrow().contains_key(&session_id);
+        eligibility_from(has_terminal, None)
+    }
+
     /// Gets the session state for a VNC session
     #[must_use]
-    #[expect(
-        dead_code,
-        reason = "kept alive for GTK widget lifecycle / future API exposure"
-    )]
     pub fn get_session_state(&self, session_id: Uuid) -> Option<SessionState> {
         let widgets = self.session_widgets.borrow();
         match widgets.get(&session_id) {
@@ -2402,10 +2467,6 @@ impl TerminalNotebook {
     /// Switches a session's tab page back to single-terminal mode.
     ///
     /// Removes the split widget and restores the single-terminal content.
-    #[expect(
-        dead_code,
-        reason = "Used when unsplitting restores single-terminal mode"
-    )]
     pub fn switch_tab_to_single(&self, session_id: Uuid, content: &GtkBox) {
         let mut containers = self.tab_containers.borrow_mut();
         if let Some(container) = containers.get_mut(&session_id) {
@@ -2451,10 +2512,6 @@ impl TerminalNotebook {
 
     /// Returns the number of open tabs
     #[must_use]
-    #[expect(
-        dead_code,
-        reason = "kept alive for GTK widget lifecycle / future API exposure"
-    )]
     pub fn tab_count(&self) -> u32 {
         self.tab_view.n_pages() as u32
     }
@@ -2606,9 +2663,21 @@ impl TerminalNotebook {
         }
     }
 
-    /// Moves terminal back to its TabView page container
-    /// Call this when session exits split view and returns to TabView display
+    /// Moves a session's content widget back into its `TabView` page.
+    ///
+    /// Used by the split close-pane / unsplit paths: when a session leaves a
+    /// split panel, the *same* widget instance is reparented back into its
+    /// single-session tab. For an embedded RDP/VNC/SPICE viewer this moves the
+    /// live viewer widget (never disconnecting or recreating the connection);
+    /// for a VTE session it rebuilds the terminal + scrollbar layout.
     pub fn reparent_terminal_to_tab(&self, session_id: Uuid) {
+        // Embedded viewers have no VTE terminal — they travel as their own
+        // widget instance (carrying their in-container toolbar and reconnect
+        // banner). Handle them first; fall through to the VTE path otherwise.
+        if self.reparent_embedded_to_tab(session_id) {
+            return;
+        }
+
         let Some(terminal) = self.terminals.borrow().get(&session_id).cloned() else {
             return;
         };
@@ -2654,6 +2723,100 @@ impl TerminalNotebook {
         terminal.set_visible(true);
     }
 
+    /// Reparents an embedded viewer back into its single-session tab.
+    ///
+    /// Returns `true` when `session_id` is an embedded RDP/VNC/SPICE viewer and
+    /// was handled; `false` when it is not embedded (the caller then falls back
+    /// to the VTE terminal path). The same widget instance is moved, so the
+    /// live protocol connection is preserved — nothing is disconnected.
+    fn reparent_embedded_to_tab(&self, session_id: Uuid) -> bool {
+        // Resolve the concrete widget while scoping the borrow, so no
+        // `session_widgets` borrow is held across GTK reparenting.
+        enum Embedded {
+            Vnc(Rc<VncSessionWidget>),
+            Rdp(Rc<EmbeddedRdpWidget>),
+            Spice(Rc<EmbeddedSpiceWidget>),
+        }
+        let embedded = {
+            let widgets = self.session_widgets.borrow();
+            match widgets.get(&session_id) {
+                Some(SessionWidgetStorage::Vnc(w)) => Embedded::Vnc(Rc::clone(w)),
+                Some(SessionWidgetStorage::EmbeddedRdp(w)) => Embedded::Rdp(Rc::clone(w)),
+                Some(SessionWidgetStorage::EmbeddedSpice(w)) => Embedded::Spice(Rc::clone(w)),
+                _ => return false,
+            }
+        };
+
+        // Rebuild the single-mode content, mirroring the creation path so the
+        // embedded widget is wrapped exactly as when its tab was first built.
+        let container = GtkBox::new(Orientation::Vertical, 0);
+        container.set_hexpand(true);
+        container.set_vexpand(true);
+
+        match embedded {
+            Embedded::Vnc(w) => {
+                let widget = w.widget();
+                Self::detach_widget_from_parent(widget);
+                widget.set_hexpand(true);
+                widget.set_vexpand(true);
+                container.append(widget);
+                widget.set_visible(true);
+            }
+            Embedded::Spice(w) => {
+                let widget = w.widget();
+                Self::detach_widget_from_parent(widget.upcast_ref());
+                widget.set_hexpand(true);
+                widget.set_vexpand(true);
+                container.append(widget);
+                widget.set_visible(true);
+            }
+            Embedded::Rdp(w) => {
+                let widget = w.widget();
+                Self::detach_widget_from_parent(widget.upcast_ref());
+                // Append the RDP container directly (mirroring the VNC/SPICE
+                // arms). Wrapping it in a freshly-created `adw::ToastOverlay`
+                // here left the reparented `DrawingArea` unable to repaint (its
+                // draw func was never re-invoked, so live frames landed in the
+                // buffer but never reached the screen — a blank viewer). The
+                // file-drop ToastOverlay is only needed while DnD is active and
+                // is re-established elsewhere; a plain re-parent restores drawing.
+                widget.set_hexpand(true);
+                widget.set_vexpand(true);
+                container.append(widget);
+                widget.set_visible(true);
+            }
+        }
+
+        {
+            let mut containers = self.tab_containers.borrow_mut();
+            if let Some(tab_container) = containers.get_mut(&session_id) {
+                tab_container.switch_to_single(&container);
+            }
+        }
+
+        // Nudge a repaint once the re-parented viewer has settled into its new
+        // allocation (the live frame lives in a Rust-side buffer, not GTK's
+        // surface cache).
+        glib::idle_add_local_once(move || {
+            container.queue_draw();
+        });
+        true
+    }
+
+    /// Detaches a widget from its current parent so the same instance can be
+    /// re-attached elsewhere (GTK widgets may only have one parent).
+    ///
+    /// A `GtkBox` parent uses `remove`; any other parent uses `unparent`.
+    fn detach_widget_from_parent(widget: &Widget) {
+        if let Some(parent) = widget.parent() {
+            if let Some(box_widget) = parent.downcast_ref::<GtkBox>() {
+                box_widget.remove(widget);
+            } else {
+                widget.unparent();
+            }
+        }
+    }
+
     /// Shows TabView content area (for RDP/VNC/SPICE sessions)
     /// Call this when switching to a non-SSH session that displays in TabView
     pub fn show_tab_view_content(&self) {
@@ -2663,10 +2826,6 @@ impl TerminalNotebook {
 
     /// Returns whether the TabView content is currently visible
     #[must_use]
-    #[expect(
-        dead_code,
-        reason = "kept alive for GTK widget lifecycle / future API exposure"
-    )]
     pub fn is_tab_view_content_visible(&self) -> bool {
         self.tab_view.is_visible()
     }
@@ -2763,6 +2922,47 @@ impl TerminalNotebook {
         F: Fn(Uuid, Uuid) + 'static,
     {
         *self.on_session_created.borrow_mut() = Some(Box::new(callback));
+    }
+
+    /// Sets a callback fired when ANY tab is added (all protocols).
+    ///
+    /// Unlike `on_session_created` (terminal-only), this fires for VNC, SPICE,
+    /// embedded RDP, and external-process tabs too. Designed for one-shot use
+    /// by workspace restore: the callback should clear itself once the target
+    /// session is detected.
+    pub fn set_on_tab_added<F>(&self, callback: F)
+    where
+        F: Fn(Uuid, Uuid) + 'static,
+    {
+        *self.on_tab_added.borrow_mut() = Some(Box::new(callback));
+    }
+
+    /// Clears the `on_tab_added` callback.
+    pub fn clear_on_tab_added(&self) {
+        *self.on_tab_added.borrow_mut() = None;
+    }
+
+    /// Fires the `on_tab_added` callback if set.
+    fn notify_tab_added(&self, session_id: Uuid, connection_id: Uuid) {
+        // Take the callback out to avoid holding a borrow across the call —
+        // the callback may call `clear_on_tab_added()` which also borrows.
+        let callback = self.on_tab_added.borrow_mut().take();
+        if let Some(cb) = callback {
+            cb(session_id, connection_id);
+            // Restore the callback for future tab creations UNLESS it was
+            // consumed. Convention: the callback sets the `on_tab_added` slot
+            // to a new value (or the slot stays None if consumed). If the slot
+            // is still None after the call, the callback was NOT self-clearing
+            // from within (because take already emptied it), so we restore.
+            // If the workspace callback wants to signal "done", it must NOT
+            // call clear_on_tab_added — instead it signals via a shared flag
+            // captured in the closure. We simply always restore here; the
+            // workspace code uses an `Rc<Cell<bool>>` to stop re-firing.
+            let mut slot = self.on_tab_added.borrow_mut();
+            if slot.is_none() {
+                *slot = Some(cb);
+            }
+        }
     }
 
     /// Sets the callback invoked when terminal (VTE) focus changes.
@@ -3006,4 +3206,60 @@ fn cursor_line_text(terminal: &Terminal) -> Option<String> {
             .find(|l| !l.trim().is_empty())
             .map(str::to_owned)
     })
+}
+
+#[cfg(test)]
+mod split_eligibility_tests {
+    use super::{SessionWidgetStorage, SplitEligibility, eligibility_from};
+    use std::cell::RefCell;
+    use std::rc::Rc;
+
+    #[test]
+    fn external_process_is_external_viewer() {
+        // Constructible without GTK — carries only a child-process handle.
+        let storage = SessionWidgetStorage::ExternalProcess(Rc::new(RefCell::new(None)));
+        assert_eq!(
+            eligibility_from(false, Some(&storage)),
+            SplitEligibility::ExternalViewer
+        );
+    }
+
+    #[test]
+    fn stored_widget_wins_over_terminal_flag() {
+        // Even if a stray terminal flag is set, an external viewer stays declined.
+        let storage = SessionWidgetStorage::ExternalProcess(Rc::new(RefCell::new(None)));
+        assert_eq!(
+            eligibility_from(true, Some(&storage)),
+            SplitEligibility::ExternalViewer
+        );
+    }
+
+    #[test]
+    fn terminal_only_session_is_embeddable() {
+        assert_eq!(eligibility_from(true, None), SplitEligibility::Embeddable);
+    }
+
+    #[test]
+    fn unknown_session_is_none() {
+        assert_eq!(eligibility_from(false, None), SplitEligibility::None);
+    }
+
+    #[test]
+    // GTK can only be initialized from one thread per process; the default
+    // multi-threaded test harness makes this unsafe, so this widget-constructing
+    // test is opt-in.
+    #[ignore = "requires GTK init on a single thread; run with: cargo test -p rustconn -- --ignored --test-threads=1"]
+    fn embedded_widget_variants_are_embeddable() {
+        // The Vnc/EmbeddedRdp/EmbeddedSpice arms need real GTK widgets to
+        // construct, so gate on a display; skip cleanly when headless.
+        if gtk4::init().is_err() {
+            return;
+        }
+        let widget = Rc::new(crate::session::VncSessionWidget::new());
+        let storage = SessionWidgetStorage::Vnc(widget);
+        assert_eq!(
+            eligibility_from(false, Some(&storage)),
+            SplitEligibility::Embeddable
+        );
+    }
 }

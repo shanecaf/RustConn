@@ -1,6 +1,6 @@
 # RustConn User Guide
 
-**Version 0.18.0** | GTK4/libadwaita Connection Manager for Linux
+**Version 0.18.1** | GTK4/libadwaita Connection Manager for Linux
 
 RustConn is a modern connection manager designed for Linux with Wayland-first approach. It supports SSH, RDP, VNC, SPICE, MOSH, SFTP, Telnet, Serial, Kubernetes, Web protocols and Zero Trust integrations through a native GTK4/libadwaita interface.
 
@@ -633,6 +633,8 @@ On HiDPI/4K displays the embedded RDP/VNC session's remote resolution is governe
 
 For embedded RDP, the chosen scale is also sent to the Windows server as its desktop DPI (MS-RDPEDISP), so remote UI elements render at the correct logical size, and it is re-applied on every dynamic resize.
 
+When the available area is smaller than the minimum remote desktop resolution (640×480) — for example a very small split panel or a narrow window — the embedded viewer requests an aspect-matched resolution scaled up to that minimum, raises the remote scale so content stays legible, and locally downscales the frame to fully fill the area. The result is that a small or oddly-shaped area is filled without letterboxing rather than clipping the remote view.
+
 #### Dynamic Resolution on Resize
 
 When you resize the RustConn window, the embedded RDP session automatically adjusts its resolution to match the new window size. This works in two ways depending on server capabilities:
@@ -842,7 +844,7 @@ VNC connections support embedded (vnc-rs) or external (TigerVNC) client modes. C
 
 ### SPICE
 
-SPICE connections support TLS encryption, CA certificate validation, USB redirection, clipboard sharing, image compression (Auto/Off/GLZ/LZ/QUIC), proxy URL, and shared folders. Available as embedded (spice-client) or external (remote-viewer).
+SPICE connections support TLS encryption, CA certificate validation, USB redirection, clipboard sharing, image compression (Auto/Off/GLZ/LZ/QUIC), proxy URL, and shared folders. SPICE opens in an external viewer (remote-viewer / virt-viewer).
 
 ### MOSH Protocol
 
@@ -1073,7 +1075,7 @@ rustconn-cli add --name "AWS Console" --protocol web --host "https://console.aws
 | SSH | Embedded VTE terminal tab |
 | RDP | Embedded IronRDP or external FreeRDP (bundled in Flatpak) |
 | VNC | Embedded vnc-rs or external TigerVNC |
-| SPICE | Embedded spice-client or external remote-viewer |
+| SPICE | External viewer (remote-viewer / virt-viewer) |
 | MOSH | MOSH via VTE terminal (external `mosh` client) |
 | Telnet | Embedded VTE terminal tab (external `telnet` client) |
 | Serial | Embedded VTE terminal tab (external `picocom` client) |
@@ -1124,7 +1126,9 @@ The **Display Mode** setting in the connection dialog (Advanced tab → Window M
 
 ### Split View
 
-Split view works with terminal-based sessions: SSH, Telnet, Serial, Kubernetes, Local Shell, and SFTP (mc mode).
+Split view works with **any in-process (embedded) session**, not just VTE terminals. That means every terminal-based session (SSH, Telnet, Serial, Kubernetes, Local Shell, and SFTP in mc mode) as well as embedded RDP, VNC, and SPICE remote desktops. The only sessions that cannot be split are those handed off to an external viewer process (see below). You can mix terminals and embedded remote desktops in the same split, and an embedded session keeps its live connection when it moves between panels.
+
+Sessions shown through an external viewer (xfreerdp, vncviewer, or an external SPICE viewer) cannot be placed in a split — attempting to split one shows "Split view is not available for external-viewer sessions. Switch this connection to embedded mode to use split." and leaves the layout unchanged.
 
 - **Horizontal Split** — Ctrl+Shift+H splits the current tab horizontally (side by side)
 - **Vertical Split** — Ctrl+Shift+S splits the current tab vertically (top and bottom)
@@ -1133,6 +1137,8 @@ Split view works with terminal-based sessions: SSH, Telnet, Serial, Kubernetes, 
 - **Select Tab** — click the "Select Tab..." button in an empty pane to pick which session to display; sessions already in other split views show a colored indicator
 - **Move between splits** — a session can be moved from one split to another via "Select Tab"; the original split keeps a placeholder in the vacated panel, and the session's own tab shows a "Displayed in Split View" page with a "Go to Split View" button
 - **Tab Overview** — split-view tabs render correctly in Tab Overview (Ctrl+Shift+O) with live thumbnails showing the split layout
+
+Embedded viewers adapt to narrow panels: the toolbar collapses its secondary actions into an overflow ("⋯") menu (Fit resolution and Ctrl+Alt+Del stay visible), and the remote desktop rescales to fully fill a small or oddly-shaped panel. The same adaptation applies to a single embedded tab in a small or narrow application window. Keystroke broadcast (Ctrl+Shift+B) applies only to terminals — its toggle appears when a split holds at least two terminal sessions and a terminal panel is focused, and mirroring never targets an embedded remote desktop.
 
 ### Status Indicators
 
@@ -2659,12 +2665,14 @@ Instead of storing passwords directly per-connection, you can use **Global Varia
 | Backend | Best For | Security Level |
 |---------|----------|---------------|
 | System Keyring (libsecret) | Desktop Linux with GNOME Keyring or KDE Wallet | High — OS-managed, session-locked |
+| macOS Keychain | macOS (default there) | High — OS-managed via Security.framework |
 | KeePassXC | Users who already use KeePassXC | High — AES-256 encrypted database |
 | Bitwarden | Teams using Bitwarden | High — cloud-synced, E2E encrypted |
 | 1Password | Teams using 1Password | High — cloud-synced, E2E encrypted |
 | Passbolt | Self-hosted team password management | High — GPG-based |
 | Pass (passwordstore.org) | CLI-oriented users, git-synced passwords | High — GPG-encrypted files |
 | KDBX File | Offline/air-gapped environments | High — AES-256, local file only |
+| Encrypted-file fallback | Systems with no usable keyring (headless, minimal desktops) | Medium — AES-256-GCM, but key sits on the same disk (obfuscation at rest, not a boundary) |
 
 Configure your preferred backend in Settings → Secrets. RustConn falls back to the system keyring if the preferred backend is unavailable.
 
@@ -2702,7 +2710,7 @@ When the preferred backend (e.g., KeePassXC) cannot be reached — database pass
 ### Frequently Asked Questions
 
 **Where are my passwords stored?**
-Depending on your configured secret backend: libsecret (desktop keyring), KeePassXC (database), KDBX file (local encrypted file), Bitwarden/1Password/Passbolt (cloud vault), or Pass (GPG-encrypted files). Connection files themselves never contain actual passwords.
+Depending on your configured secret backend: libsecret (desktop keyring), macOS Keychain (on macOS), KeePassXC (database), KDBX file (local encrypted file), Bitwarden/1Password/Passbolt (cloud vault), Pass (GPG-encrypted files), or the app-managed encrypted-file fallback (AES-256-GCM, used when no keyring is available). Connection files themselves never contain actual passwords.
 
 **How do I migrate RustConn to another machine?**
 Use [Backup & Restore](#backup--restore): Backup on old machine → copy ZIP → Restore on new machine → restart. Re-enter passwords or configure the same secret backend.

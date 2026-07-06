@@ -696,11 +696,19 @@ jobs:
           SHA256=${{ steps.sha.outputs.SHA256 }}
           FORMULA="homebrew-tap/Formula/rustconn.rb"
 
+          # Copy the canonical formula from the release source tree.
+          # This ensures feature flags, dependencies, and install logic stay in
+          # sync with the code — the CI only needs to patch version + sha256.
+          cp packaging/macos/rustconn.rb "$FORMULA"
+
           # Update version in url
           sed -i "s|url \"https://github.com/totoshko88/RustConn/archive/refs/tags/v[^\"]*\.tar\.gz\"|url \"https://github.com/totoshko88/RustConn/archive/refs/tags/v${VERSION}.tar.gz\"|" "$FORMULA"
 
           # Update or insert sha256
-          if grep -q '# sha256' "$FORMULA"; then
+          if grep -q '# TODO: update sha256' "$FORMULA"; then
+            # Replace placeholder sha256 line
+            sed -i "s|.*# TODO: update sha256.*|  sha256 \"${SHA256}\"|" "$FORMULA"
+          elif grep -q '# sha256' "$FORMULA"; then
             # Replace commented-out sha256 with real one
             sed -i "s|# sha256 \".*\"|sha256 \"${SHA256}\"|" "$FORMULA"
           elif grep -q 'sha256 "' "$FORMULA"; then

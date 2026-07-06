@@ -98,31 +98,26 @@ impl MainWindow {
                 return; // No active session to split
             };
 
-            // Check if protocol supports split view (only VTE terminal-based sessions)
-            // RDP, VNC, SPICE are not supported because they use embedded widgets, not VTE terminals
-            if let Some(info) = notebook_for_split_h.get_session_info(current_session) {
-                let protocol = &info.protocol;
-                if protocol != "ssh"
-                    && protocol != "local"
-                    && protocol != "sftp"
-                    && protocol != "telnet"
-                    && protocol != "serial"
-                    && protocol != "kubernetes"
-                    && !protocol.starts_with("zerotrust")
-                {
+            // Gate split on the session's eligibility rather than a hardcoded
+            // protocol allowlist: VTE terminals and in-process embedded viewers
+            // (RDP/VNC/SPICE) are Embeddable; external-process viewers are declined.
+            match notebook_for_split_h.split_eligibility(current_session) {
+                crate::terminal::SplitEligibility::Embeddable => {}
+                crate::terminal::SplitEligibility::ExternalViewer => {
                     tracing::debug!(
-                        "split-horizontal: protocol '{}' not supported for split view",
-                        protocol
+                        "split-horizontal: session {:?} uses an external viewer, declining split",
+                        current_session
                     );
                     if let Some(win) = window_weak_h.upgrade() {
                         crate::toast::show_toast_on_window(
                             &win,
-                            &crate::i18n::i18n("Split view is available for terminal-based sessions only"),
+                            &crate::i18n::i18n("Split view is not available for external-viewer sessions. Switch this connection to embedded mode to use split."),
                             crate::toast::ToastType::Warning,
                         );
                     }
                     return;
                 }
+                crate::terminal::SplitEligibility::None => return,
             }
 
             tracing::debug!("split-horizontal: splitting session {:?}", current_session);
@@ -130,6 +125,14 @@ impl MainWindow {
             // Get or create a split bridge for this session (with shared color pool)
             let split_view =
                 get_or_create_session_bridge(current_session, &session_bridges, &color_pool_h);
+
+            // Wire the content provider so the bridge can place any session's
+            // display widget (VTE terminal or embedded RDP/VNC/SPICE viewer)
+            // through the uniform content-widget path.
+            let notebook_for_content_provider_h = notebook_for_split_h.clone();
+            split_view.set_content_provider(Rc::new(move |sid| {
+                notebook_for_content_provider_h.get_session_display_widget(sid)
+            }));
 
             // Check if this is the first split (bridge has only 1 panel)
             // If bridge already has multiple panels, we don't need to show the current session
@@ -162,8 +165,7 @@ impl MainWindow {
                 if is_first_split {
                     // Ensure session is registered in split_view
                     if let Some(info) = notebook_for_split_h.get_session_info(current_session) {
-                        let terminal = notebook_for_split_h.get_terminal(current_session);
-                        split_view.add_session(info, terminal);
+                        split_view.add_session(info);
                     }
                     // Show in the focused (original) pane
                     let _ = split_view.show_session(current_session);
@@ -222,9 +224,9 @@ impl MainWindow {
                     // split-owner's TabPage. Switching to another session's tab would
                     // navigate away from the split widget and make the content disappear.
                     if let Some(session_id) = session_to_focus
-                        && let Some(terminal) = sv_for_terminal.get_terminal(session_id)
+                        && let Some(widget) = sv_for_terminal.content_widget(session_id)
                     {
-                        terminal.grab_focus();
+                        widget.grab_focus();
                     }
                 });
 
@@ -251,20 +253,17 @@ impl MainWindow {
                 let notebook_for_broadcast_h = notebook_for_split_h.clone();
                 split_view.setup_select_tab_callback_with_provider(
                     move || {
-                        // Get all sessions from the notebook, excluding those already in THIS split
-                        // Only show VTE-based sessions (SSH, ZeroTrust, Local Shell, Telnet, Serial, Kubernetes)
-                        // RDP/VNC/SPICE not supported in split view
+                        // Get all sessions from the notebook, excluding those already in THIS split.
+                        // Include VTE terminals and in-process embedded viewers (Embeddable);
+                        // external-process viewers are excluded via eligibility (R4.3).
                         notebook_for_provider
                             .get_all_sessions()
                             .into_iter()
                             .filter(|s| {
-                                s.protocol == "ssh"
-                                    || s.protocol == "local"
-                                    || s.protocol == "sftp"
-                                    || s.protocol == "telnet"
-                                    || s.protocol == "serial"
-                                    || s.protocol == "kubernetes"
-                                    || s.protocol.starts_with("zerotrust")
+                                matches!(
+                                    notebook_for_provider.split_eligibility(s.id),
+                                    crate::terminal::SplitEligibility::Embeddable
+                                )
                             })
                             .map(|s| (s.id, s.name))
                             .filter(|(id, _)| !split_view_for_provider.is_session_displayed(*id))
@@ -301,19 +300,23 @@ impl MainWindow {
                             }
                         }
 
-                        // Get terminal from notebook (not from bridge's internal map)
-                        let Some(terminal) = notebook_for_terminal.get_terminal(session_id) else {
+                        // Resolve the session's display widget from the notebook
+                        // (terminal or embedded viewer) — not from the bridge's
+                        // internal map.
+                        let Some(content) =
+                            notebook_for_terminal.get_session_display_widget(session_id)
+                        else {
                             tracing::warn!(
-                            "Select Tab callback (horizontal): no terminal found for session {}",
-                            session_id
-                        );
+                                "Select Tab callback (horizontal): no content widget for session {}",
+                                session_id
+                            );
                             return;
                         };
 
-                        // Move the session to the panel with the terminal
+                        // Move the session to the panel with its content widget.
                         // This returns the color index on success
                         match split_view_for_select
-                            .move_session_to_panel_with_terminal(panel_uuid, session_id, &terminal)
+                            .move_session_to_panel(panel_uuid, session_id, &content)
                         {
                             Ok(color_index) => {
                                 // Register this session in session_split_bridges
@@ -401,31 +404,26 @@ impl MainWindow {
                 return; // No active session to split
             };
 
-            // Check if protocol supports split view (only VTE terminal-based sessions)
-            // RDP, VNC, SPICE are not supported because they use embedded widgets, not VTE terminals
-            if let Some(info) = notebook_for_split_v.get_session_info(current_session) {
-                let protocol = &info.protocol;
-                if protocol != "ssh"
-                    && protocol != "local"
-                    && protocol != "sftp"
-                    && protocol != "telnet"
-                    && protocol != "serial"
-                    && protocol != "kubernetes"
-                    && !protocol.starts_with("zerotrust")
-                {
+            // Gate split on the session's eligibility rather than a hardcoded
+            // protocol allowlist: VTE terminals and in-process embedded viewers
+            // (RDP/VNC/SPICE) are Embeddable; external-process viewers are declined.
+            match notebook_for_split_v.split_eligibility(current_session) {
+                crate::terminal::SplitEligibility::Embeddable => {}
+                crate::terminal::SplitEligibility::ExternalViewer => {
                     tracing::debug!(
-                        "split-vertical: protocol '{}' not supported for split view",
-                        protocol
+                        "split-vertical: session {:?} uses an external viewer, declining split",
+                        current_session
                     );
                     if let Some(win) = window_weak_v.upgrade() {
                         crate::toast::show_toast_on_window(
                             &win,
-                            &crate::i18n::i18n("Split view is available for terminal-based sessions only"),
+                            &crate::i18n::i18n("Split view is not available for external-viewer sessions. Switch this connection to embedded mode to use split."),
                             crate::toast::ToastType::Warning,
                         );
                     }
                     return;
                 }
+                crate::terminal::SplitEligibility::None => return,
             }
 
             tracing::debug!("split-vertical: splitting session {:?}", current_session);
@@ -433,6 +431,14 @@ impl MainWindow {
             // Get or create a split bridge for this session (with shared color pool)
             let split_view =
                 get_or_create_session_bridge(current_session, &session_bridges_v, &color_pool_v);
+
+            // Wire the content provider so the bridge can place any session's
+            // display widget (VTE terminal or embedded RDP/VNC/SPICE viewer)
+            // through the uniform content-widget path.
+            let notebook_for_content_provider_v = notebook_for_split_v.clone();
+            split_view.set_content_provider(Rc::new(move |sid| {
+                notebook_for_content_provider_v.get_session_display_widget(sid)
+            }));
 
             // Check if this is the first split (bridge has only 1 panel)
             // If bridge already has multiple panels, we don't need to show the current session
@@ -465,8 +471,7 @@ impl MainWindow {
                 if is_first_split {
                     // Ensure session is registered in split_view
                     if let Some(info) = notebook_for_split_v.get_session_info(current_session) {
-                        let terminal = notebook_for_split_v.get_terminal(current_session);
-                        split_view.add_session(info, terminal);
+                        split_view.add_session(info);
                     }
                     // Show in the focused (original) pane
                     let _ = split_view.show_session(current_session);
@@ -525,9 +530,9 @@ impl MainWindow {
                     // split-owner's TabPage. Switching to another session's tab would
                     // navigate away from the split widget and make the content disappear.
                     if let Some(session_id) = session_to_focus
-                        && let Some(terminal) = sv_for_terminal.get_terminal(session_id)
+                        && let Some(widget) = sv_for_terminal.content_widget(session_id)
                     {
-                        terminal.grab_focus();
+                        widget.grab_focus();
                     }
                 });
 
@@ -554,20 +559,17 @@ impl MainWindow {
                 let notebook_for_broadcast_v = notebook_for_split_v.clone();
                 split_view.setup_select_tab_callback_with_provider(
                     move || {
-                        // Get all sessions from the notebook, excluding those already in THIS split
-                        // Only show VTE-based sessions (SSH, ZeroTrust, Local Shell, Telnet, Serial, Kubernetes)
-                        // RDP/VNC/SPICE not supported in split view
+                        // Get all sessions from the notebook, excluding those already in THIS split.
+                        // Include VTE terminals and in-process embedded viewers (Embeddable);
+                        // external-process viewers are excluded via eligibility (R4.3).
                         notebook_for_provider
                             .get_all_sessions()
                             .into_iter()
                             .filter(|s| {
-                                s.protocol == "ssh"
-                                    || s.protocol == "local"
-                                    || s.protocol == "sftp"
-                                    || s.protocol == "telnet"
-                                    || s.protocol == "serial"
-                                    || s.protocol == "kubernetes"
-                                    || s.protocol.starts_with("zerotrust")
+                                matches!(
+                                    notebook_for_provider.split_eligibility(s.id),
+                                    crate::terminal::SplitEligibility::Embeddable
+                                )
                             })
                             .map(|s| (s.id, s.name))
                             .filter(|(id, _)| !split_view_for_provider.is_session_displayed(*id))
@@ -604,19 +606,23 @@ impl MainWindow {
                             }
                         }
 
-                        // Get terminal from notebook (not from bridge's internal map)
-                        let Some(terminal) = notebook_for_terminal.get_terminal(session_id) else {
+                        // Resolve the session's display widget from the notebook
+                        // (terminal or embedded viewer) — not from the bridge's
+                        // internal map.
+                        let Some(content) =
+                            notebook_for_terminal.get_session_display_widget(session_id)
+                        else {
                             tracing::warn!(
-                                "Select Tab callback (vertical): no terminal found for session {}",
+                                "Select Tab callback (vertical): no content widget for session {}",
                                 session_id
                             );
                             return;
                         };
 
-                        // Move the session to the panel with the terminal
+                        // Move the session to the panel with its content widget.
                         // This returns the color index on success
                         match split_view_for_select
-                            .move_session_to_panel_with_terminal(panel_uuid, session_id, &terminal)
+                            .move_session_to_panel(panel_uuid, session_id, &content)
                         {
                             Ok(color_index) => {
                                 // Register this session in session_split_bridges

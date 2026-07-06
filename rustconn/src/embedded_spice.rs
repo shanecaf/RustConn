@@ -172,6 +172,16 @@ impl EmbeddedSpiceWidget {
 
         container.append(&drawing_area);
 
+        // Adaptive toolbar overflow: fold Copy/Paste into a "⋯" popover on
+        // narrow panels/windows, keeping Ctrl+Alt+Del directly visible. The
+        // separator stays in the toolbar as a primary layout element.
+        crate::embedded_toolbar_overflow::ToolbarOverflow::new(
+            &toolbar,
+            vec![copy_button.clone().upcast(), paste_button.clone().upcast()],
+            crate::embedded_toolbar_overflow::SPICE_VNC_OVERFLOW_THRESHOLD_PX,
+        )
+        .attach(&drawing_area);
+
         // Reconnect banner (shown when disconnected, at bottom like VTE sessions)
         let reconnect_banner = GtkBox::new(Orientation::Horizontal, 6);
         reconnect_banner.set_margin_start(12);
@@ -307,6 +317,12 @@ impl EmbeddedSpiceWidget {
 
     /// Sets up resize handler
     fn setup_resize_handler(&self) {
+        // ponytail: SPICE runs via the external viewer here, which owns its own
+        // resolution negotiation — there is no in-process live-resize command to
+        // drive with `display_geometry::desktop_request_for_area`. Small/narrow
+        // panels therefore keep the external viewer's scale-to-fit of the fixed
+        // frame (R13.3 documented fallback). Wire the helper here if/when an
+        // in-process SPICE resize channel returns.
         let width = self.width.clone();
         let height = self.height.clone();
 

@@ -47,14 +47,14 @@ icon generation, locale compilation, Adwaita icons, ad-hoc code signing, and lau
 
 ```bash
 cargo build -p rustconn --no-default-features \
-  --features "tray-macos,vnc-embedded,rdp-embedded,rdp-audio,spice-embedded,adw-1-8"
+  --features "tray-macos,vnc-embedded,rdp-embedded,rdp-audio,adw-1-8"
 ```
 
 ### Manual: Release Build (optimized)
 
 ```bash
 cargo build --release -p rustconn --no-default-features \
-  --features "tray-macos,vnc-embedded,rdp-embedded,rdp-audio,spice-embedded,adw-1-8"
+  --features "tray-macos,vnc-embedded,rdp-embedded,rdp-audio,adw-1-8"
 ```
 
 ### CLI Only
@@ -114,7 +114,7 @@ RUST_LOG=debug \
 ```bash
 # 1. Build
 cargo build -p rustconn --no-default-features \
-  --features "tray-macos,vnc-embedded,rdp-embedded,rdp-audio,spice-embedded,adw-1-8"
+  --features "tray-macos,vnc-embedded,rdp-embedded,rdp-audio,adw-1-8"
 
 # 2. Create bundle structure
 mkdir -p RustConn.app/Contents/{MacOS,Resources}
@@ -181,9 +181,9 @@ cat > RustConn.app/Contents/Info.plist << 'EOF'
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleVersion</key>
-    <string>0.15.4</string>
+    <string>0.18.1</string>
     <key>CFBundleShortVersionString</key>
-    <string>0.15.4</string>
+    <string>0.18.1</string>
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>LSMinimumSystemVersion</key>

@@ -369,13 +369,22 @@ pub(super) fn update_broadcast_toggle_state(
     };
 
     let bridge = bridges.borrow().get(&session_id).cloned();
+    // Broadcast mirrors VTE `commit` signals, so the toggle is meaningful only
+    // when the split holds ≥2 terminal sessions (R8.3) and the focused panel is
+    // itself a terminal — an embedded viewer in focus hides it (R8.2).
+    let show_toggle = bridge.as_ref().is_some_and(|b| {
+        let focused_is_embedded = b
+            .get_focused_session()
+            .is_some_and(|sid| b.get_terminal(sid).is_none());
+        b.terminal_sessions().len() >= 2 && !focused_is_embedded
+    });
     match bridge {
-        Some(b) if b.active_session_count() >= 2 => {
+        Some(b) if show_toggle => {
             let active = b.broadcast_active.get();
             tracing::debug!(
-                "update_broadcast_toggle_state: showing toggle for session {} (active_panes={}, broadcast_active={})",
+                "update_broadcast_toggle_state: showing toggle for session {} (terminal_sessions={}, broadcast_active={})",
                 session_id,
-                b.active_session_count(),
+                b.terminal_sessions().len(),
                 active
             );
             toggle.set_visible(true);
@@ -390,9 +399,10 @@ pub(super) fn update_broadcast_toggle_state(
         }
         Some(b) => {
             tracing::debug!(
-                "update_broadcast_toggle_state: hiding toggle — bridge for session {} has only {} active pane(s)",
+                "update_broadcast_toggle_state: hiding toggle — session {} has {} terminal session(s) / embedded_panel={}",
                 session_id,
-                b.active_session_count()
+                b.terminal_sessions().len(),
+                b.has_embedded_panel()
             );
             toggle.set_visible(false);
             toggle.remove_css_class("broadcasting");
@@ -447,6 +457,13 @@ pub(super) fn wire_broadcast_for_session(
     notebook: &SharedNotebook,
     sid: uuid::Uuid,
 ) {
+    // Broadcast mirrors VTE `commit` signals; embedded RDP/VNC/SPICE sessions
+    // have no terminal, so never wire them — mirroring stays terminal-only
+    // (R8.1, R8.4, R8.5).
+    if bridge.get_terminal(sid).is_none() {
+        tracing::debug!("wire_broadcast_for_session: skipping non-terminal session {sid}");
+        return;
+    }
     if bridge.broadcast_wired_sessions.borrow().contains(&sid) {
         return;
     }

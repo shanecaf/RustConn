@@ -112,6 +112,28 @@ impl SplitLayoutModel {
         }
     }
 
+    /// Returns the directions of all splits in the tree (pre-order DFS).
+    ///
+    /// For a 4-panel layout created by: split-H, split-V, split-H the result
+    /// is `[Horizontal, Vertical, Horizontal]`. Used by workspace restore to
+    /// fire the correct `win.split-horizontal` / `win.split-vertical` action
+    /// for each split in sequence.
+    #[must_use]
+    pub fn all_split_directions(&self) -> Vec<SplitDirection> {
+        fn collect(node: &PanelNode, dirs: &mut Vec<SplitDirection>) {
+            if let PanelNode::Split(split) = node {
+                dirs.push(split.direction);
+                collect(&split.first, dirs);
+                collect(&split.second, dirs);
+            }
+        }
+        let mut dirs = Vec::new();
+        if let Some(root) = &self.root {
+            collect(root, &mut dirs);
+        }
+        dirs
+    }
+
     /// Returns the total number of panels in the layout.
     ///
     /// A layout always has at least one panel.

@@ -591,7 +591,7 @@ impl ConnectionDialog {
                             Option<secrecy::SecretString>,
                         >| {
                             btn_clone.set_sensitive(true);
-                            btn_clone.set_icon_name("emblem-ok-symbolic");
+                            btn_clone.set_icon_name("object-select-symbolic");
 
                             match result {
                                 Ok(Some(_)) => {
@@ -630,7 +630,7 @@ impl ConnectionDialog {
                     );
                 } else {
                     btn.set_sensitive(true);
-                    btn.set_icon_name("emblem-ok-symbolic");
+                    btn.set_icon_name("object-select-symbolic");
                     alert::show_error(
                         &window,
                         &i18n("Vault Not Configured"),
@@ -653,7 +653,7 @@ impl ConnectionDialog {
                         String,
                     >| {
                         btn_clone.set_sensitive(true);
-                        btn_clone.set_icon_name("emblem-ok-symbolic");
+                        btn_clone.set_icon_name("object-select-symbolic");
 
                         match result {
                             Ok(Some(creds)) => {

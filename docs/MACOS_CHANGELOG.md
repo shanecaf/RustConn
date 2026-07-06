@@ -71,7 +71,7 @@
 
 ```bash
 cargo build -p rustconn --no-default-features \
-  --features "tray-macos,vnc-embedded,rdp-embedded,rdp-audio,spice-embedded,adw-1-8"
+  --features "tray-macos,vnc-embedded,rdp-embedded,rdp-audio,adw-1-8"
 ```
 
 Disabled features: `tray` (Linux D-Bus only), `wayland-native`

@@ -65,6 +65,7 @@ pub mod display;
 pub mod embedded;
 pub mod embedded_rdp;
 pub mod embedded_spice;
+pub mod embedded_toolbar_overflow;
 pub mod embedded_trait;
 pub mod embedded_vnc;
 pub mod embedded_vnc_types;

@@ -76,7 +76,16 @@ pub fn resolve_ssh_key_path(
             SshKeySource::File { path } if !path.as_os_str().is_empty() => {
                 return Some(path.clone());
             }
-            SshKeySource::Agent { .. } | SshKeySource::Default => return None,
+            SshKeySource::Agent { .. } => return None,
+            SshKeySource::Default => {
+                // Legacy connections store key in key_path with key_source=Default
+                if let Some(ref key_path) = cfg.key_path
+                    && !key_path.as_os_str().is_empty()
+                {
+                    return Some(key_path.clone());
+                }
+                return None;
+            }
             SshKeySource::Inherit | SshKeySource::File { .. } => {
                 // Fall through to group chain walk
             }

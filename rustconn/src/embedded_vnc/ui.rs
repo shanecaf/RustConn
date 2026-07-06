@@ -89,6 +89,16 @@ impl EmbeddedVncWidget {
 
         container.append(&drawing_area);
 
+        // Adaptive toolbar overflow: fold Copy/Paste into a "⋯" popover on
+        // narrow panels/windows, keeping Ctrl+Alt+Del directly visible. The
+        // separator stays in the toolbar as a primary layout element.
+        crate::embedded_toolbar_overflow::ToolbarOverflow::new(
+            &toolbar,
+            vec![copy_button.clone().upcast(), paste_button.clone().upcast()],
+            crate::embedded_toolbar_overflow::SPICE_VNC_OVERFLOW_THRESHOLD_PX,
+        )
+        .attach(&drawing_area);
+
         // Reconnect banner (shown when disconnected, at bottom like VTE sessions)
         let reconnect_banner = GtkBox::new(Orientation::Horizontal, 6);
         reconnect_banner.set_margin_start(12);
@@ -564,6 +574,14 @@ impl EmbeddedVncWidget {
                 let embedded = *is_embedded.borrow();
 
                 if embedded && current_state == VncConnectionState::Connected {
+                    // ponytail: VNC keeps its standard-resolution snapping rather
+                    // than the RDP adaptive helper
+                    // (`display_geometry::desktop_request_for_area`): RFB
+                    // `SetDesktopSize` carries no DPI `scale_percent` channel, so
+                    // the helper's sub-minimum legibility boost (200/300%) cannot
+                    // be forwarded, and many servers only accept known-good
+                    // resolutions. Small panels fall back to scale-to-fit of the
+                    // snapped frame (R13.3 documented fallback).
                     // Find the best standard resolution that fits the scaled window
                     let (best_w, best_h) =
                         find_best_standard_resolution(scaled_width, scaled_height);

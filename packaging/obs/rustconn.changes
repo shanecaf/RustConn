@@ -1,4 +1,21 @@
 -------------------------------------------------------------------
+Tue Jul 07 2026 Anton Isaiev <totoshko88@gmail.com> - 0.18.1
+
+- Version bump to 0.18.1
+- Split view generalized to embedded RDP/VNC/SPICE tabs; mixed terminal+desktop splits
+- Embedded viewers adapt toolbar and resolution to narrow panels/small windows
+- External-viewer sessions declined from split with a clear message
+- Keystroke broadcast restricted to terminal sessions
+- Disconnecting inside a split keeps the panel open
+- Fixed split-owner tab close stranding guest sessions on placeholder
+- Fixed embedded RDP small-window scaling, blank-after-unsplit, and resize loop
+- Fixed clicking on embedded panel in split not passing mouse events to remote desktop
+- Fixed SSH ProxyCommand parallel connections failing with "Permission denied (publickey)"
+- Fixed workspace restore skipping RDP/VNC/SPICE connections (vault credential resolution)
+- Fixed workspace split restore for async connections, Local Shell tabs, multi-panel layouts, balanced splitting, and duplicate guest indices
+- Updated dependencies: cc, crossbeam-channel, crossbeam-deque, crossbeam-epoch, crossbeam-utils, inotify, jobserver, lzma-rust2, num-bigint, zerocopy, zerocopy-derive
+
+-------------------------------------------------------------------
 Sun Jul 05 2026 Anton Isaiev <totoshko88@gmail.com> - 0.18.0
 
 - Added a Native (full HiDPI) Display Scale option for embedded RDP/VNC — a "retina" mode that follows the live display scale, alongside Auto and 125–400% (#207)
