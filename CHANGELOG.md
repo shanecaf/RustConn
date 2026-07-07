@@ -9,9 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.18.2] - 2026-07-07
 
+### Added
+
+- **SPICE unix socket connections** — connect to a SPICE server via a local unix socket (`spice+unix:///path/to/socket`) instead of host:port. Useful for libvirt/QEMU VMs with a local socket. Available in the Advanced connection editor (SPICE tab → Connection → Unix Socket toggle + socket path field with a Browse button that defaults to `/run/libvirt/qemu`). Enabling the toggle disables the Jump Host row and clears any stored jump host, since a socket connects locally. The wizard creates the connection and the user sets the socket path in the Advanced editor. Closes #208
+
+### Changed
+
+- **Compact interface mode extended to more elements** — compact rules now also cover the monitoring bar, split panel margins, and playback toolbar, so density is consistent across the whole window instead of only the header and tab bars. Monitoring bar height is now CSS-driven (no more Rust hardcode), letting compact mode reduce it from 28px to 22px. The subtitle in Settings now mentions macOS alongside KDE and small screens
+
 ### Fixed
 
+- **Compact mode inflated the chrome below the header instead of shrinking it** — two issues combined to make the top of the window look ~3x taller in compact mode. First, the compact CSS set a `min-height` floor on the header's inner `windowhandle`/`box` nodes via a `> box > *` universal rule, which GTK stacked vertically. Second, a `min-height` on the `banner` node forced the two normally-collapsed AdwBanners (cloud-sync and secret-backend warnings) to each reserve 28px, adding a ~56px phantom band below the header. Compact now only reduces the `headerbar` element's own min-height (with shrunk, zero-margin buttons) and leaves banners to size to their content
 - **Homebrew formula: merged two `cargo install` calls into one `cargo build --release`** — the previous formula ran `cargo install` separately for the GUI and CLI binaries, duplicating dependency resolution and target scanning. Now a single `cargo build --release -p rustconn -p rustconn-cli` builds both at once, reducing macOS Homebrew install time
+- **SPICE CA-certificate Browse button now opens a file chooser** — a pre-existing defect: the CA-certificate Browse button in the SPICE tab was created but never wired to a handler, so clicking it did nothing. The file-chooser is now attached directly at button creation (resolving the parent window from the widget tree at click time, matching the unix-socket Browse button), and the unused `setup_ca_cert_file_chooser` helper was removed. The SSH key button was verified to be correctly wired in every dialog path
+- **CLI and GUI SPICE viewer commands no longer diverge on USB redirection** — `SpiceProtocol::build_command` (used by `rustconn-cli connect`) emitted `--spice-usbredir-redirect-on-connect=auto` while the GUI viewer path emitted `--spice-usbredir-auto-redirect-filter`, so the two produced different `remote-viewer` arguments. Both now share one URI builder (`spice://` / `spice+tls://` / `spice+unix://`) and the same USB auto-redirect filter, and the duplicated unix-socket branch in `build_command` was collapsed
 
 ## [0.18.1] - 2026-07-07
 

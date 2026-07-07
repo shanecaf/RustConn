@@ -178,7 +178,7 @@ pub fn create_ui_page() -> (
     let compact_ui = adw::SwitchRow::builder()
         .title(i18n("Compact interface"))
         .subtitle(i18n(
-            "Reduce header bar and tab bar height (useful on small screens and KDE)",
+            "Reduce header bar, tab bar, and toolbar height (useful on small screens, macOS and KDE)",
         ))
         .build();
     compact_ui.connect_active_notify(move |row| {

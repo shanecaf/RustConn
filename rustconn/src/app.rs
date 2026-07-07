@@ -52,8 +52,9 @@ pub fn apply_color_scheme(scheme: ColorScheme) {
 /// Applies the "Compact interface" setting to all open application windows.
 ///
 /// Adds or removes the `compact` CSS class on every window. The CSS rules in
-/// `assets/style.css` (`window.compact ...`) reduce header bar `min-height`,
-/// tab bar height, and button padding to give more vertical space to content.
+/// `assets/style.css` (`window.compact ...`) reduce header bar, tab bar,
+/// monitoring bar, banner, split panel, playback toolbar, and button
+/// dimensions (min-height + padding) to give more vertical space to content.
 ///
 /// Designed to run live: changes take effect without restart, and re-running
 /// with the same value is a no-op (`add_css_class` / `remove_css_class` are
