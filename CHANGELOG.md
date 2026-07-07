@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.2] - 2026-07-07
+
+### Fixed
+
+- **Homebrew formula: merged two `cargo install` calls into one `cargo build --release`** — the previous formula ran `cargo install` separately for the GUI and CLI binaries, duplicating dependency resolution and target scanning. Now a single `cargo build --release -p rustconn -p rustconn-cli` builds both at once, reducing macOS Homebrew install time
+
 ## [0.18.1] - 2026-07-07
 
 RustConn 0.18.1 generalizes split view from VTE terminals to **any in-process (embedded) tab**. Headline change: split eligibility is now decided by the session's *widget kind*, not by whether it runs in a VTE terminal — so RDP, VNC, and SPICE sessions rendered by the in-process embedded viewer can now be placed in split panels alongside or mixed with terminal sessions, while only external-viewer sessions are declined. Embedded viewers also adapt their toolbar and resolution to narrow panels and small windows, and a batch of embedded-RDP rendering/scaling fixes lands alongside.
