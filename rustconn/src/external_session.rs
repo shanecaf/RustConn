@@ -539,12 +539,12 @@ mod tests {
             let (registry, counters) = make_registry();
             let owned = spawn_sleep();
             let owned_pid = owned.id();
-            let owned_id = Uuid::new_v4();
-            let detaching_id = Uuid::new_v4();
+            let owned_session = Uuid::new_v4();
+            let detaching_session = Uuid::new_v4();
             let connection_id = Uuid::new_v4();
 
-            registry.register(owned_id, connection_id, Some(owned), None);
-            registry.register(detaching_id, connection_id, None, None);
+            registry.register(owned_session, connection_id, Some(owned), None);
+            registry.register(detaching_session, connection_id, None, None);
             assert_eq!(registry.active_count(), 2);
 
             registry.shutdown();

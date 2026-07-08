@@ -1516,8 +1516,7 @@ impl MainWindow {
             // against accidental loss of active connections). Count tabless
             // external-viewer sessions too (issue #209), so a window holding
             // only external VNC/RDP/SPICE sessions still warns before quitting.
-            let external_open =
-                external_session_registry().map_or(0, |reg| reg.active_count());
+            let external_open = external_session_registry().map_or(0, |reg| reg.active_count());
             let open_sessions = notebook_for_close.session_count() + external_open;
             if !minimize_to_tray && !force_close.get() && open_sessions > 0 {
                 let dialog = Self::close_confirmation_dialog(open_sessions);
