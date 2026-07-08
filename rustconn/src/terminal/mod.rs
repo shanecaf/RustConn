@@ -45,7 +45,6 @@ const PCRE2_MULTILINE: u32 = 0x0000_0400;
 use crate::activity_coordinator::ActivityCoordinator;
 use crate::automation::{AutomationSession, prepare_rules_from_config};
 use crate::embedded_rdp::EmbeddedRdpWidget;
-use crate::embedded_spice::EmbeddedSpiceWidget;
 use crate::i18n::{i18n, i18n_f};
 use crate::session::{SessionState, SessionWidget, VncSessionWidget};
 use crate::terminal::highlight_overlay::HighlightOverlay;
@@ -109,11 +108,9 @@ fn eligibility_from(
     storage: Option<&SessionWidgetStorage>,
 ) -> SplitEligibility {
     match storage {
-        Some(
-            SessionWidgetStorage::Vnc(_)
-            | SessionWidgetStorage::EmbeddedRdp(_)
-            | SessionWidgetStorage::EmbeddedSpice(_),
-        ) => SplitEligibility::Embeddable,
+        Some(SessionWidgetStorage::Vnc(_) | SessionWidgetStorage::EmbeddedRdp(_)) => {
+            SplitEligibility::Embeddable
+        }
         Some(SessionWidgetStorage::ExternalProcess(_)) => SplitEligibility::ExternalViewer,
         None if has_terminal => SplitEligibility::Embeddable,
         None => SplitEligibility::None,
@@ -148,6 +145,12 @@ pub struct TerminalNotebook {
     /// Callback for recording start/stop (`connection_id`, recording) —
     /// drives the sidebar recording indicator
     on_recording_changed: Rc<RefCell<Option<Box<dyn Fn(Uuid, bool)>>>>,
+    /// Callback fired after the split-color map changes (a session joins or
+    /// leaves a split, or a split tab closes) — drives the sidebar
+    /// split-membership marker. Takes no args; the handler re-syncs the whole
+    /// sidebar from `split_colors()`, which is robust and side-steps tracking
+    /// individual join/leave deltas.
+    on_split_colors_changed: Rc<RefCell<Option<Box<dyn Fn()>>>>,
     /// Callback for split view cleanup when a page is about to close (session_id)
     on_split_cleanup: Rc<RefCell<Option<Box<dyn Fn(Uuid)>>>>,
     /// Map of session IDs to terminal widgets (for SSH sessions)
@@ -206,6 +209,11 @@ pub struct TerminalNotebook {
     /// Per-session tab page containers (session_id → TabPageContainer).
     /// Guarantees every TabPage.child() has non-zero allocation for TabOverview.
     tab_containers: Rc<RefCell<HashMap<Uuid, TabPageContainer>>>,
+    /// Sessions whose standalone tab was removed while they live in another
+    /// tab's split (issue: split guests should not clutter the tab bar or
+    /// Tab Overview). Their session data (widget, terminal, info) stays alive;
+    /// `restore_session_tab` recreates the tab when the session leaves the split.
+    parked_in_split: Rc<RefCell<HashSet<Uuid>>>,
     /// Shared snippet menu section for terminal context menus.
     /// Updated when snippets are created/edited/deleted; all terminals
     /// share the same live `gio::Menu` model so changes propagate automatically.
@@ -277,6 +285,7 @@ impl TerminalNotebook {
             on_session_created: Rc::new(RefCell::new(None)),
             on_tab_added: Rc::new(RefCell::new(None)),
             on_recording_changed: Rc::new(RefCell::new(None)),
+            on_split_colors_changed: Rc::new(RefCell::new(None)),
             on_split_cleanup: Rc::new(RefCell::new(None)),
             terminals: Rc::new(RefCell::new(HashMap::new())),
             session_widgets: Rc::new(RefCell::new(HashMap::new())),
@@ -301,6 +310,7 @@ impl TerminalNotebook {
             ssh_tunnels: Rc::new(RefCell::new(HashMap::new())),
             activity_coordinator: Rc::new(RefCell::new(None)),
             tab_containers: Rc::new(RefCell::new(HashMap::new())),
+            parked_in_split: Rc::new(RefCell::new(HashSet::new())),
             snippet_menu_section: Rc::new(gio::Menu::new()),
             vte_child_pids: Rc::new(RefCell::new(HashMap::new())),
         };
@@ -319,6 +329,7 @@ impl TerminalNotebook {
         let session_info = self.session_info.clone();
         let tab_view = self.tab_view.clone();
         let split_session_colors_close = self.split_session_colors.clone();
+        let on_split_colors_changed_close = self.on_split_colors_changed.clone();
         let on_page_closed = self.on_page_closed.clone();
         let on_split_cleanup = self.on_split_cleanup.clone();
         let active_recordings = self.active_recordings.clone();
@@ -327,6 +338,7 @@ impl TerminalNotebook {
         let terminal_overlays = self.terminal_overlays.clone();
         let ssh_tunnels = self.ssh_tunnels.clone();
         let tab_containers = self.tab_containers.clone();
+        let parked_in_split = self.parked_in_split.clone();
         let vte_child_pids = self.vte_child_pids.clone();
 
         // Handle create-window signal - we must connect this to prevent the default
@@ -357,6 +369,18 @@ impl TerminalNotebook {
                     .unwrap_or((Uuid::nil(), None))
             };
 
+            // Parked into a split (Option B): the tab is being removed because the
+            // session moved into another tab's split, NOT closed. Its live widget
+            // lives in the split and its session data must survive, so drop only
+            // the tab page and its (now-stale) container mapping — skip all
+            // teardown. `restore_session_tab` recreates the tab on split-leave.
+            if !session_id.is_nil() && parked_in_split.borrow().contains(&session_id) {
+                sessions.borrow_mut().remove(&session_id);
+                tab_containers.borrow_mut().remove(&session_id);
+                view.close_page_finish(page, true);
+                return glib::Propagation::Stop;
+            }
+
             if !session_id.is_nil() {
                 // Call the on_split_cleanup callback FIRST to clear split view panels
                 // This must happen before on_page_closed to ensure proper cleanup
@@ -371,7 +395,17 @@ impl TerminalNotebook {
                     callback(session_id, conn_id);
                 }
 
-                split_session_colors_close.borrow_mut().remove(&session_id);
+                let was_in_split = split_session_colors_close
+                    .borrow_mut()
+                    .remove(&session_id)
+                    .is_some();
+                // Re-sync the sidebar split marker only when this tab actually
+                // held a split color; the borrow above is already dropped so the
+                // handler can freely re-read the map.
+                if was_in_split && let Some(ref callback) = *on_split_colors_changed_close.borrow()
+                {
+                    callback();
+                }
 
                 // Clean up session data
                 sessions.borrow_mut().remove(&session_id);
@@ -393,7 +427,6 @@ impl TerminalNotebook {
                 if let Some(widget_storage) = session_widgets.borrow_mut().remove(&session_id) {
                     match widget_storage {
                         SessionWidgetStorage::EmbeddedRdp(widget) => widget.disconnect(),
-                        SessionWidgetStorage::EmbeddedSpice(widget) => widget.disconnect(),
                         SessionWidgetStorage::Vnc(widget) => widget.disconnect(),
                         SessionWidgetStorage::ExternalProcess(process) => {
                             if let Some(mut child) = process.borrow_mut().take() {
@@ -792,80 +825,6 @@ impl TerminalNotebook {
         session_id
     }
 
-    /// Creates a new SPICE session tab
-    pub fn create_spice_session_tab(&self, connection_id: Uuid, title: &str) -> Uuid {
-        self.create_spice_session_tab_with_host(connection_id, title, "")
-    }
-
-    /// Creates a new SPICE session tab with host information
-    pub fn create_spice_session_tab_with_host(
-        &self,
-        connection_id: Uuid,
-        title: &str,
-        host: &str,
-    ) -> Uuid {
-        let session_id = Uuid::new_v4();
-        self.remove_welcome_page();
-
-        let spice_widget = Rc::new(EmbeddedSpiceWidget::new());
-
-        // #197: suspend single-Ctrl accelerators while the viewer has focus.
-        self.attach_focus_passthrough(spice_widget.widget());
-
-        let container = GtkBox::new(Orientation::Vertical, 0);
-        container.set_hexpand(true);
-        container.set_vexpand(true);
-        container.append(spice_widget.widget());
-
-        let tab_container = TabPageContainer::single(&container);
-        let page = self.tab_view.append(tab_container.widget());
-        page.set_title(title);
-        page.set_icon(Some(&gio::ThemedIcon::new(
-            "preferences-desktop-remote-desktop-symbolic",
-        )));
-        let tooltip = if host.is_empty() {
-            title.to_string()
-        } else {
-            format!("{title}\n{host}")
-        };
-        page.set_tooltip(&tooltip);
-
-        self.sessions.borrow_mut().insert(session_id, page.clone());
-        // Register the container so split (switch_tab_to_split) and unsplit /
-        // close-pane (reparent_terminal_to_tab) can swap this tab's content.
-        self.tab_containers
-            .borrow_mut()
-            .insert(session_id, tab_container);
-        self.session_widgets.borrow_mut().insert(
-            session_id,
-            SessionWidgetStorage::EmbeddedSpice(spice_widget),
-        );
-
-        self.session_info.borrow_mut().insert(
-            session_id,
-            TerminalSession {
-                id: session_id,
-                connection_id,
-                name: title.to_string(),
-                protocol: "spice".to_string(),
-                is_embedded: true,
-                log_file: None,
-                history_entry_id: None,
-                tab_group: None,
-                tab_color_index: None,
-                connected_at: chrono::Utc::now(),
-            },
-        );
-
-        self.tab_view.set_selected_page(&page);
-        // Apply protocol color indicator if enabled
-        if *self.color_tabs_by_protocol.borrow() {
-            self.apply_protocol_color(session_id, "spice");
-        }
-        self.notify_tab_added(session_id, connection_id);
-        session_id
-    }
-
     /// Adds an embedded RDP tab with the EmbeddedRdpWidget
     pub fn add_embedded_rdp_tab(
         &self,
@@ -1011,16 +970,6 @@ impl TerminalNotebook {
         }
     }
 
-    /// Gets the SPICE session widget for a session
-    #[must_use]
-    pub fn get_spice_widget(&self, session_id: Uuid) -> Option<Rc<EmbeddedSpiceWidget>> {
-        let widgets = self.session_widgets.borrow();
-        match widgets.get(&session_id) {
-            Some(SessionWidgetStorage::EmbeddedSpice(widget)) => Some(widget.clone()),
-            _ => None,
-        }
-    }
-
     /// Gets the session widget (VNC) for a session
     #[must_use]
     pub fn get_session_widget(&self, session_id: Uuid) -> Option<SessionWidget> {
@@ -1044,9 +993,6 @@ impl TerminalNotebook {
             return match storage {
                 SessionWidgetStorage::Vnc(widget) => Some(widget.widget().clone()),
                 SessionWidgetStorage::EmbeddedRdp(widget) => Some(widget.widget().clone().upcast()),
-                SessionWidgetStorage::EmbeddedSpice(widget) => {
-                    Some(widget.widget().clone().upcast())
-                }
                 SessionWidgetStorage::ExternalProcess(_) => None,
             };
         }
@@ -1773,8 +1719,22 @@ impl TerminalNotebook {
         }
     }
 
-    /// Marks a tab as connected (removes indicator)
+    /// Marks a tab as connected (removes the disconnected indicator).
+    ///
+    /// A split owner's tab uses the same single `indicator-icon` slot to show
+    /// its split color, so preserve that here instead of clearing it — otherwise
+    /// connection-state events (RDP fires "connected" on every resolution change)
+    /// would wipe the split-color indicator.
     pub fn mark_tab_connected(&self, session_id: Uuid) {
+        if let Some(&color_index) = self.split_session_colors.borrow().get(&session_id) {
+            if let Some(page) = self.sessions.borrow().get(&session_id)
+                && let Some(icon) = crate::split_view::create_colored_circle_icon(color_index, 16)
+            {
+                page.set_indicator_icon(Some(&icon));
+                page.set_indicator_activatable(false);
+            }
+            return;
+        }
         if let Some(page) = self.sessions.borrow().get(&session_id) {
             page.set_indicator_icon(gio::Icon::NONE);
         }
@@ -2063,6 +2023,11 @@ impl TerminalNotebook {
             }
             page.set_indicator_activatable(false);
         }
+
+        // R6.2: reflect the new split membership in the sidebar marker. The
+        // borrows above are scoped to the block, so re-reading the map here is
+        // safe.
+        self.notify_split_colors_changed();
     }
 
     /// Removes the split color indicator from a tab
@@ -2083,6 +2048,9 @@ impl TerminalNotebook {
                 child.remove_css_class(&format!("split-indicator-{}", i));
             }
         }
+
+        // R6.2: a session left the split — clear/refresh its sidebar marker.
+        self.notify_split_colors_changed();
     }
 
     /// Sets whether tabs should be colored by protocol type
@@ -2423,44 +2391,74 @@ impl TerminalNotebook {
         self.tab_view.set_vexpand(true);
     }
 
-    /// Shows a "displayed in split view" placeholder in a session's TabPage.
+    /// Removes a session's standalone tab while it lives in another tab's split.
     ///
-    /// Called when a session's terminal is moved to another tab's split view.
-    /// The placeholder indicates where the session is displayed and provides
-    /// a button to switch to the split tab.
-    pub fn show_in_split_placeholder(&self, session_id: Uuid, split_owner_id: Uuid) {
-        let placeholder = GtkBox::new(Orientation::Vertical, 0);
-        placeholder.set_hexpand(true);
-        placeholder.set_vexpand(true);
-        placeholder.set_valign(gtk4::Align::Center);
-        placeholder.set_halign(gtk4::Align::Center);
+    /// The session's live widget already sits in the split panel, so this only
+    /// drops the now-redundant tab page — the session's data (widget, terminal,
+    /// history, monitoring state) stays alive. Keeping split guests out of the
+    /// tab bar and Tab Overview avoids redundant placeholder tabs. The tab is
+    /// recreated by [`Self::restore_session_tab`] when the session leaves the
+    /// split. No-op if the session has no tab (already parked).
+    pub fn park_session_tab(&self, session_id: Uuid) {
+        let Some(page) = self.sessions.borrow().get(&session_id).cloned() else {
+            return;
+        };
+        // Mark before closing so the close-page handler skips teardown and only
+        // removes the tab page (see `setup_tab_view_signals`).
+        self.parked_in_split.borrow_mut().insert(session_id);
+        self.tab_view.close_page(&page);
+    }
 
-        let status = adw::StatusPage::builder()
-            .icon_name("view-dual-symbolic")
-            .title(i18n("Displayed in Split View"))
-            .description(i18n("This session is shown in another tab's split layout"))
-            .build();
-        placeholder.append(&status);
+    /// Recreates the standalone tab for a session that was parked by
+    /// [`Self::park_session_tab`], so its widget has a home again after it
+    /// leaves the split. No-op if the session was not parked.
+    ///
+    /// The fresh tab starts with an empty single-mode container; the caller's
+    /// subsequent [`Self::reparent_terminal_to_tab`] moves the live widget in.
+    fn restore_session_tab(&self, session_id: Uuid) {
+        if !self.parked_in_split.borrow_mut().remove(&session_id) {
+            return;
+        }
+        let Some((title, protocol)) = self
+            .session_info
+            .borrow()
+            .get(&session_id)
+            .map(|info| (info.name.clone(), info.protocol.clone()))
+        else {
+            return;
+        };
 
-        // Button to switch to the split owner tab
-        let button = gtk4::Button::with_label(&i18n("Go to Split View"));
-        button.add_css_class("suggested-action");
-        button.add_css_class("pill");
-        button.set_halign(gtk4::Align::Center);
-        button.set_margin_bottom(24);
+        let container = GtkBox::new(Orientation::Vertical, 0);
+        container.set_hexpand(true);
+        container.set_vexpand(true);
+        let tab_container = TabPageContainer::single(&container);
+        let page = self.tab_view.append(tab_container.widget());
+        page.set_title(&title);
+        page.set_icon(Some(&gio::ThemedIcon::new(Self::get_protocol_icon(
+            &protocol,
+        ))));
 
-        let tab_view = self.tab_view.clone();
-        let sessions = self.sessions.clone();
-        button.connect_clicked(move |_| {
-            if let Some(page) = sessions.borrow().get(&split_owner_id).cloned() {
-                tab_view.set_selected_page(&page);
-            }
-        });
-        placeholder.append(&button);
+        self.sessions.borrow_mut().insert(session_id, page);
+        self.tab_containers
+            .borrow_mut()
+            .insert(session_id, tab_container);
+    }
 
-        let mut containers = self.tab_containers.borrow_mut();
-        if let Some(container) = containers.get_mut(&session_id) {
-            container.switch_to_split(&placeholder);
+    /// Closes (terminates) a session by id, running the standard tab-close
+    /// teardown regardless of whether it currently has a standalone tab.
+    ///
+    /// A split guest has no tab, so its tab is recreated first (unselected, so
+    /// the user sees no content switch) and then closed — the `close-page`
+    /// handler disconnects the live widget and kills the child process via the
+    /// session maps, which hold the widget wherever it currently lives. The
+    /// caller is responsible for having removed the session's split panel first
+    /// (e.g. via `close_pane`); `on_split_cleanup` clears any remaining split
+    /// membership as part of the close.
+    pub fn close_session(&self, session_id: Uuid) {
+        self.restore_session_tab(session_id);
+        let page = self.sessions.borrow().get(&session_id).cloned();
+        if let Some(page) = page {
+            self.tab_view.close_page(&page);
         }
     }
 
@@ -2671,6 +2669,11 @@ impl TerminalNotebook {
     /// live viewer widget (never disconnecting or recreating the connection);
     /// for a VTE session it rebuilds the terminal + scrollbar layout.
     pub fn reparent_terminal_to_tab(&self, session_id: Uuid) {
+        // Option B: a split guest has no standalone tab (it was parked by
+        // `park_session_tab`). Recreate the tab first so the widget has a home;
+        // no-op for a session that still has its tab.
+        self.restore_session_tab(session_id);
+
         // Embedded viewers have no VTE terminal — they travel as their own
         // widget instance (carrying their in-container toolbar and reconnect
         // banner). Handle them first; fall through to the VTE path otherwise.
@@ -2735,14 +2738,12 @@ impl TerminalNotebook {
         enum Embedded {
             Vnc(Rc<VncSessionWidget>),
             Rdp(Rc<EmbeddedRdpWidget>),
-            Spice(Rc<EmbeddedSpiceWidget>),
         }
         let embedded = {
             let widgets = self.session_widgets.borrow();
             match widgets.get(&session_id) {
                 Some(SessionWidgetStorage::Vnc(w)) => Embedded::Vnc(Rc::clone(w)),
                 Some(SessionWidgetStorage::EmbeddedRdp(w)) => Embedded::Rdp(Rc::clone(w)),
-                Some(SessionWidgetStorage::EmbeddedSpice(w)) => Embedded::Spice(Rc::clone(w)),
                 _ => return false,
             }
         };
@@ -2762,19 +2763,11 @@ impl TerminalNotebook {
                 container.append(widget);
                 widget.set_visible(true);
             }
-            Embedded::Spice(w) => {
-                let widget = w.widget();
-                Self::detach_widget_from_parent(widget.upcast_ref());
-                widget.set_hexpand(true);
-                widget.set_vexpand(true);
-                container.append(widget);
-                widget.set_visible(true);
-            }
             Embedded::Rdp(w) => {
                 let widget = w.widget();
                 Self::detach_widget_from_parent(widget.upcast_ref());
-                // Append the RDP container directly (mirroring the VNC/SPICE
-                // arms). Wrapping it in a freshly-created `adw::ToastOverlay`
+                // Append the RDP container directly (mirroring the VNC
+                // arm). Wrapping it in a freshly-created `adw::ToastOverlay`
                 // here left the reparented `DrawingArea` unable to repaint (its
                 // draw func was never re-invoked, so live frames landed in the
                 // buffer but never reached the screen — a blank viewer). The
@@ -3014,6 +3007,28 @@ impl TerminalNotebook {
         *self.on_recording_changed.borrow_mut() = Some(Box::new(callback));
     }
 
+    /// Sets the callback invoked after the split-color map changes.
+    ///
+    /// Fired when a session joins or leaves a split, or a split tab closes.
+    /// The handler re-syncs the sidebar split-membership marker from
+    /// [`Self::split_colors`].
+    pub fn set_on_split_colors_changed<F>(&self, callback: F)
+    where
+        F: Fn() + 'static,
+    {
+        *self.on_split_colors_changed.borrow_mut() = Some(Box::new(callback));
+    }
+
+    /// Fires the split-colors-changed callback, if one is registered.
+    ///
+    /// Callers must not hold a borrow of `split_session_colors`, `sessions`,
+    /// or `session_info` when calling this — the handler re-reads them.
+    fn notify_split_colors_changed(&self) {
+        if let Some(ref callback) = *self.on_split_colors_changed.borrow() {
+            callback();
+        }
+    }
+
     /// Sets the callback to be invoked for split view cleanup when a page is about to close.
     ///
     /// The callback receives the session ID of the page being closed.
@@ -3250,7 +3265,7 @@ mod split_eligibility_tests {
     // test is opt-in.
     #[ignore = "requires GTK init on a single thread; run with: cargo test -p rustconn -- --ignored --test-threads=1"]
     fn embedded_widget_variants_are_embeddable() {
-        // The Vnc/EmbeddedRdp/EmbeddedSpice arms need real GTK widgets to
+        // The Vnc/EmbeddedRdp arms need real GTK widgets to
         // construct, so gate on a display; skip cleanly when headless.
         if gtk4::init().is_err() {
             return;

@@ -239,6 +239,27 @@ impl MainWindow {
                     );
                 });
         }
+
+        // Track active tab → reflect the connection name in the window title,
+        // when the user opted in (issue #211). The setting is read live from
+        // state on each switch, so toggling it in Preferences needs no restart.
+        {
+            let window_weak = window.downgrade();
+            let notebook_for_title = terminal_notebook.clone();
+            let state_for_title = state.clone();
+            terminal_notebook
+                .tab_view()
+                .connect_selected_page_notify(move |_| {
+                    if let Some(win) = window_weak.upgrade() {
+                        let enabled = state_for_title
+                            .borrow()
+                            .settings()
+                            .ui
+                            .window_title_shows_connection;
+                        Self::update_window_title(&win, &notebook_for_title, enabled);
+                    }
+                });
+        }
     }
 
     /// Sets up group operations actions (select all, delete selected, etc.)

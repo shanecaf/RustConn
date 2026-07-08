@@ -125,6 +125,8 @@ pub struct SettingsDialog {
     compact_auto: adw::SwitchRow,
     // Send terminal control shortcuts to the session toggle (focus-based suspend)
     terminal_passthrough_ctrl: adw::SwitchRow,
+    // Show active connection name in the window title (issue #211)
+    window_title_shows_connection: adw::SwitchRow,
     // SSH Agent settings
     ssh_agent_status_label: Label,
     ssh_agent_socket_label: Label,
@@ -243,6 +245,7 @@ impl SettingsDialog {
             compact_ui,
             compact_auto,
             terminal_passthrough_ctrl,
+            window_title_shows_connection,
         ) = create_ui_page();
         mark("ui_page");
 
@@ -664,6 +667,7 @@ impl SettingsDialog {
             compact_ui,
             compact_auto,
             terminal_passthrough_ctrl,
+            window_title_shows_connection,
             ssh_agent_status_label,
             ssh_agent_socket_label,
             ssh_agent_start_button,
@@ -1009,6 +1013,7 @@ impl SettingsDialog {
             &self.compact_ui,
             &self.compact_auto,
             &self.terminal_passthrough_ctrl,
+            &self.window_title_shows_connection,
             &settings.ui,
             &conn_refs,
         );
@@ -1148,6 +1153,7 @@ impl SettingsDialog {
         let compact_ui_clone = self.compact_ui.clone();
         let compact_auto_clone = self.compact_auto.clone();
         let terminal_passthrough_ctrl_clone = self.terminal_passthrough_ctrl.clone();
+        let window_title_shows_connection_clone = self.window_title_shows_connection.clone();
         let connections_clone = self.connections.clone();
         let keybindings_overrides_clone = self.keybindings_overrides.clone();
 
@@ -1294,6 +1300,7 @@ impl SettingsDialog {
                 &compact_ui_clone,
                 &compact_auto_clone,
                 &terminal_passthrough_ctrl_clone,
+                &window_title_shows_connection_clone,
                 &conn_refs,
             );
             // Preserve smart folders visibility (managed by toolbar toggle, not settings dialog)

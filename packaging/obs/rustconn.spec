@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.18.2
+Version:        0.18.3
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -259,6 +259,14 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Wed Jul 08 2026 Anton Isaiev <totoshko88@gmail.com> - 0.18.3-0
+- Version bump to 0.18.3
+- Added external-session tracking for VNC/RDP/SPICE external-viewer sessions: process registry + shared poll timer, sidebar external-viewer emblem, Disconnect / Stop tracking context menu, split-membership marker, smart double-click
+- Fixed VNC/RDP/SPICE External Window mode leaving a dead notebook tab; the session is surfaced in the sidebar instead (#209)
+- Fixed Telnet connections stuck on the Vault password source (#210)
+- Improved orthogonal (shape + icon, color-independent) sidebar state indicators
+- Dependency updates: bytes 1.12.1, memchr 2.8.3
+
 * Wed Jul 08 2026 Anton Isaiev <totoshko88@gmail.com> - 0.18.2-0
 - Version bump to 0.18.2
 - SPICE unix socket connections (spice+unix://) with Browse button

@@ -1134,15 +1134,24 @@ fn setup_app_actions(
             if let Ok(mut state_ref) = state_clone.try_borrow_mut() {
                 let _ = state_ref.update_expanded_groups(expanded);
             }
+            // Terminate tracked external viewers (issue #209): Ctrl+Q bypasses
+            // close_request, so kill owned children and close their history
+            // entries here too. Idempotent if close_request also runs.
+            if let Some(registry) = crate::window::external_session_registry() {
+                registry.shutdown();
+            }
             if let Some(app) = app_weak.upgrade() {
                 app.quit();
             }
         };
 
-        // Confirm before quitting with open session tabs (GNOME HIG) —
-        // Ctrl+Q goes through app.quit() and bypasses close_request, so
-        // the same confirmation dialog is shown here.
-        let open_sessions = notebook_for_quit.session_count();
+        // Confirm before quitting with open sessions (GNOME HIG) — Ctrl+Q goes
+        // through app.quit() and bypasses close_request, so the same
+        // confirmation dialog is shown here. Count tabless external-viewer
+        // sessions too (issue #209).
+        let external_open =
+            crate::window::external_session_registry().map_or(0, |reg| reg.active_count());
+        let open_sessions = notebook_for_quit.session_count() + external_open;
         if open_sessions > 0
             && let Some(win) = window_for_quit.upgrade()
         {

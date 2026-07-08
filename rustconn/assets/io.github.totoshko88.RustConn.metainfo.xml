@@ -140,6 +140,21 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.18.3" date="2026-07-08">
+      <description>
+        <p>Version 0.18.3 - external-session tracking and sidebar indicators:</p>
+        <ul>
+          <li>VNC, RDP, and SPICE connections opened in External Window mode no longer leave a dead, unusable tab (#209)</li>
+          <li>External-viewer sessions are now tracked and surfaced in the sidebar with a window emblem next to the connected status</li>
+          <li>A right-click context menu adds Disconnect and Stop tracking for external-viewer sessions</li>
+          <li>Double-clicking a connection with an active session now focuses it instead of opening a duplicate</li>
+          <li>Orthogonal sidebar state indicators use shape plus icon, staying distinguishable in grayscale</li>
+          <li>Optional "Show connection in window title" switch lets time-tracking tools attribute usage per connection (#211)</li>
+          <li>Disconnecting an external viewer no longer briefly freezes the interface</li>
+          <li>Fixed Telnet connections stuck on the Vault password source (#210)</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.18.2" date="2026-07-08">
       <description>
         <p>Version 0.18.2 - SPICE unix sockets and a compact-interface overhaul:</p>

@@ -31,6 +31,7 @@ pub fn create_ui_page() -> (
     adw::SwitchRow,
     adw::SwitchRow,
     adw::SwitchRow,
+    adw::SwitchRow,
 ) {
     let page = adw::PreferencesPage::builder()
         .title(i18n("Interface"))
@@ -233,6 +234,17 @@ pub fn create_ui_page() -> (
         .build();
     window_group.add(&remember_geometry);
 
+    // Show the active connection name in the window title (issue #211).
+    // Off by default for privacy — the name is otherwise exposed in the taskbar,
+    // window list, and screen shares. Helps time-tracking tools identify work.
+    let window_title_shows_connection = adw::SwitchRow::builder()
+        .title(i18n("Show connection in window title"))
+        .subtitle(i18n(
+            "Append the active connection name to the window title, so time-tracking tools can identify it",
+        ))
+        .build();
+    window_group.add(&window_title_shows_connection);
+
     page.add(&window_group);
 
     // === Startup Group ===
@@ -347,6 +359,7 @@ pub fn create_ui_page() -> (
         compact_ui,
         compact_auto,
         terminal_passthrough_ctrl,
+        window_title_shows_connection,
     )
 }
 
@@ -397,6 +410,7 @@ pub fn load_ui_settings(
     compact_ui: &adw::SwitchRow,
     compact_auto: &adw::SwitchRow,
     terminal_passthrough_ctrl: &adw::SwitchRow,
+    window_title_shows_connection: &adw::SwitchRow,
     settings: &UiSettings,
     connections: &[&Connection],
 ) {
@@ -470,6 +484,8 @@ pub fn load_ui_settings(
 
     terminal_passthrough_ctrl.set_active(settings.terminal_passthrough_ctrl);
 
+    window_title_shows_connection.set_active(settings.window_title_shows_connection);
+
     // Populate startup action dropdown with connections
     let entries = build_startup_entries(connections);
     let mut labels: Vec<String> = vec![i18n("Do nothing"), i18n("Local Shell")];
@@ -516,6 +532,7 @@ pub fn collect_ui_settings(
     compact_ui: &adw::SwitchRow,
     compact_auto: &adw::SwitchRow,
     terminal_passthrough_ctrl: &adw::SwitchRow,
+    window_title_shows_connection: &adw::SwitchRow,
     connections: &[&Connection],
 ) -> UiSettings {
     let mut selected_scheme = ColorScheme::System;
@@ -575,5 +592,6 @@ pub fn collect_ui_settings(
         compact_ui: compact_ui.is_active(),
         compact_auto: compact_auto.is_active(),
         terminal_passthrough_ctrl: terminal_passthrough_ctrl.is_active(),
+        window_title_shows_connection: window_title_shows_connection.is_active(),
     }
 }

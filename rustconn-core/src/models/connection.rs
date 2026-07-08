@@ -8,7 +8,7 @@ use std::collections::HashMap;
 
 use super::custom_property::CustomProperty;
 use super::highlight::HighlightRule;
-use super::protocol::{ProtocolConfig, ProtocolType};
+use super::protocol::{ProtocolConfig, ProtocolType, RdpClientMode, VncClientMode};
 use crate::activity_monitor::ActivityMonitorConfig;
 use crate::automation::{ConnectionTask, ExpectRule, KeySequence};
 use crate::error::ConfigError;
@@ -841,6 +841,30 @@ impl Connection {
             self.protocol,
             ProtocolType::Rdp | ProtocolType::Vnc | ProtocolType::Spice
         )
+    }
+
+    /// Returns `true` when the display is fully delegated to an external viewer.
+    ///
+    /// Such connections render in a separate operating-system process (TigerVNC,
+    /// xfreerdp, remote-viewer) and get no embedded notebook tab. SPICE is always
+    /// external (the embedded SPICE client was removed in 0.18.0); VNC and RDP are
+    /// external when either `window_mode == External` or the protocol
+    /// `client_mode == External`. All other protocols are never external.
+    ///
+    /// The result is pure and deterministic: the same inputs always yield the same
+    /// value, with no hidden state or I/O.
+    #[must_use]
+    pub fn uses_external_viewer(&self) -> bool {
+        match &self.protocol_config {
+            ProtocolConfig::Spice(_) => true,
+            ProtocolConfig::Vnc(c) => {
+                self.window_mode == WindowMode::External || c.client_mode == VncClientMode::External
+            }
+            ProtocolConfig::Rdp(c) => {
+                self.window_mode == WindowMode::External || c.client_mode == RdpClientMode::External
+            }
+            _ => false,
+        }
     }
 
     /// Sets whether to remember window position for external windows

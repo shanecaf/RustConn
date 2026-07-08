@@ -28,6 +28,7 @@ pub fn create_header_bar() -> (
     gtk4::Button,
     gtk4::ToggleButton,
     MenuButton,
+    Label,
 ) {
     let header_bar = adw::HeaderBar::new();
 
@@ -212,6 +213,7 @@ pub fn create_header_bar() -> (
         passthrough_indicator,
         broadcast_toggle,
         menu_button,
+        title,
     )
 }
 

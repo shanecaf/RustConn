@@ -385,8 +385,15 @@ impl RdpLauncher {
 
         let has_password = password.is_some_and(|p| !p.is_empty());
         if has_password && let Some(pass) = password {
-            // Use /p: for password — works for both NLA and non-NLA modes.
-            // /from-stdin:force is unreliable with sdl-freerdp3 GUI event loop.
+            // SECURITY / ponytail: the password is passed as `/p:<pw>`, which is
+            // visible on the argv (`ps`, `/proc/<pid>/cmdline`) for the lifetime
+            // of the FreeRDP process. FreeRDP's stdin alternative
+            // (`/from-stdin:force`) is unreliable with the sdl-freerdp3 GUI event
+            // loop (it blocks the event loop and can hang the viewer), so argv is
+            // the only path that works across the xfreerdp/sdl-freerdp backends we
+            // support. Revisit once FreeRDP ships a dependable non-argv secret
+            // channel; until then this is a known, documented local-visibility
+            // tradeoff (the value is not logged and never leaves the machine).
             cmd.arg(format!("/p:{pass}"));
         }
 

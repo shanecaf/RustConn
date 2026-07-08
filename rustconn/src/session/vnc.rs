@@ -10,7 +10,7 @@ use crate::embedded_vnc::{EmbeddedVncWidget, VncConfig as EmbeddedVncConfig, Vnc
 use gtk4::prelude::*;
 use gtk4::{Align, Box as GtkBox, Label, Orientation, Overlay};
 use rustconn_core::models::{VncClientMode, VncConfig};
-use rustconn_core::protocol::{detect_vnc_client, detect_vnc_viewer_name};
+use rustconn_core::protocol::{VncProtocol, detect_vnc_client, detect_vnc_viewer_name};
 use std::cell::RefCell;
 use std::process::{Child, Command, Stdio};
 use std::rc::Rc;
@@ -359,6 +359,11 @@ impl VncSessionWidget {
     }
 
     /// Spawns an external VNC viewer process with configuration options
+    ///
+    /// Argument construction is delegated to
+    /// [`rustconn_core::protocol::VncProtocol::build_external_viewer_command`]
+    /// (single source of truth); this method only builds and spawns the
+    /// process. Passwords are handled by the viewer, never on the command line.
     fn spawn_external_viewer_with_config(
         &self,
         viewer: &str,
@@ -367,73 +372,11 @@ impl VncSessionWidget {
         _password: Option<&str>,
         config: &VncConfig,
     ) -> Result<(), SessionError> {
-        let mut cmd = Command::new(viewer);
+        let (program, args) =
+            VncProtocol::build_external_viewer_command(viewer, host, port, config);
 
-        // Build server address based on port and viewer type
-        let server = Self::build_server_address(viewer, host, port);
-
-        // Add viewer-specific arguments with config options
-        match viewer {
-            "vncviewer" | "tigervnc" | "xvnc4viewer" => {
-                // TigerVNC/TightVNC/RealVNC style
-                // Only add encoding if it's a single valid value (not comma-separated)
-                if let Some(ref encoding) = config.encoding {
-                    let enc = encoding.trim();
-                    if !enc.is_empty() && !enc.contains(',') {
-                        cmd.arg("-PreferredEncoding");
-                        cmd.arg(enc);
-                    }
-                }
-                if let Some(quality) = config.quality {
-                    cmd.arg("-QualityLevel");
-                    cmd.arg(quality.to_string());
-                }
-                if let Some(compression) = config.compression {
-                    cmd.arg("-CompressLevel");
-                    cmd.arg(compression.to_string());
-                }
-                if config.view_only {
-                    cmd.arg("-ViewOnly");
-                }
-                // Accept untrusted TLS certificates (VeNCrypt)
-                if config.accept_certificate {
-                    cmd.arg("-SecurityTypes");
-                    cmd.arg("VeNCrypt,TLSVnc,X509Vnc,VncAuth,None");
-                }
-                cmd.arg(&server);
-            }
-            "gvncviewer" => {
-                // GTK-VNC viewer
-                cmd.arg(&server);
-            }
-            "remmina" => {
-                // Remmina uses a different connection format
-                cmd.arg("-c");
-                cmd.arg(format!("vnc://{host}:{port}"));
-            }
-            "vinagre" => {
-                // Vinagre
-                cmd.arg(format!("vnc://{host}:{port}"));
-            }
-            "krdc" => {
-                // KDE Remote Desktop Client
-                cmd.arg(format!("vnc://{host}:{port}"));
-            }
-            _ => {
-                // Generic fallback
-                cmd.arg(&server);
-            }
-        }
-
-        // Add custom arguments from config (filter unsafe characters
-        // consistent with VncProtocol::build_command in rustconn-core)
-        for arg in &config.custom_args {
-            if arg.contains('\0') || arg.contains('\n') {
-                tracing::warn!(arg = %arg, "Skipping VNC custom arg with unsafe characters");
-                continue;
-            }
-            cmd.arg(arg);
-        }
+        let mut cmd = Command::new(&program);
+        cmd.args(&args);
 
         // Don't capture stdout/stderr so the viewer can run independently
         cmd.stdout(Stdio::null());
@@ -448,28 +391,6 @@ impl VncSessionWidget {
             Err(e) => Err(SessionError::connection_failed(format!(
                 "Failed to start VNC viewer '{viewer}': {e}"
             ))),
-        }
-    }
-
-    /// Builds the server address string based on viewer type and port
-    fn build_server_address(viewer: &str, host: &str, port: u16) -> String {
-        match viewer {
-            "vncviewer" | "tigervnc" | "xvnc4viewer" | "gvncviewer" => {
-                // These viewers use display number format for standard ports
-                if port == 5900 {
-                    format!("{host}:0")
-                } else if port > 5900 && port < 6000 {
-                    let display = port - 5900;
-                    format!("{host}:{display}")
-                } else {
-                    // Use :: for raw port numbers
-                    format!("{host}::{port}")
-                }
-            }
-            _ => {
-                // Other viewers typically use host:port format
-                format!("{host}:{port}")
-            }
         }
     }
 

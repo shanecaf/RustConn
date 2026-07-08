@@ -140,6 +140,7 @@ pub fn show_context_menu_for_item(
     is_ssh: bool,
     is_connected: bool,
     is_recording: bool,
+    has_external_session: bool,
     sync_mode: &str,
     is_root_group: bool,
     has_dynamic_folder: bool,
@@ -194,6 +195,14 @@ pub fn show_context_menu_for_item(
         }
     } else {
         // § Primary actions
+        // External-viewer session (issue #209): Disconnect is the primary
+        // action, placed at the very top per GNOME HIG (R5.1/5.6).
+        if has_external_session {
+            items.push(ContextMenuItem::action(
+                &i18n("Disconnect"),
+                "external-disconnect",
+            ));
+        }
         items.push(ContextMenuItem::action(&i18n("Connect"), "connect"));
         items.push(ContextMenuItem::action(&i18n("Pin / Unpin"), "toggle-pin"));
         // § Organisation
@@ -211,6 +220,15 @@ pub fn show_context_menu_for_item(
             &i18n("Move to Group..."),
             "move-to-group",
         ));
+        // External-viewer session (issue #209 / R7.5): the smart double-click
+        // will not duplicate an external-only session, so offer an explicit
+        // "Open new session" here in the organisation area.
+        if has_external_session {
+            items.push(ContextMenuItem::action(
+                &i18n("Open new session"),
+                "open-new-session",
+            ));
+        }
         // § Utilities (copy, tools, network)
         items.push(ContextMenuItem::Separator);
         items.push(ContextMenuItem::action(
@@ -254,6 +272,17 @@ pub fn show_context_menu_for_item(
             "new-connection-from-context",
         ));
         items.push(ContextMenuItem::action(&i18n("Edit"), "edit-connection"));
+    }
+
+    // External-viewer session (issue #209): Stop tracking deregisters the
+    // session without terminating the viewer (R5.4). Placed near the bottom,
+    // just above the destructive Delete item, per GNOME HIG (R5.6).
+    if has_external_session && !is_group {
+        items.push(ContextMenuItem::Separator);
+        items.push(ContextMenuItem::action(
+            &i18n("Stop tracking"),
+            "external-stop-tracking",
+        ));
     }
 
     // Delete section (always last, visually separated)

@@ -11,7 +11,7 @@
 use proptest::prelude::*;
 use rustconn_core::spice_client::{
     SpiceClientConfig, SpiceClientError, SpiceCompression, SpiceSecurityProtocol,
-    SpiceSharedFolder, SpiceViewerLaunchResult, build_spice_viewer_args, detect_spice_viewer,
+    SpiceSharedFolder, build_spice_viewer_args, detect_spice_viewer,
 };
 
 // Strategy for generating valid hostnames
@@ -202,22 +202,6 @@ fn test_detect_spice_viewer() {
     // This test verifies the function works without panicking
     // The result depends on whether a SPICE viewer is installed
     let _viewer = detect_spice_viewer();
-}
-
-#[test]
-fn test_spice_viewer_launch_result_variants() {
-    // Test that all variants can be created
-    let launched = SpiceViewerLaunchResult::Launched {
-        viewer: "remote-viewer".to_string(),
-        pid: Some(12345),
-    };
-    let no_viewer = SpiceViewerLaunchResult::NoViewerFound;
-    let failed = SpiceViewerLaunchResult::LaunchFailed("test error".to_string());
-
-    // Verify debug formatting works
-    let _ = format!("{:?}", launched);
-    let _ = format!("{:?}", no_viewer);
-    let _ = format!("{:?}", failed);
 }
 
 #[test]

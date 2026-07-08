@@ -9,7 +9,6 @@ use std::rc::Rc;
 use uuid::Uuid;
 
 use crate::embedded_rdp::EmbeddedRdpWidget;
-use crate::embedded_spice::EmbeddedSpiceWidget;
 use crate::session::VncSessionWidget;
 
 /// Terminal session information
@@ -63,8 +62,6 @@ pub enum SessionWidgetStorage {
     Vnc(Rc<VncSessionWidget>),
     /// Embedded RDP widget (with dynamic resolution)
     EmbeddedRdp(Rc<EmbeddedRdpWidget>),
-    /// Embedded SPICE widget (native spice-client)
-    EmbeddedSpice(Rc<EmbeddedSpiceWidget>),
     /// External process (xfreerdp, vncviewer, etc.) — killed on tab close
     ExternalProcess(Rc<RefCell<Option<Child>>>),
 }

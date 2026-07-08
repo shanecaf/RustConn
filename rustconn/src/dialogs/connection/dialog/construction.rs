@@ -232,11 +232,14 @@ impl ConnectionDialog {
                 tags_label.set_visible(!is_zerotrust);
 
                 // Password source only relevant for protocols that use credentials:
-                // SSH, SFTP, RDP, VNC, SPICE, Web. Hidden for Telnet, Serial, MOSH,
-                // Kubernetes, Zero Trust — they don't use stored passwords.
+                // SSH, SFTP, RDP, VNC, SPICE, Web, Telnet. Telnet is an interactive
+                // login protocol whose password source (typically None or Prompt) must
+                // stay selectable — hiding it left older connections stuck on Vault,
+                // which triggered a spurious "Vault entry not found" error (issue #210).
+                // Hidden for Serial, MOSH, Kubernetes, Zero Trust — no stored passwords.
                 let uses_password = matches!(
                     protocol_id,
-                    "ssh" | "sftp" | "rdp" | "vnc" | "spice" | "web"
+                    "ssh" | "sftp" | "rdp" | "vnc" | "spice" | "web" | "telnet"
                 );
                 password_source_dropdown.set_visible(uses_password);
                 password_source_label.set_visible(uses_password);

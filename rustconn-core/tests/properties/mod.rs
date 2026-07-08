@@ -26,6 +26,7 @@ mod error_tests;
 mod expect_tests;
 mod export_format_tests;
 mod export_tests;
+mod external_viewer_tests;
 mod freerdp_tests;
 mod full_merge_tests;
 mod group_delete_tests;

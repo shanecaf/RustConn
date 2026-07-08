@@ -244,7 +244,6 @@ impl MainWindow {
                 let split_view_for_provider = split_view.clone();
                 let monitoring_for_select_h = monitoring_h.clone();
                 let split_colors_h = Rc::clone(notebook_for_split_h.split_colors());
-                let split_owner_h = current_session;
                 // Refresh broadcast toggle once a new session is placed via Select Tab —
                 // until this point the bridge has 1 active session and the toggle is hidden.
                 let refresh_broadcast_select_h = refresh_broadcast_h.clone();
@@ -327,9 +326,10 @@ impl MainWindow {
                                 // Set tab color indicator using the color from the panel
                                 notebook_for_select.set_tab_split_color(session_id, color_index);
 
-                                // Show placeholder in the moved session's tab
-                                notebook_for_placeholder_h
-                                    .show_in_split_placeholder(session_id, split_owner_h);
+                                // Remove the moved session's standalone tab — it
+                                // now lives in this split, so a placeholder tab
+                                // would only clutter the tab bar and Tab Overview.
+                                notebook_for_placeholder_h.park_session_tab(session_id);
 
                                 // Suspend monitoring — session is now in split view
                                 monitoring_for_select_h.suspend_monitoring(session_id);
@@ -549,7 +549,6 @@ impl MainWindow {
                 let split_view_for_provider = split_view.clone();
                 let monitoring_for_select_v = monitoring_v.clone();
                 let split_colors_v = Rc::clone(notebook_for_split_v.split_colors());
-                let split_owner_v = current_session;
                 let notebook_for_placeholder_v = notebook_for_split_v.clone();
                 // Refresh broadcast toggle once a new session is placed via Select Tab —
                 // until this point the bridge has 1 active session and the toggle is hidden.
@@ -633,9 +632,10 @@ impl MainWindow {
                                 // Set tab color indicator using the color from the panel
                                 notebook_for_select.set_tab_split_color(session_id, color_index);
 
-                                // Show placeholder in the moved session's tab
-                                notebook_for_placeholder_v
-                                    .show_in_split_placeholder(session_id, split_owner_v);
+                                // Remove the moved session's standalone tab — it
+                                // now lives in this split, so a placeholder tab
+                                // would only clutter the tab bar and Tab Overview.
+                                notebook_for_placeholder_v.park_session_tab(session_id);
 
                                 // Suspend monitoring — session is now in split view
                                 monitoring_for_select_v.suspend_monitoring(session_id);
@@ -791,6 +791,17 @@ impl MainWindow {
                             } else {
                                 // Multiple panels remain - restore terminal content
                                 bridge.restore_panel_contents();
+                            }
+
+                            // Terminate the session whose pane was just closed —
+                            // with Option B it has no standalone tab to fall back
+                            // to, so closing the pane closes the session. Drop the
+                            // `bridges` borrow first: `close_session` → close-page
+                            // → `on_split_cleanup` takes a mutable borrow of the
+                            // same map and would otherwise panic (BorrowMutError).
+                            drop(bridges);
+                            if let Some(sess_id) = focused_session {
+                                notebook_for_close.close_session(sess_id);
                             }
                         }
                         Err(e) => {

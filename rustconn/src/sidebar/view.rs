@@ -12,6 +12,39 @@ use crate::i18n::{i18n, i18n_f};
 use crate::sidebar::ConnectionItem;
 use crate::sidebar_ui;
 
+/// Per-index CSS classes for the sidebar split-membership marker.
+///
+/// One entry per color in the split pane palette (`SPLIT_COLOR_VALUES`); the
+/// matching `background-color` values live in `sidebar_types.rs` so the marker
+/// square is tinted to the same color as the connection's split pane. Kept in
+/// lock-step with the palette length — add a class here if the palette grows.
+const SPLIT_MARKER_CLASSES: [&str; 6] = [
+    "sidebar-split-0",
+    "sidebar-split-1",
+    "sidebar-split-2",
+    "sidebar-split-3",
+    "sidebar-split-4",
+    "sidebar-split-5",
+];
+
+/// Applies the split-membership marker state for a `split-color` value.
+///
+/// `split_color` is `-1` when the connection is not in a split (marker hidden);
+/// otherwise it is a palette index and the marker is shown tinted via the
+/// matching per-index CSS class. Stale classes from a recycled row are cleared
+/// first so the color always reflects the current split.
+fn apply_split_marker(marker: &GtkBox, split_color: i32) {
+    for class in SPLIT_MARKER_CLASSES {
+        marker.remove_css_class(class);
+    }
+    if let Ok(index) = usize::try_from(split_color) {
+        marker.add_css_class(SPLIT_MARKER_CLASSES[index % SPLIT_MARKER_CLASSES.len()]);
+        marker.set_visible(true);
+    } else {
+        marker.set_visible(false);
+    }
+}
+
 /// Finds a direct child widget with a given CSS class.
 fn find_child_by_css_class(parent: &GtkBox, class: &str) -> Option<gtk4::Widget> {
     let mut child = parent.first_child();
@@ -62,12 +95,16 @@ pub fn show_context_menu_for_connection_item(
     } else {
         false
     };
+    // Whether this connection has an active external-viewer session (issue
+    // #209): gates the Disconnect / Stop tracking items (R5.1).
+    let has_external_session = item.external_session();
 
     tracing::debug!(
         name = %item.name(),
         %protocol,
         is_group,
         is_connected,
+        has_external_session,
         "Showing sidebar context menu"
     );
 
@@ -79,6 +116,7 @@ pub fn show_context_menu_for_connection_item(
         is_ssh,
         is_connected,
         is_recording,
+        has_external_session,
         &item.sync_mode(),
         item.is_root_group(),
         item.has_dynamic_folder(),
@@ -110,6 +148,13 @@ pub fn setup_list_item(
     icon.set_pixel_size(16);
     content_box.append(&icon);
 
+    // Connected-state indicator (R6.1): a check mark. This is the first of the
+    // three orthogonal, color-independent state shapes that can appear together
+    // on one row (R6.5): check = connected, window emblem = external viewer,
+    // filled square = split membership. The three silhouettes are mutually
+    // distinguishable with no color at all, so the row stays legible in
+    // grayscale / high-contrast modes (R6.3/6.4). Color, where present, only
+    // reinforces a shape that already carries the meaning.
     let status_icon = Image::from_icon_name("object-select-symbolic");
     status_icon.set_pixel_size(10);
     status_icon.set_visible(false);
@@ -151,6 +196,42 @@ pub fn setup_list_item(
         "Recording session",
     ))]);
     content_box.append(&recording_icon);
+
+    // External-viewer emblem (issue #209): shown alongside the green connected
+    // status icon while the connection has an active external-viewer session
+    // (VNC/RDP/SPICE delegated to a separate viewer process, no notebook tab).
+    // A distinct window-shaped icon (not color alone) keeps the state legible
+    // in monochrome mode (R2.3/6.4). Appended at the row's trailing edge so it
+    // does not sit between the status icon and the label (bind reads the label
+    // as the status icon's next sibling).
+    let external_icon = Image::from_icon_name("window-new-symbolic");
+    external_icon.set_pixel_size(12);
+    external_icon.set_visible(false);
+    external_icon.add_css_class("external-session-icon");
+    external_icon.set_tooltip_text(Some(&i18n("Running in external window")));
+    external_icon.update_property(&[gtk4::accessible::Property::Label(&i18n(
+        "Running in external window",
+    ))]);
+    content_box.append(&external_icon);
+
+    // Split-membership marker (Phase 2, R6.2): a small filled square tinted
+    // with the session's split pane color. The square shape is deliberately
+    // distinct from the connected check and the external window emblem so all
+    // three stay mutually distinguishable in grayscale (R6.4/6.5); the color
+    // only mirrors the split pane and is never the sole cue (a tooltip and
+    // accessible label carry the meaning). Sized no larger than the status
+    // icon (10px). Hidden until the connection joins a split (split-color >= 0).
+    let split_marker = GtkBox::new(Orientation::Horizontal, 0);
+    split_marker.set_size_request(9, 9);
+    split_marker.set_halign(gtk4::Align::Center);
+    split_marker.set_valign(gtk4::Align::Center);
+    split_marker.set_visible(false);
+    split_marker.add_css_class("split-marker");
+    split_marker.set_tooltip_text(Some(&i18n("Part of a split view")));
+    split_marker.update_property(&[gtk4::accessible::Property::Label(&i18n(
+        "Part of a split view",
+    ))]);
+    content_box.append(&split_marker);
 
     expander.set_child(Some(&content_box));
     list_item.set_child(Some(&expander));
@@ -380,6 +461,20 @@ pub fn bind_list_item(
             find_child_by_css_class(&content_box, "recording-icon").and_downcast::<Image>()
         {
             recording_icon.set_visible(false);
+        }
+        // Groups don't show the external-viewer emblem (hide a stale icon
+        // left over from a recycled connection row)
+        if let Some(external_icon) =
+            find_child_by_css_class(&content_box, "external-session-icon").and_downcast::<Image>()
+        {
+            external_icon.set_visible(false);
+        }
+        // Groups don't show the split-membership marker (hide/clear a stale
+        // marker left over from a recycled connection row)
+        if let Some(split_marker) =
+            find_child_by_css_class(&content_box, "split-marker").and_downcast::<GtkBox>()
+        {
+            apply_split_marker(&split_marker, -1);
         }
         // Groups don't show the notes badge
         if let Some(note_icon) =
@@ -652,6 +747,52 @@ pub fn bind_list_item(
             let handler_id =
                 item.connect_notify_local(Some("is-recording"), move |item: &ConnectionItem, _| {
                     recording_icon_clone.set_visible(item.is_recording());
+                });
+            handlers
+                .borrow_mut()
+                .entry(list_item.clone())
+                .or_default()
+                .push(handler_id);
+        }
+
+        // External-viewer emblem: window icon shown alongside the connected
+        // status icon while the connection has an active external-viewer
+        // session (driven by the external-session property, see
+        // ConnectionSidebar::set_external_session). R2.5/2.6: visible iff the
+        // external session count is greater than zero.
+        if let Some(external_icon) =
+            find_child_by_css_class(&content_box, "external-session-icon").and_downcast::<Image>()
+        {
+            external_icon.set_visible(item.external_session());
+
+            let external_icon_clone = external_icon.clone();
+            let handler_id = item.connect_notify_local(
+                Some("external-session"),
+                move |item: &ConnectionItem, _| {
+                    external_icon_clone.set_visible(item.external_session());
+                },
+            );
+            handlers
+                .borrow_mut()
+                .entry(list_item.clone())
+                .or_default()
+                .push(handler_id);
+        }
+
+        // Split-membership marker: filled square tinted with the split pane
+        // color (driven by the split-color property, see
+        // ConnectionSidebar::set_split_color). R6.2: shown while the session is
+        // in a split, sized no larger than the status icon; the square shape
+        // keeps it distinct from the check/window emblems in grayscale (R6.4/6.5).
+        if let Some(split_marker) =
+            find_child_by_css_class(&content_box, "split-marker").and_downcast::<GtkBox>()
+        {
+            apply_split_marker(&split_marker, item.split_color());
+
+            let split_marker_clone = split_marker.clone();
+            let handler_id =
+                item.connect_notify_local(Some("split-color"), move |item: &ConnectionItem, _| {
+                    apply_split_marker(&split_marker_clone, item.split_color());
                 });
             handlers
                 .borrow_mut()

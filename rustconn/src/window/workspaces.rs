@@ -154,12 +154,7 @@ pub fn show_workspace_manager(
                                         bridges_for_sync
                                             .borrow_mut()
                                             .insert(sid, bridge.clone());
-                                        if let Some(owner_sid) =
-                                            bridge.active_sessions().first().copied()
-                                        {
-                                            notebook_for_sync
-                                                .show_in_split_placeholder(sid, owner_sid);
-                                        }
+                                        notebook_for_sync.park_session_tab(sid);
                                         notebook_for_sync
                                             .set_tab_split_color(sid, color_index);
                                         monitoring_for_sync.suspend_monitoring(sid);
@@ -222,12 +217,7 @@ pub fn show_workspace_manager(
                                             bridges_for_guest
                                                 .borrow_mut()
                                                 .insert(sid, bridge.clone());
-                                            if let Some(owner_sid) =
-                                                bridge.active_sessions().first().copied()
-                                            {
-                                                notebook_for_guest
-                                                    .show_in_split_placeholder(sid, owner_sid);
-                                            }
+                                            notebook_for_guest.park_session_tab(sid);
                                             notebook_for_guest
                                                 .set_tab_split_color(sid, color_index);
                                             monitoring_for_guest.suspend_monitoring(sid);
@@ -308,9 +298,7 @@ pub fn show_workspace_manager(
                                                         match bridge.move_session_to_panel(empty_pane, sid, &content) {
                                                             Ok(color_index) => {
                                                                 bridges_for_guest.borrow_mut().insert(sid, bridge.clone());
-                                                                if let Some(owner_sid) = bridge.active_sessions().first().copied() {
-                                                                    notebook_for_guest.show_in_split_placeholder(sid, owner_sid);
-                                                                }
+                                                                notebook_for_guest.park_session_tab(sid);
                                                                 notebook_for_guest.set_tab_split_color(sid, color_index);
                                                                 monitoring_for_guest.suspend_monitoring(sid);
                                                                 tracing::debug!(

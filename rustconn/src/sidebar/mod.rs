@@ -1272,6 +1272,88 @@ impl ConnectionSidebar {
         false
     }
 
+    /// Shows or hides the external-viewer emblem of a connection row (issue #209).
+    ///
+    /// Sets the `external-session` property on the matching `ConnectionItem`;
+    /// the bound row reacts via `notify::external-session` and shows/hides the
+    /// `window-new-symbolic` emblem alongside the green connected icon. Called
+    /// from the `ExternalSessionRegistry` callbacks: `true` on registration,
+    /// `false` once the connection's external session count reaches zero.
+    pub fn set_external_session(&self, id: &str, external: bool) {
+        Self::update_item_external_session_recursive(
+            self.store.upcast_ref::<gio::ListModel>(),
+            id,
+            external,
+        );
+    }
+
+    /// Recursively finds a connection item by ID and sets its external-session flag
+    fn update_item_external_session_recursive(
+        model: &gio::ListModel,
+        id: &str,
+        external: bool,
+    ) -> bool {
+        let n_items = model.n_items();
+        for i in 0..n_items {
+            if let Some(item) = model.item(i).and_downcast::<ConnectionItem>() {
+                if item.id() == id {
+                    item.set_external_session(external);
+                    return true;
+                }
+
+                if (item.is_group() || item.is_document())
+                    && let Some(children) = item.children()
+                    && Self::update_item_external_session_recursive(&children, id, external)
+                {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    /// Shows, recolors, or hides the split-membership marker of a row (R6.2).
+    ///
+    /// Maps `None` to `-1` (not in a split) and `Some(index)` to the split
+    /// color palette index, then sets the `split-color` property on the
+    /// matching `ConnectionItem`. The bound row reacts via `notify::split-color`
+    /// and shows/hides a small filled-square marker tinted with the matching
+    /// split pane color. Called when a session joins or leaves a split.
+    pub fn set_split_color(&self, id: &str, color: Option<usize>) {
+        // -1 = not in a split; otherwise the palette index. `try_from` guards
+        // against a pathologically large index wrapping into a negative value.
+        let value = match color {
+            None => -1,
+            Some(index) => i32::try_from(index).unwrap_or(i32::MAX),
+        };
+        Self::update_item_split_color_recursive(
+            self.store.upcast_ref::<gio::ListModel>(),
+            id,
+            value,
+        );
+    }
+
+    /// Recursively finds a connection item by ID and sets its split-color index
+    fn update_item_split_color_recursive(model: &gio::ListModel, id: &str, color: i32) -> bool {
+        let n_items = model.n_items();
+        for i in 0..n_items {
+            if let Some(item) = model.item(i).and_downcast::<ConnectionItem>() {
+                if item.id() == id {
+                    item.set_split_color(color);
+                    return true;
+                }
+
+                if (item.is_group() || item.is_document())
+                    && let Some(children) = item.children()
+                    && Self::update_item_split_color_recursive(&children, id, color)
+                {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
     /// Gets the status of a connection item
     pub fn get_connection_status(&self, id: &str) -> Option<String> {
         self.connection_statuses
@@ -1957,7 +2039,7 @@ mod imp {
     use glib::subclass::prelude::*;
     use std::cell::RefCell;
 
-    #[derive(Default, Properties)]
+    #[derive(Properties)]
     #[properties(wrapper_type = super::ConnectionItem)]
     pub struct ConnectionItem {
         #[property(get, set)]
@@ -1995,11 +2077,52 @@ mod imp {
         /// Whether a session of this connection is currently being recorded.
         #[property(get, set)]
         is_recording: RefCell<bool>,
+        /// Whether this connection has an active external-viewer session
+        /// (issue #209). Drives the `window-new-symbolic` emblem shown
+        /// alongside the connected status icon; visible while the external
+        /// session count is greater than zero.
+        #[property(get, set)]
+        external_session: RefCell<bool>,
+        /// Split-pane color index, or `-1` when the connection is not part of
+        /// a split (Phase 2, R6.2). Drives a small filled-square marker in the
+        /// sidebar row tinted with the matching split pane color; the square
+        /// shape keeps it distinguishable in grayscale, never color alone.
+        #[property(get, set, default = -1)]
+        split_color: RefCell<i32>,
         /// Connection description/notes (empty string = none); drives the
         /// notes badge in the sidebar row.
         #[property(get, set)]
         description: RefCell<String>,
         pub(super) children: RefCell<Option<gio::ListStore>>,
+    }
+
+    impl Default for ConnectionItem {
+        fn default() -> Self {
+            Self {
+                id: RefCell::default(),
+                name: RefCell::default(),
+                protocol: RefCell::default(),
+                is_group: RefCell::default(),
+                is_document: RefCell::default(),
+                is_dirty: RefCell::default(),
+                host: RefCell::default(),
+                status: RefCell::default(),
+                is_pinned: RefCell::default(),
+                icon: RefCell::default(),
+                sync_mode: RefCell::default(),
+                sync_error: RefCell::default(),
+                is_root_group: RefCell::default(),
+                has_dynamic_folder: RefCell::default(),
+                is_recording: RefCell::default(),
+                external_session: RefCell::default(),
+                // -1 = not in a split; keep the stored default consistent with
+                // the `split_color` ParamSpec default so a fresh row never
+                // shows a (blue, index 0) split marker before joining a split.
+                split_color: RefCell::new(-1),
+                description: RefCell::default(),
+                children: RefCell::default(),
+            }
+        }
     }
 
     #[glib::object_subclass]

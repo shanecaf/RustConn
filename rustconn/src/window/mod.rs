@@ -79,6 +79,15 @@ thread_local! {
     static BUSY_STACK: RefCell<Option<rustconn_core::BusyStack>> = const { RefCell::new(None) };
 }
 
+// External viewer session registry (issue #209), published to a thread-local
+// for the same reason as `BUSY_STACK`: the static `start_*_connection` launch
+// paths route external VNC/RDP/SPICE viewers into it without threading the
+// registry through every call site.
+thread_local! {
+    static EXTERNAL_SESSIONS: RefCell<Option<Rc<crate::external_session::ExternalSessionRegistry>>> =
+        const { RefCell::new(None) };
+}
+
 /// Acquires a busy guard from the thread-local [`BusyStack`].
 ///
 /// Returns `None` if the stack has not been initialised yet (before
@@ -86,6 +95,15 @@ thread_local! {
 /// header-bar spinner visible until dropped.
 fn acquire_busy_guard() -> Option<rustconn_core::BusyGuard> {
     BUSY_STACK.with(|cell| cell.borrow().as_ref().map(rustconn_core::BusyStack::busy))
+}
+
+/// Returns the thread-local external viewer session registry.
+///
+/// Returns `None` before `MainWindow::new` has published it. Callers on the
+/// launch path use it to register a spawned external viewer so its child
+/// process is watched by the shared poll timer (issue #209).
+pub fn external_session_registry() -> Option<Rc<crate::external_session::ExternalSessionRegistry>> {
+    EXTERNAL_SESSIONS.with(|cell| cell.borrow().as_ref().map(Rc::clone))
 }
 
 /// Main application window wrapper
@@ -111,6 +129,10 @@ pub struct MainWindow {
     state: SharedAppState,
     overlay_split_view: adw::OverlaySplitView,
     external_window_manager: SharedExternalWindowManager,
+    /// Registry of external viewer sessions (VNC/RDP/SPICE delegated to a
+    /// separate viewer process, issue #209). Tracks child processes and drives
+    /// sidebar session-count + history via callbacks; watched by a shared timer.
+    external_sessions: Rc<crate::external_session::ExternalSessionRegistry>,
     toast_overlay: SharedToastOverlay,
     monitoring: Rc<MonitoringCoordinator>,
     activity_coordinator: types::SharedActivityCoordinator,
@@ -187,8 +209,23 @@ impl MainWindow {
         });
 
         // Create header bar with busy spinner
-        let (header_bar, busy_spinner, passthrough_indicator, broadcast_toggle, menu_button) =
-            ui::create_header_bar();
+        let (
+            header_bar,
+            busy_spinner,
+            passthrough_indicator,
+            broadcast_toggle,
+            menu_button,
+            header_title,
+        ) = ui::create_header_bar();
+
+        // Mirror the window title into the header bar's centre label so the
+        // active connection name (issue #211) is visible there too, not only in
+        // the WM title read by time-tracking tools. One-way binding: whenever
+        // `update_window_title` sets the window title, the label follows.
+        window
+            .bind_property("title", &header_title, "label")
+            .sync_create()
+            .build();
 
         // Create BusyStack that shows/hides the header bar spinner.
         // GTK widgets are !Send, so we bridge via std::sync::mpsc channel.
@@ -706,6 +743,66 @@ impl MainWindow {
         // Create external window manager
         let external_window_manager = Rc::new(ExternalWindowManager::new());
 
+        // External viewer session registry (issue #209): tracks VNC/RDP/SPICE
+        // sessions delegated to a separate viewer process, surfaced in the
+        // sidebar without a notebook tab. The callbacks bridge the registry into
+        // the sidebar session count and the connection history; a single shared
+        // 2 s poll timer (inside the registry) reaps closed viewers.
+        let external_sessions = {
+            let sidebar_registered = sidebar.clone();
+            let on_registered: Box<dyn Fn(Uuid)> = Box::new(move |connection_id| {
+                // R2.1: show the green "connected" status via the session count.
+                sidebar_registered.increment_session_count(&connection_id.to_string());
+                // R2.2: show the `window-new-symbolic` emblem alongside the
+                // connected icon. `record_connection_start` (R3.1) is done at the
+                // launch site (task 6); its entry id is passed into `register`.
+                sidebar_registered.set_external_session(&connection_id.to_string(), true);
+            });
+
+            let sidebar_ended = sidebar.clone();
+            let state_ended = state.clone();
+            let on_ended: Box<dyn Fn(Uuid, Option<Uuid>)> = Box::new(
+                move |connection_id, history_entry_id| {
+                    // R4.3/4.5: clear the connected state when the viewer exits.
+                    sidebar_ended.decrement_session_count(&connection_id.to_string(), false);
+                    // R3.2/4.4: record the end exactly once; skip if there is no
+                    // start entry and log a warning (R3.5). A failed borrow is
+                    // logged and does not interrupt the session (R3.4).
+                    if let Some(entry_id) = history_entry_id {
+                        if let Ok(mut state_mut) = state_ended.try_borrow_mut() {
+                            state_mut.record_connection_end(entry_id);
+                        } else {
+                            tracing::warn!(
+                                %connection_id,
+                                "Could not borrow AppState to record external session end"
+                            );
+                        }
+                    } else {
+                        tracing::warn!(
+                            %connection_id,
+                            "External session ended without a history start entry; skipping record_connection_end"
+                        );
+                    }
+                    // R2.5/2.6: the emblem is visible iff the connection still
+                    // has at least one active external session. `on_ended` fires
+                    // after the ending session is removed from the registry, so
+                    // querying it here reflects the remaining sessions — the
+                    // emblem is cleared only once the count reaches zero (a
+                    // connection may have more than one external viewer).
+                    let still_external = external_session_registry()
+                        .is_some_and(|reg| reg.has_active_session(connection_id));
+                    sidebar_ended.set_external_session(&connection_id.to_string(), still_external);
+                },
+            );
+
+            crate::external_session::ExternalSessionRegistry::new(
+                crate::external_session::ExternalSessionCallbacks {
+                    on_registered,
+                    on_ended,
+                },
+            )
+        };
+
         // Create tunnel manager for standalone SSH tunnels
         let tunnel_manager: SharedTunnelManager = Rc::new(RefCell::new(
             rustconn_core::tunnel_manager::TunnelManager::new(),
@@ -722,6 +819,7 @@ impl MainWindow {
             state: state.clone(),
             overlay_split_view,
             external_window_manager,
+            external_sessions,
             toast_overlay,
             monitoring,
             activity_coordinator,
@@ -742,6 +840,13 @@ impl MainWindow {
         // Publish BusyStack to thread-local so static methods can acquire guards
         BUSY_STACK.with(|cell| {
             *cell.borrow_mut() = Some(main_window.busy_stack.clone());
+        });
+
+        // Publish the external viewer session registry to a thread-local so the
+        // static `start_*_connection` launch paths can register external viewers
+        // (issue #209) without threading the registry through every call site.
+        EXTERNAL_SESSIONS.with(|cell| {
+            *cell.borrow_mut() = Some(Rc::clone(&main_window.external_sessions));
         });
 
         // Set up recording checker for sidebar context menu
@@ -781,6 +886,61 @@ impl MainWindow {
                         .update_connection_recording(&connection_id.to_string(), still_recording);
                 },
             );
+        }
+
+        // Drive the sidebar split-membership marker (R6.2) from the notebook's
+        // split-color map. A single re-sync handler recomputes the full desired
+        // per-connection state on every split mutation (join / leave / close),
+        // which is simpler and more robust than tracking individual deltas.
+        {
+            let sidebar = main_window.sidebar.clone();
+            let notebook_weak = Rc::downgrade(&main_window.terminal_notebook);
+            // Connections we last marked as in-a-split, so we can clear the
+            // marker when a connection's last split session leaves.
+            let marked: Rc<RefCell<std::collections::HashSet<Uuid>>> =
+                Rc::new(RefCell::new(std::collections::HashSet::new()));
+            main_window
+                .terminal_notebook
+                .set_on_split_colors_changed(move || {
+                    let Some(notebook) = notebook_weak.upgrade() else {
+                        return;
+                    };
+                    // Snapshot the split map first, then drop the borrow before
+                    // touching the sidebar to avoid BorrowMutError / nested borrows.
+                    let pairs: Vec<(Uuid, usize)> = notebook
+                        .split_colors()
+                        .borrow()
+                        .iter()
+                        .map(|(session_id, color)| (*session_id, *color))
+                        .collect();
+
+                    // Resolve session_id → connection_id. A connection may host
+                    // several split sessions; the last one wins for the single
+                    // per-connection marker.
+                    // ponytail: last-writer-wins per connection is fine for a
+                    // one-square summary; index by session if per-session markers
+                    // are ever needed.
+                    let mut desired: std::collections::HashMap<Uuid, usize> =
+                        std::collections::HashMap::new();
+                    for (session_id, color) in pairs {
+                        if let Some(info) = notebook.get_session_info(session_id) {
+                            desired.insert(info.connection_id, color);
+                        }
+                    }
+
+                    // Show / refresh markers for connections currently in a split.
+                    for (connection_id, color) in &desired {
+                        sidebar.set_split_color(&connection_id.to_string(), Some(*color));
+                    }
+                    // Clear markers for connections that left every split.
+                    let mut marked_ref = marked.borrow_mut();
+                    for connection_id in marked_ref.iter() {
+                        if !desired.contains_key(connection_id) {
+                            sidebar.set_split_color(&connection_id.to_string(), None);
+                        }
+                    }
+                    *marked_ref = desired.keys().copied().collect();
+                });
         }
 
         // Load initial data
@@ -1210,6 +1370,32 @@ impl MainWindow {
         let split_view_clone = split_view.clone();
         let monitoring_clone = self.monitoring.clone();
         let activity_clone_sidebar = self.activity_coordinator.clone();
+        let session_bridges_for_activate = self.session_split_bridges.clone();
+
+        // R7.5: `connect_activate` does not carry keyboard-modifier state, so a
+        // capture-phase primary-button gesture records whether Shift/Ctrl was
+        // held on the press that precedes activation. Capture phase without
+        // claiming the sequence means it never interferes with the ListView's
+        // own selection/activation or the secondary-button context-menu gesture
+        // (mirrors the existing primary-button dismiss gesture in `sidebar/mod`).
+        let force_new_modifier = Rc::new(std::cell::Cell::new(false));
+        let modifier_gesture = gtk4::GestureClick::new();
+        modifier_gesture.set_button(gtk4::gdk::BUTTON_PRIMARY);
+        modifier_gesture.set_propagation_phase(gtk4::PropagationPhase::Capture);
+        let force_new_for_gesture = force_new_modifier.clone();
+        modifier_gesture.connect_pressed(move |gesture, _n_press, _x, _y| {
+            let modifiers = gesture.current_event_state();
+            force_new_for_gesture.set(
+                modifiers.contains(gtk4::gdk::ModifierType::SHIFT_MASK)
+                    || modifiers.contains(gtk4::gdk::ModifierType::CONTROL_MASK),
+            );
+            // Observe-only: deny the sequence so the gesture never claims the
+            // press and the ListView's own selection/activation handling (and
+            // the TreeExpander's primary-button expand/collapse) proceed intact.
+            gesture.set_state(gtk4::EventSequenceState::Denied);
+        });
+        sidebar.list_view().add_controller(modifier_gesture);
+
         sidebar
             .list_view()
             .connect_activate(move |list_view, position| {
@@ -1232,13 +1418,21 @@ impl MainWindow {
                     }
                     return;
                 }
+                // Read (and reset) the modifier captured on the preceding press.
+                // Reset guards against a stale value on a later keyboard
+                // (Enter) activation, which fires no primary-button press.
+                let force_new = force_new_modifier.get();
+                force_new_modifier.set(false);
+
                 Self::connect_at_position_with_split(
                     &state_clone,
                     &sidebar_clone,
                     &notebook_clone,
                     &split_view_clone,
                     &monitoring_clone,
+                    &session_bridges_for_activate,
                     position,
+                    force_new,
                     Some(&activity_clone_sidebar),
                 );
             });
@@ -1318,9 +1512,13 @@ impl MainWindow {
                 s.settings().ui.minimize_to_tray && s.settings().ui.enable_tray_icon
             });
 
-            // Confirm before quitting with open session tabs (GNOME HIG:
-            // protect against accidental loss of active connections).
-            let open_sessions = notebook_for_close.session_count();
+            // Confirm before quitting with open sessions (GNOME HIG: protect
+            // against accidental loss of active connections). Count tabless
+            // external-viewer sessions too (issue #209), so a window holding
+            // only external VNC/RDP/SPICE sessions still warns before quitting.
+            let external_open =
+                external_session_registry().map_or(0, |reg| reg.active_count());
+            let open_sessions = notebook_for_close.session_count() + external_open;
             if !minimize_to_tray && !force_close.get() && open_sessions > 0 {
                 let dialog = Self::close_confirmation_dialog(open_sessions);
                 let force_close_confirm = force_close.clone();
@@ -1337,6 +1535,13 @@ impl MainWindow {
 
             // Flush all active session recordings before shutdown
             notebook_for_close.flush_active_recordings();
+
+            // Terminate tracked external viewers (issue #209): kill owned
+            // children so they do not outlive RustConn as orphans, and close
+            // their open history entries. Detaching viewers keep running.
+            if let Some(registry) = external_session_registry() {
+                registry.shutdown();
+            }
 
             // Stop all standalone SSH tunnels
             tunnel_manager_for_close.borrow_mut().stop_all();
@@ -1588,14 +1793,27 @@ impl MainWindow {
         }
     }
 
-    /// Connects to a connection at a specific position with split view support
+    /// Connects to a connection at a specific position with split view support.
+    ///
+    /// Smart double-click (R7): unless `force_new` is set (a Shift/Ctrl modifier
+    /// was held or the "Open new session" menu item was used), an existing live
+    /// session for the connection is focused instead of spawning a duplicate.
+    /// An embedded session is focused in place (R7.1/7.2/7.4); an external-only
+    /// session shows an informational toast (a foreign OS window cannot be
+    /// raised reliably from RustConn); zero sessions launch a new one (R7.3).
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "smart double-click dispatch (R7) needs the full window context: state, sidebar, notebook, split view, monitoring, split bridges plus position/force_new/activity"
+    )]
     fn connect_at_position_with_split(
         state: &SharedAppState,
         sidebar: &SharedSidebar,
         notebook: &SharedNotebook,
         split_view: &SharedSplitView,
         monitoring: &types::SharedMonitoring,
+        session_split_bridges: &SessionSplitBridges,
         position: u32,
+        force_new: bool,
         activity: Option<&types::SharedActivityCoordinator>,
     ) {
         // Get the item at position from the tree model (not the flat store)
@@ -1609,7 +1827,40 @@ impl MainWindow {
             {
                 let id_str = conn_item.id();
                 if let Ok(conn_id) = Uuid::parse_str(&id_str) {
-                    // Set connecting status immediately on double-click
+                    if !force_new {
+                        // R7.1/7.4: focus the most recently created embedded
+                        // session. Collect first (an owned `Uuid`) so no notebook
+                        // borrow is held across the focus call below.
+                        let target = notebook
+                            .get_all_sessions()
+                            .into_iter()
+                            .filter(|s| s.connection_id == conn_id)
+                            .max_by_key(|s| s.connected_at)
+                            .map(|s| s.id);
+
+                        if let Some(target_id) = target {
+                            if Self::focus_embedded_session(
+                                notebook,
+                                session_split_bridges,
+                                target_id,
+                            ) {
+                                return;
+                            }
+                            // R7.6: the session vanished between resolution and
+                            // focus — fall through and launch a new one.
+                        } else if external_session_registry()
+                            .is_some_and(|reg| reg.has_active_session(conn_id))
+                        {
+                            // R7 external-only: do not duplicate a session that
+                            // lives in a foreign viewer window; inform the user.
+                            crate::toast::show_info_toast_on_active_window(&crate::i18n::i18n(
+                                "Already running in an external window",
+                            ));
+                            return;
+                        }
+                    }
+
+                    // force_new, zero live sessions, or the R7.6 race: launch new.
                     sidebar.update_connection_status(&conn_id.to_string(), "connecting");
                     Self::start_connection_with_credential_resolution(
                         state.clone(),
@@ -1623,6 +1874,60 @@ impl MainWindow {
                 }
             }
         }
+    }
+
+    /// Focuses an existing embedded session for the smart double-click.
+    ///
+    /// Selects the session's owner tab and, when the session lives in a split,
+    /// focuses its pane and grabs input focus (R7.1, R7.2, R7.4). Returns
+    /// `false` if the session disappeared before it could be focused (R7.6),
+    /// signalling the caller to launch a new session instead.
+    fn focus_embedded_session(
+        notebook: &SharedNotebook,
+        session_split_bridges: &SessionSplitBridges,
+        target_id: Uuid,
+    ) -> bool {
+        // Resolve the owner tab and (if split) the pane holding the session up
+        // front, then release the bridges borrow before any tab switch / focus
+        // call — those re-enter the notebook/bridge and would risk a
+        // BorrowMutError if a borrow were still held.
+        let mut owner_tab = target_id;
+        let mut bridge_pane: Option<(Rc<SplitViewBridge>, Uuid)> = None;
+        {
+            let bridges = session_split_bridges.borrow();
+            for (owner_id, bridge) in bridges.iter() {
+                if bridge.active_sessions().contains(&target_id) {
+                    owner_tab = *owner_id;
+                    bridge_pane = bridge
+                        .pane_ids()
+                        .into_iter()
+                        .find(|pane| bridge.get_pane_session(*pane) == Some(target_id))
+                        .map(|pane| (Rc::clone(bridge), pane));
+                    break;
+                }
+            }
+        }
+
+        // R7.6: bail if the session vanished between resolution and focus.
+        if notebook.get_session_info(target_id).is_none() {
+            return false;
+        }
+
+        notebook.switch_to_tab(owner_tab);
+        notebook.show_tab_view_content();
+
+        if let Some((bridge, pane_uuid)) = bridge_pane
+            && let Err(e) = bridge.focus_pane(pane_uuid)
+        {
+            tracing::debug!(error = %e, %target_id, "focus_pane failed for smart double-click");
+        }
+
+        // Set input focus on the session widget where one exists (terminals);
+        // embedded viewers have no VTE widget, so selecting the tab is enough.
+        if let Some(terminal) = notebook.get_terminal(target_id) {
+            terminal.grab_focus();
+        }
+        true
     }
 
     /// Starts a connection with split view integration
@@ -2484,6 +2789,32 @@ impl MainWindow {
     }
 
     /// Shows the settings dialog
+    /// Updates the window title to reflect the active connection (issue #211).
+    ///
+    /// When `enabled` and a session tab is active, sets the title to
+    /// `"RustConn - <active tab>"`; otherwise resets it to `"RustConn"`. Driven
+    /// by the `ui.window_title_shows_connection` setting so time-tracking tools
+    /// can attribute usage per connection by reading the window title.
+    pub(crate) fn update_window_title(
+        window: &adw::ApplicationWindow,
+        notebook: &SharedNotebook,
+        enabled: bool,
+    ) {
+        let name = if enabled {
+            notebook
+                .tab_view()
+                .selected_page()
+                .map(|page| page.title().to_string())
+                .filter(|title| !title.is_empty() && *title != crate::i18n::i18n("Welcome"))
+        } else {
+            None
+        };
+        match name {
+            Some(name) => window.set_title(Some(&crate::i18n::i18n_f("RustConn - {}", &[&name]))),
+            None => window.set_title(Some("RustConn")),
+        }
+    }
+
     fn show_settings_dialog(
         window: &adw::ApplicationWindow,
         state: SharedAppState,
@@ -2558,6 +2889,13 @@ impl MainWindow {
 
                 // Apply monitoring settings to active bars
                 monitoring.apply_settings_to_all(&settings.monitoring);
+
+                // Apply window-title-shows-connection setting live (issue #211)
+                Self::update_window_title(
+                    &window_clone,
+                    &notebook,
+                    settings.ui.window_title_shows_connection,
+                );
 
                 if let Ok(mut state_mut) = state.try_borrow_mut() {
                     let simple_sync_was = state_mut.simple_sync_enabled();

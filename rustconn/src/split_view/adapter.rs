@@ -658,7 +658,37 @@ impl SplitViewAdapter {
             }
             widget.set_hexpand(true);
             widget.set_vexpand(true);
-            panel_widget.append(widget);
+
+            // Overlay a close (×) button in the top-right corner so a session
+            // shown in a split pane can be closed directly — a split guest has no
+            // standalone tab. The button reuses the empty-panel close callback,
+            // which focuses this panel and triggers `win.close-pane` (which now
+            // terminates the focused pane's session).
+            let overlay = Overlay::new();
+            overlay.set_hexpand(true);
+            overlay.set_vexpand(true);
+            overlay.set_child(Some(widget));
+
+            let close_button = Button::builder()
+                .icon_name("window-close-symbolic")
+                .halign(Align::End)
+                .valign(Align::Start)
+                .tooltip_text(i18n("Close session"))
+                .build();
+            close_button.add_css_class("flat");
+            close_button.add_css_class("circular");
+            close_button.add_css_class("panel-close-button");
+            close_button
+                .update_property(&[gtk4::accessible::Property::Label(&i18n("Close session"))]);
+            let close_callback_ref = Rc::clone(&self.close_panel_callback);
+            close_button.connect_clicked(move |_| {
+                if let Some(ref callback) = *close_callback_ref.borrow() {
+                    callback(panel_id);
+                }
+            });
+            overlay.add_overlay(&close_button);
+
+            panel_widget.append(&overlay);
         } else {
             tracing::warn!(
                 "set_panel_content: panel_id={} NOT FOUND in panel_widgets (available: {:?})",
