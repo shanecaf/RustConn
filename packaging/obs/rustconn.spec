@@ -259,7 +259,7 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
-* Wed Jul 08 2026 Anton Isaiev <totoshko88@gmail.com> - 0.18.3-0
+* Thu Jul 09 2026 Anton Isaiev <totoshko88@gmail.com> - 0.18.3-0
 - Version bump to 0.18.3
 - Added external-session tracking for VNC/RDP/SPICE external-viewer sessions: process registry + shared poll timer, sidebar external-viewer emblem, Disconnect / Stop tracking context menu, split-membership marker, smart double-click
 - Fixed VNC/RDP/SPICE External Window mode leaving a dead notebook tab; the session is surfaced in the sidebar instead (#209)
