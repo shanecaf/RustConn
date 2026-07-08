@@ -1,6 +1,6 @@
 # RustConn User Guide
 
-**Version 0.18.2** | GTK4/libadwaita Connection Manager for Linux
+**Version 0.18.3** | GTK4/libadwaita Connection Manager for Linux
 
 RustConn is a modern connection manager designed for Linux with Wayland-first approach. It supports SSH, RDP, VNC, SPICE, MOSH, SFTP, Telnet, Serial, Kubernetes, Web protocols and Zero Trust integrations through a native GTK4/libadwaita interface.
 
@@ -1118,6 +1118,8 @@ The **Display Mode** setting in the connection dialog (Advanced tab → Window M
 - External Window mode for VNC requires an external VNC viewer installed (TigerVNC, vncviewer, gvncviewer, or similar). If no viewer is found, a toast notification shows the install hint.
 - External Window mode for RDP uses FreeRDP. In the Flatpak build, FreeRDP (SDL3 client) is bundled — no separate installation needed. On native installs, RustConn auto-detects available FreeRDP variants in priority order: `wlfreerdp3` > `wlfreerdp` > `sdl-freerdp3` > `sdl-freerdp` > `xfreerdp3` > `xfreerdp`.
 - The VNC protocol tab also has its own **Client Mode** (Embedded/External) setting. When Display Mode is set to External Window, it takes precedence over the protocol-level Client Mode.
+
+**External-session tracking:** an external-viewer session gets no notebook tab. Instead it is surfaced in the sidebar with a window emblem next to the connected status, and its right-click menu adds **Disconnect** (closes a RustConn-owned viewer such as TigerVNC/FreeRDP/remote-viewer) and **Stop tracking** (deregisters without closing the viewer). Owned viewers are closed automatically when you quit RustConn. Detaching viewers that RustConn cannot control (Remmina, KRDC, Vinagre) keep running independently: if you close such a viewer window yourself, the sidebar keeps showing the session as connected until you select **Stop tracking**. A double-click on a connection that already runs in an external window shows an "Already running in an external window" hint instead of opening a duplicate — use **Open new session** to force a second one.
 
 ### Tab Management
 

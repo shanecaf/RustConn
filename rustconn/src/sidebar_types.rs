@@ -249,7 +249,24 @@ impl DropIndicator {
                 background-color: alpha(@accent_bg_color, 0.4);
                 border-radius: 6px;
             }
-            
+
+            /* Split-membership marker (R6.2): a small filled square shown in the
+               sidebar row while a session is part of a split. The square shape
+               is the orthogonal (color-independent) cue; the per-index color
+               only mirrors the split pane and matches SPLIT_COLOR_VALUES in
+               split_view/bridge.rs. Sized no larger than the 10px status icon. */
+            .split-marker {
+                min-width: 9px;
+                min-height: 9px;
+                border-radius: 2px;
+            }
+            .split-marker.sidebar-split-0 { background-color: #3584e4; } /* Blue */
+            .split-marker.sidebar-split-1 { background-color: #33d17a; } /* Green */
+            .split-marker.sidebar-split-2 { background-color: #ff7800; } /* Orange */
+            .split-marker.sidebar-split-3 { background-color: #9141ac; } /* Purple */
+            .split-marker.sidebar-split-4 { background-color: #00b4d8; } /* Cyan */
+            .split-marker.sidebar-split-5 { background-color: #f66151; } /* Pink */
+
             ",
         );
 

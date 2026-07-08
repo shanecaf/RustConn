@@ -5,7 +5,7 @@
 
 use super::MainWindow;
 pub use super::protocols_ssh::{reconnect_ssh_in_place, start_ssh_connection};
-use crate::i18n::i18n;
+use crate::i18n::{i18n, i18n_f};
 use crate::sidebar::ConnectionSidebar;
 use crate::state::SharedAppState;
 use crate::terminal::TerminalNotebook;
@@ -59,6 +59,120 @@ pub(super) fn substitute_variables(input: &str, global_variables: &[Variable]) -
     manager
         .substitute_for_command(input, VariableScope::Global)
         .unwrap_or_else(|_| input.to_string())
+}
+
+/// Known external viewers that hand control to a daemon or a separate process
+/// and then exit their initial child (a *detaching viewer*, R5.7).
+///
+/// ponytail: a static list, fine while the set of detaching viewers is tiny and
+/// well-known. If users start reporting other detaching clients, promote this to
+/// a setting (a user-editable list) rather than growing the match arm.
+const DETACHING_VIEWERS: &[&str] = &["remmina", "krdc", "vinagre"];
+
+/// Returns `true` for a *detaching viewer* (see [`DETACHING_VIEWERS`]).
+///
+/// RustConn cannot reap or terminate such a process, so it is registered with
+/// `child: None` and never auto-closed by the shared poll timer; it ends only
+/// via "Stop tracking". Owning viewers (tigervnc, xfreerdp, remote-viewer) keep
+/// their `Child` and are watched normally. The `program` may be a bare name or a
+/// full path, so it is matched on its file name.
+fn external_viewer_detaches(program: &str) -> bool {
+    let name = std::path::Path::new(program)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or(program);
+    DETACHING_VIEWERS.contains(&name)
+}
+
+/// Spawns an external viewer process and registers it in the external-session
+/// registry (issue #209), suppressing the notebook tab.
+///
+/// Records the connection start in history (R3.1) and passes the entry id into
+/// the registry so the shared poll timer records the end exactly once when the
+/// viewer exits. `ssh_tunnel`, when present, is stored in the notebook's tunnel
+/// map so it stays alive for the session. Returns `true` on success; on spawn
+/// failure it shows an error toast, sets the sidebar status to "failed", and
+/// returns `false` — without creating a tab (R1.6).
+#[expect(
+    clippy::too_many_arguments,
+    reason = "orchestrates external-viewer spawn + registry handoff; the shared state/notebook/sidebar handles and connection params are all required at this call site"
+)]
+pub(super) fn spawn_and_register_external_viewer(
+    state: &SharedAppState,
+    notebook: &SharedNotebook,
+    sidebar: &SharedSidebar,
+    connection_id: Uuid,
+    conn: &rustconn_core::Connection,
+    program: &str,
+    args: &[String],
+    ssh_tunnel: Option<rustconn_core::ssh_tunnel::SshTunnel>,
+) -> bool {
+    // Run the viewer independently: don't capture stdout/stderr.
+    let child = match std::process::Command::new(program)
+        .args(args)
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+    {
+        Ok(child) => child,
+        Err(e) => {
+            tracing::error!(%e, program, connection = %conn.name, "Failed to launch external viewer");
+            crate::toast::show_error_toast_on_active_window(&i18n_f(
+                "Could not launch external viewer ‘{}’: {}",
+                &[program, &e.to_string()],
+            ));
+            sidebar.update_connection_status(&connection_id.to_string(), "failed");
+            return false;
+        }
+    };
+
+    // R3.1: record the start; its entry id is replayed to record_connection_end
+    // by the registry's on_ended callback when the viewer exits.
+    let history_entry_id = if let Ok(mut state_mut) = state.try_borrow_mut() {
+        Some(state_mut.record_connection_start(conn, conn.username.as_deref()))
+    } else {
+        None
+    };
+
+    let session_id = Uuid::new_v4();
+
+    // A detaching viewer is registered with child: None — RustConn neither reaps
+    // nor kills it (R5.7). Dropping the handle does not terminate the process.
+    let tracked_child = if external_viewer_detaches(program) {
+        drop(child);
+        None
+    } else {
+        Some(child)
+    };
+
+    match super::external_session_registry() {
+        Some(registry) => {
+            // ponytail: a tunnelled tabless external session keeps its SshTunnel
+            // in the notebook map keyed by this synthetic session id; with no
+            // tab-close event it is reclaimed at app exit (one ssh proc per
+            // tunnelled external session). Move it into the registry entry if
+            // this ever grows.
+            if let Some(tunnel) = ssh_tunnel {
+                notebook.store_ssh_tunnel(session_id, tunnel);
+            }
+            registry.register(session_id, connection_id, tracked_child, history_entry_id);
+        }
+        None => {
+            tracing::error!(
+                connection = %conn.name,
+                "External session registry unavailable; viewer left untracked"
+            );
+        }
+    }
+
+    // Update last_connected timestamp.
+    if let Ok(mut state_mut) = state.try_borrow_mut()
+        && let Err(e) = state_mut.update_last_connected(connection_id)
+    {
+        tracing::warn!(?e, "Failed to update last_connected");
+    }
+
+    true
 }
 
 /// SSH failure patterns in terminal output.
@@ -421,6 +535,37 @@ fn start_vnc_connection_internal(
         );
     }
 
+    // Issue #209: an external-viewer VNC session gets no notebook tab. Spawn the
+    // viewer and register it so the sidebar surfaces it without a dead tab
+    // (R1.1). The password is handled by the viewer, never on the command line.
+    if conn.uses_external_viewer() {
+        let Some(viewer) = crate::session::VncSessionWidget::detect_vnc_viewer() else {
+            tracing::error!(connection = %conn_name, "No external VNC viewer installed");
+            crate::toast::show_error_toast_on_active_window(&i18n(
+                "No VNC viewer found. Install TigerVNC or Remmina.",
+            ));
+            sidebar.update_connection_status(&connection_id.to_string(), "failed");
+            return None;
+        };
+        let (program, args) = rustconn_core::protocol::VncProtocol::build_external_viewer_command(
+            &viewer,
+            &host,
+            port,
+            &vnc_config,
+        );
+        spawn_and_register_external_viewer(
+            state,
+            notebook,
+            sidebar,
+            connection_id,
+            conn,
+            &program,
+            &args,
+            None,
+        );
+        return None;
+    }
+
     // Get password from cached credentials (set by credential resolution flow)
     let password: Option<zeroize::Zeroizing<String>> =
         state.try_borrow().ok().and_then(|state_ref| {
@@ -596,6 +741,10 @@ fn start_spice_connection_internal(
     connection_id: Uuid,
     conn: &rustconn_core::Connection,
 ) -> Option<Uuid> {
+    use rustconn_core::spice_client::{
+        SpiceClientConfig, build_spice_viewer_args, detect_spice_viewer,
+    };
+
     let conn_name = conn.name.clone();
     let port = conn.port;
 
@@ -703,110 +852,47 @@ fn start_spice_connection_internal(
         (host, port, None)
     };
 
-    // Create SPICE session tab with native widget
-    let session_id = notebook.create_spice_session_tab(connection_id, &conn_name);
-
-    // Record connection start in history
-    let history_entry_id = if let Ok(mut state_mut) = state.try_borrow_mut() {
-        Some(state_mut.record_connection_start(conn, conn.username.as_deref()))
-    } else {
-        None
+    // Issue #209: SPICE always renders in an external viewer (the embedded
+    // client was removed in 0.18.0, so `uses_external_viewer()` is always true
+    // here). The launch is therefore unconditional: spawn remote-viewer and
+    // register it so the sidebar surfaces the session without a dead notebook
+    // tab (R1.1). SPICE arg building lives in rustconn-core (single source of
+    // truth); `spawn_and_register_external_viewer` records the history start.
+    let Some(viewer) = detect_spice_viewer() else {
+        tracing::error!(connection = %conn_name, "No SPICE viewer installed");
+        crate::toast::show_error_toast_on_active_window(&i18n(
+            "No SPICE viewer found. Install virt-viewer.",
+        ));
+        sidebar.update_connection_status(&connection_id.to_string(), "failed");
+        return None;
     };
-
-    // Store history entry ID in session for later use
-    if let Some(entry_id) = history_entry_id {
-        notebook.set_history_entry_id(session_id, entry_id);
-    }
-
-    // Store SSH tunnel so it stays alive for the duration of the session
-    if let Some(tunnel) = ssh_tunnel {
-        notebook.store_ssh_tunnel(session_id, tunnel);
-    }
-
-    // Get the SPICE widget and initiate connection
-    if let Some(spice_widget) = notebook.get_spice_widget(session_id) {
-        // Build connection config using SpiceClientConfig from spice_client module
-        use rustconn_core::spice_client::SpiceClientConfig;
-        let mut config = SpiceClientConfig::new(&effective_host).with_port(effective_port);
-
-        // Apply SPICE-specific settings if available
-        if let Some(opts) = spice_opts {
-            // Configure TLS
-            config = config.with_tls(opts.tls_enabled);
-            if let Some(ca_path) = &opts.ca_cert_path {
-                config = config.with_ca_cert(ca_path);
-            }
-            config = config.with_skip_cert_verify(opts.skip_cert_verify);
-
-            // Configure USB redirection
-            config = config.with_usb_redirection(opts.usb_redirection);
-
-            // Configure clipboard
-            config = config.with_clipboard(opts.clipboard_enabled);
-
-            // Configure local cursor visibility
-            config.show_local_cursor = opts.show_local_cursor;
-
-            // Configure unix socket if set
-            if let Some(ref socket_path) = opts.unix_socket_path {
-                config = config.with_unix_socket(socket_path);
-            }
+    let mut config = SpiceClientConfig::new(&effective_host).with_port(effective_port);
+    if let Some(ref opts) = spice_opts {
+        config = config.with_tls(opts.tls_enabled);
+        if let Some(ca_path) = &opts.ca_cert_path {
+            config = config.with_ca_cert(ca_path);
         }
-
-        // Connect state change callback to mark tab as disconnected
-        let notebook_for_state = notebook.clone();
-        let sidebar_for_state = sidebar.clone();
-        let state_for_callback = state.clone();
-        spice_widget.connect_state_changed(move |spice_state| {
-            use crate::embedded_spice::SpiceConnectionState;
-            if spice_state == SpiceConnectionState::Disconnected
-                || spice_state == SpiceConnectionState::Error
-            {
-                notebook_for_state.stop_recording(session_id);
-                notebook_for_state.mark_tab_disconnected(session_id);
-                sidebar_for_state.decrement_session_count(
-                    &connection_id.to_string(),
-                    spice_state == SpiceConnectionState::Error,
-                );
-                // Record connection end/failure in history
-                if let Some(info) = notebook_for_state.get_session_info(session_id)
-                    && let Some(entry_id) = info.history_entry_id
-                    && let Ok(mut state_mut) = state_for_callback.try_borrow_mut()
-                {
-                    if spice_state == SpiceConnectionState::Error {
-                        state_mut.record_connection_failed(entry_id, "SPICE connection error");
-                    } else {
-                        state_mut.record_connection_end(entry_id);
-                    }
-                }
-            } else if spice_state == SpiceConnectionState::Connected {
-                notebook_for_state.mark_tab_connected(session_id);
-                sidebar_for_state.increment_session_count(&connection_id.to_string());
-            }
-        });
-
-        // Connect reconnect callback
-        let widget_for_reconnect = spice_widget.clone();
-        spice_widget.connect_reconnect(move || {
-            if let Err(e) = widget_for_reconnect.reconnect() {
-                tracing::error!(%e, "SPICE reconnect failed");
-            }
-        });
-
-        // Initiate connection
-        if let Err(e) = spice_widget.connect(&config) {
-            tracing::error!(%e, conn_name, "Failed to connect SPICE session");
+        config = config
+            .with_skip_cert_verify(opts.skip_cert_verify)
+            .with_usb_redirection(opts.usb_redirection)
+            .with_clipboard(opts.clipboard_enabled);
+        config.show_local_cursor = opts.show_local_cursor;
+        if let Some(ref socket_path) = opts.unix_socket_path {
+            config = config.with_unix_socket(socket_path);
         }
     }
-
-    // Update last_connected timestamp
-    if let Ok(mut state_mut) = state.try_borrow_mut()
-        && let Err(e) = state_mut.update_last_connected(connection_id)
-    {
-        tracing::warn!(?e, "Failed to update last_connected");
-    }
-
-    Some(session_id)
+    let args = build_spice_viewer_args(&config);
+    spawn_and_register_external_viewer(
+        state,
+        notebook,
+        sidebar,
+        connection_id,
+        conn,
+        &viewer,
+        &args,
+        ssh_tunnel,
+    );
+    None
 }
 
 /// Reconnects an SSH session in-place, reusing the existing terminal tab.

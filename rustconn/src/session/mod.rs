@@ -13,9 +13,11 @@
 //!
 //! # Note
 //!
-//! RDP and SPICE protocols use native Rust implementations directly:
+//! RDP uses a native Rust implementation directly:
 //! - RDP: `rustconn/src/embedded_rdp.rs` with `ironrdp` crate
-//! - SPICE: `rustconn/src/embedded_spice.rs` with `spice-client` crate
+//!
+//! SPICE always runs in an external viewer (remote-viewer/virt-viewer), tracked
+//! by `ExternalSessionRegistry` — it has no embedded widget.
 
 pub mod vnc;
 
@@ -28,9 +30,10 @@ use thiserror::Error;
 /// Session widget enum that wraps protocol-specific display widgets
 ///
 /// This enum provides a unified interface for session types that use
-/// the session widget pattern. RDP and SPICE use embedded widgets directly.
+/// the session widget pattern. RDP uses an embedded widget directly.
 ///
-/// Note: RDP uses `EmbeddedRdpWidget`, SPICE uses `EmbeddedSpiceWidget`
+/// Note: RDP uses `EmbeddedRdpWidget`; SPICE has no embedded widget (external
+/// viewer only).
 #[derive(Debug)]
 pub enum SessionWidget {
     /// SSH session using VTE4 terminal

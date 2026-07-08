@@ -522,6 +522,7 @@ fn arb_full_settings() -> impl Strategy<Value = AppSettings> {
                         compact_ui: false,
                         compact_auto: false,
                         terminal_passthrough_ctrl: true,
+                        window_title_shows_connection: false,
                     },
                     connection: rustconn_core::ConnectionSettings::default(),
                     global_variables: Vec::new(),

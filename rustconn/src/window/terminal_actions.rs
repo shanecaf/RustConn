@@ -246,17 +246,11 @@ impl MainWindow {
                         if let Some(info) = notebook_for_idle.get_session_info(active_id) {
                             if info.protocol == "rdp" {
                                 notebook_for_idle.queue_rdp_redraw(active_id);
-                            } else if info.protocol == "vnc" {
-                                if let Some(vnc_widget) =
+                            } else if info.protocol == "vnc"
+                                && let Some(vnc_widget) =
                                     notebook_for_idle.get_vnc_widget(active_id)
-                                {
-                                    vnc_widget.widget().queue_draw();
-                                }
-                            } else if info.protocol == "spice"
-                                && let Some(spice_widget) =
-                                    notebook_for_idle.get_spice_widget(active_id)
                             {
-                                spice_widget.widget().queue_draw();
+                                vnc_widget.widget().queue_draw();
                             }
                         }
                     });
@@ -376,5 +370,93 @@ impl MainWindow {
             }
         });
         window.add_action(&stop_recording_action);
+
+        // External viewer: Disconnect (issue #209) — gracefully terminates the
+        // owned viewer child of the selected connection's external session(s).
+        // For a detaching viewer RustConn does not own (`disconnect` returns
+        // false), inform the user via a toast and leave the session unchanged
+        // (R5.5). The registry is reached through the thread-local accessor so
+        // the launch path and these actions share one instance without a cycle.
+        let external_disconnect_action = gio::SimpleAction::new("external-disconnect", None);
+        let sidebar_clone = sidebar.clone();
+        let toast_clone = self.toast_overlay.clone();
+        external_disconnect_action.connect_activate(move |_, _| {
+            let Some(item) = sidebar_clone.get_selected_item() else {
+                return;
+            };
+            let Ok(conn_id) = Uuid::parse_str(&item.id()) else {
+                return;
+            };
+            let Some(registry) = super::external_session_registry() else {
+                return;
+            };
+            let session_ids = registry.active_session_ids(conn_id);
+            if session_ids.is_empty() {
+                return;
+            }
+            let mut any_not_owned = false;
+            for session_id in session_ids {
+                if !registry.disconnect(session_id) {
+                    any_not_owned = true;
+                }
+            }
+            if any_not_owned {
+                toast_clone.show_toast(&crate::i18n::i18n(
+                    "This viewer runs independently and cannot be closed from RustConn",
+                ));
+            }
+        });
+        window.add_action(&external_disconnect_action);
+
+        // External viewer: Stop tracking (issue #209) — deregisters the selected
+        // connection's external session(s) without terminating the viewer (R5.4).
+        let external_stop_tracking_action = gio::SimpleAction::new("external-stop-tracking", None);
+        let sidebar_clone = sidebar.clone();
+        external_stop_tracking_action.connect_activate(move |_, _| {
+            let Some(item) = sidebar_clone.get_selected_item() else {
+                return;
+            };
+            let Ok(conn_id) = Uuid::parse_str(&item.id()) else {
+                return;
+            };
+            let Some(registry) = super::external_session_registry() else {
+                return;
+            };
+            for session_id in registry.active_session_ids(conn_id) {
+                registry.stop_tracking(session_id);
+            }
+        });
+        window.add_action(&external_stop_tracking_action);
+
+        // Open new session (issue #209 / R7.5) — force-launches a brand-new
+        // session for the selected connection, bypassing the smart double-click
+        // focus behavior. Offered in the context menu for external-only sessions
+        // where a plain double-click would only show the "already running" toast.
+        let open_new_session_action = gio::SimpleAction::new("open-new-session", None);
+        let state_clone = state.clone();
+        let sidebar_clone = sidebar.clone();
+        let notebook_clone = terminal_notebook.clone();
+        let split_view_clone = self.split_view.clone();
+        let monitoring_clone = self.monitoring.clone();
+        let activity_clone = self.activity_coordinator.clone();
+        open_new_session_action.connect_activate(move |_, _| {
+            let Some(item) = sidebar_clone.get_selected_item() else {
+                return;
+            };
+            let Ok(conn_id) = Uuid::parse_str(&item.id()) else {
+                return;
+            };
+            sidebar_clone.update_connection_status(&conn_id.to_string(), "connecting");
+            Self::start_connection_with_credential_resolution(
+                state_clone.clone(),
+                notebook_clone.clone(),
+                split_view_clone.clone(),
+                sidebar_clone.clone(),
+                monitoring_clone.clone(),
+                conn_id,
+                Some(activity_clone.clone()),
+            );
+        });
+        window.add_action(&open_new_session_action);
     }
 }

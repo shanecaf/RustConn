@@ -758,7 +758,7 @@ fn start_embedded_rdp_session(
 fn start_external_rdp_session(
     state: &SharedAppState,
     notebook: &SharedNotebook,
-    split_view: &SharedSplitView,
+    _split_view: &SharedSplitView,
     sidebar: &SharedSidebar,
     connection_id: Uuid,
     conn_name: &str,
@@ -771,6 +771,10 @@ fn start_external_rdp_session(
     history_entry_id: Option<Uuid>,
     ssh_tunnel: Option<rustconn_core::ssh_tunnel::SshTunnel>,
 ) {
+    // Issue #209: an external xfreerdp session gets no notebook tab. The tab is
+    // still constructed because `RdpLauncher::start_with_geometry` builds its
+    // args and spawns through it, but it is never added to the notebook; the
+    // spawned child is handed to the shared registry instead of a per-tab timer.
     let (tab, _is_embedded) = EmbeddedSessionTab::new(connection_id, conn_name, "rdp", true);
     let session_id = tab.id();
 
@@ -813,20 +817,16 @@ fn start_external_rdp_session(
         .map(|f| (f.share_name.clone(), f.local_path.clone()))
         .collect();
 
-    // Early-failure callback: FreeRDP exited with an error within the
-    // detection window (certificate/auth problems). The tab has already been
-    // added by then, so undo the optimistic success path.
+    // Early-failure callback. With no tab, this rarely fires: the spawned child
+    // is handed to the registry synchronously after `start_with_geometry`
+    // returns, so the tab-based watcher usually finds an empty handle on its
+    // first tick. Kept for the spawn/first-tick race — it reports the error and
+    // records the failure (the registry has not been given the child yet).
     let on_early_failure = {
         let state = state.clone();
-        let notebook = notebook.clone();
-        let sidebar = sidebar.clone();
         let conn_name = conn_name.to_string();
-        let connection_id_str = connection_id.to_string();
         move |error: String| {
             tracing::error!(%error, connection = %conn_name, "RDP session failed shortly after start");
-            notebook.close_tab(session_id);
-            sidebar.decrement_session_count(&connection_id_str, false);
-            sidebar.update_connection_status(&connection_id_str, "failed");
             crate::toast::show_error_toast_on_active_window(&error);
             if let Some(entry_id) = history_entry_id
                 && let Ok(mut state_mut) = state.try_borrow_mut()
@@ -836,9 +836,10 @@ fn start_external_rdp_session(
         }
     };
 
-    // Start RDP connection using xfreerdp (non-blocking: spawn errors are
-    // returned synchronously, early exits arrive via on_early_failure)
-    let connection_failed = if let Err(e) = RdpLauncher::start_with_geometry(
+    // Start RDP connection using xfreerdp. Spawn errors are returned
+    // synchronously (R1.6: no tab + error toast); on success the spawned child
+    // is moved into the shared registry.
+    if let Err(e) = RdpLauncher::start_with_geometry(
         &tab,
         host,
         port,
@@ -856,87 +857,40 @@ fn start_external_rdp_session(
     ) {
         tracing::error!(%e, connection = %conn_name, "Failed to start RDP session");
         sidebar.update_connection_status(&connection_id.to_string(), "failed");
-        // Show toast with error details
         crate::toast::show_error_toast_on_active_window(&e.to_string());
-        // Record connection failure in history
         if let Some(entry_id) = history_entry_id
             && let Ok(mut state_mut) = state.try_borrow_mut()
         {
             state_mut.record_connection_failed(entry_id, &e.to_string());
         }
-        true
-    } else {
-        sidebar.increment_session_count(&connection_id.to_string());
-        // Record connection end when external process exits (we can't track this easily)
-        // For external sessions, we record end immediately as we don't have state tracking
-        if let Some(entry_id) = history_entry_id
-            && let Ok(mut state_mut) = state.try_borrow_mut()
-        {
-            state_mut.record_connection_end(entry_id);
-        }
-        false
-    };
-
-    if connection_failed {
         return;
     }
 
-    // Add tab widget to notebook with connection_id and process handle
-    notebook.add_embedded_session_tab(
-        session_id,
-        connection_id,
-        conn_name,
-        "rdp",
-        tab.widget(),
-        Some(tab.process_handle()),
-    );
-
-    // Ensure notebook is visible and expanded (matches start_embedded_rdp_session)
-    split_view.widget().set_visible(false);
-    split_view.widget().set_vexpand(false);
-    notebook.widget().set_vexpand(true);
-    notebook.show_tab_view_content();
-
-    // Store SSH tunnel so it stays alive for the duration of the session
-    if let Some(tunnel) = ssh_tunnel {
-        notebook.store_ssh_tunnel(session_id, tunnel);
-    }
-
-    // Add to split_view
-    if let Some(info) = notebook.get_session_info(session_id) {
-        split_view.add_session(info);
-    }
-
-    // Monitor external process — auto-close tab when FreeRDP window is closed
-    let process_handle = tab.process_handle();
-    let notebook_for_monitor = notebook.clone();
-    let sidebar_for_monitor = sidebar.clone();
-    let connection_id_str = connection_id.to_string();
-    gtk4::glib::timeout_add_local(std::time::Duration::from_secs(2), move || {
-        let mut process_guard = process_handle.borrow_mut();
-        if let Some(ref mut child) = *process_guard {
-            match child.try_wait() {
-                Ok(Some(_status)) => {
-                    // Process exited — close tab and update sidebar
-                    drop(process_guard);
-                    notebook_for_monitor.close_tab(session_id);
-                    sidebar_for_monitor.decrement_session_count(&connection_id_str, false);
-                    gtk4::glib::ControlFlow::Break
-                }
-                Ok(None) => {
-                    // Still running
-                    gtk4::glib::ControlFlow::Continue
-                }
-                Err(_) => {
-                    // Error checking — stop monitoring
-                    gtk4::glib::ControlFlow::Break
-                }
+    // Take ownership of the spawned child from the tab handle and hand it
+    // to the shared registry (issue #209): no notebook tab, the shared
+    // poll timer reaps it and records the end when the window closes. The
+    // registry's on_registered callback drives the sidebar session count
+    // (R2.1); record_connection_start was already done by the caller, so
+    // its entry id is passed straight through.
+    let child = tab.process_handle().borrow_mut().take();
+    match super::external_session_registry() {
+        Some(registry) => {
+            // ponytail: a tunnelled tabless RDP session keeps its
+            // SshTunnel in the notebook map keyed by this session id; with
+            // no tab-close event it is reclaimed at app exit. Move it into
+            // the registry entry if this grows.
+            if let Some(tunnel) = ssh_tunnel {
+                notebook.store_ssh_tunnel(session_id, tunnel);
             }
-        } else {
-            // No process — stop monitoring
-            gtk4::glib::ControlFlow::Break
+            registry.register(session_id, connection_id, child, history_entry_id);
         }
-    });
+        None => {
+            tracing::error!(
+                %connection_id,
+                "External session registry unavailable; RDP viewer left untracked"
+            );
+        }
+    }
 
     // Update last_connected
     if let Ok(mut state_mut) = state.try_borrow_mut()
@@ -1288,6 +1242,40 @@ fn start_vnc_session_internal(
     } else {
         None
     };
+
+    // Issue #209: an external-viewer VNC session gets no notebook tab. Spawn the
+    // viewer and register it (through the same shared predicate + core builder as
+    // the protocols.rs path) so the sidebar surfaces it without a dead tab
+    // (R1.1, R1.3). The password is handled by the viewer, never on the argv.
+    if let Some(ref conn_hist) = conn_for_history
+        && conn_hist.uses_external_viewer()
+    {
+        let Some(viewer) = crate::session::VncSessionWidget::detect_vnc_viewer() else {
+            tracing::error!(connection = %conn_name, "No external VNC viewer installed");
+            crate::toast::show_error_toast_on_active_window(&crate::i18n::i18n(
+                "No VNC viewer found. Install TigerVNC or Remmina.",
+            ));
+            sidebar.update_connection_status(&connection_id.to_string(), "failed");
+            return;
+        };
+        let (program, args) = rustconn_core::protocol::VncProtocol::build_external_viewer_command(
+            &viewer,
+            &effective_host,
+            effective_port,
+            &vnc_config,
+        );
+        super::protocols::spawn_and_register_external_viewer(
+            state,
+            notebook,
+            sidebar,
+            connection_id,
+            conn_hist,
+            &program,
+            &args,
+            ssh_tunnel,
+        );
+        return;
+    }
 
     // Record connection start in history
     let history_entry_id = if let Some(ref conn_hist) = conn_for_history

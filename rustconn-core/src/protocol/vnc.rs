@@ -28,6 +28,113 @@ impl VncProtocol {
             )),
         }
     }
+
+    /// Builds the server address string for an external viewer and port.
+    ///
+    /// TigerVNC-family viewers expect a display-number form (`host:0`) for the
+    /// standard 5900–5999 range and a raw-port form (`host::port`) otherwise;
+    /// every other viewer receives plain `host:port`.
+    #[must_use]
+    fn external_server_address(viewer: &str, host: &str, port: u16) -> String {
+        match viewer {
+            "vncviewer" | "tigervnc" | "xvnc4viewer" | "gvncviewer" => {
+                // These viewers use display-number format for standard ports.
+                if port == 5900 {
+                    format!("{host}:0")
+                } else if port > 5900 && port < 6000 {
+                    let display = port - 5900;
+                    format!("{host}:{display}")
+                } else {
+                    // Use :: for raw port numbers.
+                    format!("{host}::{port}")
+                }
+            }
+            _ => {
+                // Other viewers typically use host:port format.
+                format!("{host}:{port}")
+            }
+        }
+    }
+
+    /// Builds the external VNC viewer command as a `(program, args)` pair.
+    ///
+    /// This is the single source of truth for external VNC viewer argument
+    /// construction, shared by the GUI launch paths and the `rustconn` session
+    /// fallback, so a `std::process::Command` can be built without a GTK widget.
+    /// Viewer *detection* (PATH/filesystem lookup) stays in the caller; this
+    /// function assembles arguments only. Passwords are intentionally never
+    /// placed on the command line.
+    ///
+    /// `custom_args` containing NUL or newline bytes are skipped.
+    #[must_use]
+    pub fn build_external_viewer_command(
+        viewer: &str,
+        host: &str,
+        port: u16,
+        config: &VncConfig,
+    ) -> (String, Vec<String>) {
+        let server = Self::external_server_address(viewer, host, port);
+        let mut args: Vec<String> = Vec::new();
+
+        match viewer {
+            "vncviewer" | "tigervnc" | "xvnc4viewer" => {
+                // TigerVNC/TightVNC/RealVNC style.
+                // Only add encoding if it's a single valid value (not comma-separated).
+                if let Some(ref encoding) = config.encoding {
+                    let enc = encoding.trim();
+                    if !enc.is_empty() && !enc.contains(',') {
+                        args.push("-PreferredEncoding".to_string());
+                        args.push(enc.to_string());
+                    }
+                }
+                if let Some(quality) = config.quality {
+                    args.push("-QualityLevel".to_string());
+                    args.push(quality.to_string());
+                }
+                if let Some(compression) = config.compression {
+                    args.push("-CompressLevel".to_string());
+                    args.push(compression.to_string());
+                }
+                if config.view_only {
+                    args.push("-ViewOnly".to_string());
+                }
+                // Accept untrusted TLS certificates (VeNCrypt).
+                if config.accept_certificate {
+                    args.push("-SecurityTypes".to_string());
+                    args.push("VeNCrypt,TLSVnc,X509Vnc,VncAuth,None".to_string());
+                }
+                args.push(server);
+            }
+            "gvncviewer" => {
+                // GTK-VNC viewer.
+                args.push(server);
+            }
+            "remmina" => {
+                // Remmina uses a different connection format.
+                args.push("-c".to_string());
+                args.push(format!("vnc://{host}:{port}"));
+            }
+            "vinagre" | "krdc" => {
+                // Vinagre / KDE Remote Desktop Client.
+                args.push(format!("vnc://{host}:{port}"));
+            }
+            _ => {
+                // Generic fallback.
+                args.push(server);
+            }
+        }
+
+        // Add custom arguments from config (filter unsafe characters).
+        for arg in &config.custom_args {
+            if arg.contains('\0') || arg.contains('\n') {
+                tracing::warn!(arg = %arg, "Skipping VNC custom arg with unsafe characters");
+                continue;
+            }
+            args.push(arg.clone());
+        }
+
+        (viewer.to_string(), args)
+    }
 }
 
 impl Default for VncProtocol {
@@ -249,5 +356,102 @@ mod tests {
         };
         let connection = create_vnc_connection(config);
         assert!(protocol.validate_connection(&connection).is_ok());
+    }
+
+    #[test]
+    fn test_external_server_address_display_number() {
+        // Standard port maps to display 0.
+        assert_eq!(
+            VncProtocol::external_server_address("vncviewer", "host", 5900),
+            "host:0"
+        );
+        // Port within the 5900 range maps to the display offset.
+        assert_eq!(
+            VncProtocol::external_server_address("tigervnc", "host", 5901),
+            "host:1"
+        );
+        // Raw port outside the range uses the double-colon form.
+        assert_eq!(
+            VncProtocol::external_server_address("xvnc4viewer", "host", 6100),
+            "host::6100"
+        );
+    }
+
+    #[test]
+    fn test_external_server_address_other_viewers() {
+        // Non-TigerVNC viewers use plain host:port.
+        assert_eq!(
+            VncProtocol::external_server_address("remmina", "host", 5901),
+            "host:5901"
+        );
+    }
+
+    #[test]
+    fn test_build_external_viewer_command_tigervnc_options() {
+        let config = VncConfig {
+            encoding: Some("tight".to_string()),
+            quality: Some(8),
+            compression: Some(6),
+            view_only: true,
+            accept_certificate: true,
+            ..Default::default()
+        };
+        let (program, args) =
+            VncProtocol::build_external_viewer_command("vncviewer", "host", 5901, &config);
+
+        assert_eq!(program, "vncviewer");
+        assert!(args.contains(&"-PreferredEncoding".to_string()));
+        assert!(args.contains(&"tight".to_string()));
+        assert!(args.contains(&"-QualityLevel".to_string()));
+        assert!(args.contains(&"8".to_string()));
+        assert!(args.contains(&"-CompressLevel".to_string()));
+        assert!(args.contains(&"6".to_string()));
+        assert!(args.contains(&"-ViewOnly".to_string()));
+        assert!(args.contains(&"-SecurityTypes".to_string()));
+        // Server address is the last positional argument for TigerVNC.
+        assert_eq!(args.last().map(String::as_str), Some("host:1"));
+    }
+
+    #[test]
+    fn test_build_external_viewer_command_skips_comma_encoding() {
+        let config = VncConfig {
+            encoding: Some("tight,zrle".to_string()),
+            ..Default::default()
+        };
+        let (_program, args) =
+            VncProtocol::build_external_viewer_command("vncviewer", "host", 5900, &config);
+        assert!(!args.contains(&"-PreferredEncoding".to_string()));
+    }
+
+    #[test]
+    fn test_build_external_viewer_command_remmina_uri() {
+        let config = VncConfig::default();
+        let (program, args) =
+            VncProtocol::build_external_viewer_command("remmina", "host", 5901, &config);
+        assert_eq!(program, "remmina");
+        assert_eq!(args, vec!["-c".to_string(), "vnc://host:5901".to_string()]);
+    }
+
+    #[test]
+    fn test_build_external_viewer_command_vinagre_krdc_uri() {
+        let config = VncConfig::default();
+        for viewer in ["vinagre", "krdc"] {
+            let (program, args) =
+                VncProtocol::build_external_viewer_command(viewer, "host", 5902, &config);
+            assert_eq!(program, viewer);
+            assert_eq!(args, vec!["vnc://host:5902".to_string()]);
+        }
+    }
+
+    #[test]
+    fn test_build_external_viewer_command_filters_unsafe_custom_args() {
+        let config = VncConfig {
+            custom_args: vec!["-Fullscreen".to_string(), "bad\narg".to_string()],
+            ..Default::default()
+        };
+        let (_program, args) =
+            VncProtocol::build_external_viewer_command("vncviewer", "host", 5900, &config);
+        assert!(args.contains(&"-Fullscreen".to_string()));
+        assert!(!args.iter().any(|a| a.contains('\n')));
     }
 }

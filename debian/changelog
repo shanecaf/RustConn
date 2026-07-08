@@ -1,3 +1,20 @@
+rustconn (0.18.3-1) unstable; urgency=medium
+
+  * Version bump to 0.18.3
+  * Added external-session tracking for VNC/RDP/SPICE external-viewer sessions: a
+    lightweight process registry with a shared poll timer, a sidebar
+    external-viewer emblem, Disconnect / Stop tracking context-menu actions, a
+    split-membership marker, and a smart double-click that focuses an existing
+    session instead of opening a duplicate
+  * Fixed VNC/RDP/SPICE connections in External Window mode leaving a dead notebook
+    tab; the session is now surfaced in the sidebar instead (#209)
+  * Fixed Telnet connections stuck on the Vault password source (#210)
+  * Improved orthogonal (shape + icon, color-independent) sidebar state indicators
+    that remain distinguishable in grayscale
+  * Dependency updates: bytes 1.12.1, memchr 2.8.3
+
+ -- Anton Isaiev <totoshko88@gmail.com>  Thu, 09 Jul 2026 01:17:50 +0300
+
 rustconn (0.18.2-1) unstable; urgency=medium
 
   * Version bump to 0.18.2

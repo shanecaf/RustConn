@@ -4,8 +4,9 @@
 //! (`remote-viewer`, `virt-viewer`, or `spicy`). This module provides the
 //! connection configuration ([`SpiceClientConfig`]), error type
 //! ([`SpiceClientError`]), and the helpers that detect a viewer and build its
-//! command line ([`detect_spice_viewer`], [`build_spice_viewer_args`],
-//! [`launch_spice_viewer`]).
+//! command line ([`detect_spice_viewer`], [`build_spice_viewer_args`]). The
+//! `rustconn` crate spawns the viewer process and tracks it in its external
+//! session registry.
 //!
 //! # History
 //!
@@ -152,51 +153,6 @@ pub fn build_spice_viewer_args(config: &SpiceClientConfig) -> Vec<String> {
     }
 
     args
-}
-
-/// Result of attempting to launch a SPICE viewer
-#[derive(Debug)]
-pub enum SpiceViewerLaunchResult {
-    /// Successfully launched the viewer
-    Launched {
-        /// The viewer command that was launched
-        viewer: String,
-        /// Process ID if available
-        pid: Option<u32>,
-    },
-    /// No SPICE viewer found on the system
-    NoViewerFound,
-    /// Failed to launch the viewer
-    LaunchFailed(String),
-}
-
-/// Launches an external SPICE viewer as fallback
-///
-/// This function attempts to launch an external SPICE viewer (remote-viewer,
-/// virt-viewer, or spicy) when native embedding is not available.
-///
-/// # Arguments
-///
-/// * `config` - The SPICE client configuration
-///
-/// # Returns
-///
-/// A `SpiceViewerLaunchResult` indicating success or failure
-#[must_use]
-pub fn launch_spice_viewer(config: &SpiceClientConfig) -> SpiceViewerLaunchResult {
-    let Some(viewer) = detect_spice_viewer() else {
-        return SpiceViewerLaunchResult::NoViewerFound;
-    };
-
-    let args = build_spice_viewer_args(config);
-
-    match std::process::Command::new(&viewer).args(&args).spawn() {
-        Ok(child) => SpiceViewerLaunchResult::Launched {
-            viewer,
-            pid: Some(child.id()),
-        },
-        Err(e) => SpiceViewerLaunchResult::LaunchFailed(e.to_string()),
-    }
 }
 
 #[cfg(test)]

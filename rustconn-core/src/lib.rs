@@ -257,8 +257,7 @@ pub use snap::{
 pub use snippet::SnippetManager;
 pub use spice_client::{
     SpiceClientConfig, SpiceClientError, SpiceCompression, SpiceSecurityProtocol,
-    SpiceSharedFolder, SpiceViewerLaunchResult, build_spice_viewer_args, detect_spice_viewer,
-    launch_spice_viewer,
+    SpiceSharedFolder, build_spice_viewer_args, detect_spice_viewer,
 };
 pub use sync::{
     Inventory, InventoryEntry, SYNC_TAG_PREFIX, SyncResult, default_port_for_protocol,

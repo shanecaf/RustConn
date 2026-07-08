@@ -599,6 +599,15 @@ pub struct UiSettings {
     /// (the old behavior).
     #[serde(default = "default_true")]
     pub terminal_passthrough_ctrl: bool,
+    /// Show the active connection name in the window title bar.
+    ///
+    /// Default `false` for privacy: connection names would otherwise be visible
+    /// in the taskbar, window list, and screen shares. When `true`, the title
+    /// becomes `"RustConn - <active tab>"`, which lets time-tracking tools such
+    /// as ManicTime attribute usage per connection by reading the window title
+    /// (issue #211).
+    #[serde(default)]
+    pub window_title_shows_connection: bool,
 }
 
 impl UiSettings {
@@ -703,6 +712,7 @@ impl Default for UiSettings {
             compact_ui: cfg!(target_os = "macos"),
             compact_auto: false,
             terminal_passthrough_ctrl: true,
+            window_title_shows_connection: false,
         }
     }
 }
