@@ -235,11 +235,15 @@ pub fn build_sftp_uri_from_connection(connection: &Connection) -> Option<String>
     ))
 }
 
-/// Session cache of resolved remote home directories, keyed by `user@host:port`.
-static HOME_CACHE: OnceLock<std::sync::Mutex<std::collections::HashMap<String, String>>> =
+/// Session cache of remote-home probe outcomes, keyed by `user@host:port`.
+///
+/// `Some(path)` is a resolved home directory; `None` records a probe that
+/// failed this session (e.g. a password-only host that `BatchMode` cannot
+/// authenticate), so a second SFTP open does not repeat the round-trip.
+static HOME_CACHE: OnceLock<std::sync::Mutex<std::collections::HashMap<String, Option<String>>>> =
     OnceLock::new();
 
-fn home_cache() -> &'static std::sync::Mutex<std::collections::HashMap<String, String>> {
+fn home_cache() -> &'static std::sync::Mutex<std::collections::HashMap<String, Option<String>>> {
     HOME_CACHE.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
 }
 
@@ -253,9 +257,11 @@ fn home_cache() -> &'static std::sync::Mutex<std::collections::HashMap<String, S
 ///
 /// Reuses the connection's proxy-jump, port and identity file. Runs a
 /// non-interactive `pwd` with `BatchMode=yes` (so it never prompts and cannot
-/// hang waiting for a password) and a short `ConnectTimeout`. The result is
+/// hang waiting for a password), a short `ConnectTimeout`, and keepalives to
+/// bound a stall after connect. The outcome — success *or* failure — is
 /// memoised per host, so a second SFTP open in the same session skips the
-/// round-trip.
+/// round-trip even when the probe cannot authenticate (password-only hosts).
+/// A per-connection/group ssh-agent socket override is honoured.
 ///
 /// This performs blocking network I/O — call it off the GTK main thread.
 ///
@@ -273,18 +279,26 @@ pub fn resolve_remote_home(connection: &Connection, groups: &[ConnectionGroup]) 
     let user = connection.username.as_deref().unwrap_or_default();
     let cache_key = format!("{user}@{}:{}", connection.host, connection.port);
     if let Ok(cache) = home_cache().lock()
-        && let Some(home) = cache.get(&cache_key)
+        && let Some(outcome) = cache.get(&cache_key)
     {
-        return Some(home.clone());
+        // A cached `None` means a prior probe failed this session — return it
+        // without retrying (avoids repeating the round-trip on every open).
+        return outcome.clone();
     }
 
     let mut cmd = std::process::Command::new("ssh");
     // BatchMode=yes → never prompts, so it cannot hang on auth; ConnectTimeout
-    // bounds the TCP connect. `pwd` runs instantly once connected.
+    // bounds the TCP connect. ServerAliveInterval/CountMax bound a channel that
+    // stalls *after* connect (3s × 2 missed keepalives ≈ 6s) so a dead link
+    // mid-`pwd` cannot pin the blocking thread. `pwd` runs instantly otherwise.
     cmd.arg("-o")
         .arg("BatchMode=yes")
         .arg("-o")
-        .arg("ConnectTimeout=8");
+        .arg("ConnectTimeout=8")
+        .arg("-o")
+        .arg("ServerAliveInterval=3")
+        .arg("-o")
+        .arg("ServerAliveCountMax=2");
 
     if let Some(proxy_jump) =
         crate::connection::ssh_inheritance::resolve_ssh_proxy_jump(connection, groups)
@@ -312,24 +326,34 @@ pub fn resolve_remote_home(connection: &Connection, groups: &[ConnectionGroup]) 
         .stderr(std::process::Stdio::null())
         // Strip host SSH_ASKPASS so BatchMode is not defeated by a GUI prompt.
         .env_remove("SSH_ASKPASS");
-    apply_agent_env(&mut cmd);
+    // Honour a per-connection/group ssh-agent socket override so the probe
+    // authenticates with the same agent the real connection uses; otherwise
+    // BatchMode would fail and reintroduce the server-root landing (#212).
+    apply_agent_env_with_overrides(
+        &mut cmd,
+        crate::connection::ssh_inheritance::resolve_ssh_agent_socket(connection, groups).as_deref(),
+        None,
+    );
 
-    let output = cmd.output().ok()?;
-    if !output.status.success() {
-        return None;
-    }
     // Take the last absolute-looking line, ignoring any stray banner output.
-    let home = String::from_utf8_lossy(&output.stdout)
-        .lines()
-        .rev()
-        .map(str::trim)
-        .find(|line| line.starts_with('/'))?
-        .to_string();
+    let resolved = cmd
+        .output()
+        .ok()
+        .filter(|o| o.status.success())
+        .and_then(|o| {
+            String::from_utf8_lossy(&o.stdout)
+                .lines()
+                .rev()
+                .map(str::trim)
+                .find(|line| line.starts_with('/'))
+                .map(str::to_string)
+        });
 
+    // Cache the outcome, including failure (`None`), for the session.
     if let Ok(mut cache) = home_cache().lock() {
-        cache.insert(cache_key, home.clone());
+        cache.insert(cache_key, resolved.clone());
     }
-    Some(home)
+    resolved
 }
 
 /// Builds the SFTP file-browser URI, resolving the home directory when needed.
