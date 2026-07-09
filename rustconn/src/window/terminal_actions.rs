@@ -126,7 +126,7 @@ impl MainWindow {
                 // Clear from ALL per-session split bridges first
                 {
                     let bridges = session_bridges_close_tab.borrow();
-                    for (_owner_session_id, bridge) in bridges.iter() {
+                    for bridge in bridges.values() {
                         if bridge.is_session_displayed(session_id) {
                             tracing::debug!(
                                 "close-tab: clearing session {} from per-session bridge",
@@ -191,7 +191,7 @@ impl MainWindow {
                 // This ensures the panel shows "Empty Panel" placeholder
                 {
                     let bridges = session_bridges_close.borrow();
-                    for (_owner_session_id, bridge) in bridges.iter() {
+                    for bridge in bridges.values() {
                         if bridge.is_session_displayed(session_id) {
                             tracing::debug!(
                                 "close-tab-by-id: clearing session {} from per-session bridge",

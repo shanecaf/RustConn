@@ -1113,7 +1113,7 @@ impl MainWindow {
                 // Clear session from ALL per-session split bridges
                 {
                     let bridges = session_bridges_for_cleanup.borrow();
-                    for (_owner_session_id, bridge) in bridges.iter() {
+                    for bridge in bridges.values() {
                         if bridge.is_session_displayed(session_id) {
                             tracing::debug!(
                                 "on_split_cleanup: clearing session {} from per-session bridge",

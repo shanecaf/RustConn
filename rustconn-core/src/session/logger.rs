@@ -1112,8 +1112,8 @@ mod tests {
 
         // Should be in YYYY-MM-DD format
         assert_eq!(timestamp.len(), 10);
-        assert!(timestamp.chars().nth(4) == Some('-'));
-        assert!(timestamp.chars().nth(7) == Some('-'));
+        assert_eq!(timestamp.chars().nth(4), Some('-'));
+        assert_eq!(timestamp.chars().nth(7), Some('-'));
     }
 
     #[test]

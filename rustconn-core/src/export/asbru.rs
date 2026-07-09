@@ -520,7 +520,7 @@ mod tests {
         assert!(output.contains("name: \"Web\""));
 
         // Sanity: the two groups are distinct entries.
-        assert!(parent_id != child_id);
+        assert_ne!(parent_id, child_id);
     }
 
     #[test]

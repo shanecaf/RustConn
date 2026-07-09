@@ -1199,7 +1199,7 @@ pub fn copy_vault_credential(
                         .unwrap_or(&new_entry_path);
                     let new_entry_name = format!("{new_base} ({protocol_str})");
                     let username = new_conn.username.as_deref().unwrap_or("");
-                    let url = format!("{}://{}", protocol_str, &new_conn.host);
+                    let url = format!("{}://{}", protocol_str, new_conn.host);
                     rustconn_core::secret::KeePassStatus::save_password_to_kdbx(
                         kdbx,
                         settings.secrets.kdbx_password.as_ref(),
