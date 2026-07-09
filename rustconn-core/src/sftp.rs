@@ -160,23 +160,64 @@ pub fn apply_agent_env_with_overrides(
 
 /// Builds an SFTP URI for the given connection.
 ///
-/// Format: `sftp://[user@]host[:port]`
+/// Format: `sftp://[user@]host[:port][/path]`
 ///
-/// Used by GUI (`nautilus`) and CLI (`xdg-open`) to open
-/// the host file manager's SFTP browser.
+/// Used by GUI (`nautilus`) and CLI (`xdg-open`) to open the host file
+/// manager's SFTP browser. When `path` is `Some`, it is normalised to an
+/// absolute path and appended so the file manager opens there instead of the
+/// server root (issue #212).
 #[must_use]
-pub fn build_sftp_uri(username: Option<&str>, host: &str, port: u16) -> String {
+pub fn build_sftp_uri(username: Option<&str>, host: &str, port: u16, path: Option<&str>) -> String {
     let user_part = username.map_or_else(String::new, |u| format!("{u}@"));
-    if port == 22 {
+    let base = if port == 22 {
         format!("sftp://{user_part}{host}")
     } else {
         format!("sftp://{user_part}{host}:{port}")
+    };
+    match normalize_remote_path(path) {
+        Some(p) => format!("{base}{p}"),
+        None => base,
     }
 }
 
-/// Builds an SFTP URI from a `Connection`.
+/// Normalises an optional remote path into an absolute URI suffix.
 ///
-/// Returns `None` if the connection is not SSH.
+/// Returns `None` for an empty/whitespace path. Otherwise trims trailing
+/// slashes and guarantees a single leading slash, so both `home/user` and
+/// `/home/user/` become `/home/user`. A literal `/` stays `/` (server root).
+///
+// ponytail: no percent-encoding — home paths from `pwd` are plain POSIX paths,
+// consistent with the already-unencoded host/user in the URI. Add encoding if
+// remote paths containing spaces or `#` ever appear in the wild.
+fn normalize_remote_path(path: Option<&str>) -> Option<String> {
+    let trimmed = path?.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    let no_trailing = trimmed.trim_end_matches('/');
+    Some(if no_trailing.starts_with('/') {
+        no_trailing.to_string()
+    } else {
+        format!("/{no_trailing}")
+    })
+}
+
+/// Returns the connection's configured SFTP remote path, if any (SSH/SFTP only).
+fn connection_remote_path(connection: &Connection) -> Option<&str> {
+    match &connection.protocol_config {
+        crate::models::ProtocolConfig::Ssh(cfg) | crate::models::ProtocolConfig::Sftp(cfg) => {
+            cfg.remote_path.as_deref()
+        }
+        _ => None,
+    }
+}
+
+/// Builds an SFTP URI from a `Connection`, honouring its configured remote path.
+///
+/// Returns `None` if the connection is not SSH. Does no network I/O: when no
+/// remote path is configured the URI points at the server root. For the
+/// home-directory auto-resolution used by the file browser, see
+/// [`build_sftp_browser_uri`].
 #[must_use]
 pub fn build_sftp_uri_from_connection(connection: &Connection) -> Option<String> {
     if !matches!(
@@ -190,6 +231,143 @@ pub fn build_sftp_uri_from_connection(connection: &Connection) -> Option<String>
         connection.username.as_deref(),
         &connection.host,
         connection.port,
+        connection_remote_path(connection),
+    ))
+}
+
+/// Session cache of resolved remote home directories, keyed by `user@host:port`.
+static HOME_CACHE: OnceLock<std::sync::Mutex<std::collections::HashMap<String, String>>> =
+    OnceLock::new();
+
+fn home_cache() -> &'static std::sync::Mutex<std::collections::HashMap<String, String>> {
+    HOME_CACHE.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+}
+
+/// Best-effort resolution of the remote login home directory via `ssh … pwd`.
+///
+/// The GVFS sftp backend mounts at the server root `/`, so a file manager
+/// opening a bare `sftp://host` URI lands in `/` — inaccessible on shared
+/// hosting (issue #212). Resolving the home directory lets the caller build a
+/// URI that opens where the user actually has access, matching `ssh` (a login
+/// shell starts in `$HOME`).
+///
+/// Reuses the connection's proxy-jump, port and identity file. Runs a
+/// non-interactive `pwd` with `BatchMode=yes` (so it never prompts and cannot
+/// hang waiting for a password) and a short `ConnectTimeout`. The result is
+/// memoised per host, so a second SFTP open in the same session skips the
+/// round-trip.
+///
+/// This performs blocking network I/O — call it off the GTK main thread.
+///
+/// Returns `None` if the connection is not SSH, `ssh` is unavailable,
+/// non-interactive auth is not possible, or the output is not an absolute path.
+#[must_use]
+pub fn resolve_remote_home(connection: &Connection, groups: &[ConnectionGroup]) -> Option<String> {
+    if !matches!(
+        connection.protocol_config,
+        crate::models::ProtocolConfig::Ssh(_) | crate::models::ProtocolConfig::Sftp(_)
+    ) {
+        return None;
+    }
+
+    let user = connection.username.as_deref().unwrap_or_default();
+    let cache_key = format!("{user}@{}:{}", connection.host, connection.port);
+    if let Ok(cache) = home_cache().lock()
+        && let Some(home) = cache.get(&cache_key)
+    {
+        return Some(home.clone());
+    }
+
+    let mut cmd = std::process::Command::new("ssh");
+    // BatchMode=yes → never prompts, so it cannot hang on auth; ConnectTimeout
+    // bounds the TCP connect. `pwd` runs instantly once connected.
+    cmd.arg("-o")
+        .arg("BatchMode=yes")
+        .arg("-o")
+        .arg("ConnectTimeout=8");
+
+    if let Some(proxy_jump) =
+        crate::connection::ssh_inheritance::resolve_ssh_proxy_jump(connection, groups)
+    {
+        cmd.arg("-J").arg(proxy_jump);
+    }
+    if connection.port != 22 {
+        cmd.arg("-p").arg(connection.port.to_string());
+    }
+    if let Some(key_path) =
+        crate::connection::ssh_inheritance::resolve_ssh_key_path(connection, groups)
+    {
+        cmd.arg("-i").arg(key_path);
+    }
+
+    let target = if user.is_empty() {
+        connection.host.clone()
+    } else {
+        format!("{user}@{}", connection.host)
+    };
+    cmd.arg(target)
+        .arg("pwd")
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        // Strip host SSH_ASKPASS so BatchMode is not defeated by a GUI prompt.
+        .env_remove("SSH_ASKPASS");
+    apply_agent_env(&mut cmd);
+
+    let output = cmd.output().ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    // Take the last absolute-looking line, ignoring any stray banner output.
+    let home = String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .rev()
+        .map(str::trim)
+        .find(|line| line.starts_with('/'))?
+        .to_string();
+
+    if let Ok(mut cache) = home_cache().lock() {
+        cache.insert(cache_key, home.clone());
+    }
+    Some(home)
+}
+
+/// Builds the SFTP file-browser URI, resolving the home directory when needed.
+///
+/// Hybrid of the configured remote path and auto-detection (issue #212):
+/// 1. an explicit `remote_path` on the connection wins (covers chroot and
+///    non-standard layouts, and skips the network round-trip);
+/// 2. otherwise the login home directory is resolved via [`resolve_remote_home`];
+/// 3. if resolution fails, falls back to the bare URI (server root).
+///
+/// Returns `None` if the connection is not SSH. Performs blocking network I/O
+/// in case 2 — call it off the GTK main thread.
+#[must_use]
+pub fn build_sftp_browser_uri(
+    connection: &Connection,
+    groups: &[ConnectionGroup],
+) -> Option<String> {
+    if !matches!(
+        connection.protocol_config,
+        crate::models::ProtocolConfig::Ssh(_) | crate::models::ProtocolConfig::Sftp(_)
+    ) {
+        return None;
+    }
+
+    let path = if let Some(explicit) = connection_remote_path(connection)
+        .map(str::trim)
+        .filter(|p| !p.is_empty())
+    {
+        Some(explicit.to_string())
+    } else {
+        resolve_remote_home(connection, groups)
+    };
+
+    Some(build_sftp_uri(
+        connection.username.as_deref(),
+        &connection.host,
+        connection.port,
+        path.as_deref(),
     ))
 }
 
@@ -639,20 +817,66 @@ mod tests {
 
     #[test]
     fn test_build_sftp_uri_with_user_default_port() {
-        let uri = build_sftp_uri(Some("admin"), "server.example.com", 22);
+        let uri = build_sftp_uri(Some("admin"), "server.example.com", 22, None);
         assert_eq!(uri, "sftp://admin@server.example.com");
     }
 
     #[test]
     fn test_build_sftp_uri_without_user() {
-        let uri = build_sftp_uri(None, "10.0.0.1", 22);
+        let uri = build_sftp_uri(None, "10.0.0.1", 22, None);
         assert_eq!(uri, "sftp://10.0.0.1");
     }
 
     #[test]
     fn test_build_sftp_uri_custom_port() {
-        let uri = build_sftp_uri(Some("root"), "host.local", 2222);
+        let uri = build_sftp_uri(Some("root"), "host.local", 2222, None);
         assert_eq!(uri, "sftp://root@host.local:2222");
+    }
+
+    #[test]
+    fn test_build_sftp_uri_with_path_appends_absolute() {
+        // Relative and trailing-slash forms both normalise to one absolute path.
+        assert_eq!(
+            build_sftp_uri(Some("u"), "host", 22, Some("home/u")),
+            "sftp://u@host/home/u"
+        );
+        assert_eq!(
+            build_sftp_uri(Some("u"), "host", 2222, Some("/home/u/")),
+            "sftp://u@host:2222/home/u"
+        );
+    }
+
+    #[test]
+    fn test_build_sftp_uri_empty_path_is_ignored() {
+        assert_eq!(
+            build_sftp_uri(Some("u"), "host", 22, Some("   ")),
+            "sftp://u@host"
+        );
+    }
+
+    #[test]
+    fn test_normalize_remote_path() {
+        assert_eq!(normalize_remote_path(None), None);
+        assert_eq!(normalize_remote_path(Some("")), None);
+        assert_eq!(normalize_remote_path(Some("/")), Some("/".to_string()));
+        assert_eq!(
+            normalize_remote_path(Some("var/www")),
+            Some("/var/www".to_string())
+        );
+    }
+
+    #[test]
+    fn test_build_sftp_uri_from_connection_uses_remote_path() {
+        use crate::models::ProtocolConfig;
+        let mut conn = Connection::new_ssh("Test".to_string(), "host".to_string(), 22);
+        conn.username = Some("u".to_string());
+        if let ProtocolConfig::Ssh(cfg) = &mut conn.protocol_config {
+            cfg.remote_path = Some("/var/www/vhosts/example".to_string());
+        }
+        assert_eq!(
+            build_sftp_uri_from_connection(&conn).unwrap(),
+            "sftp://u@host/var/www/vhosts/example"
+        );
     }
 
     #[test]

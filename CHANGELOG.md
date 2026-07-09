@@ -5,6 +5,16 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.4] - 2026-07-09
+
+### Added
+
+- **SFTP file browser opens in the home directory instead of the server root** ([#212](https://github.com/totoshko88/RustConn/issues/212)) — opening an SSH connection over SFTP in a GNOME/KDE file manager used to land on `/`, which fails with "this location cannot be displayed" on shared hosting where the account has no access to the root. The GVFS sftp backend mounts at the server root and ignores the mount's home `default_location`, unlike `ssh`, whose login shell starts in `$HOME`. RustConn now resolves the login home directory once per session (a best-effort `ssh … pwd` with `BatchMode=yes` and a short `ConnectTimeout`, reusing the connection's proxy-jump, port and key, run off the UI thread and cached) and opens the browser there, falling back to the server root if resolution fails. A new optional **SFTP Remote Directory** field (Connection editor → SSH → Session) lets you pin an explicit path for chroot or non-standard layouts; leaving it empty keeps the automatic home detection. The `ssh`/`sftp` CLI and `mc` paths were already correct and are unchanged
+
+### Fixed
+
+- **External-viewer children were left as zombies when `shutdown()` ran while the app kept living** — application-quit cleanup SIGKILLed each RustConn-owned external viewer (TigerVNC, FreeRDP, remote-viewer) but never reaped it. At real process exit `init` adopts and reaps the zombie, so production was unaffected, but any path where `shutdown()` runs without the process actually exiting (an idempotent second `shutdown`, or a `close_request` that does not quit) leaked a zombie, and the killed child stayed visible in the process table. `shutdown()` now reaps each killed child (`kill` + `wait`, the same kill-then-reap pattern already used by `disconnect`); `wait` returns almost immediately because SIGKILL is delivered promptly
+
 ## [0.18.3] - 2026-07-09
 
 ### Added
