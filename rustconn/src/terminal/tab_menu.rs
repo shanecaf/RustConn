@@ -595,6 +595,7 @@ impl TerminalNotebook {
 
         // Close section — minimal by default, expanded when groups exist
         let close_section = gio::Menu::new();
+        close_section.append(Some(&i18n("Close Tab")), Some("tab.close"));
         close_section.append(Some(&i18n("Close Others")), Some("tab.close-others"));
         close_section.append(Some(&i18n("Close to the Left")), Some("tab.close-left"));
         close_section.append(Some(&i18n("Close to the Right")), Some("tab.close-right"));
