@@ -144,6 +144,35 @@ fn rdp_scale_percent(effective_scale: f64) -> u32 {
     (effective_scale * 100.0) as u32
 }
 
+/// Returns the real (possibly fractional) display scale for a widget.
+///
+/// On GTK 4.12+ / Wayland with fractional scaling (e.g. 125%), the integer
+/// `Widget::scale_factor()` rounds up (returns 2), hiding the real 1.25.
+/// This helper reads `Surface::scale()` which returns the true `f64` value,
+/// falling back to the integer `scale_factor()` when the surface is unavailable
+/// (widget not yet mapped, X11 without fractional support).
+///
+/// The returned value is what the **compositor** multiplies the window by.
+/// Passing it to `DisplayScaleOverride::resolved_scale()` enables "Smart Auto"
+/// to detect fractional scaling and match device pixels for sharp rendering.
+#[cfg(feature = "rdp-embedded")]
+fn widget_fractional_scale(widget: &impl gtk4::prelude::WidgetExt) -> f64 {
+    use gtk4::prelude::NativeExt;
+
+    // Try the GTK 4.12+ Surface::scale() for the real fractional value.
+    if let Some(native) = widget.native()
+        && let Some(surface) = native.surface()
+    {
+        let s = surface.scale();
+        if s > 0.0 {
+            return s;
+        }
+    }
+
+    // Fallback: integer scale_factor (1 or 2 on most systems).
+    f64::from(widget.scale_factor())
+}
+
 /// Launches `command` through the Windows Run dialog, layout-independently.
 ///
 /// Opens Run with the Win+R scancode hotkey, types `command` via Unicode
@@ -1406,6 +1435,16 @@ impl EmbeddedRdpWidget {
     #[must_use]
     pub const fn drawing_area(&self) -> &DrawingArea {
         &self.drawing_area
+    }
+
+    /// Shows the session toolbar early, before connecting.
+    ///
+    /// Call this before measuring the drawing area size so GTK allocates the
+    /// correct height (with toolbar present). Without this the initial connect
+    /// resolution includes the toolbar's height, causing a resize immediately
+    /// after connection and redundant repainting.
+    pub fn show_toolbar(&self) {
+        self.toolbar.set_visible(true);
     }
 
     /// Queues a redraw of the drawing area

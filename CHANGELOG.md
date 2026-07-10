@@ -53,9 +53,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Dependencies
 
+- **ironrdp 0.16→0.17, ironrdp-tokio 0.9→0.10** — major upgrade of the embedded RDP stack; brings the EGFX-capable session layer, updated PDU parsing, and new rdpdr/cliprdr/displaycontrol APIs. Transitive sub-crate bumps: ironrdp-async 0.9→0.10, ironrdp-cliprdr 0.6→0.7, ironrdp-connector 0.9→0.10, ironrdp-displaycontrol 0.7→0.8, ironrdp-dvc 0.7→0.8, ironrdp-graphics 0.8→0.9, ironrdp-pdu 0.8→0.9, ironrdp-rdpdr 0.6→0.7, ironrdp-rdpsnd 0.8→0.9, ironrdp-session 0.10→0.11, ironrdp-svc 0.7→0.8, ironrdp-tls 0.2.1→0.2.2
 - **ironrdp-egfx 0.3.0** (new) — EGFX DVC processor with H.264 decoding
 - **openh264 0.9.7, openh264-sys2 0.9.7** (new, transitive) — OpenH264 FFI for runtime `dlopen`
 - **safe_arch 1.0.0, wide 1.5.0** (new, transitive) — SIMD abstractions for pixel conversion
+- **sponge-cursor 0.1.0** (new, transitive) — cursor helper for sha3 0.12
+- **Updated (transitive/crypto patch bumps)**: aes-gcm 0.11.0-rc.3→0.11.0-rc.4, curve25519-dalek 5.0.0-pre.6→5.0.0-rc.1, ecdsa 0.17.0-rc.17→0.17.0-rc.22, ed25519 3.0.0-rc.4→3.0.0, ed25519-dalek 3.0.0-pre.6→3.0.0-rc.1, elliptic-curve 0.14.0-rc.31→0.14.1, ff 0.14.0-pre.0→0.14.0, group 0.14.0-pre.0→0.14.0, p256 0.14.0-rc.9→0.14.0-rc.14, p384 0.14.0-rc.9→0.14.0-rc.14, p521 0.14.0-rc.9→0.14.0-rc.14, pbkdf2 0.13.0-rc.10→0.13.0, picky 7.0.0-rc.23→7.0.0-rc.25, picky-krb 0.12.3→0.12.4, pkcs8 0.11.0-rc.11→0.11.0, primefield 0.14.0-rc.9→0.14.0, primeorder 0.14.0-rc.9→0.14.0-rc.14, rfc6979 0.5.0-rc.5→0.6.0-pre.0, rsa 0.10.0-rc.17→0.10.0-rc.18, sha3 0.11.0→0.12.0, signature 3.0.0-rc.10→3.0.0, sspi 0.21.0→0.21.1, winscard 0.3.2→0.3.3, x25519-dalek 3.0.0-pre.6→3.0.0-rc.1 — no API impact; pulled in by the ironrdp 0.17 dependency tree
 
 ## [0.18.4] - 2026-07-09
 

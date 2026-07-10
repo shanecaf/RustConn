@@ -64,7 +64,7 @@ impl super::EmbeddedRdpWidget {
                         // which causes blurry output.
                         let effective_scale = config.borrow().as_ref().map_or(1.0, |c| {
                             c.scale_override
-                                .resolved_scale(f64::from(area.scale_factor()))
+                                .resolved_scale(super::widget_fractional_scale(area))
                         });
                         surface.set_device_scale(effective_scale, effective_scale);
 
@@ -103,9 +103,13 @@ impl super::EmbeddedRdpWidget {
                         let _ = cr.set_source_surface(surface, 0.0, 0.0);
 
                         // Use adaptive filtering: Nearest for 1:1 pixel mapping (sharp),
-                        // Bilinear when actual scaling is needed (smooth).
+                        // Good for downscale (better quality than Bilinear when
+                        // effective_scale > 1.0 shrinks the image), Bilinear otherwise.
                         let filter = if (scale - 1.0).abs() < 0.01 {
                             gtk4::cairo::Filter::Nearest
+                        } else if scale < 1.0 {
+                            // Downscale: use Good for sharper text at reduced size
+                            gtk4::cairo::Filter::Good
                         } else {
                             gtk4::cairo::Filter::Bilinear
                         };

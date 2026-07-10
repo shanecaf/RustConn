@@ -435,16 +435,21 @@ fn build_connector_config(config: &RdpClientConfig) -> Config {
     //
     // The ironrdp connector API requires an owned plain `String` password by
     // value; the copy's lifetime (and zeroization) is controlled by ironrdp,
-    // so wrapping the intermediate in `Zeroizing` would not protect the copy
-    // that lives inside the connector. Re-check on ironrdp bumps whether a
-    // secrecy-aware credentials type became available.
-    let credentials = Credentials::UsernamePassword {
-        username: config.username.clone().unwrap_or_default(),
-        password: config
+    // so wrapping the intermediate in `Zeroizing` protects only the temporary
+    // that bridges expose_secret() → Credentials construction. Re-check on
+    // ironrdp bumps whether a secrecy-aware credentials type became available.
+    let credentials = {
+        use zeroize::Zeroizing;
+        let pw = config
             .password
             .as_ref()
-            .map(|s| s.expose_secret().to_string())
-            .unwrap_or_default(),
+            .map(|s| Zeroizing::new(s.expose_secret().to_string()))
+            .unwrap_or_default();
+        Credentials::UsernamePassword {
+            username: config.username.clone().unwrap_or_default(),
+            // Clone into ironrdp's owned String; `pw` is zeroized on drop.
+            password: (*pw).clone(),
+        }
     };
 
     // NOTE: BitmapConfig affects two things:

@@ -298,7 +298,7 @@ impl super::EmbeddedRdpWidget {
         // values raise the remote resolution for a sharper image.
         let effective_scale = config
             .scale_override
-            .resolved_scale(f64::from(self.drawing_area.scale_factor()));
+            .resolved_scale(super::widget_fractional_scale(&self.drawing_area));
         // Base DPI scale as a percentage (e.g. 2.0 → 200). With Display Scale =
         // Auto this is 100 (native rendering on the logical-sized desktop).
         #[expect(
@@ -456,6 +456,7 @@ impl super::EmbeddedRdpWidget {
         *self.is_ironrdp.borrow_mut() = true;
 
         // Show toolbar with Ctrl+Alt+Del button
+        // (may already be visible via show_toolbar() called before measure — idempotent)
         self.toolbar.set_visible(true);
 
         // Hide local cursor if configured (avoids double cursor with remote)
@@ -567,7 +568,7 @@ impl super::EmbeddedRdpWidget {
                 let server_h = *rdp_height_ref.borrow();
                 let effective_scale = config.borrow().as_ref().map_or(1.0, |c| {
                     c.scale_override
-                        .resolved_scale(f64::from(drawing_area.scale_factor()))
+                        .resolved_scale(super::widget_fractional_scale(&drawing_area))
                 });
                 let css_w = drawing_area.width().unsigned_abs();
                 let css_h = drawing_area.height().unsigned_abs();

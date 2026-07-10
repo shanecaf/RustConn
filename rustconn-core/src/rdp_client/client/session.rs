@@ -43,6 +43,9 @@ pub async fn run_active_session(
 
     // Performance monitoring: FrameStatistics tracks decode times and drop rates
     let mut frame_stats = super::super::graphics::FrameStatistics::new();
+    // Adaptive polling: tracks frames received since last idle timeout.
+    // Resets to 0 on timeout (idle), incremented on each PDU received.
+    let mut frames_since_last_idle: u32 = 0;
     // Set active graphics mode based on feature availability
     #[cfg(feature = "gfx-h264")]
     {
@@ -87,48 +90,60 @@ pub async fn run_active_session(
             }
         }
 
-        // Read and process RDP frames with timeout
-        let read_result = tokio::time::timeout(
-            std::time::Duration::from_millis(16), // ~60 FPS
-            reader.read_pdu(),
-        )
-        .await;
+        // Read and process RDP frames with adaptive timeout.
+        // When the server is actively sending frames (e.g. animation, user
+        // interaction), we poll at ~60 FPS (16ms) to keep latency low. When
+        // idle (timeout expired with no data), we back off to 50ms to reduce
+        // CPU usage from busy-waiting on a static desktop.
+        // ponytail: true async select! on command_rx needs tokio::sync::mpsc;
+        // left as-is (std::sync::mpsc) to avoid a cross-cutting refactor.
+        let idle_timeout = if frames_since_last_idle > 0 {
+            std::time::Duration::from_millis(16) // active: low latency
+        } else {
+            std::time::Duration::from_millis(50) // idle: save CPU
+        };
+
+        let read_result = tokio::time::timeout(idle_timeout, reader.read_pdu()).await;
 
         match read_result {
-            Ok(Ok((action, payload))) => match active_stage.process(&mut image, action, &payload) {
-                Ok(outputs) => {
-                    for output in outputs {
-                        if handle_active_stage_output(
-                            output,
-                            &mut writer,
-                            &mut reader,
-                            &event_tx,
-                            &mut image,
-                            &mut active_stage,
-                            &activation_factory,
-                            &frame_stats,
-                        )
-                        .await?
-                        {
-                            return Ok(());
+            Ok(Ok((action, payload))) => {
+                frames_since_last_idle = frames_since_last_idle.saturating_add(1);
+                match active_stage.process(&mut image, action, &payload) {
+                    Ok(outputs) => {
+                        for output in outputs {
+                            if handle_active_stage_output(
+                                output,
+                                &mut writer,
+                                &mut reader,
+                                &event_tx,
+                                &mut image,
+                                &mut active_stage,
+                                &activation_factory,
+                                &frame_stats,
+                            )
+                            .await?
+                            {
+                                return Ok(());
+                            }
                         }
-                    }
 
-                    // Drain decoded GFX frame updates produced during process().
-                    // The GraphicsPipelineHandler fires on_bitmap_updated() inside
-                    // ActiveStage::process() and sends updates via the mpsc channel.
-                    #[cfg(feature = "gfx-h264")]
-                    drain_gfx_updates(&gfx_update_rx, &mut image, &event_tx, &mut frame_stats);
+                        // Drain decoded GFX frame updates produced during process().
+                        // The GraphicsPipelineHandler fires on_bitmap_updated() inside
+                        // ActiveStage::process() and sends updates via the mpsc channel.
+                        #[cfg(feature = "gfx-h264")]
+                        drain_gfx_updates(&gfx_update_rx, &mut image, &event_tx, &mut frame_stats);
+                    }
+                    Err(e) => {
+                        return Err(RdpClientError::ProtocolError(format!("Session error: {e}")));
+                    }
                 }
-                Err(e) => {
-                    return Err(RdpClientError::ProtocolError(format!("Session error: {e}")));
-                }
-            },
+            }
             Ok(Err(e)) => {
                 return Err(RdpClientError::ConnectionFailed(format!("Read error: {e}")));
             }
             Err(_) => {
-                // Timeout - no data available, continue loop
+                // Timeout - no data available, enter idle mode
+                frames_since_last_idle = 0;
             }
         }
     }
@@ -136,7 +151,10 @@ pub async fn run_active_session(
     Ok(())
 }
 
-#[expect(clippy::too_many_arguments, reason = "internal dispatch function — parameters are all distinct; grouping into a struct adds indirection without clarity")]
+#[expect(
+    clippy::too_many_arguments,
+    reason = "internal dispatch function — parameters are all distinct; grouping into a struct adds indirection without clarity"
+)]
 async fn handle_active_stage_output<S>(
     output: ActiveStageOutput,
     writer: &mut impl FramedWrite,

@@ -718,6 +718,13 @@ fn start_embedded_rdp_session(
     let widget_for_connect = embedded_widget.clone();
     let sidebar_for_connect = sidebar.clone();
     let conn_name_owned = conn_name.to_string();
+
+    // Show the toolbar BEFORE measuring — its height must be accounted for in
+    // the initial resolution request. Otherwise the server allocates a desktop
+    // that is ~46px taller than the drawing area, requiring an immediate snap
+    // resize after connection (causing 3–4 redundant repaints and softened image).
+    widget_for_connect.show_toolbar();
+
     glib::timeout_add_local_once(std::time::Duration::from_millis(100), move || {
         // Get actual widget size from drawing area
         let drawing_area = widget_for_connect.drawing_area();
