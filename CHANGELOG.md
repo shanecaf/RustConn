@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Editing a Telnet template opened the SSH options page** — the template editor derives the protocol dropdown index and the visible options page from two separate `match` blocks that had drifted apart: the stack switch had no arm for Telnet (index 5), so it fell through to the SSH page, and it referenced a non-existent `"serial"` page for an out-of-range index. Templates can only be created for six protocols (SSH, RDP, VNC, SPICE, Zero Trust, Telnet), but the index map also listed five protocols the dialog has no dropdown entry or page for (Serial, SFTP, Kubernetes, MOSH, Web), producing an out-of-range dropdown selection had such a template ever been loaded. Both maps are now a single source of truth: index and page are derived together, Telnet shows its own page, and unrepresentable protocols fall back cleanly to the SSH view
 - **"Save & Connect" from the connection wizard created the connection but never connected** — both the new-connection wizard and "Duplicate via Wizard" paths, on the *Save & Connect* result, activated a `connect-by-id` window action that does not exist (the real action is `connect-to`, with the same string parameter). GTK silently logged "no action" and the freshly saved connection was left disconnected, so the combined "save and connect" affordance behaved like a plain "save". Both call sites now activate `connect-to`, so the wizard connects immediately after saving as intended
 
 ## [0.18.4] - 2026-07-09
