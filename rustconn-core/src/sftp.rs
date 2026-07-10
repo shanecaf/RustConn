@@ -373,14 +373,15 @@ pub fn resolve_remote_home(connection: &Connection, groups: &[ConnectionGroup]) 
                 .map(str::trim)
                 .find(|line| line.starts_with('/'))
                 .map(str::to_string);
-            match &path {
-                Some(home) => tracing::debug!(%target, %home, "Resolved remote home directory"),
-                None => tracing::debug!(
+            if let Some(home) = &path {
+                tracing::debug!(%target, %home, "Resolved remote home directory")
+            } else {
+                tracing::debug!(
                     %target,
                     stdout = %stdout.trim(),
                     "`ssh … pwd` probe returned no absolute path; \
                      falling back to server root"
-                ),
+                );
             }
             path
         }
