@@ -22,7 +22,7 @@ mod event;
 #[cfg(feature = "vnc-embedded")]
 pub use client::{VncClient, VncCommandSender, VncEventReceiver};
 #[cfg(feature = "vnc-embedded")]
-pub use config::VncClientConfig;
+pub use config::{VncClientConfig, VncEncoding};
 #[cfg(feature = "vnc-embedded")]
 pub use error::VncClientError;
 #[cfg(feature = "vnc-embedded")]
