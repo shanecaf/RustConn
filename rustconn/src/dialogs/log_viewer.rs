@@ -38,7 +38,7 @@ impl LogViewerDialog {
             .build();
 
         // Create UI components
-        let (toolbar_view, paned, close_btn, refresh_btn) = Self::create_header_and_layout();
+        let (toolbar_view, paned, refresh_btn) = Self::create_header_and_layout();
         dialog.set_child(Some(&toolbar_view));
 
         let (log_list, list_scrolled) = Self::create_log_list();
@@ -52,11 +52,6 @@ impl LogViewerDialog {
         let selected_file: Rc<RefCell<Option<PathBuf>>> = Rc::new(RefCell::new(None));
         let file_paths: Rc<RefCell<Vec<PathBuf>>> = Rc::new(RefCell::new(Vec::new()));
 
-        // Connect close button
-        let dialog_clone = dialog.clone();
-        close_btn.connect_clicked(move |_| {
-            dialog_clone.close();
-        });
 
         let stored_parent: Option<gtk4::Widget> =
             parent.map(|p| p.clone().upcast::<gtk4::Widget>());
@@ -107,7 +102,7 @@ impl LogViewerDialog {
     }
 
     /// Creates the header bar and main layout components
-    fn create_header_and_layout() -> (adw::ToolbarView, Paned, Button, Button) {
+    fn create_header_and_layout() -> (adw::ToolbarView, Paned, Button) {
         // Header bar with standard window close button (×) and Refresh icon (GNOME HIG)
         let header = adw::HeaderBar::new();
         let refresh_btn = Button::from_icon_name("view-refresh-symbolic");
@@ -116,9 +111,6 @@ impl LogViewerDialog {
         refresh_btn
             .update_property(&[gtk4::accessible::Property::Label(&i18n("Refresh log list"))]);
         header.pack_start(&refresh_btn);
-
-        // Invisible placeholder — kept for API compatibility (returned but unused)
-        let close_btn = Button::builder().visible(false).build();
 
         let paned = Paned::new(Orientation::Horizontal);
         paned.set_position(250);
@@ -131,7 +123,7 @@ impl LogViewerDialog {
         toolbar_view.add_top_bar(&header);
         toolbar_view.set_content(Some(&paned));
 
-        (toolbar_view, paned, close_btn, refresh_btn)
+        (toolbar_view, paned, refresh_btn)
     }
 
     /// Creates the log file list component
