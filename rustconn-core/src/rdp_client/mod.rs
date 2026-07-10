@@ -12,6 +12,14 @@
 //!
 //! This follows the same pattern as the VNC client (`vnc_client` module).
 //!
+//! # Graphics Pipeline
+//!
+//! When the `gfx-h264` feature is enabled, the client registers an EGFX
+//! dynamic virtual channel (`ironrdp-egfx`) for the GFX pipeline with
+//! H.264/AVC decoding via OpenH264 (loaded at runtime via `dlopen`).
+//! The pipeline auto-selects the best mode: GfxAvc444 > GfxH264 > Gfx >
+//! RemoteFX > Legacy. See [`gfx_handler`] and [`graphics`] for details.
+//!
 //! # Feature Flag
 //!
 //! The embedded RDP client requires the `rdp-embedded` feature flag:
@@ -48,6 +56,8 @@ pub mod dir_watcher;
 mod error;
 mod event;
 pub mod gateway;
+#[cfg(feature = "gfx-h264")]
+pub mod gfx_handler;
 pub mod graphics;
 pub mod input;
 pub mod keyboard_layout;

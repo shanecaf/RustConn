@@ -1,3 +1,5 @@
+#[cfg(feature = "gfx-h264")]
+use super::super::gfx_handler::GfxFrameUpdate;
 use super::super::{RdpClientCommand, RdpClientError, RdpClientEvent, RdpRect};
 use super::commands::process_command;
 use super::connection::UpgradedFramed;
@@ -17,12 +19,18 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 /// Runs the active RDP session, processing framebuffer updates and input
+///
+/// When the `gfx-h264` feature is enabled, `gfx_update_rx` carries decoded
+/// EGFX frame updates from the `GraphicsPipelineHandler`. The session loop
+/// drains it after each `ActiveStage::process()` call to convert RGBA→BGRA
+/// and emit `FrameUpdate` events to the GUI.
 pub async fn run_active_session(
     framed: UpgradedFramed,
     connection_result: ConnectionResult,
     event_tx: std::sync::mpsc::Sender<RdpClientEvent>,
     command_rx: std::sync::mpsc::Receiver<RdpClientCommand>,
     shutdown_signal: Arc<AtomicBool>,
+    #[cfg(feature = "gfx-h264")] gfx_update_rx: std::sync::mpsc::Receiver<GfxFrameUpdate>,
 ) -> Result<(), RdpClientError> {
     let (mut reader, mut writer) = split_tokio_framed(framed);
 
@@ -32,6 +40,18 @@ pub async fn run_active_session(
         connection_result.desktop_size.width,
         connection_result.desktop_size.height,
     );
+
+    // Performance monitoring: FrameStatistics tracks decode times and drop rates
+    let mut frame_stats = super::super::graphics::FrameStatistics::new();
+    // Set active graphics mode based on feature availability
+    #[cfg(feature = "gfx-h264")]
+    {
+        frame_stats.active_graphics_mode = super::super::graphics::GraphicsMode::GfxH264;
+    }
+    #[cfg(not(feature = "gfx-h264"))]
+    {
+        frame_stats.active_graphics_mode = super::super::graphics::GraphicsMode::RemoteFx;
+    }
 
     // Build ActiveStage from ConnectionResult fields (ironrdp 0.17 builder pattern)
     let activation_factory = connection_result.activation_factory;
@@ -86,12 +106,19 @@ pub async fn run_active_session(
                             &mut image,
                             &mut active_stage,
                             &activation_factory,
+                            &frame_stats,
                         )
                         .await?
                         {
                             return Ok(());
                         }
                     }
+
+                    // Drain decoded GFX frame updates produced during process().
+                    // The GraphicsPipelineHandler fires on_bitmap_updated() inside
+                    // ActiveStage::process() and sends updates via the mpsc channel.
+                    #[cfg(feature = "gfx-h264")]
+                    drain_gfx_updates(&gfx_update_rx, &mut image, &event_tx, &mut frame_stats);
                 }
                 Err(e) => {
                     return Err(RdpClientError::ProtocolError(format!("Session error: {e}")));
@@ -109,6 +136,7 @@ pub async fn run_active_session(
     Ok(())
 }
 
+#[expect(clippy::too_many_arguments, reason = "internal dispatch function — parameters are all distinct; grouping into a struct adds indirection without clarity")]
 async fn handle_active_stage_output<S>(
     output: ActiveStageOutput,
     writer: &mut impl FramedWrite,
@@ -117,6 +145,7 @@ async fn handle_active_stage_output<S>(
     image: &mut DecodedImage,
     active_stage: &mut ActiveStage,
     activation_factory: &ConnectionActivationFactory,
+    frame_stats: &super::super::graphics::FrameStatistics,
 ) -> Result<bool, RdpClientError>
 where
     S: FramedRead + Unpin + Send,
@@ -203,6 +232,7 @@ where
             {
                 let _ = event_tx.send(RdpClientEvent::Rtt {
                     rtt_ms: *average_rtt_ms,
+                    active_graphics_mode: frame_stats.active_graphics_mode,
                 });
             }
             tracing::debug!(
@@ -348,6 +378,123 @@ fn extract_region_data(image: &DecodedImage, rect: RdpRect) -> Vec<u8> {
         if src_offset + dst_stride <= data.len() {
             result[dst_offset..dst_offset + dst_stride]
                 .copy_from_slice(&data[src_offset..src_offset + dst_stride]);
+        }
+    }
+
+    result
+}
+
+// ============================================================================
+// GFX Pipeline Integration (gfx-h264 feature)
+// ============================================================================
+
+/// Drains pending GFX frame updates and sends them as `FrameUpdate` events.
+///
+/// Called after `ActiveStage::process()` returns — the `GraphicsPipelineHandler`
+/// fires during `process()` and enqueues decoded RGBA frames via the mpsc channel.
+/// We convert RGBA→BGRA and send directly to the GUI without blitting into
+/// `DecodedImage` (which has no mutable data accessor in the public API).
+///
+/// A sentinel update with empty `data` signals a resolution change from
+/// `on_reset_graphics` — the framebuffer is resized and the GUI is notified.
+///
+/// Bounds checking ensures updates that exceed the framebuffer dimensions are
+/// clipped to avoid panics.
+#[cfg(feature = "gfx-h264")]
+fn drain_gfx_updates(
+    gfx_update_rx: &std::sync::mpsc::Receiver<GfxFrameUpdate>,
+    image: &mut DecodedImage,
+    event_tx: &std::sync::mpsc::Sender<RdpClientEvent>,
+    frame_stats: &mut super::super::graphics::FrameStatistics,
+) {
+    while let Ok(update) = gfx_update_rx.try_recv() {
+        // Sentinel: empty data with non-zero dimensions = resolution reset
+        if update.data.is_empty() {
+            if update.width > 0 && update.height > 0 {
+                *image = DecodedImage::new(IronPixelFormat::BgrA32, update.width, update.height);
+                let _ = event_tx.send(RdpClientEvent::ResolutionChanged {
+                    width: update.width,
+                    height: update.height,
+                });
+                tracing::debug!(
+                    width = update.width,
+                    height = update.height,
+                    "GFX reset: framebuffer resized"
+                );
+            }
+            continue;
+        }
+
+        // Skip zero-dimension updates
+        if update.width == 0 || update.height == 0 {
+            continue;
+        }
+
+        let img_width = image.width();
+        let img_height = image.height();
+
+        // Clip update region to framebuffer bounds
+        let clipped_w = if update.x >= img_width {
+            continue;
+        } else {
+            update.width.min(img_width.saturating_sub(update.x))
+        };
+        let clipped_h = if update.y >= img_height {
+            continue;
+        } else {
+            update.height.min(img_height.saturating_sub(update.y))
+        };
+
+        // Measure RGBA→BGRA conversion time
+        let blit_start = std::time::Instant::now();
+        let bgra_data = convert_gfx_rgba_to_bgra(&update, clipped_w, clipped_h);
+        let blit_elapsed_us = blit_start.elapsed().as_micros() as u64;
+
+        // Update H.264 decode/blit time EMA
+        frame_stats.update_h264_decode_time(blit_elapsed_us);
+
+        let rect = RdpRect::new(update.x, update.y, clipped_w, clipped_h);
+        let _ = event_tx.send(RdpClientEvent::FrameUpdate {
+            rect,
+            data: bgra_data,
+        });
+    }
+}
+
+/// Converts RGBA pixel data from a GFX frame update to BGRA format.
+///
+/// Performs row-by-row conversion with R↔B channel swap, respecting the
+/// clipped dimensions (which may be smaller than the original update when
+/// the update extends beyond the framebuffer boundary).
+///
+/// # Performance
+///
+/// The inner loop processes 4 bytes per pixel sequentially. LLVM auto-vectorizes
+/// this pattern for SSE2/AVX on x86_64.
+#[cfg(feature = "gfx-h264")]
+fn convert_gfx_rgba_to_bgra(update: &GfxFrameUpdate, clipped_w: u16, clipped_h: u16) -> Vec<u8> {
+    let src_stride = usize::from(update.width) * 4;
+    let dst_pixel_count = usize::from(clipped_w) * usize::from(clipped_h);
+    let mut result = Vec::with_capacity(dst_pixel_count * 4);
+
+    for row in 0..usize::from(clipped_h) {
+        let src_row_start = row * src_stride;
+
+        for px in 0..usize::from(clipped_w) {
+            let si = src_row_start + px * 4;
+
+            // Bounds check: skip if source data is insufficient
+            if si + 3 >= update.data.len() {
+                // Pad remaining pixels with opaque black
+                result.extend_from_slice(&[0, 0, 0, 255]);
+                continue;
+            }
+
+            // RGBA → BGRA: swap R and B channels
+            result.push(update.data[si + 2]); // B
+            result.push(update.data[si + 1]); // G
+            result.push(update.data[si]); // R
+            result.push(update.data[si + 3]); // A
         }
     }
 

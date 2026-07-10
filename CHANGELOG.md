@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.18.5] - 2026-07-10
 
+### Added
+
+- **GFX pipeline with H.264/AVC decoding for embedded RDP** — the embedded RDP client now supports the RDPGFX (MS-RDPEGFX) graphics pipeline via `ironrdp-egfx` 0.3, dramatically improving image quality and bandwidth usage over WAN connections:
+  - H.264 decoding uses OpenH264 loaded at runtime via `dlopen` — no build-time linking, Flatpak-compatible
+  - Auto-selects the best mode: GfxAvc444 > GfxH264 > Gfx > RemoteFX > Legacy
+  - Falls back gracefully when OpenH264 is missing (non-AVC codecs within GFX) or when the server doesn't support EGFX (RemoteFX/Legacy)
+  - Gated behind `gfx-h264` feature flag (enabled by default); disabling it compiles the feature out with no runtime cost
+- **Performance mode mapping for graphics selection** — Quality→GfxAvc444, Balanced→GfxH264, Speed→RemoteFX/Legacy
+- **GFX decode failure signalling** — emits `GfxDecodeFailure` event after 10+ consecutive empty frames, enabling a future degraded-quality banner
+- **Active graphics mode in session statistics** — the RTT status label shows the active pipeline (e.g. "RTT: 12 ms | GFX + H.264"); `FrameStatistics` tracks blit time via EMA and warns at >5% frame drop rate
+- **OpenH264 in Flatpak manifest** — built from source as a meson module (`org.freedesktop.Platform.openh264` was removed from SDK 23.08+), installed to `/app/lib/`
+
 ### Removed
 
 - **Dead `get_export_options` method on the export dialog** — a `get_export_options` accessor built an `ExportOptions` from only the format, output path and "include groups" flag, silently ignoring the CSV field selection and the group-scope filter. It was never called (the export button has its own complete collection logic), so it was removed to prevent a future caller from reintroducing the field-dropping bug
@@ -38,6 +50,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **"New SSH Connection" buttons in the Tunnel Builder did nothing** — the tunnel wizard's Step 1 exposes two "New SSH Connection" buttons (an inline one and the empty-state call-to-action shown when no SSH connections exist), both routed through a `connect_new_connection` callback that was never registered. Clicking either did nothing, and with zero SSH connections the wizard became a dead end: the empty state hid the Next button, leaving no working action. The buttons now open the standard new-connection editor (reusing the canonical dialog, so the connection is persisted and the sidebar reloads) and refresh the wizard's connection list on success, so a freshly created connection is immediately selectable
 - **Editing a Telnet template opened the SSH options page** — the template editor derives the protocol dropdown index and the visible options page from two separate `match` blocks that had drifted apart: the stack switch had no arm for Telnet (index 5), so it fell through to the SSH page, and it referenced a non-existent `"serial"` page for an out-of-range index. Templates can only be created for six protocols (SSH, RDP, VNC, SPICE, Zero Trust, Telnet), but the index map also listed five protocols the dialog has no dropdown entry or page for (Serial, SFTP, Kubernetes, MOSH, Web), producing an out-of-range dropdown selection had such a template ever been loaded. Both maps are now a single source of truth: index and page are derived together, Telnet shows its own page, and unrepresentable protocols fall back cleanly to the SSH view
 - **"Save & Connect" from the connection wizard created the connection but never connected** — both the new-connection wizard and "Duplicate via Wizard" paths, on the *Save & Connect* result, activated a `connect-by-id` window action that does not exist (the real action is `connect-to`, with the same string parameter). GTK silently logged "no action" and the freshly saved connection was left disconnected, so the combined "save and connect" affordance behaved like a plain "save". Both call sites now activate `connect-to`, so the wizard connects immediately after saving as intended
+
+### Dependencies
+
+- **ironrdp-egfx 0.3.0** (new) — EGFX DVC processor with H.264 decoding
+- **openh264 0.9.7, openh264-sys2 0.9.7** (new, transitive) — OpenH264 FFI for runtime `dlopen`
+- **safe_arch 1.0.0, wide 1.5.0** (new, transitive) — SIMD abstractions for pixel conversion
 
 ## [0.18.4] - 2026-07-09
 

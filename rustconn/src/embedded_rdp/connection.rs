@@ -1339,14 +1339,20 @@ impl super::EmbeddedRdpWidget {
                                     },
                                 );
                             }
-                            RdpClientEvent::Rtt { rtt_ms } => {
-                                // Display RTT in the status label (live latency indicator)
-                                status_label
-                                    .set_text(&i18n_f("RTT: {} ms", &[&rtt_ms.to_string()]));
+                            RdpClientEvent::Rtt {
+                                rtt_ms,
+                                active_graphics_mode,
+                            } => {
+                                // Display RTT and active graphics mode in the status label
+                                status_label.set_text(&i18n_f(
+                                    "RTT: {} ms | {}",
+                                    &[&rtt_ms.to_string(), active_graphics_mode.display_name()],
+                                ));
                                 status_label.set_visible(true);
                                 tracing::debug!(
                                     protocol = "rdp",
                                     rtt_ms,
+                                    graphics_mode = active_graphics_mode.display_name(),
                                     "RTT measurement from server Auto-Detect"
                                 );
                             }
@@ -1358,6 +1364,20 @@ impl super::EmbeddedRdpWidget {
                                 file_dnd_cb
                                     .borrow_mut()
                                     .disable("Server does not support file clipboard");
+                            }
+                            RdpClientEvent::GfxDecodeFailure {
+                                consecutive_failures,
+                            } => {
+                                // GFX H.264 pipeline is failing persistently.
+                                // Log the issue — the session continues with degraded
+                                // quality (empty frames produce stale regions on screen).
+                                // ponytail: in future, show a toast or banner to the
+                                // user; for now just log since the session is still usable.
+                                tracing::warn!(
+                                    protocol = "rdp",
+                                    consecutive_failures,
+                                    "GFX H.264 persistent decode failure reported by pipeline"
+                                );
                             }
                         }
                     }

@@ -527,9 +527,13 @@ pub enum RdpClientEvent {
     ///
     /// Emitted periodically when the Echo virtual channel is active.
     /// The GUI can display this in the toolbar as a latency indicator.
+    /// Also carries the currently active graphics pipeline mode for
+    /// live session statistics display.
     Rtt {
         /// Round-trip time in milliseconds
         rtt_ms: u32,
+        /// Currently active graphics pipeline mode (e.g. GfxH264, RemoteFx, Legacy)
+        active_graphics_mode: super::graphics::GraphicsMode,
     },
 
     /// Display Control Channel (MS-RDPEDISP) is ready for dynamic resize.
@@ -559,6 +563,17 @@ pub enum RdpClientEvent {
     /// general capabilities do not include the file stream flag. The GUI
     /// should disable file drag-and-drop for this session.
     FileClipboardUnsupported,
+
+    /// GFX H.264 pipeline persistent decode failure.
+    ///
+    /// Emitted when 10+ consecutive bitmap updates deliver empty data,
+    /// indicating the H.264 decoder is failing persistently. The GUI may
+    /// display a degraded-quality warning or suggest reconnecting with
+    /// a different graphics mode.
+    GfxDecodeFailure {
+        /// Number of consecutive empty frames observed
+        consecutive_failures: u32,
+    },
 
     /// Server requested file contents from us (client → server file transfer).
     ///
