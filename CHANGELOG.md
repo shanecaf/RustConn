@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- **Dead `get_export_options` method on the export dialog** — a `get_export_options` accessor built an `ExportOptions` from only the format, output path and "include groups" flag, silently ignoring the CSV field selection and the group-scope filter. It was never called (the export button has its own complete collection logic), so it was removed to prevent a future caller from reintroducing the field-dropping bug
 - **Dead `sanitize` parameter on session recording** — `start_recording` accepted a `SanitizeConfig` that every caller filled with the (enabled) default, implying recordings had their secrets redacted. Nothing consumed it: the recording is captured verbatim by `script`, and the string-oriented sanitizer is only meaningful for the separate session-logging path, not a binary `script` capture. The misleading parameter has been dropped from the recording API and its six call sites rather than shipping ineffective, false-sense-of-security redaction. Sensitive-data redaction remains available where it works — session logging (Settings → Logging)
 
 ### Documentation
