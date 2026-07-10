@@ -1113,6 +1113,27 @@ impl ConnectionDialogData<'_> {
         }
     }
 
+    /// Reads the currently selected agent key from the agent-key dropdown.
+    ///
+    /// Returns the `(key_source, key_path, agent_key_fingerprint)` triple used
+    /// by [`Self::build_ssh_config`]; falls back to `Default` when the dropdown
+    /// selection is out of range (e.g. no keys loaded from the agent).
+    fn ssh_agent_key_selection(&self) -> (SshKeySource, Option<PathBuf>, Option<String>) {
+        let keys = self.ssh_agent_keys.borrow();
+        let selected_idx = self.ssh_agent_key_dropdown.selected() as usize;
+        keys.get(selected_idx)
+            .map_or((SshKeySource::Default, None, None), |key| {
+                (
+                    SshKeySource::Agent {
+                        fingerprint: key.fingerprint.clone(),
+                        comment: key.comment.clone(),
+                    },
+                    None,
+                    Some(key.fingerprint.clone()),
+                )
+            })
+    }
+
     fn build_ssh_config(&self) -> SshConfig {
         let auth_method = match self.ssh_auth_dropdown.selected() {
             1 => SshAuthMethod::PublicKey,
@@ -1122,9 +1143,25 @@ impl ConnectionDialogData<'_> {
             _ => SshAuthMethod::Password, // 0 and any other value default to Password
         };
 
-        // Build key_source based on dropdown selection
-        let (key_source, key_path, agent_key_fingerprint) =
-            match self.ssh_key_source_dropdown.selected() {
+        // Derive the key material. Most auth methods follow the explicit
+        // key-source selector, but SSH Agent and Security Key (FIDO2) auth
+        // replace that selector in the UI with their own row (the agent-key
+        // dropdown / the key-file entry). Their key material must therefore be
+        // read from those rows directly — the key-source dropdown is hidden for
+        // them and stays at its stale Default value, so consulting it would
+        // silently drop the selected agent key or the sk key path.
+        let (key_source, key_path, agent_key_fingerprint) = match auth_method {
+            SshAuthMethod::Agent => self.ssh_agent_key_selection(),
+            SshAuthMethod::SecurityKey => {
+                let text = self.ssh_key_entry.text();
+                if text.trim().is_empty() {
+                    (SshKeySource::Default, None, None)
+                } else {
+                    let path = PathBuf::from(text.trim().to_string());
+                    (SshKeySource::File { path: path.clone() }, Some(path), None)
+                }
+            }
+            _ => match self.ssh_key_source_dropdown.selected() {
                 1 => {
                     // File source
                     let text = self.ssh_key_entry.text();
@@ -1135,37 +1172,12 @@ impl ConnectionDialogData<'_> {
                         (SshKeySource::File { path: path.clone() }, Some(path), None)
                     }
                 }
-                2 => {
-                    // Agent source
-                    let keys = self.ssh_agent_keys.borrow();
-                    let selected_idx = self.ssh_agent_key_dropdown.selected() as usize;
-                    if selected_idx < keys.len() {
-                        let key = &keys[selected_idx];
-                        (
-                            SshKeySource::Agent {
-                                fingerprint: key.fingerprint.clone(),
-                                comment: key.comment.clone(),
-                            },
-                            None,
-                            Some(key.fingerprint.clone()),
-                        )
-                    } else {
-                        (SshKeySource::Default, None, None)
-                    }
-                }
-                _ => {
-                    // Default (0) or any other value
-                    (SshKeySource::Default, None, None)
-                }
-            };
-
-        // If key source is Inherit (index 3), override to SshKeySource::Inherit
-        let (key_source, key_path, agent_key_fingerprint) =
-            if self.ssh_key_source_dropdown.selected() == 3 {
-                (SshKeySource::Inherit, None, None)
-            } else {
-                (key_source, key_path, agent_key_fingerprint)
-            };
+                2 => self.ssh_agent_key_selection(),
+                3 => (SshKeySource::Inherit, None, None),
+                // Default (0) or any other value
+                _ => (SshKeySource::Default, None, None),
+            },
+        };
 
         let startup_command = {
             let text = self.ssh_startup_entry.text();
