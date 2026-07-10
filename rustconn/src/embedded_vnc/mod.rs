@@ -622,8 +622,15 @@ impl EmbeddedVncWidget {
                     VncClientEvent::Bell => {
                         // Could play a sound or show notification
                     }
-                    VncClientEvent::ClipboardText(_text) => {
-                        // Could sync with system clipboard
+                    VncClientEvent::ClipboardText(text) => {
+                        // Mirror the remote clipboard into the local system
+                        // clipboard. RFB `ServerCutText` is push-only — the
+                        // client cannot pull the remote clipboard on demand — so
+                        // auto-syncing here is what actually makes a remote copy
+                        // available to paste locally.
+                        if !text.is_empty() {
+                            drawing_area.display().clipboard().set_text(&text);
+                        }
                     }
                     VncClientEvent::CursorUpdate { .. } => {
                         // Could update cursor shape
