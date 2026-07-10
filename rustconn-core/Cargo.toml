@@ -70,7 +70,7 @@ zune-jpeg = { version = "0.5.15", optional = true }
 #   * Audio input / microphone (MS-RDPEAI): no channel → microphone_enabled is dead.
 #   * Drive change notifications: needs ClientDriveNotifyChangeDirectoryResponse PDU
 #     (see TODO in rdp_client/rdpdr.rs::poll_directory_changes).
-ironrdp = { version = "0.16", features = [
+ironrdp = { version = "0.17", features = [
     "connector", "session", "graphics", "pdu", "core", "svc",
     "cliprdr",        # Clipboard redirection
     "rdpdr",          # Device/drive redirection (shared folders)
@@ -79,7 +79,7 @@ ironrdp = { version = "0.16", features = [
     "rdpsnd",         # Audio redirection
     "echo",           # Echo DVC for RTT measurement (MS-RDPEECO)
 ], optional = true }
-ironrdp-tokio = { version = "0.9", features = ["reqwest"], optional = true }
+ironrdp-tokio = { version = "0.10", features = ["reqwest"], optional = true }
 ironrdp-tls = { version = "0.2", features = ["native-tls"], optional = true }
 # Pin native-tls to avoid Tlsv13 compile bug in 0.2.17
 native-tls = { workspace = true }
@@ -95,7 +95,7 @@ security-framework = "3.3"
 [target.'cfg(not(target_os = "macos"))'.dependencies]
 oo7 = { workspace = true }
 
-# Note: ironrdp-rdpdr-native 0.6 requires ironrdp-rdpdr 0.6.x which matches ironrdp 0.16
+# Note: ironrdp-rdpdr-native 0.7 requires ironrdp-rdpdr 0.7.x which matches ironrdp 0.17
 
 [features]
 default = ["vnc-embedded", "rdp-embedded"]

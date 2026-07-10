@@ -2,9 +2,12 @@ use super::super::{RdpClientCommand, RdpClientError, RdpClientEvent, RdpRect};
 use super::commands::process_command;
 use super::connection::UpgradedFramed;
 use ironrdp::connector::ConnectionResult;
-use ironrdp::connector::connection_activation::ConnectionActivationState;
+use ironrdp::connector::connection_activation::{
+    ConnectionActivationFactory, ConnectionActivationState,
+};
 use ironrdp::graphics::image_processing::PixelFormat as IronPixelFormat;
 use ironrdp::pdu::WriteBuf;
+use ironrdp::session::ActiveStageBuilder;
 use ironrdp::session::image::DecodedImage;
 use ironrdp::session::{ActiveStage, ActiveStageOutput, fast_path};
 use ironrdp_tokio::{
@@ -30,7 +33,19 @@ pub async fn run_active_session(
         connection_result.desktop_size.height,
     );
 
-    let mut active_stage = ActiveStage::new(connection_result);
+    // Build ActiveStage from ConnectionResult fields (ironrdp 0.17 builder pattern)
+    let activation_factory = connection_result.activation_factory;
+    let mut active_stage = ActiveStageBuilder {
+        static_channels: connection_result.static_channels,
+        user_channel_id: connection_result.user_channel_id,
+        io_channel_id: connection_result.io_channel_id,
+        message_channel_id: connection_result.message_channel_id,
+        share_id: connection_result.share_id,
+        compression_type: connection_result.compression_type,
+        enable_server_pointer: connection_result.enable_server_pointer,
+        pointer_software_rendering: connection_result.pointer_software_rendering,
+    }
+    .build();
 
     loop {
         // Check shutdown signal
@@ -70,6 +85,7 @@ pub async fn run_active_session(
                             &event_tx,
                             &mut image,
                             &mut active_stage,
+                            &activation_factory,
                         )
                         .await?
                         {
@@ -100,6 +116,7 @@ async fn handle_active_stage_output<S>(
     event_tx: &std::sync::mpsc::Sender<RdpClientEvent>,
     image: &mut DecodedImage,
     active_stage: &mut ActiveStage,
+    activation_factory: &ConnectionActivationFactory,
 ) -> Result<bool, RdpClientError>
 where
     S: FramedRead + Unpin + Send,
@@ -157,9 +174,9 @@ where
             tracing::info!("RDP session terminated: {reason:?}");
             return Ok(true);
         }
-        ActiveStageOutput::DeactivateAll(connection_activation) => {
+        ActiveStageOutput::DeactivateAll => {
             handle_reactivation(
-                connection_activation,
+                activation_factory,
                 reader,
                 writer,
                 image,
@@ -198,9 +215,7 @@ where
 }
 
 async fn handle_reactivation<S>(
-    mut connection_activation: Box<
-        ironrdp::connector::connection_activation::ConnectionActivationSequence,
-    >,
+    activation_factory: &ConnectionActivationFactory,
     reader: &mut Framed<S>,
     writer: &mut impl FramedWrite,
     image: &mut DecodedImage,
@@ -216,10 +231,14 @@ where
         "Received Server Deactivate All PDU, executing Deactivation-Reactivation Sequence"
     );
 
+    let mut connection_activation = activation_factory.create();
+    let io_channel_id = activation_factory.io_channel_id();
+    let user_channel_id = activation_factory.user_channel_id();
+
     let mut buf = WriteBuf::new();
     loop {
         let written =
-            match single_sequence_step_read(reader, &mut *connection_activation, &mut buf).await {
+            match single_sequence_step_read(reader, &mut connection_activation, &mut buf).await {
                 Ok(w) => w,
                 Err(e) => {
                     tracing::warn!("Reactivation sequence error: {}", e);
@@ -235,12 +254,10 @@ where
         }
 
         if let ConnectionActivationState::Finalized {
-            io_channel_id,
-            user_channel_id,
             desktop_size,
+            share_id,
             enable_server_pointer,
             pointer_software_rendering,
-            share_id,
         } = connection_activation.connection_activation_state()
         {
             tracing::debug!(
