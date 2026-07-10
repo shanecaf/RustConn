@@ -263,22 +263,28 @@ async fn run_rdp_client(
     shutdown_signal: Arc<AtomicBool>,
 ) -> Result<(), RdpClientError> {
     // Phase 1-3: Establish connection
-    let (framed, connection_result) =
-        connection::establish_connection(&config, event_tx.clone()).await?;
+    let setup = connection::establish_connection(&config, event_tx.clone()).await?;
+
+    // Hold the GFX frame update receiver — pass to session loop for
+    // draining decoded EGFX bitmap updates into FrameUpdate events.
+    #[cfg(feature = "gfx-h264")]
+    let gfx_update_rx = setup.gfx_update_rx;
 
     // Send connected event
     let _ = event_tx.send(RdpClientEvent::Connected {
-        width: connection_result.desktop_size.width,
-        height: connection_result.desktop_size.height,
+        width: setup.connection_result.desktop_size.width,
+        height: setup.connection_result.desktop_size.height,
     });
 
     // Phase 4: Active session loop
     session::run_active_session(
-        framed,
-        connection_result,
+        setup.framed,
+        setup.connection_result,
         event_tx,
         command_rx,
         shutdown_signal,
+        #[cfg(feature = "gfx-h264")]
+        gfx_update_rx,
     )
     .await
 }

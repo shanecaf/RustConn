@@ -13,7 +13,7 @@ pub use step_connection::StepConnectionPage;
 pub use step_forwards::StepForwardsPage;
 pub use step_review::StepReviewPage;
 
-use crate::i18n::{i18n, i18n_f};
+use crate::i18n::i18n;
 use crate::state::{SharedAppState, with_state, with_state_mut};
 use crate::window::SharedTunnelManager;
 use adw::prelude::*;
@@ -30,6 +30,15 @@ use uuid::Uuid;
 // TunnelBuilderContext
 // ---------------------------------------------------------------------------
 
+/// Opens the "New SSH Connection" editor from the wizard.
+///
+/// The wizard passes in a refresh callback; the window layer (which owns the
+/// connection dialog and sidebar reload) invokes it once a connection has been
+/// created, so the wizard can reload its connection list. Injecting this as a
+/// callback keeps the dialogs layer decoupled from the window layer's
+/// connection-creation logic.
+pub type NewConnectionOpener = Rc<dyn Fn(Rc<dyn Fn()>)>;
+
 /// Context passed to `TunnelBuilderDialog` (avoids >6 params)
 pub struct TunnelBuilderContext {
     pub state: SharedAppState,
@@ -37,6 +46,8 @@ pub struct TunnelBuilderContext {
     pub parent_window: adw::Dialog,
     /// Callback invoked after successful save (to refresh tunnel list)
     pub on_save: Rc<RefCell<Option<Box<dyn Fn()>>>>,
+    /// Opens the "New SSH Connection" editor (see [`NewConnectionOpener`])
+    pub on_new_connection: NewConnectionOpener,
 }
 
 // ---------------------------------------------------------------------------
@@ -81,6 +92,8 @@ pub struct TunnelBuilderDialog {
     tunnel_manager: SharedTunnelManager,
     wizard_state: Rc<RefCell<WizardState>>,
     on_save: Rc<RefCell<Option<Box<dyn Fn()>>>>,
+    /// Opens the "New SSH Connection" editor (see [`NewConnectionOpener`])
+    on_new_connection: NewConnectionOpener,
     /// Source ID for status polling (edit mode)
     poll_source_id: Rc<RefCell<Option<glib::SourceId>>>,
 }
@@ -119,6 +132,7 @@ impl TunnelBuilderDialog {
             tunnel_manager: ctx.tunnel_manager,
             wizard_state,
             on_save: ctx.on_save,
+            on_new_connection: ctx.on_new_connection,
             poll_source_id,
         });
 
@@ -126,6 +140,7 @@ impl TunnelBuilderDialog {
         Self::wire_step1_next(&builder);
         Self::wire_step2_next(&builder);
         Self::wire_step3_save(&builder);
+        Self::wire_new_connection(&builder);
 
         // Stop polling when dialog closes
         let poll_id_c = builder.poll_source_id.clone();
@@ -164,7 +179,7 @@ impl TunnelBuilderDialog {
             }
         } else {
             // Connection no longer exists — show error
-            self.show_missing_connection_error(tunnel.connection_id);
+            self.show_missing_connection_error();
         }
 
         // Set forwards
@@ -292,6 +307,23 @@ impl TunnelBuilderDialog {
 
             drop(ws);
             b.perform_save();
+        });
+    }
+
+    /// Wires both "New SSH Connection" buttons (inline + empty state) on Step 1
+    /// to open the connection editor and refresh the connection list on success.
+    fn wire_new_connection(builder: &Rc<Self>) {
+        let opener = builder.on_new_connection.clone();
+        // Weak back-reference avoids a reference cycle (the button closure would
+        // otherwise keep the dialog alive forever through `step1`).
+        let weak = Rc::downgrade(builder);
+        builder.step1.connect_new_connection(move || {
+            let Some(b) = weak.upgrade() else {
+                return;
+            };
+            let b_refresh = b.clone();
+            let refresh: Rc<dyn Fn()> = Rc::new(move || b_refresh.step1.refresh_connections());
+            opener(refresh);
         });
     }
 
@@ -574,12 +606,11 @@ impl TunnelBuilderDialog {
     }
 
     /// Shows an error when the referenced connection no longer exists
-    fn show_missing_connection_error(&self, connection_id: Uuid) {
+    fn show_missing_connection_error(&self) {
         let error = adw::AlertDialog::builder()
             .heading(i18n("Connection Not Found"))
-            .body(i18n_f(
+            .body(i18n(
                 "The SSH connection referenced by this tunnel no longer exists. Select a different connection.",
-                &[&connection_id.to_string()],
             ))
             .build();
 

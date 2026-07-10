@@ -77,7 +77,7 @@ impl super::EmbeddedRdpWidget {
                 // Native follows the display scale for a full-resolution image).
                 let effective_scale = config.borrow().as_ref().map_or(1.0, |c| {
                     c.scale_override
-                        .resolved_scale(f64::from(area.scale_factor()))
+                        .resolved_scale(super::widget_fractional_scale(area))
                 });
                 #[expect(
     clippy::cast_possible_truncation,
@@ -349,7 +349,7 @@ impl super::EmbeddedRdpWidget {
 
         let effective_scale = config.borrow().as_ref().map_or(1.0, |c| {
             c.scale_override
-                .resolved_scale(f64::from(drawing_area.scale_factor()))
+                .resolved_scale(super::widget_fractional_scale(drawing_area))
         });
         #[expect(
             clippy::cast_possible_truncation,

@@ -22,7 +22,6 @@ impl TerminalNotebook {
         &self,
         session_id: Uuid,
         connection_name: &str,
-        _sanitize: SanitizeConfig,
         ssh_params: Option<SshRecordingParams>,
     ) -> bool {
         use rustconn_core::session::recording::{

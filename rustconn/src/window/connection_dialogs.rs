@@ -40,7 +40,7 @@ pub fn show_new_connection_dialog(
     sidebar: SharedSidebar,
 ) {
     // Always show regular connection dialog (no template picker)
-    show_new_connection_dialog_internal(window, state, sidebar, None, None);
+    show_new_connection_dialog_internal(window, state, sidebar, None, None, None);
 }
 
 /// Shows the new connection dialog with a pre-selected group
@@ -50,7 +50,7 @@ pub fn show_new_connection_dialog_in_group(
     sidebar: SharedSidebar,
     group_id: Uuid,
 ) {
-    show_new_connection_dialog_internal(window, state, sidebar, None, Some(group_id));
+    show_new_connection_dialog_internal(window, state, sidebar, None, Some(group_id), None);
 }
 
 /// Shows the new connection dialog pre-filled with data from a `Connection`.
@@ -78,6 +78,7 @@ pub fn show_new_connection_dialog_internal(
     sidebar: SharedSidebar,
     template: Option<rustconn_core::models::ConnectionTemplate>,
     group_id: Option<Uuid>,
+    on_created: Option<Rc<dyn Fn()>>,
 ) {
     let dialog = ConnectionDialog::new(Some(&window.clone().upcast()), state.clone());
     dialog.setup_key_file_chooser(Some(&window.clone().upcast()));
@@ -195,11 +196,17 @@ pub fn show_new_connection_dialog_internal(
                         // This prevents UI freeze during save operation
                         let state_clone = state.clone();
                         let sidebar_clone = sidebar.clone();
+                        let on_created_cb = on_created.clone();
                         glib::idle_add_local_once(move || {
                             MainWindow::reload_sidebar_preserving_state(
                                 &state_clone,
                                 &sidebar_clone,
                             );
+                            // Notify the caller (e.g. the tunnel builder) so it can
+                            // refresh its own connection list now the new one exists.
+                            if let Some(cb) = on_created_cb {
+                                cb();
+                            }
                         });
                     }
                     Err(e) => {

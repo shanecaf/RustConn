@@ -1315,6 +1315,20 @@ impl SettingsDialog {
                 ui.window_maximized = cur.ui.window_maximized;
                 ui.expanded_groups = cur.ui.expanded_groups.clone();
                 ui.search_history = cur.ui.search_history.clone();
+                // A file-based startup action (an RDP/.vv file passed on the CLI)
+                // has no dropdown slot — it shares index 0 with "Do nothing" — so
+                // a Settings round-trip would otherwise collapse it to None.
+                // Preserve it when the dropdown was left on that slot.
+                if matches!(
+                    ui.startup_action,
+                    rustconn_core::config::StartupAction::None
+                ) && matches!(
+                    cur.ui.startup_action,
+                    rustconn_core::config::StartupAction::RdpFile(_)
+                        | rustconn_core::config::StartupAction::VvFile(_)
+                ) {
+                    ui.startup_action = cur.ui.startup_action.clone();
+                }
             }
             drop(conn_refs);
             drop(conn_list);

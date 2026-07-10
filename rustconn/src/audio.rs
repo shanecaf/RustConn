@@ -55,6 +55,9 @@ struct AudioBuffer {
     samples: VecDeque<i16>,
     /// Maximum buffer size in samples
     max_size: usize,
+    /// Whether incoming PCM data is 8-bit unsigned (converted to i16 on push).
+    /// Defaults to false (16-bit signed little-endian).
+    eight_bit: bool,
 }
 
 impl AudioBuffer {
@@ -63,15 +66,26 @@ impl AudioBuffer {
         Self {
             samples: VecDeque::with_capacity(48_000 * 2 * 2), // ~2 seconds at 48kHz stereo
             max_size: 48_000 * 2 * 4,                         // ~4 seconds max
+            eight_bit: false,
         }
     }
 
-    /// Pushes PCM data (16-bit signed, little-endian) to the buffer
+    /// Pushes PCM data to the buffer, converting to interleaved i16.
+    ///
+    /// 16-bit data is signed little-endian (two bytes per sample); 8-bit data
+    /// is unsigned (one byte per sample, centred on 128) and is scaled up to the
+    /// full i16 range so it plays at the correct level.
     fn push_pcm_data(&mut self, data: &[u8]) {
-        // Convert bytes to i16 samples
-        for chunk in data.chunks_exact(2) {
-            let sample = i16::from_le_bytes([chunk[0], chunk[1]]);
-            self.samples.push_back(sample);
+        if self.eight_bit {
+            for &byte in data {
+                let sample = (i16::from(byte) - 128) << 8;
+                self.samples.push_back(sample);
+            }
+        } else {
+            for chunk in data.chunks_exact(2) {
+                let sample = i16::from_le_bytes([chunk[0], chunk[1]]);
+                self.samples.push_back(sample);
+            }
         }
 
         // Trim if buffer is too large (drop oldest samples)
@@ -156,20 +170,27 @@ impl RdpAudioPlayer {
             buffer_size: cpal::BufferSize::Default,
         };
 
-        // Create stream based on sample format
-        let buffer = Arc::clone(&self.buffer);
-        let volume = Arc::clone(&self.volume);
-
-        let stream = match format.bits_per_sample {
-            16 => self.create_i16_stream(&device, config, buffer, volume)?,
-            8 => self.create_u8_stream(&device, config, buffer, volume)?,
+        // Tell the buffer how to interpret incoming PCM (8-bit unsigned vs
+        // 16-bit signed). The output stream is always i16 — 8-bit samples are
+        // converted on push — so both formats share one stream builder.
+        match format.bits_per_sample {
+            8 | 16 => {
+                if let Ok(mut buf) = self.buffer.lock() {
+                    buf.eight_bit = format.bits_per_sample == 8;
+                }
+            }
             _ => {
                 return Err(AudioError::UnsupportedFormat(format!(
                     "Unsupported bits per sample: {}",
                     format.bits_per_sample
                 )));
             }
-        };
+        }
+
+        // Create stream (always i16 output)
+        let buffer = Arc::clone(&self.buffer);
+        let volume = Arc::clone(&self.volume);
+        let stream = self.create_i16_stream(&device, config, buffer, volume)?;
 
         // Start playback
         stream
@@ -238,52 +259,6 @@ impl RdpAudioPlayer {
     ///
     /// # Panics
     ///
-    /// The audio callback panics if the buffer mutex is poisoned, which indicates
-    /// an unrecoverable panic occurred in another thread while holding the lock.
-    fn create_u8_stream(
-        &self,
-        device: &cpal::Device,
-        config: StreamConfig,
-        buffer: Arc<Mutex<AudioBuffer>>,
-        volume: Arc<AtomicU32>,
-    ) -> Result<Stream, AudioError> {
-        let stream = device
-            .build_output_stream(
-                config,
-                move |data: &mut [i16], _: &cpal::OutputCallbackInfo| {
-                    // Lock-free volume read
-                    let vol_raw = volume.load(Ordering::Relaxed);
-                    let vol = vol_raw as f32 / 65535.0;
-
-                    // Graceful degradation on poisoned mutex — fill silence
-                    let Ok(mut buf) = buffer.lock() else {
-                        for sample in data.iter_mut() {
-                            *sample = 0;
-                        }
-                        return;
-                    };
-                    let samples = buf.pop_samples(data.len());
-
-                    for (i, sample) in data.iter_mut().enumerate() {
-                        if i < samples.len() {
-                            // Convert i16 to output and apply volume
-                            let scaled = (f32::from(samples[i]) * vol) as i16;
-                            *sample = scaled;
-                        } else {
-                            *sample = 0;
-                        }
-                    }
-                },
-                |err| {
-                    tracing::error!("[Audio] Stream error: {}", err);
-                },
-                None,
-            )
-            .map_err(|e| AudioError::StreamCreation(e.to_string()))?;
-
-        Ok(stream)
-    }
-
     /// Queues audio data for playback
     pub fn queue_data(&self, data: &[u8]) {
         if let Ok(mut buffer) = self.buffer.lock() {

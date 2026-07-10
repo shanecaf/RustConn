@@ -1,5 +1,7 @@
 use super::super::audio::RustConnAudioBackend;
 use super::super::clipboard::RustConnClipboardBackend;
+#[cfg(feature = "gfx-h264")]
+use super::super::gfx_handler::{GfxFrameUpdate, RustConnGfxHandler, try_load_openh264};
 use super::super::rdpdr::{RustConnRdpdrBackend, cups_default_printer, list_cups_printers};
 use super::super::{RdpClientConfig, RdpClientError, RdpClientEvent};
 use ironrdp::cliprdr::CliprdrClient;
@@ -15,6 +17,8 @@ use ironrdp::pdu::rdp::capability_sets::{
 use ironrdp::pdu::rdp::client_info::{PerformanceFlags, TimezoneInfo};
 use ironrdp::rdpdr::Rdpdr;
 use ironrdp::rdpsnd::client::Rdpsnd;
+#[cfg(feature = "gfx-h264")]
+use ironrdp_egfx::client::GraphicsPipelineClient;
 use ironrdp_tokio::TokioFramed;
 use ironrdp_tokio::reqwest::ReqwestNetworkClient;
 use secrecy::ExposeSecret;
@@ -24,7 +28,25 @@ use tokio::net::TcpStream;
 
 pub type UpgradedFramed = TokioFramed<ironrdp_tls::TlsStream<TcpStream>>;
 
+/// Result of a successful RDP connection establishment.
+///
+/// Wraps the framed transport, connection metadata, and optional GFX channel
+/// receiver (present only when `gfx-h264` feature is enabled).
+pub struct ConnectionSetup {
+    /// Framed TLS stream for the active session
+    pub framed: UpgradedFramed,
+    /// IronRDP connection result with negotiated capabilities
+    pub connection_result: ConnectionResult,
+    /// Receiver for decoded GFX frame updates from the EGFX pipeline.
+    /// The session loop drains this to blit RGBA→BGRA into the framebuffer.
+    #[cfg(feature = "gfx-h264")]
+    pub gfx_update_rx: std::sync::mpsc::Receiver<GfxFrameUpdate>,
+}
+
 /// Establishes the RDP connection and returns the framed stream and connection result.
+///
+/// When `gfx-h264` is enabled, also returns the GFX frame update receiver
+/// for the session loop to drain decoded bitmap updates from the EGFX pipeline.
 ///
 /// # TLS Certificate Policy
 ///
@@ -45,7 +67,7 @@ pub type UpgradedFramed = TokioFramed<ironrdp_tls::TlsStream<TcpStream>>;
 pub async fn establish_connection(
     config: &RdpClientConfig,
     event_tx: std::sync::mpsc::Sender<RdpClientEvent>,
-) -> Result<(UpgradedFramed, ConnectionResult), RdpClientError> {
+) -> Result<ConnectionSetup, RdpClientError> {
     use tokio::time::{Duration, timeout};
 
     let server_addr = config.server_address();
@@ -199,7 +221,11 @@ pub async fn establish_connection(
     // monitor layout on demand via ActiveStage::encode_resize, so nothing is emitted when
     // capabilities arrive — return an empty message set.
     let dc_ready_tx = event_tx.clone();
-    let drdynvc = DrdynvcClient::new()
+    #[cfg_attr(
+        not(feature = "gfx-h264"),
+        expect(unused_mut, reason = "mut needed when gfx-h264 adds a channel")
+    )]
+    let mut drdynvc = DrdynvcClient::new()
         .with_dynamic_channel(ironrdp::displaycontrol::client::DisplayControlClient::new(
             move |_caps| {
                 // Capabilities have arrived → the Display Control channel is
@@ -212,6 +238,32 @@ pub async fn establish_connection(
             },
         ))
         .with_dynamic_channel(EchoClient::new());
+
+    // Register EGFX Graphics Pipeline for H.264/AVC decoding when available.
+    // The channel is created unconditionally — the handler sends decoded frame
+    // updates to the session loop via mpsc. When the feature is off, this block
+    // is compiled out entirely.
+    //
+    // Fallback behavior (Req 6):
+    // - When `try_load_openh264()` returns None (library missing), the
+    //   `GraphicsPipelineClient` is created with `h264_decoder: None`. This causes
+    //   ironrdp-egfx to NOT advertise AVC codecs in capability exchange, so the
+    //   server falls back to uncompressed/RFX-progressive within the GFX channel.
+    // - When the `gfx-h264` feature is disabled at compile time, this entire block
+    //   is absent — no EGFX DVC is registered, and the session uses the existing
+    //   RemoteFX/Legacy rendering path identically to before (Req 6 AC 2, AC 5).
+    #[cfg(feature = "gfx-h264")]
+    let gfx_update_rx = {
+        let (gfx_update_tx, gfx_update_rx) = std::sync::mpsc::channel::<GfxFrameUpdate>();
+        let h264_decoder = try_load_openh264();
+        let h264_available = h264_decoder.is_some();
+        let handler = RustConnGfxHandler::new(gfx_update_tx, event_tx.clone());
+        let gfx_client = GraphicsPipelineClient::new(Box::new(handler), h264_decoder);
+        drdynvc = drdynvc.with_dynamic_channel(gfx_client);
+        tracing::info!(h264_available, "EGFX pipeline registered");
+        gfx_update_rx
+    };
+
     connector.static_channels.insert(drdynvc);
     tracing::debug!("DRDYNVC registered with DisplayControl + Echo channels");
 
@@ -346,7 +398,13 @@ pub async fn establish_connection(
     .await;
 
     if let Ok(result) = handshake_result {
-        result
+        let (framed, connection_result) = result?;
+        Ok(ConnectionSetup {
+            framed,
+            connection_result,
+            #[cfg(feature = "gfx-h264")]
+            gfx_update_rx,
+        })
     } else {
         tracing::error!(
             protocol = "rdp",
@@ -377,16 +435,21 @@ fn build_connector_config(config: &RdpClientConfig) -> Config {
     //
     // The ironrdp connector API requires an owned plain `String` password by
     // value; the copy's lifetime (and zeroization) is controlled by ironrdp,
-    // so wrapping the intermediate in `Zeroizing` would not protect the copy
-    // that lives inside the connector. Re-check on ironrdp bumps whether a
-    // secrecy-aware credentials type became available.
-    let credentials = Credentials::UsernamePassword {
-        username: config.username.clone().unwrap_or_default(),
-        password: config
+    // so wrapping the intermediate in `Zeroizing` protects only the temporary
+    // that bridges expose_secret() → Credentials construction. Re-check on
+    // ironrdp bumps whether a secrecy-aware credentials type became available.
+    let credentials = {
+        use zeroize::Zeroizing;
+        let pw = config
             .password
             .as_ref()
-            .map(|s| s.expose_secret().to_string())
-            .unwrap_or_default(),
+            .map(|s| Zeroizing::new(s.expose_secret().to_string()))
+            .unwrap_or_default();
+        Credentials::UsernamePassword {
+            username: config.username.clone().unwrap_or_default(),
+            // Clone into ironrdp's owned String; `pw` is zeroized on drop.
+            password: (*pw).clone(),
+        }
     };
 
     // NOTE: BitmapConfig affects two things:

@@ -140,6 +140,21 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.18.5" date="2026-07-11">
+      <description>
+        <p>Version 0.18.5 - GFX pipeline with H.264, embedded RDP improvements:</p>
+        <ul>
+          <li>EGFX graphics pipeline with H.264/AVC decoding via OpenH264 for dramatically better image quality over WAN</li>
+          <li>Native Display Scale mode now uses the real fractional compositor scale for pixel-perfect rendering on 125%/150% displays</li>
+          <li>Eliminated 3–4 redundant screen repaints on initial RDP connection (toolbar layout race)</li>
+          <li>Adaptive session polling reduces idle CPU usage by 3× on static desktops</li>
+          <li>Clipboard file transfers no longer stall the RDP event loop (async I/O)</li>
+          <li>Password intermediate is now zeroized immediately after handoff to IronRDP</li>
+          <li>Improved Cairo downscale filter quality (Filter::Good) when Display Scale exceeds 1×</li>
+          <li>Many bug fixes for terminal search, settings persistence, snippet editor, and more</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.18.4" date="2026-07-09">
       <description>
         <p>Version 0.18.4 - SFTP home directory, viewer cleanup, and dependency unblock:</p>

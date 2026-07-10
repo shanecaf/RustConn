@@ -83,6 +83,13 @@ impl ClipboardMessageProxy for RustConnClipboardProxy {
                 // IronRDP 0.15 adds file contents PDUs for clipboard file copy.
                 trace!("Clipboard file contents message received (not implemented)");
             }
+            ClipboardMessage::SendInitiateFileCopy(_file_descriptors) => {
+                // ironrdp 0.17: backend signals that a local file list is ready
+                // to be offered to the remote via CLIPRDR file copy. We already
+                // handle file copy via StoreLocalFiles command path, so this is
+                // a no-op for now.
+                trace!("Clipboard SendInitiateFileCopy received (handled via StoreLocalFiles)");
+            }
         }
     }
 }

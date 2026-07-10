@@ -510,13 +510,35 @@ impl MainWindow {
         let ssh_tunnels_action = gio::SimpleAction::new("ssh-tunnels", None);
         let window_weak = window.downgrade();
         let state_clone = state.clone();
+        let sidebar_clone = sidebar.clone();
         let tunnel_manager_clone = self.tunnel_manager.clone();
         ssh_tunnels_action.connect_activate(move |_, _| {
             if let Some(win) = window_weak.upgrade() {
+                // Opener for the tunnel builder's "New SSH Connection" button.
+                // Reuses the canonical new-connection dialog (which persists the
+                // connection and reloads the sidebar) and forwards the wizard's
+                // refresh callback so its connection list updates on success.
+                let opener_state = state_clone.clone();
+                let opener_sidebar = sidebar_clone.clone();
+                let opener_win = win.downgrade();
+                let on_new_connection: crate::dialogs::tunnel_builder::NewConnectionOpener =
+                    std::rc::Rc::new(move |refresh: std::rc::Rc<dyn Fn()>| {
+                        if let Some(w) = opener_win.upgrade() {
+                            super::connection_dialogs::show_new_connection_dialog_internal(
+                                w.upcast_ref(),
+                                opener_state.clone(),
+                                opener_sidebar.clone(),
+                                None,
+                                None,
+                                Some(refresh),
+                            );
+                        }
+                    });
                 let manager = crate::dialogs::TunnelManagerWindow::new(
                     Some(win.upcast_ref()),
                     state_clone.clone(),
                     tunnel_manager_clone.clone(),
+                    on_new_connection,
                 );
                 manager.present(Some(win.upcast_ref()));
             }

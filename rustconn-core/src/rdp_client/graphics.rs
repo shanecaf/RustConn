@@ -15,13 +15,14 @@
 //!
 //! - Legacy: Fully supported
 //! - RemoteFX: Supported
-//! - GFX/H.264: Not yet supported (requires upstream changes)
+//! - GFX/H.264: Supported via `ironrdp-egfx` (requires `gfx-h264` feature)
 
 #![allow(
     clippy::struct_excessive_bools,
     reason = "module-wide override for legacy code; refactored case by case"
 )]
 
+use crate::models::RdpPerformanceMode;
 use serde::{Deserialize, Serialize};
 
 /// Graphics mode for RDP sessions
@@ -81,7 +82,13 @@ impl GraphicsMode {
     /// Returns whether this mode is currently supported by IronRDP
     #[must_use]
     pub const fn is_supported(&self) -> bool {
-        matches!(self, Self::Auto | Self::Legacy | Self::RemoteFx)
+        match self {
+            Self::Auto | Self::Legacy | Self::RemoteFx => true,
+            #[cfg(feature = "gfx-h264")]
+            Self::Gfx | Self::GfxH264 | Self::GfxAvc444 => true,
+            #[cfg(not(feature = "gfx-h264"))]
+            _ => false,
+        }
     }
 }
 
@@ -149,12 +156,64 @@ impl ServerGraphicsCapabilities {
 
     /// Automatically selects the best supported mode
     fn auto_select(&self) -> GraphicsMode {
-        // Prefer modes in order of quality (but only if supported by IronRDP)
-        // Currently, H.264 modes aren't supported by IronRDP
+        #[cfg(feature = "gfx-h264")]
+        {
+            if self.supports_avc444 {
+                return GraphicsMode::GfxAvc444;
+            }
+            if self.supports_h264 {
+                return GraphicsMode::GfxH264;
+            }
+            if self.supports_gfx {
+                return GraphicsMode::Gfx;
+            }
+        }
         if self.supports_remotefx {
             GraphicsMode::RemoteFx
         } else {
             GraphicsMode::Legacy
+        }
+    }
+
+    /// Selects graphics mode based on `RdpPerformanceMode` preference
+    ///
+    /// - Quality → prefer GfxAvc444 (best image quality)
+    /// - Balanced → prefer GfxH264 (good quality, moderate bandwidth)
+    /// - Speed → prefer RemoteFX/Legacy (skip H.264 modes entirely)
+    ///
+    /// Falls back through the auto priority order if the preferred mode
+    /// is not supported by the server.
+    #[must_use]
+    pub fn select_for_performance_mode(&self, perf: RdpPerformanceMode) -> GraphicsMode {
+        match perf {
+            RdpPerformanceMode::Quality => {
+                #[cfg(feature = "gfx-h264")]
+                {
+                    if self.supports_avc444 {
+                        return GraphicsMode::GfxAvc444;
+                    }
+                }
+                // Fall through to auto priority
+                self.auto_select()
+            }
+            RdpPerformanceMode::Balanced => {
+                #[cfg(feature = "gfx-h264")]
+                {
+                    if self.supports_h264 {
+                        return GraphicsMode::GfxH264;
+                    }
+                }
+                // Fall through to auto priority
+                self.auto_select()
+            }
+            RdpPerformanceMode::Speed => {
+                // Skip all H.264 modes — prefer RemoteFX or Legacy
+                if self.supports_remotefx {
+                    GraphicsMode::RemoteFx
+                } else {
+                    GraphicsMode::Legacy
+                }
+            }
         }
     }
 
@@ -334,6 +393,10 @@ pub struct FrameStatistics {
     pub bytes_received: u64,
     /// Average decode time in microseconds
     pub avg_decode_time_us: u64,
+    /// H.264 decode/blit time in microseconds (exponential moving average, alpha=0.1)
+    pub h264_decode_time_us: u64,
+    /// Currently active graphics pipeline mode
+    pub active_graphics_mode: GraphicsMode,
     /// Current frames per second
     pub current_fps: f32,
     /// Peak frames per second
@@ -354,6 +417,8 @@ impl FrameStatistics {
             frames_dropped: 0,
             bytes_received: 0,
             avg_decode_time_us: 0,
+            h264_decode_time_us: 0,
+            active_graphics_mode: GraphicsMode::Auto,
             current_fps: 0.0,
             peak_fps: 0.0,
             last_update: None,
@@ -380,9 +445,37 @@ impl FrameStatistics {
     }
 
     /// Records a dropped frame
+    ///
+    /// When the frame drop rate exceeds 5% over 100+ frames, logs a
+    /// structured warning with performance metrics.
     pub fn record_dropped(&mut self) {
         self.frames_received += 1;
         self.frames_dropped += 1;
+
+        // AC 3: warn when drop rate > 5% over at least 100 frames
+        if self.frames_received >= 100 {
+            let drop_rate = self.frames_dropped as f64 / self.frames_received as f64;
+            if drop_rate > 0.05 {
+                tracing::warn!(
+                    drop_rate_percent = format_args!("{:.1}", drop_rate * 100.0),
+                    avg_decode_time_us = self.h264_decode_time_us,
+                    current_fps = format_args!("{:.1}", self.current_fps),
+                    "Frame drop rate exceeds 5% threshold"
+                );
+            }
+        }
+    }
+
+    /// Updates the H.264 decode/blit time EMA (exponential moving average, alpha=0.1)
+    ///
+    /// Call this with each measured blit duration in microseconds.
+    pub fn update_h264_decode_time(&mut self, sample_us: u64) {
+        if self.h264_decode_time_us == 0 {
+            self.h264_decode_time_us = sample_us;
+        } else {
+            // EMA: alpha=0.1 → new/10 + old*9/10
+            self.h264_decode_time_us = (sample_us / 10) + (self.h264_decode_time_us * 9 / 10);
+        }
     }
 
     /// Updates FPS calculation
@@ -451,7 +544,20 @@ mod tests {
     fn test_graphics_mode_supported() {
         assert!(GraphicsMode::Legacy.is_supported());
         assert!(GraphicsMode::RemoteFx.is_supported());
-        assert!(!GraphicsMode::GfxH264.is_supported());
+
+        #[cfg(feature = "gfx-h264")]
+        {
+            assert!(GraphicsMode::Gfx.is_supported());
+            assert!(GraphicsMode::GfxH264.is_supported());
+            assert!(GraphicsMode::GfxAvc444.is_supported());
+        }
+
+        #[cfg(not(feature = "gfx-h264"))]
+        {
+            assert!(!GraphicsMode::Gfx.is_supported());
+            assert!(!GraphicsMode::GfxH264.is_supported());
+            assert!(!GraphicsMode::GfxAvc444.is_supported());
+        }
     }
 
     #[test]
@@ -471,7 +577,14 @@ mod tests {
         assert!(caps.supports_remotefx);
         assert!(caps.supports_gfx);
         assert!(caps.supports_h264);
-        // Auto should select RemoteFX since H.264 isn't supported by IronRDP yet
+
+        #[cfg(feature = "gfx-h264")]
+        assert_eq!(
+            caps.select_best_mode(GraphicsMode::Auto),
+            GraphicsMode::GfxAvc444
+        );
+
+        #[cfg(not(feature = "gfx-h264"))]
         assert_eq!(
             caps.select_best_mode(GraphicsMode::Auto),
             GraphicsMode::RemoteFx

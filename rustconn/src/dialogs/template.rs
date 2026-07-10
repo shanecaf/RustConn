@@ -2752,29 +2752,24 @@ impl TemplateDialog {
             self.icon_entry.set_text(icon);
         }
 
-        let protocol_idx: u32 = match template.protocol {
-            ProtocolType::Ssh => 0,
-            ProtocolType::Rdp => 1,
-            ProtocolType::Vnc => 2,
-            ProtocolType::Spice => 3,
-            ProtocolType::ZeroTrust => 4,
-            ProtocolType::Telnet => 5,
-            ProtocolType::Serial => 6,
-            ProtocolType::Sftp => 7,
-            ProtocolType::Kubernetes => 8,
-            ProtocolType::Mosh => 9,
-            ProtocolType::Web => 10,
+        // The protocol dropdown and stack only represent these six protocols
+        // (indices must match the `StringList` model and the `add_named` pages
+        // built in `new`). Index and stack page are derived together from a
+        // single match so they can never drift apart again.
+        // ponytail: templates of other protocol kinds (Serial/Sftp/Kubernetes/
+        // Mosh/Web) can't be created through this dialog today, so they fall
+        // back to the SSH view; add dedicated pages + dropdown entries here if
+        // template creation ever gains those protocols.
+        let (protocol_idx, stack_page): (u32, &str) = match template.protocol {
+            ProtocolType::Rdp => (1, "rdp"),
+            ProtocolType::Vnc => (2, "vnc"),
+            ProtocolType::Spice => (3, "spice"),
+            ProtocolType::ZeroTrust => (4, "zerotrust"),
+            ProtocolType::Telnet => (5, "telnet"),
+            _ => (0, "ssh"),
         };
         self.protocol_dropdown.set_selected(protocol_idx);
-        self.protocol_stack
-            .set_visible_child_name(match protocol_idx {
-                1 => "rdp",
-                2 => "vnc",
-                3 => "spice",
-                4 => "zerotrust",
-                6 => "serial",
-                _ => "ssh",
-            });
+        self.protocol_stack.set_visible_child_name(stack_page);
 
         self.host_entry.set_text(&template.host);
         self.port_spin.set_value(f64::from(template.port));

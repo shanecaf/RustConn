@@ -289,6 +289,11 @@ impl ConnectionDialogData<'_> {
                 return Err(i18n("Device path is required for serial connections"));
             }
         }
+
+        // Zero Trust requires the selected provider's identifying field(s)
+        if is_zerotrust {
+            self.validate_zerotrust()?;
+        }
         if protocol_idx == 0 {
             // SSH
             let auth_idx = self.ssh_auth_dropdown.selected();
@@ -346,6 +351,87 @@ impl ConnectionDialogData<'_> {
         rustconn_core::dialog_utils::validate_icon(icon_text.trim())
             .map_err(|e| i18n(&e.to_string()))?;
 
+        Ok(())
+    }
+
+    /// Validates that the selected Zero Trust provider has its required
+    /// identifying field(s) filled in.
+    ///
+    /// Only the fields that form the provider's target identity are checked;
+    /// genuinely optional fields (AWS profile/region, Teleport cluster, Hoop.dev
+    /// URLs, …) are left to their defaults. Indices match `zt_provider_dropdown`
+    /// and [`Self::build_zerotrust_config`].
+    fn validate_zerotrust(&self) -> Result<(), String> {
+        let filled = |row: &adw::EntryRow| !row.text().trim().is_empty();
+        match self.zt_provider_dropdown.selected() {
+            0 => {
+                if !filled(self.zt_aws_target_entry) {
+                    return Err(i18n("AWS SSM target instance ID is required"));
+                }
+            }
+            1 => {
+                if !filled(self.zt_gcp_instance_entry) || !filled(self.zt_gcp_zone_entry) {
+                    return Err(i18n("GCP instance name and zone are required"));
+                }
+            }
+            2 => {
+                if !filled(self.zt_azure_bastion_resource_id_entry)
+                    || !filled(self.zt_azure_bastion_rg_entry)
+                    || !filled(self.zt_azure_bastion_name_entry)
+                {
+                    return Err(i18n(
+                        "Azure Bastion resource ID, resource group, and bastion name are required",
+                    ));
+                }
+            }
+            3 => {
+                if !filled(self.zt_azure_ssh_vm_entry) || !filled(self.zt_azure_ssh_rg_entry) {
+                    return Err(i18n("Azure VM name and resource group are required"));
+                }
+            }
+            4 => {
+                if !filled(self.zt_oci_bastion_id_entry)
+                    || !filled(self.zt_oci_target_id_entry)
+                    || !filled(self.zt_oci_target_ip_entry)
+                {
+                    return Err(i18n(
+                        "OCI bastion OCID, target OCID, and target private IP are required",
+                    ));
+                }
+            }
+            5 => {
+                if !filled(self.zt_cf_hostname_entry) {
+                    return Err(i18n("Cloudflare Access hostname is required"));
+                }
+            }
+            6 => {
+                if !filled(self.zt_teleport_host_entry) {
+                    return Err(i18n("Teleport host is required"));
+                }
+            }
+            7 => {
+                if !filled(self.zt_tailscale_host_entry) {
+                    return Err(i18n("Tailscale host is required"));
+                }
+            }
+            8 => {
+                if !filled(self.zt_boundary_target_entry) {
+                    return Err(i18n("Boundary target is required"));
+                }
+            }
+            9 => {
+                if !filled(self.zt_hoop_connection_name_entry) {
+                    return Err(i18n("Hoop.dev connection name is required"));
+                }
+            }
+            _ => {
+                if !filled(self.zt_generic_command_entry) {
+                    return Err(i18n(
+                        "Command template is required for the Generic provider",
+                    ));
+                }
+            }
+        }
         Ok(())
     }
 
@@ -1113,6 +1199,27 @@ impl ConnectionDialogData<'_> {
         }
     }
 
+    /// Reads the currently selected agent key from the agent-key dropdown.
+    ///
+    /// Returns the `(key_source, key_path, agent_key_fingerprint)` triple used
+    /// by [`Self::build_ssh_config`]; falls back to `Default` when the dropdown
+    /// selection is out of range (e.g. no keys loaded from the agent).
+    fn ssh_agent_key_selection(&self) -> (SshKeySource, Option<PathBuf>, Option<String>) {
+        let keys = self.ssh_agent_keys.borrow();
+        let selected_idx = self.ssh_agent_key_dropdown.selected() as usize;
+        keys.get(selected_idx)
+            .map_or((SshKeySource::Default, None, None), |key| {
+                (
+                    SshKeySource::Agent {
+                        fingerprint: key.fingerprint.clone(),
+                        comment: key.comment.clone(),
+                    },
+                    None,
+                    Some(key.fingerprint.clone()),
+                )
+            })
+    }
+
     fn build_ssh_config(&self) -> SshConfig {
         let auth_method = match self.ssh_auth_dropdown.selected() {
             1 => SshAuthMethod::PublicKey,
@@ -1122,9 +1229,25 @@ impl ConnectionDialogData<'_> {
             _ => SshAuthMethod::Password, // 0 and any other value default to Password
         };
 
-        // Build key_source based on dropdown selection
-        let (key_source, key_path, agent_key_fingerprint) =
-            match self.ssh_key_source_dropdown.selected() {
+        // Derive the key material. Most auth methods follow the explicit
+        // key-source selector, but SSH Agent and Security Key (FIDO2) auth
+        // replace that selector in the UI with their own row (the agent-key
+        // dropdown / the key-file entry). Their key material must therefore be
+        // read from those rows directly — the key-source dropdown is hidden for
+        // them and stays at its stale Default value, so consulting it would
+        // silently drop the selected agent key or the sk key path.
+        let (key_source, key_path, agent_key_fingerprint) = match auth_method {
+            SshAuthMethod::Agent => self.ssh_agent_key_selection(),
+            SshAuthMethod::SecurityKey => {
+                let text = self.ssh_key_entry.text();
+                if text.trim().is_empty() {
+                    (SshKeySource::Default, None, None)
+                } else {
+                    let path = PathBuf::from(text.trim().to_string());
+                    (SshKeySource::File { path: path.clone() }, Some(path), None)
+                }
+            }
+            _ => match self.ssh_key_source_dropdown.selected() {
                 1 => {
                     // File source
                     let text = self.ssh_key_entry.text();
@@ -1135,37 +1258,12 @@ impl ConnectionDialogData<'_> {
                         (SshKeySource::File { path: path.clone() }, Some(path), None)
                     }
                 }
-                2 => {
-                    // Agent source
-                    let keys = self.ssh_agent_keys.borrow();
-                    let selected_idx = self.ssh_agent_key_dropdown.selected() as usize;
-                    if selected_idx < keys.len() {
-                        let key = &keys[selected_idx];
-                        (
-                            SshKeySource::Agent {
-                                fingerprint: key.fingerprint.clone(),
-                                comment: key.comment.clone(),
-                            },
-                            None,
-                            Some(key.fingerprint.clone()),
-                        )
-                    } else {
-                        (SshKeySource::Default, None, None)
-                    }
-                }
-                _ => {
-                    // Default (0) or any other value
-                    (SshKeySource::Default, None, None)
-                }
-            };
-
-        // If key source is Inherit (index 3), override to SshKeySource::Inherit
-        let (key_source, key_path, agent_key_fingerprint) =
-            if self.ssh_key_source_dropdown.selected() == 3 {
-                (SshKeySource::Inherit, None, None)
-            } else {
-                (key_source, key_path, agent_key_fingerprint)
-            };
+                2 => self.ssh_agent_key_selection(),
+                3 => (SshKeySource::Inherit, None, None),
+                // Default (0) or any other value
+                _ => (SshKeySource::Default, None, None),
+            },
+        };
 
         let startup_command = {
             let text = self.ssh_startup_entry.text();

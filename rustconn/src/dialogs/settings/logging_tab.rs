@@ -87,6 +87,7 @@ pub fn create_logging_page() -> (
     let log_activity_clone = log_activity_row.clone();
     let log_input_clone = log_input_row.clone();
     let log_output_clone = log_output_row.clone();
+    let log_timestamps_clone = log_timestamps_row.clone();
     logging_enabled_row.connect_active_notify(move |row| {
         let state = row.is_active();
         log_dir_entry_clone.set_sensitive(state);
@@ -94,6 +95,7 @@ pub fn create_logging_page() -> (
         log_activity_clone.set_sensitive(state);
         log_input_clone.set_sensitive(state);
         log_output_clone.set_sensitive(state);
+        log_timestamps_clone.set_sensitive(state);
     });
 
     (
@@ -139,6 +141,7 @@ pub fn load_logging_settings(
     log_activity_row.set_sensitive(enabled);
     log_input_row.set_sensitive(enabled);
     log_output_row.set_sensitive(enabled);
+    log_timestamps_row.set_sensitive(enabled);
 }
 
 /// Collects logging settings from UI controls

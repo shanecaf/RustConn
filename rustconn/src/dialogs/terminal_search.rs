@@ -27,7 +27,6 @@ pub struct TerminalSearchDialog {
     match_label: Label,
     terminal: Terminal,
     current_search: Rc<RefCell<String>>,
-    close_btn: Button,
     prev_btn: Button,
     next_btn: Button,
     /// Parent widget for presenting the dialog.
@@ -49,9 +48,6 @@ impl TerminalSearchDialog {
 
         // Header bar with standard window close button (×) per GNOME HIG
         let header = adw::HeaderBar::new();
-
-        // Invisible close_btn kept for signal wiring (cleanup on close)
-        let close_btn = Button::builder().visible(false).build();
 
         // Create main content
         let content = GtkBox::new(Orientation::Vertical, 12);
@@ -131,7 +127,6 @@ impl TerminalSearchDialog {
             match_label,
             terminal,
             current_search,
-            close_btn,
             prev_btn,
             next_btn,
             parent: parent_widget,
@@ -143,13 +138,12 @@ impl TerminalSearchDialog {
 
     /// Sets up signal handlers for the dialog
     fn setup_signals(&self) {
-        // Close button handler — clear highlights on close
-        let dialog = self.dialog.clone();
+        // Clear terminal search highlights whenever the dialog closes, by any
+        // means — the header-bar × button, Escape, or a programmatic close.
         let terminal_close = self.terminal.clone();
-        self.close_btn.connect_clicked(move |_| {
+        self.dialog.connect_closed(move |_| {
             terminal_close.match_remove_all();
             terminal_close.search_set_regex(None, 0);
-            dialog.close();
         });
 
         // Search on text change
@@ -275,12 +269,10 @@ impl TerminalSearchDialog {
 
         // Handle Escape key to close — clear highlights
         let dialog_escape = self.dialog.clone();
-        let terminal_escape = self.terminal.clone();
         let key_controller = gtk4::EventControllerKey::new();
         key_controller.connect_key_pressed(move |_, key, _, _| {
             if key == gtk4::gdk::Key::Escape {
-                terminal_escape.match_remove_all();
-                terminal_escape.search_set_regex(None, 0);
+                // Highlights are cleared by the `connect_closed` handler above.
                 dialog_escape.close();
                 return gtk4::glib::Propagation::Stop;
             }

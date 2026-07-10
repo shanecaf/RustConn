@@ -1314,18 +1314,18 @@ impl ScaleOverride {
     /// [`Self::Native`].
     ///
     /// `Auto` returns `1.0`: the remote desktop is requested at the widget's
-    /// logical resolution (device pixels ÷ compositor scale), which minimises
-    /// the pixels transmitted over the network — the framebuffer is upscaled
-    /// locally for HiDPI display. `Native` returns `system_scale`, so a HiDPI
-    /// screen gets a full-resolution ("retina") remote desktop that adapts if
-    /// the window moves to a monitor with a different scale. The explicit steps
-    /// request a proportionally larger remote resolution for a sharper image at
-    /// higher bandwidth.
+    /// logical resolution, minimising network traffic. On fractional-scaling
+    /// displays (125%, 150%) this means the compositor applies bilinear upscale
+    /// — slightly softer text but much faster over WAN. For pixel-perfect
+    /// sharpness on fractional displays, use `Native`.
     ///
-    /// Note: `Auto` used to follow the system scale factor, which pushed
-    /// scale-inflated device resolutions (e.g. 3868×2518 on a 4K@200% display)
-    /// over the wire and slowed the session down for no real gain when the
-    /// server ignores the DPI hint. That behaviour is now the opt-in `Native`.
+    /// `Native` returns the real compositor scale (including fractional values
+    /// like 1.25), so the RDP framebuffer matches device pixels exactly —
+    /// the compositor renders 1:1 with no interpolation. Costs more bandwidth
+    /// (≈56% more pixels at 125%) but eliminates blur.
+    ///
+    /// The explicit steps (125%–400%) request a fixed multiplier regardless of
+    /// the display.
     #[must_use]
     pub fn resolved_scale(self, system_scale: f64) -> f64 {
         match self {

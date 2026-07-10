@@ -542,15 +542,6 @@ impl ExportDialog {
         }
     }
 
-    /// Gets the export options
-    #[must_use]
-    pub fn get_export_options(&self) -> Option<ExportOptions> {
-        self.get_output_path().map(|output_path| {
-            ExportOptions::new(self.get_selected_format(), output_path)
-                .with_groups(self.include_groups_row.is_active())
-        })
-    }
-
     /// Sets the connections to export
     pub fn set_connections(&self, connections: Vec<Connection>) {
         *self.connections.borrow_mut() = connections;

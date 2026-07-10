@@ -195,6 +195,22 @@ impl WorkspaceManagerDialog {
             }
         });
 
+        // Activating a row (double-click / Enter) triggers the primary action
+        // (Open), matching the activatable rows in the list.
+        let items_for_activate = items.clone();
+        let cb_open_activate = on_open.clone();
+        let dialog_for_activate = dialog.clone();
+        list_box.connect_row_activated(move |_, row| {
+            let idx = row.index() as usize;
+            let id = items_for_activate.borrow().get(idx).map(|(id, _, _)| *id);
+            if let Some(id) = id {
+                if let Some(ref cb) = *cb_open_activate.borrow() {
+                    cb(id);
+                }
+                dialog_for_activate.close();
+            }
+        });
+
         // Rename button
         let sel_for_rename = selected_id.clone();
         let cb_rename = on_rename.clone();
@@ -245,18 +261,48 @@ impl WorkspaceManagerDialog {
             alert.present(Some(&dialog_for_rename));
         });
 
-        // Delete button
+        // Delete button — confirm first (GNOME HIG: destructive actions),
+        // matching the tunnel/cluster managers.
         let sel_for_del = selected_id.clone();
         let cb_del = on_delete.clone();
+        let items_for_del = items.clone();
+        let dialog_for_del = dialog.clone();
         delete_button.connect_clicked(move |_| {
-            // Copy the id and release the borrow before the callback, which
-            // calls `refresh_list` → `row-selected` → re-borrows `selected_id`.
-            let selected = *sel_for_del.borrow();
-            if let Some(id) = selected
-                && let Some(ref cb) = *cb_del.borrow()
-            {
-                cb(id);
-            }
+            // Copy the id and release the borrow before showing the dialog.
+            let Some(id) = *sel_for_del.borrow() else {
+                return;
+            };
+            let name = items_for_del
+                .borrow()
+                .iter()
+                .find(|(ws_id, _, _)| *ws_id == id)
+                .map(|(_, name, _)| name.clone())
+                .unwrap_or_default();
+
+            let confirm = adw::AlertDialog::new(
+                Some(&i18n("Delete Workspace?")),
+                Some(&i18n_f(
+                    "Workspace \"{}\" will be permanently removed.",
+                    &[&name],
+                )),
+            );
+            confirm.add_response("cancel", &i18n("Cancel"));
+            confirm.add_response("delete", &i18n("Delete"));
+            confirm.set_response_appearance("delete", adw::ResponseAppearance::Destructive);
+            confirm.set_default_response(Some("cancel"));
+            confirm.set_close_response("cancel");
+
+            let cb_clone = cb_del.clone();
+            confirm.connect_response(None, move |_, response| {
+                if response != "delete" {
+                    return;
+                }
+                if let Some(ref cb) = *cb_clone.borrow() {
+                    cb(id);
+                }
+            });
+
+            confirm.present(Some(&dialog_for_del));
         });
 
         // Save current

@@ -217,7 +217,7 @@ impl StepConnectionPage {
             }
         });
 
-        let mut page_obj = Self {
+        let page_obj = Self {
             page,
             state,
             name_row,
@@ -394,7 +394,7 @@ impl StepConnectionPage {
     }
 
     /// Refreshes the connection lists from state
-    pub fn refresh_connections(&mut self) {
+    pub fn refresh_connections(&self) {
         let ssh_connections = {
             let state_ref = self.state.borrow();
             let mut conns: Vec<Connection> = state_ref
