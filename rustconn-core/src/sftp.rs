@@ -374,7 +374,7 @@ pub fn resolve_remote_home(connection: &Connection, groups: &[ConnectionGroup]) 
                 .find(|line| line.starts_with('/'))
                 .map(str::to_string);
             if let Some(home) = &path {
-                tracing::debug!(%target, %home, "Resolved remote home directory")
+                tracing::debug!(%target, %home, "Resolved remote home directory");
             } else {
                 tracing::debug!(
                     %target,
