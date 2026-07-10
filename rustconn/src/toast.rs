@@ -279,7 +279,7 @@ pub fn show_undo_toast_on_window(
         && let Some(overlay) = find_toast_overlay(&child)
     {
         let toast = adw::Toast::new(message);
-        toast.set_button_label(Some("Undo"));
+        toast.set_button_label(Some(&crate::i18n::i18n("Undo")));
         toast.set_action_name(Some("win.undo-delete"));
         toast.set_action_target_value(Some(&glib::Variant::from(action_target)));
         overlay.add_toast(toast);
