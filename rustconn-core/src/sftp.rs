@@ -319,13 +319,22 @@ pub fn resolve_remote_home(connection: &Connection, groups: &[ConnectionGroup]) 
     } else {
         format!("{user}@{}", connection.host)
     };
-    cmd.arg(target)
+    cmd.arg(&target)
         .arg("pwd")
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::null())
+        // Capture stderr so a failing probe can be diagnosed (issue #212): on
+        // Ubuntu 26.04 the probe silently failed and there was no way to see
+        // why. Logged at debug level below; run with `RUST_LOG=debug`.
+        .stderr(std::process::Stdio::piped())
         // Strip host SSH_ASKPASS so BatchMode is not defeated by a GUI prompt.
         .env_remove("SSH_ASKPASS");
+
+    tracing::debug!(
+        %target,
+        port = connection.port,
+        "Probing remote home directory via `ssh … pwd` (issue #212)"
+    );
     // Honour a per-connection/group ssh-agent socket override so the probe
     // authenticates with the same agent the real connection uses; otherwise
     // BatchMode would fail and reintroduce the server-root landing (#212).
@@ -336,18 +345,46 @@ pub fn resolve_remote_home(connection: &Connection, groups: &[ConnectionGroup]) 
     );
 
     // Take the last absolute-looking line, ignoring any stray banner output.
-    let resolved = cmd
-        .output()
-        .ok()
-        .filter(|o| o.status.success())
-        .and_then(|o| {
-            String::from_utf8_lossy(&o.stdout)
+    // Each failure mode is logged distinctly so `RUST_LOG=debug` reveals why a
+    // probe fell back to the server root (issue #212): spawn error, non-zero
+    // exit (usually BatchMode auth failure — stderr carries the reason), or
+    // output with no absolute path.
+    let resolved = match cmd.output() {
+        Err(e) => {
+            tracing::warn!(%target, error = %e, "`ssh … pwd` probe could not run");
+            None
+        }
+        Ok(o) if !o.status.success() => {
+            let stderr = String::from_utf8_lossy(&o.stderr);
+            tracing::debug!(
+                %target,
+                status = ?o.status.code(),
+                stderr = %stderr.trim(),
+                "`ssh … pwd` probe failed (likely BatchMode auth); \
+                 falling back to server root"
+            );
+            None
+        }
+        Ok(o) => {
+            let stdout = String::from_utf8_lossy(&o.stdout);
+            let path = stdout
                 .lines()
                 .rev()
                 .map(str::trim)
                 .find(|line| line.starts_with('/'))
-                .map(str::to_string)
-        });
+                .map(str::to_string);
+            match &path {
+                Some(home) => tracing::debug!(%target, %home, "Resolved remote home directory"),
+                None => tracing::debug!(
+                    %target,
+                    stdout = %stdout.trim(),
+                    "`ssh … pwd` probe returned no absolute path; \
+                     falling back to server root"
+                ),
+            }
+            path
+        }
+    };
 
     // Cache the outcome, including failure (`None`), for the session.
     if let Ok(mut cache) = home_cache().lock() {

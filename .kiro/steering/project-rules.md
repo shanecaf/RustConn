@@ -35,6 +35,7 @@ Before writing any code, stop at the first rung that holds:
 - No abstractions, traits, or generics that weren't asked for. No boilerplate nobody requested.
 - No new crate if it can be avoided (also respects `cargo deny` / supply-chain).
 - Question complex requests: "Do you actually need X, or does Y cover it?"
+- Architectural decisions (new crate, protocol backend, storage/secret model, threading) name at least two alternatives and why the pick won, in the reply or commit body. One-liner is enough; the point is the discarded option is on record.
 - Bug fix = root cause, not symptom. A report names one symptom; grep every caller of the function you touch and fix the shared function once (one guard in `rustconn-core` beats one per caller in `rustconn`). Patching only the path the ticket names leaves sibling callers broken.
 - When two `std` approaches are the same size, pick the edge-case-correct one. Lazy means less code, not the flimsier algorithm.
 - Mark intentional simplifications with a `// ponytail:` comment that names the ceiling and the upgrade path, e.g. `// ponytail: O(n²) scan, fine for <100 hosts; index if the list grows`.
@@ -90,6 +91,22 @@ After writing `.rs` files in `rustconn/src/`, verify (these stay mental — caug
 - Run `rust-quality-check` sub-agent only when: (a) about to commit, (b) user explicitly asks, (c) finishing a multi-file feature.
 - Run tests only when: (a) user explicitly asks, (b) finishing a spec task, (c) before release.
 - After completing work, inform the user: "Done. Run quality check (fmt+clippy)?" — wait for confirmation.
+
+### Learning Loop (after non-trivial tasks)
+
+When a task surfaced something worth keeping for next time — an interpretation of an ambiguous request, an intentional deviation from these rules, or a tradeoff between two approaches — record it once with `kirograph_mem_store` (kind `decision`/`pattern`), or propose a one-line addition to a `.kiro/steering` file if it's a durable project rule. Fire only when there's a real lesson; most tasks add nothing, and that's fine. Don't re-store what memory already holds — `kirograph_mem_search` first.
+
+### Definition of Done (goal-loop acceptance gate)
+
+A task is done ONLY when all hold — this is the finish line for `/goal` loops and any self-verification:
+
+1. `cargo clippy --all-targets` → 0 warnings
+2. `cargo test --workspace` green (or the targeted tests for the change)
+3. Crate boundaries intact (no gtk4/adw/vte4 in core/cli, no `unsafe` outside `rustconn-pty-sys`)
+4. New user-facing strings wrapped in `i18n()`/`i18n_f()` + POT updated (`bash po/update-pot.sh`)
+5. No debug leftovers (`dbg!`/`todo!`/`println!`/`eprintln!`)
+
+If a goal-loop can't reach this within its iterations, STOP and report what's blocking — never loosen the gate (drop a test, silence clippy, skip i18n) just to "finish".
 
 ### Test Run Rules (CRITICAL)
 
