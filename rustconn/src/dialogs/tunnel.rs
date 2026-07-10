@@ -7,7 +7,9 @@
 //! The add/edit functionality is delegated to `TunnelBuilderDialog`
 //! (see `tunnel_builder` module).
 
-use crate::dialogs::tunnel_builder::{TunnelBuilderContext, TunnelBuilderDialog};
+use crate::dialogs::tunnel_builder::{
+    NewConnectionOpener, TunnelBuilderContext, TunnelBuilderDialog,
+};
 use crate::i18n::i18n;
 use crate::state::{SharedAppState, with_state, with_state_mut};
 use crate::window::SharedTunnelManager;
@@ -34,6 +36,7 @@ pub struct TunnelManagerWindow {
     active_group: Rc<RefCell<adw::PreferencesGroup>>,
     stopped_group: Rc<RefCell<adw::PreferencesGroup>>,
     prefs_page: adw::PreferencesPage,
+    on_new_connection: NewConnectionOpener,
 }
 
 impl TunnelManagerWindow {
@@ -43,6 +46,7 @@ impl TunnelManagerWindow {
         _parent: Option<&gtk4::Window>,
         state: SharedAppState,
         tunnel_manager: SharedTunnelManager,
+        on_new_connection: NewConnectionOpener,
     ) -> Self {
         let dialog = adw::Dialog::builder()
             .title(i18n("SSH Tunnels"))
@@ -128,6 +132,7 @@ impl TunnelManagerWindow {
             active_group,
             stopped_group,
             prefs_page,
+            on_new_connection,
         };
 
         // Wire up add buttons
@@ -139,9 +144,18 @@ impl TunnelManagerWindow {
             let stopped_g = manager.stopped_group.clone();
             let stack_c = manager.content_stack.clone();
             let page_c = manager.prefs_page.clone();
+            let new_conn_c = manager.on_new_connection.clone();
             add_button.connect_clicked(move |_| {
                 open_tunnel_builder(
-                    &dialog_c, &state_c, None, &tm_c, &active_g, &stopped_g, &stack_c, &page_c,
+                    &dialog_c,
+                    &state_c,
+                    None,
+                    &tm_c,
+                    &active_g,
+                    &stopped_g,
+                    &stack_c,
+                    &page_c,
+                    &new_conn_c,
                 );
             });
         }
@@ -153,9 +167,18 @@ impl TunnelManagerWindow {
             let stopped_g = manager.stopped_group.clone();
             let stack_c = manager.content_stack.clone();
             let page_c = manager.prefs_page.clone();
+            let new_conn_c = manager.on_new_connection.clone();
             empty_add_button.connect_clicked(move |_| {
                 open_tunnel_builder(
-                    &dialog_c, &state_c, None, &tm_c, &active_g, &stopped_g, &stack_c, &page_c,
+                    &dialog_c,
+                    &state_c,
+                    None,
+                    &tm_c,
+                    &active_g,
+                    &stopped_g,
+                    &stack_c,
+                    &page_c,
+                    &new_conn_c,
                 );
             });
         }
@@ -206,6 +229,7 @@ impl TunnelManagerWindow {
             stopped_group: self.stopped_group.clone(),
             content_stack: self.content_stack.clone(),
             prefs_page: self.prefs_page.clone(),
+            on_new_connection: self.on_new_connection.clone(),
         });
 
         let tm = self.tunnel_manager.borrow();
@@ -247,6 +271,7 @@ struct TunnelRowContext {
     stopped_group: Rc<RefCell<adw::PreferencesGroup>>,
     content_stack: gtk4::Stack,
     prefs_page: adw::PreferencesPage,
+    on_new_connection: NewConnectionOpener,
 }
 
 /// Builds an `adw::ExpanderRow` for a single tunnel definition
@@ -429,6 +454,7 @@ fn wire_tunnel_row_actions(
                 &ctx_c.stopped_group,
                 &ctx_c.content_stack,
                 &ctx_c.prefs_page,
+                &ctx_c.on_new_connection,
             );
         });
     }
@@ -559,6 +585,7 @@ fn refresh_from_context(ctx: &TunnelRowContext) {
         stopped_group: ctx.stopped_group.clone(),
         content_stack: ctx.content_stack.clone(),
         prefs_page: ctx.prefs_page.clone(),
+        on_new_connection: ctx.on_new_connection.clone(),
     });
 
     let tm = ctx.tunnel_manager.borrow();
@@ -595,6 +622,7 @@ fn open_tunnel_builder(
     stopped_group: &Rc<RefCell<adw::PreferencesGroup>>,
     content_stack: &gtk4::Stack,
     prefs_page: &adw::PreferencesPage,
+    on_new_connection: &NewConnectionOpener,
 ) {
     // Build the on_save callback that refreshes the tunnel list
     let refresh_ctx = TunnelRowContext {
@@ -605,6 +633,7 @@ fn open_tunnel_builder(
         stopped_group: stopped_group.clone(),
         content_stack: content_stack.clone(),
         prefs_page: prefs_page.clone(),
+        on_new_connection: on_new_connection.clone(),
     };
 
     let on_save: Rc<RefCell<Option<Box<dyn Fn()>>>> =
@@ -617,6 +646,7 @@ fn open_tunnel_builder(
         tunnel_manager: tunnel_manager.clone(),
         parent_window: parent.clone(),
         on_save,
+        on_new_connection: on_new_connection.clone(),
     };
 
     let builder = TunnelBuilderDialog::new(ctx);
