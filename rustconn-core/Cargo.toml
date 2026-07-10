@@ -61,15 +61,15 @@ zune-jpeg = { version = "0.5.15", optional = true }
 # Features: cliprdr (clipboard), rdpdr (shared folders + printer), dvc (dynamic channels),
 # displaycontrol (dynamic resolution), rdpsnd (audio), echo (RTT measurement)
 #
-# ON UPGRADE — re-check whether these are now usable upstream (each currently
-# forces a fallback or is a dead config field; see analysis 2026-06):
+# ON UPGRADE (0.17 → next) — re-check whether these are now usable upstream:
 #   * RAIL / RemoteApp (MS-RDPERP): only opaque CapabilitySet::Rail buffer exists,
 #     no channel/handshake → RemoteApp still forces external xfreerdp3 fallback.
-#   * GFX pipeline + H.264/AVC444 (MS-RDPEGFX): graphics.rs GfxH264/GfxAvc444
-#     report is_supported()==false.
+#   * GFX pipeline + H.264/AVC444 (MS-RDPEGFX): ironrdp-egfx 0.3 now provides
+#     DVC processor + OpenH264 integration. Requires separate integration work
+#     (register EGFX DVC, process surface commands, decode H.264 frames).
 #   * Audio input / microphone (MS-RDPEAI): no channel → microphone_enabled is dead.
 #   * Drive change notifications: needs ClientDriveNotifyChangeDirectoryResponse PDU
-#     (see TODO in rdp_client/rdpdr.rs::poll_directory_changes).
+#     (check if ironrdp-rdpdr 0.7 added it).
 ironrdp = { version = "0.17", features = [
     "connector", "session", "graphics", "pdu", "core", "svc",
     "cliprdr",        # Clipboard redirection
