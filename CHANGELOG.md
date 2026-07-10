@@ -5,6 +5,12 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.5] - 2026-07-10
+
+### Fixed
+
+- **"Save & Connect" from the connection wizard created the connection but never connected** — both the new-connection wizard and "Duplicate via Wizard" paths, on the *Save & Connect* result, activated a `connect-by-id` window action that does not exist (the real action is `connect-to`, with the same string parameter). GTK silently logged "no action" and the freshly saved connection was left disconnected, so the combined "save and connect" affordance behaved like a plain "save". Both call sites now activate `connect-to`, so the wizard connects immediately after saving as intended
+
 ## [0.18.4] - 2026-07-09
 
 ### Added

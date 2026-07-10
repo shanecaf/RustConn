@@ -2467,7 +2467,7 @@ impl MainWindow {
                                 let variant = conn_id_outer.to_string().to_variant();
                                 gio::prelude::ActionGroupExt::activate_action(
                                     &win,
-                                    "connect-by-id",
+                                    "connect-to",
                                     Some(&variant),
                                 );
                             }
@@ -2641,7 +2641,7 @@ impl MainWindow {
                             let variant = conn_id_outer.to_string().to_variant();
                             gio::prelude::ActionGroupExt::activate_action(
                                 &win,
-                                "connect-by-id",
+                                "connect-to",
                                 Some(&variant),
                             );
                         }
