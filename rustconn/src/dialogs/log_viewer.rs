@@ -52,7 +52,6 @@ impl LogViewerDialog {
         let selected_file: Rc<RefCell<Option<PathBuf>>> = Rc::new(RefCell::new(None));
         let file_paths: Rc<RefCell<Vec<PathBuf>>> = Rc::new(RefCell::new(Vec::new()));
 
-
         let stored_parent: Option<gtk4::Widget> =
             parent.map(|p| p.clone().upcast::<gtk4::Widget>());
 
