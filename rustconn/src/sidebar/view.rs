@@ -801,8 +801,11 @@ pub fn bind_list_item(
                 .push(handler_id);
         }
 
-        // Update label with dirty indicator for documents
-        if let Some(label) = content_box.last_child().and_downcast::<Label>() {
+        // Update label with dirty indicator for documents. Use the bound name
+        // label captured above (`status_icon.next_sibling()`), not
+        // `content_box.last_child()`: the last child is the split marker, so the
+        // dirty CSS class and tooltip were previously never applied.
+        {
             let name = item.name();
             if item.is_document() && item.is_dirty() {
                 set_label_text(&label, &name);
