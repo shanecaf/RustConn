@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.18.5] - 2026-07-10
 
+### Removed
+
+- **Dead `sanitize` parameter on session recording** — `start_recording` accepted a `SanitizeConfig` that every caller filled with the (enabled) default, implying recordings had their secrets redacted. Nothing consumed it: the recording is captured verbatim by `script`, and the string-oriented sanitizer is only meaningful for the separate session-logging path, not a binary `script` capture. The misleading parameter has been dropped from the recording API and its six call sites rather than shipping ineffective, false-sense-of-security redaction. Sensitive-data redaction remains available where it works — session logging (Settings → Logging)
+
 ### Fixed
 
 - **8-bit RDP audio played back distorted** — the audio buffer always parsed incoming PCM as 16-bit signed (two bytes per sample), so an 8-bit stream was mis-read (two unsigned bytes fused into one wrong 16-bit sample) and played as noise. The buffer is now told the sample width when the stream is configured and converts 8-bit unsigned samples (centred on 128) up to the full i16 range on push. The redundant separate 8-bit stream builder — which was an exact copy of the i16 one and did no conversion — was removed; both formats now share a single i16 output stream

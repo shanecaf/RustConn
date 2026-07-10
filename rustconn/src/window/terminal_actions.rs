@@ -341,7 +341,6 @@ impl MainWindow {
                         notebook_clone.start_recording(
                             session.id,
                             &conn_name,
-                            rustconn_core::session::SanitizeConfig::default(),
                             ssh_params,
                         );
                     }

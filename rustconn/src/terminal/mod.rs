@@ -52,7 +52,6 @@ use crate::terminal::tab_container::TabPageContainer;
 use rustconn_core::automation::{KeyElement, KeySequence};
 use rustconn_core::highlight::CompiledHighlightRules;
 use rustconn_core::models::HighlightRule;
-use rustconn_core::session::SanitizeConfig;
 use rustconn_core::session::recording::{RecordingMetadata, metadata_path, write_metadata};
 use rustconn_core::split::tab_groups::TabGroupManager;
 

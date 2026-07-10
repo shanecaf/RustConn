@@ -1197,7 +1197,6 @@ fn start_ssh_connection_internal(
                 notebook_clone.start_recording(
                     session_id,
                     &recording_conn_name,
-                    rustconn_core::session::SanitizeConfig::default(),
                     recording_ssh_params.clone(),
                 );
                 tracing::info!(
