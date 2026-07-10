@@ -289,6 +289,11 @@ impl ConnectionDialogData<'_> {
                 return Err(i18n("Device path is required for serial connections"));
             }
         }
+
+        // Zero Trust requires the selected provider's identifying field(s)
+        if is_zerotrust {
+            self.validate_zerotrust()?;
+        }
         if protocol_idx == 0 {
             // SSH
             let auth_idx = self.ssh_auth_dropdown.selected();
@@ -346,6 +351,85 @@ impl ConnectionDialogData<'_> {
         rustconn_core::dialog_utils::validate_icon(icon_text.trim())
             .map_err(|e| i18n(&e.to_string()))?;
 
+        Ok(())
+    }
+
+    /// Validates that the selected Zero Trust provider has its required
+    /// identifying field(s) filled in.
+    ///
+    /// Only the fields that form the provider's target identity are checked;
+    /// genuinely optional fields (AWS profile/region, Teleport cluster, Hoop.dev
+    /// URLs, …) are left to their defaults. Indices match `zt_provider_dropdown`
+    /// and [`Self::build_zerotrust_config`].
+    fn validate_zerotrust(&self) -> Result<(), String> {
+        let filled = |row: &adw::EntryRow| !row.text().trim().is_empty();
+        match self.zt_provider_dropdown.selected() {
+            0 => {
+                if !filled(self.zt_aws_target_entry) {
+                    return Err(i18n("AWS SSM target instance ID is required"));
+                }
+            }
+            1 => {
+                if !filled(self.zt_gcp_instance_entry) || !filled(self.zt_gcp_zone_entry) {
+                    return Err(i18n("GCP instance name and zone are required"));
+                }
+            }
+            2 => {
+                if !filled(self.zt_azure_bastion_resource_id_entry)
+                    || !filled(self.zt_azure_bastion_rg_entry)
+                    || !filled(self.zt_azure_bastion_name_entry)
+                {
+                    return Err(i18n(
+                        "Azure Bastion resource ID, resource group, and bastion name are required",
+                    ));
+                }
+            }
+            3 => {
+                if !filled(self.zt_azure_ssh_vm_entry) || !filled(self.zt_azure_ssh_rg_entry) {
+                    return Err(i18n("Azure VM name and resource group are required"));
+                }
+            }
+            4 => {
+                if !filled(self.zt_oci_bastion_id_entry)
+                    || !filled(self.zt_oci_target_id_entry)
+                    || !filled(self.zt_oci_target_ip_entry)
+                {
+                    return Err(i18n(
+                        "OCI bastion OCID, target OCID, and target private IP are required",
+                    ));
+                }
+            }
+            5 => {
+                if !filled(self.zt_cf_hostname_entry) {
+                    return Err(i18n("Cloudflare Access hostname is required"));
+                }
+            }
+            6 => {
+                if !filled(self.zt_teleport_host_entry) {
+                    return Err(i18n("Teleport host is required"));
+                }
+            }
+            7 => {
+                if !filled(self.zt_tailscale_host_entry) {
+                    return Err(i18n("Tailscale host is required"));
+                }
+            }
+            8 => {
+                if !filled(self.zt_boundary_target_entry) {
+                    return Err(i18n("Boundary target is required"));
+                }
+            }
+            9 => {
+                if !filled(self.zt_hoop_connection_name_entry) {
+                    return Err(i18n("Hoop.dev connection name is required"));
+                }
+            }
+            _ => {
+                if !filled(self.zt_generic_command_entry) {
+                    return Err(i18n("Command template is required for the Generic provider"));
+                }
+            }
+        }
         Ok(())
     }
 
