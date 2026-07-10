@@ -1,4 +1,18 @@
 -------------------------------------------------------------------
+Fri Jul 11 2026 Anton Isaiev <totoshko88@gmail.com> - 0.18.5
+
+- Version bump to 0.18.5
+- Added EGFX graphics pipeline with H.264/AVC decoding via OpenH264 (dlopen) for dramatically better image quality over WAN connections
+- Added Native Display Scale mode uses real fractional compositor scale for pixel-perfect rendering on 125%/150% displays
+- Fixed 3-4 redundant screen repaints on initial RDP connection (toolbar layout race condition)
+- Improved adaptive session polling reduces idle CPU usage by 3x on static desktops (16ms active / 50ms idle)
+- Improved clipboard file transfers no longer stall the RDP event loop (async I/O via spawn_blocking)
+- Improved password intermediate is now zeroized immediately after handoff to IronRDP connector
+- Improved Cairo downscale filter quality (Filter::Good) when Display Scale exceeds 1x
+- Many bug fixes for terminal search, settings persistence, snippet editor, tunnel builder, sidebar indicators, and more
+- New dependencies: ironrdp-egfx 0.3.0, openh264 0.9.7, safe_arch, wide
+
+-------------------------------------------------------------------
 Thu Jul 09 2026 Anton Isaiev <totoshko88@gmail.com> - 0.18.4
 
 - Version bump to 0.18.4
