@@ -1657,11 +1657,7 @@ pub fn start_serial_connection(
         let recording_conn_name = conn_name;
         // Serial is local — no SSH params needed
         glib::timeout_add_local_once(std::time::Duration::from_secs(1), move || {
-            notebook_clone.start_recording(
-                session_id,
-                &recording_conn_name,
-                None,
-            );
+            notebook_clone.start_recording(session_id, &recording_conn_name, None);
             tracing::info!(
                 %session_id,
                 "Auto-recording started for Serial connection"
@@ -1845,11 +1841,7 @@ pub fn start_kubernetes_connection(
                 && row > 0
             {
                 recording_started_clone.set(true);
-                notebook_clone.start_recording(
-                    session_id,
-                    &recording_conn_name,
-                    None,
-                );
+                notebook_clone.start_recording(session_id, &recording_conn_name, None);
                 tracing::info!(
                     %session_id,
                     "Auto-recording started after Kubernetes connection"

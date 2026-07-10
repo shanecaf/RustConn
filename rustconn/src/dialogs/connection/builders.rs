@@ -426,7 +426,9 @@ impl ConnectionDialogData<'_> {
             }
             _ => {
                 if !filled(self.zt_generic_command_entry) {
-                    return Err(i18n("Command template is required for the Generic provider"));
+                    return Err(i18n(
+                        "Command template is required for the Generic provider",
+                    ));
                 }
             }
         }

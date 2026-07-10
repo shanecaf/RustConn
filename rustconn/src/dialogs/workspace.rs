@@ -202,10 +202,7 @@ impl WorkspaceManagerDialog {
         let dialog_for_activate = dialog.clone();
         list_box.connect_row_activated(move |_, row| {
             let idx = row.index() as usize;
-            let id = items_for_activate
-                .borrow()
-                .get(idx)
-                .map(|(id, _, _)| *id);
+            let id = items_for_activate.borrow().get(idx).map(|(id, _, _)| *id);
             if let Some(id) = id {
                 if let Some(ref cb) = *cb_open_activate.borrow() {
                     cb(id);
