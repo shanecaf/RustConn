@@ -1,6 +1,5 @@
 //! Property tests for VNC client module
 
-use proptest::prelude::*;
 use rustconn_core::vnc_client::is_embedded_vnc_available;
 
 // Note: VncClientConfig, VncRect, etc. are only available with vnc-embedded feature
@@ -29,7 +28,8 @@ fn is_embedded_vnc_available_is_const() {
 
 #[cfg(feature = "vnc-embedded")]
 mod vnc_config_tests {
-    use super::*;
+    
+    use proptest::prelude::*;
     use rustconn_core::vnc_client::{VncClientConfig, VncClientEvent, VncRect};
 
     fn arb_host() -> impl Strategy<Value = String> {

@@ -1,6 +1,7 @@
 version: 1
 script:
-  - cargo build --release -p rustconn -p rustconn-cli
+  - cargo build --release -p rustconn
+  - cargo build --release -p rustconn-cli --features full
 
 AppDir:
   path: ./AppDir
@@ -8,7 +9,7 @@ AppDir:
     id: io.github.totoshko88.RustConn
     name: RustConn
     icon: rustconn
-    version: 0.18.6
+    version: 0.18.7
     exec: usr/bin/rustconn
     exec_args: $@
     author: Anton Isaiev

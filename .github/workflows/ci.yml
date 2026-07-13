@@ -146,6 +146,9 @@ jobs:
       - name: Run tests
         run: cargo test --workspace
 
+      - name: Run CLI tests (full features)
+        run: cargo test -p rustconn-cli --features full
+
   test-core:
     name: Test Core (no GUI)
     runs-on: ubuntu-latest

@@ -316,7 +316,8 @@ modules:
         chmod +x /app/bin/cc-wrap
       # Rename deprecated cargo/config to config.toml
       - if [ -f cargo/config ]; then mv cargo/config cargo/config.toml; fi
-      - CC=/app/bin/cc-wrap cargo build --release -p rustconn --features adw-1-8 -p rustconn-cli
+      - CC=/app/bin/cc-wrap cargo build --release -p rustconn --features adw-1-8
+      - CC=/app/bin/cc-wrap cargo build --release -p rustconn-cli --features full
       - install -Dm755 target/release/rustconn /app/bin/rustconn
       - install -Dm755 target/release/rustconn-cli /app/bin/rustconn-cli
       - install -Dm644 rustconn/assets/io.github.totoshko88.RustConn.desktop /app/share/applications/io.github.totoshko88.RustConn.desktop
@@ -338,5 +339,5 @@ modules:
     sources:
       - type: git
         url: https://github.com/totoshko88/RustConn.git
-        tag: v0.18.6
+        tag: v0.18.7
       - cargo-sources.json
