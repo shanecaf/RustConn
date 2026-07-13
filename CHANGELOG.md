@@ -5,6 +5,43 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.7] - 2026-07-13
+
+### Changed
+
+- **`rustconn-core` default features are now empty** — the core library is a headless domain kernel by default. Embedded client runtimes (`vnc-embedded`, `rdp-embedded`, `gfx-h264`, `rd-gateway`) and host keyring integration (`system-keyring`) are opt-in features enabled by consumer crates. This reduces compile time and binary size for headless/CI builds
+- **`rustconn-cli` is minimal by default** — the CLI binary now ships only headless management commands (list/add/update/delete, import/export, groups, tags, templates, clusters, stats, completions). Desktop client-launch (`connect`, SFTP file-manager) and secret-management commands are gated behind `client-launch` and `secret-management` features respectively; `--features full` enables everything
+- **System keyring dependencies are optional** — `oo7` (Linux/BSD Secret Service) and `security-framework` (macOS Keychain) are now behind the `system-keyring` feature. Headless builds no longer pull DBus/keyring dependencies
+- **`native-tls` is optional in core** — compiled only with `rdp-embedded` or `rd-gateway` features
+- **`AudioFormatInfo` moved from `rdp_client::audio` to `rdp_client::event`** — the type is now available without the `rdp-embedded` feature, allowing headless consumers to inspect audio format metadata. The constructor is now `const fn`. The top-level re-export `rustconn_core::AudioFormatInfo` remains stable (no longer gated behind `#[cfg(feature = "rdp-embedded")]`)
+- **`NO_COLOR` env var handling follows the spec** — an empty `NO_COLOR=""` no longer incorrectly suppresses colors; only a non-empty value is respected per the [no-color.org](https://no-color.org) specification
+- **Disabled keyring backends log at `warn` level** — when a user's config selects a system keyring backend but `system-keyring` is not compiled in, the message is now a visible `tracing::warn!` (previously silent `debug!`)
+
+### Added
+
+- **Feature-gated integration tests for CLI commands** — tests for `connect` and `secret` commands are now properly gated with `#[cfg(feature = "...")]`, verifying both presence and absence in help output depending on the feature set
+- **Stub keyring functions for headless builds** — `keyring::store`, `keyring::lookup`, `keyring::clear`, and `keyring::is_secret_tool_available` compile as unavailable stubs when `system-keyring` is disabled, returning `BackendUnavailable` errors. API surface stays identical regardless of features
+- **CLI feature hierarchy** — `client-launch`, `secret-management`, `desktop-integration` (= both), `full` (= all)
+- **`system-keyring` feature forwarding in GUI crate** — `rustconn/Cargo.toml` explicitly enables `rustconn-core/system-keyring` in its default feature set
+- **`gfx-h264` feature forwarding in GUI crate** — `rustconn/Cargo.toml` explicitly enables `rustconn-core/gfx-h264` in its default feature set, ensuring the H.264/EGFX pipeline is compiled into desktop builds
+
+### Fixed
+
+- **Release and OBS DEB builds shipped CLI without full features** — `release.yml` (GitHub Actions .deb/.rpm/.AppImage) and `packaging/obs/debian.rules` built `rustconn-cli` with default (empty) features, stripping `connect`, `secret`, and SFTP file-browser commands from distributed packages. All build paths now pass `--features full`, matching Snap/Flatpak/OBS RPM
+- **CI did not test CLI with full feature set** — added `cargo test -p rustconn-cli --features full` to the CI test job so feature-gated commands and their integration tests are exercised on every push
+
+### Documentation
+
+- Updated `docs/ARCHITECTURE.md` with headless boundary section, feature table, and default edit targets
+- Updated `docs/BUILD.md` with feature tables for all three crates and build examples
+- Updated `docs/CLI_REFERENCE.md` with feature set table and per-command availability notes
+- Updated `docs/AI_DEVELOPMENT.md` with Codex target boundaries
+- Updated `.kiro/steering/project-rules.md` and `protocol-guide.md` with refined crate descriptions
+
+### Dependencies
+
+- Updated lockfile: cc 1.2.66→1.2.67, http-body 1.0.1→1.1.0, http-body-util 0.1.3→0.1.4, mio 1.2.1→1.2.2, open 5.3.6→5.4.0, polyval 0.7.1→0.7.2, rand 0.9.4→0.9.5, rustls 0.23.41→0.23.42, uuid 1.23.4→1.23.5, winnow 1.0.3→1.0.4, zmij 1.0.21→1.0.23
+
 ## [0.18.6] - 2026-07-11
 
 ### Added

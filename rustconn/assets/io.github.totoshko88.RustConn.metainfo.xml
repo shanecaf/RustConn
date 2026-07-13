@@ -140,6 +140,18 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.18.7" date="2026-07-13">
+      <description>
+        <p>Version 0.18.7 - Headless core/CLI cleanup:</p>
+        <ul>
+          <li>rustconn-core defaults to an empty feature set for headless domain use</li>
+          <li>CLI is minimal by default; connect and secret commands are opt-in features</li>
+          <li>System keyring integration gated behind explicit feature flag</li>
+          <li>NO_COLOR environment variable handling follows the specification</li>
+          <li>Updated dependencies: rustls, uuid, rand, mio, and others</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.18.5" date="2026-07-11">
       <description>
         <p>Version 0.18.5 - GFX pipeline with H.264, embedded RDP improvements:</p>

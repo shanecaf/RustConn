@@ -44,7 +44,7 @@ jobs:
             gettext
 
       - name: Build release binary
-        run: cargo build --release -p rustconn -p rustconn-cli
+        run: cargo build --release -p rustconn -p rustconn-cli --features full
 
       - name: Create deb package structure
         run: |
@@ -158,7 +158,7 @@ jobs:
       - name: Build release binary
         run: |
           source $HOME/.cargo/env
-          cargo build --release -p rustconn -p rustconn-cli
+          cargo build --release -p rustconn -p rustconn-cli --features full
 
       - name: Create RPM package
         run: |
@@ -254,7 +254,7 @@ jobs:
             gettext
 
       - name: Build release
-        run: cargo build --release -p rustconn -p rustconn-cli
+        run: cargo build --release -p rustconn -p rustconn-cli --features full
 
       - name: Download linuxdeploy
         run: |

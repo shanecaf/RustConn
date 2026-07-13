@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.18.6
+Version:        0.18.7
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -201,11 +201,13 @@ export PATH="$PWD/rust-toolchain/bin:$PATH"
 %endif
 
 %if 0%{?suse_version}
-%{cargo_build} -p rustconn %{?adw_features} -p rustconn-cli
+%{cargo_build} -p rustconn %{?adw_features}
+%{cargo_build} -p rustconn-cli --features full
 %else
 # --offline: belt-and-suspenders against accidental network access —
 # all crates come from the vendored sources configured in .cargo/config.toml
-cargo build --release --offline -p rustconn %{?adw_features} -p rustconn-cli
+cargo build --release --offline -p rustconn %{?adw_features}
+cargo build --release --offline -p rustconn-cli --features full
 %endif
 
 %install
@@ -259,6 +261,14 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Sun Jul 13 2026 Anton Isaiev <totoshko88@gmail.com> - 0.18.7-0
+- Version bump to 0.18.7
+- Headless core-cli cleanup: rustconn-core defaults to empty features
+- CLI is minimal by default; client-launch and secret-management are opt-in
+- System keyring (oo7/macOS Keychain) gated behind system-keyring feature
+- NO_COLOR env var handling follows the no-color.org spec
+- Updated lockfile: cc 1.2.67, http-body 1.1.0, mio 1.2.2, open 5.4.0, rand 0.9.5, rustls 0.23.42, uuid 1.23.5
+
 * Thu Jul 09 2026 Anton Isaiev <totoshko88@gmail.com> - 0.18.4-0
 - Version bump to 0.18.4
 - Added SFTP file browser now opens in the login home directory instead of the server root, with an optional SFTP Remote Directory field to pin a path (#212)

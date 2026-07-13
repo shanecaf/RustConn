@@ -1,4 +1,15 @@
 -------------------------------------------------------------------
+Sun Jul 13 2026 Anton Isaiev <totoshko88@gmail.com> - 0.18.7
+
+- Version bump to 0.18.7
+- Headless core-cli cleanup: rustconn-core defaults to empty features
+- CLI is minimal by default; client-launch and secret-management are opt-in
+- System keyring (oo7/macOS Keychain) gated behind system-keyring feature
+- NO_COLOR env var handling follows the no-color.org spec
+- Disabled keyring backends now log at warn level
+- Updated lockfile: cc 1.2.67, http-body 1.1.0, mio 1.2.2, open 5.4.0, rand 0.9.5, rustls 0.23.42, uuid 1.23.5
+
+-------------------------------------------------------------------
 Fri Jul 11 2026 Anton Isaiev <totoshko88@gmail.com> - 0.18.5
 
 - Version bump to 0.18.5

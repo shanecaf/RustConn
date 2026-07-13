@@ -9,7 +9,8 @@ override_dh_auto_build:
 	tar --zstd -xf vendor.tar.zst
 	mkdir -p .cargo
 	cp cargo_config .cargo/config.toml
-	cargo build --release --offline -p rustconn -p rustconn-cli
+	cargo build --release --offline -p rustconn
+	cargo build --release --offline -p rustconn-cli --features full
 
 override_dh_auto_install:
 	# Binaries

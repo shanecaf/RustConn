@@ -48,10 +48,6 @@ fn test_help_command() {
         "Help should mention program name"
     );
     assert!(stdout.contains("list"), "Help should mention list command");
-    assert!(
-        stdout.contains("connect"),
-        "Help should mention connect command"
-    );
     assert!(stdout.contains("add"), "Help should mention add command");
     assert!(
         stdout.contains("export"),
@@ -199,16 +195,28 @@ fn test_list_csv_format() {
 }
 
 // ============================================================================
-// Error Handling Tests
+// Feature-gated command tests
 // ============================================================================
 
+#[cfg(feature = "client-launch")]
+#[test]
+fn test_connect_present_in_help() {
+    let output = run_cli(&["--help"], None);
+    assert!(output.status.success());
+    let stdout = stdout_str(&output);
+    assert!(
+        stdout.contains("connect"),
+        "Help should mention connect command when client-launch is enabled"
+    );
+}
+
+#[cfg(feature = "client-launch")]
 #[test]
 fn test_connect_nonexistent() {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
 
     let output = run_cli(&["connect", "nonexistent"], Some(temp_dir.path()));
 
-    // Should fail with exit code 2 (connection not found)
     assert!(
         !output.status.success(),
         "Connect to nonexistent should fail"
@@ -228,6 +236,46 @@ fn test_connect_nonexistent() {
         "Should show error message. Got: {stderr}"
     );
 }
+
+#[cfg(not(feature = "client-launch"))]
+#[test]
+fn test_connect_absent_from_help() {
+    let output = run_cli(&["--help"], None);
+    assert!(output.status.success());
+    let stdout = stdout_str(&output);
+    assert!(
+        !stdout.contains("connect"),
+        "Help should NOT mention connect command when client-launch is disabled. Got: {stdout}"
+    );
+}
+
+#[cfg(feature = "secret-management")]
+#[test]
+fn test_secret_present_in_help() {
+    let output = run_cli(&["--help"], None);
+    assert!(output.status.success());
+    let stdout = stdout_str(&output);
+    assert!(
+        stdout.contains("secret"),
+        "Help should mention secret command when secret-management is enabled"
+    );
+}
+
+#[cfg(not(feature = "secret-management"))]
+#[test]
+fn test_secret_absent_from_help() {
+    let output = run_cli(&["--help"], None);
+    assert!(output.status.success());
+    let stdout = stdout_str(&output);
+    assert!(
+        !stdout.contains("secret"),
+        "Help should NOT mention secret command when secret-management is disabled. Got: {stdout}"
+    );
+}
+
+// ============================================================================
+// Error Handling Tests
+// ============================================================================
 
 #[test]
 fn test_import_nonexistent_file() {

@@ -1,6 +1,6 @@
 name: rustconn
 base: core24
-version: '0.18.6'
+version: '0.18.7'
 title: RustConn
 summary: Manage remote connections easily
 description: |
@@ -274,8 +274,11 @@ parts:
       cargo build --release \
         --config 'profile.release.lto = true' \
         --config 'profile.release.codegen-units = 1' \
-        -p rustconn \
-        -p rustconn-cli
+        -p rustconn
+      cargo build --release \
+        --config 'profile.release.lto = true' \
+        --config 'profile.release.codegen-units = 1' \
+        -p rustconn-cli --features full
       install -Dm755 target/release/rustconn "$CRAFT_PART_INSTALL/usr/bin/rustconn"
       install -Dm755 target/release/rustconn-cli "$CRAFT_PART_INSTALL/usr/bin/rustconn-cli"
       mkdir -p $CRAFT_PART_INSTALL/usr/share/applications
