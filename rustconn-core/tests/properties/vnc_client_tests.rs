@@ -28,7 +28,6 @@ fn is_embedded_vnc_available_is_const() {
 
 #[cfg(feature = "vnc-embedded")]
 mod vnc_config_tests {
-    
     use proptest::prelude::*;
     use rustconn_core::vnc_client::{VncClientConfig, VncClientEvent, VncRect};
 
