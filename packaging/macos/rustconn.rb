@@ -26,7 +26,7 @@ class Rustconn < Formula
     system "cargo", "build", "--release",
            "-p", "rustconn", "-p", "rustconn-cli",
            "--no-default-features",
-           "--features", "rustconn/tray-macos,rustconn/vnc-embedded,rustconn/rdp-embedded,rustconn/rdp-audio"
+           "--features", "rustconn/tray-macos,rustconn/system-keyring,rustconn/vnc-embedded,rustconn/rdp-embedded,rustconn/rdp-audio"
 
     bin.install "target/release/rustconn"
     bin.install "target/release/rustconn-cli"

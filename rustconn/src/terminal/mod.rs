@@ -1492,7 +1492,9 @@ impl TerminalNotebook {
             argv.push("-o");
             argv.push(&control_path_opt);
             argv.push("-o");
-            argv.push("ControlPersist=10m");
+            // ponytail: 60s persist keeps the master alive briefly for monitoring
+            // multiplex, but dies fast after network changes (#217). Was 10m.
+            argv.push("ControlPersist=60");
         } else if !has_control_path {
             // User enabled ControlMaster manually but no ControlPath —
             // add our shared path so monitoring can reuse the socket.
@@ -1509,6 +1511,25 @@ impl TerminalNotebook {
             kh_option = format!("UserKnownHostsFile={}", kh_path.display());
             argv.push("-o");
             argv.push(&kh_option);
+        }
+
+        // Default keep-alive: detect dead connections within ~45s (15s × 3)
+        // so auto-reconnect triggers promptly after network changes (#217).
+        // Skip if user already configured via SshConfig.keep_alive_interval
+        // (which lands in extra_args from build_command_args).
+        // NOTE: This overrides any ServerAliveInterval set in ~/.ssh/config
+        // because CLI -o takes precedence. Users who want to respect their
+        // ssh_config value should set the keep-alive in the connection editor
+        // (even to the same value) so it appears in extra_args and skips this.
+        let has_server_alive = extra_args.iter().any(|a| a.contains("ServerAliveInterval"));
+        let has_alive_count = extra_args.iter().any(|a| a.contains("ServerAliveCountMax"));
+        if !has_server_alive {
+            argv.push("-o");
+            argv.push("ServerAliveInterval=15");
+        }
+        if !has_alive_count {
+            argv.push("-o");
+            argv.push("ServerAliveCountMax=3");
         }
 
         argv.extend(extra_args);
@@ -1982,6 +2003,15 @@ impl TerminalNotebook {
     #[must_use]
     pub fn reconnect_callback(&self) -> Rc<RefCell<Option<Box<dyn Fn(Uuid, Uuid)>>>> {
         self.on_reconnect.clone()
+    }
+
+    /// Returns `true` if the session currently has a reconnect banner displayed.
+    ///
+    /// Used by the network monitor to identify sessions that need immediate
+    /// reconnection after a network interface change.
+    #[must_use]
+    pub fn is_reconnect_shown(&self, session_id: Uuid) -> bool {
+        self.reconnect_shown.borrow().contains(&session_id)
     }
 
     /// Sets a color indicator on a tab to show it's in a split pane

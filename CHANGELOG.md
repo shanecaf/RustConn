@@ -5,6 +5,27 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.8] - 2026-07-14
+
+### Fixed
+
+- **Connections stop working when switching network interfaces (issue #217)** — RustConn now monitors network changes via `gio::NetworkMonitor` and reacts immediately: stale SSH `ControlMaster` sockets are closed, a toast notifies the user, and disconnected sessions with auto-reconnect enabled are reconnected without waiting for the backoff timer
+- **SSH connections hang for minutes after VPN/network change** — default `ServerAliveInterval=15` + `ServerAliveCountMax=3` is now applied to all SSH sessions (unless the user configures a custom value). Dead connections are detected within ~45 seconds instead of relying on TCP timeout (15+ minutes)
+- **New SSH connections fail after interface switch** — `ControlPersist` reduced from 10 minutes to 60 seconds. Combined with proactive socket cleanup on network change, new connections no longer attempt to multiplex through dead master sockets
+- **Terminal keyboard shortcuts work after remapping (issue #216)** — the focus-based accelerator suspend (`terminal_passthrough_ctrl`) now removes only single-modifier accelerators (e.g. `Ctrl+W`) while keeping multi-modifier variants (e.g. `Ctrl+Shift+W`) active. Previously, all accelerators for conflicting actions were stripped when the terminal had focus, making shortcuts like "Close Tab" unreachable regardless of keybinding overrides
+
+### Improved
+
+- **Network monitor skips reconnect behind captive portals** — when `gio::NetworkMonitor` reports connectivity below `Full` (e.g. `Portal` or `Limited` after a WiFi switch to a captive-portal network), the reconnect attempt is skipped and the user sees "Network limited — full connectivity not yet available" instead of flooding failed connections
+- **Network monitor rate-limits reactions during VPN reconnect loops** — if more than 3 network-change events fire within 60 seconds the monitor enters quiet mode (socket cleanup only, no toast or reconnect), preventing toast spam and wasted reconnection attempts when a VPN flaps
+- **Network-change reconnect is delayed 3 s after socket cleanup** — reconnects are now scheduled via `glib::timeout_add_local_once(3s)` instead of `idle_add_local_once`, giving the background `ssh -O exit` thread time to close stale `ControlMaster` sockets before new connections try to multiplex
+- **Embedded RDP/VNC sessions reconnect on network change** — the network monitor now detects embedded (non-VTE) sessions in disconnected/error state and triggers their `reconnect()` method directly, instead of relying solely on the VTE reconnect overlay which embedded viewers do not use
+- **Socket cleanup dummy destination changed from `"none"` to `"_"`** — `close_all_control_sockets` now passes `"_"` as the dummy SSH destination for `ssh -O exit`, avoiding a potential collision with a real `Host none` entry in `~/.ssh/config`
+
+### Dependencies
+
+- Updated lockfile: simd_cesu8 1.1.1→1.2.0, socket2 0.6.4→0.6.5, spin 0.9.8→0.9.9, toml 1.1.2→1.1.3, toml_edit 0.25.12→0.25.13, toml_writer 1.1.1→1.1.2
+
 ## [0.18.7] - 2026-07-13
 
 ### Changed

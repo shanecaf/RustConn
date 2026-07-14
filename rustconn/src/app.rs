@@ -1262,16 +1262,31 @@ pub fn set_passthrough(app: &adw::Application, state: &SharedAppState, enable: b
 
 /// Suspends the single-`<Control>` accelerators that collide with the terminal.
 ///
-/// Clears the application accelerators for every action in
-/// [`TERMINAL_CONFLICTING_ACTIONS`] so readline chords (Ctrl+F/P/N and
-/// relatives) reach the focused VTE terminal or embedded viewer instead of
-/// being intercepted by the application (issue #197).
+/// For every action in [`TERMINAL_CONFLICTING_ACTIONS`], removes only the
+/// single-modifier accelerators (e.g. `<Control>w`) while keeping
+/// multi-modifier variants (e.g. `<Control><Shift>w`) active. This lets
+/// readline chords (Ctrl+F/P/N/W…) reach the focused VTE terminal while
+/// still allowing `Ctrl+Shift+W` to close a tab (issue #216).
 ///
-/// This is stateless: it only removes the colliding accelerators. Restore them
-/// with [`restore_terminal_accels`] when focus leaves the terminal.
-pub fn suspend_terminal_accels(app: &adw::Application) {
-    for action in TERMINAL_CONFLICTING_ACTIONS {
-        app.set_accels_for_action(action, &[]);
+/// This is stateless: restore the full set of accelerators with
+/// [`restore_terminal_accels`] when focus leaves the terminal.
+pub fn suspend_terminal_accels(app: &adw::Application, state: &SharedAppState) {
+    let keybinding_settings = with_state(state, |s| s.settings().keybindings.clone());
+    let defaults = rustconn_core::default_keybindings();
+
+    for def in &defaults {
+        if !TERMINAL_CONFLICTING_ACTIONS.contains(&def.action.as_str()) {
+            continue;
+        }
+        let accel_str = keybinding_settings.get_accel(def);
+        // Keep only multi-modifier accelerators (those with more than one
+        // modifier flag set, e.g. Ctrl+Shift). Single-Control chords are
+        // dropped so they pass through to VTE/readline.
+        let kept: Vec<&str> = accel_str
+            .split('|')
+            .filter(|accel| is_multi_modifier(accel))
+            .collect();
+        app.set_accels_for_action(&def.action, &kept);
     }
 }
 
@@ -1292,6 +1307,43 @@ pub fn restore_terminal_accels(app: &adw::Application, state: &SharedAppState) {
             app.set_accels_for_action(&def.action, &accels);
         }
     }
+}
+
+/// Returns `true` if a GTK accelerator string uses more than one modifier key.
+///
+/// Single-modifier accelerators like `<Control>w` return `false`; multi-modifier
+/// ones like `<Control><Shift>w` or `<Control><Alt>x` return `true`. Also
+/// considers function keys (F1–F35) and Page_Up/Page_Down/Tab as non-conflicting
+/// with readline, so they are always kept.
+///
+/// This is used by [`suspend_terminal_accels`] to decide which accelerators to
+/// keep active while the terminal has focus (issue #216).
+fn is_multi_modifier(accel: &str) -> bool {
+    // Function keys and navigation keys never conflict with readline.
+    let key_part = accel.rsplit('>').next().unwrap_or(accel);
+    if key_part.starts_with('F')
+        && key_part.len() > 1
+        && key_part[1..].chars().all(|c| c.is_ascii_digit())
+    {
+        return true;
+    }
+    if matches!(key_part, "Page_Up" | "Page_Down" | "Tab" | "ISO_Left_Tab") {
+        return true;
+    }
+
+    // Count distinct modifier tokens (<Control>, <Shift>, <Alt>, <Super>, <Meta>).
+    let modifiers = ["<Control>", "<Ctrl>", "<Primary>"];
+    let extra_modifiers = ["<Shift>", "<Alt>", "<Super>", "<Meta>"];
+
+    let has_ctrl = modifiers
+        .iter()
+        .any(|m| accel.to_ascii_lowercase().contains(&m.to_ascii_lowercase()));
+    let has_extra = extra_modifiers
+        .iter()
+        .any(|m| accel.to_ascii_lowercase().contains(&m.to_ascii_lowercase()));
+
+    // Multi-modifier = Ctrl + at least one more modifier.
+    has_ctrl && has_extra
 }
 
 /// Shows the about dialog

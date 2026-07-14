@@ -1,6 +1,6 @@
 # RustConn Architecture Guide
 
-**Version 0.18.7** | Last updated: July 2026
+**Version 0.18.8** | Last updated: July 2026
 
 This document describes the internal architecture of RustConn for contributors and maintainers.
 
@@ -270,6 +270,35 @@ for session in state.sessions_within_age(max_age) {
 ```
 
 Managers own their data and handle I/O. They don't know about GTK.
+
+### Network Change Monitor
+
+The GUI crate (`rustconn/src/window/network_monitor.rs`) subscribes to `gio::NetworkMonitor::network_changed` and orchestrates the reaction to interface switches:
+
+```
+NetworkMonitor::network_changed signal
+        │
+        ▼
+┌───────────────────────────────────────────────┐
+│ Rate-limit check (>3 events / 60s → quiet)    │
+├───────────────────────────────────────────────┤
+│ Connectivity check (< Full → skip reconnect)  │
+├───────────────────────────────────────────────┤
+│ 1. close_all_control_sockets (ssh -O exit "_")│
+│ 2. Toast: "Network changed"                   │
+│ 3. glib::timeout_add_local_once(500ms) {      │
+│       reconnect eligible sessions             │
+│    }                                          │
+└───────────────────────────────────────────────┘
+```
+
+**Design decisions:**
+- Lives in `rustconn/` (GUI crate) because it uses `gio::NetworkMonitor`, GTK toasts, and GLib timeouts.
+- Socket cleanup (`ssh -O exit`) runs in a background thread; the 500 ms delay before reconnect gives it time to finish.
+- Embedded RDP/VNC sessions expose a `reconnect()` method checked directly (they have no VTE overlay).
+- The rate-limiter is a simple counter + timestamp, not a sliding window — good enough for the "VPN flapping" scenario and avoids extra state.
+
+**SSH keepalive defaults** (`ServerAliveInterval=15`, `ServerAliveCountMax=3`) are injected by the SSH command builder in `rustconn-core` (protocol-level, no GUI dependency). They ensure the SSH client notices a dead link within ~45 seconds so the exit triggers the auto-reconnect flow promptly.
 
 ### Debounced Persistence
 

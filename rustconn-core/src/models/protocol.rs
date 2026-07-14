@@ -962,7 +962,9 @@ impl SshConfig {
             args.push("-o".to_string());
             args.push("ControlMaster=auto".to_string());
             args.push("-o".to_string());
-            args.push("ControlPersist=10m".to_string());
+            // ponytail: 60s persist — short enough to recover after network
+            // changes (#217), long enough for monitoring multiplex.
+            args.push("ControlPersist=60".to_string());
         }
 
         // Add agent forwarding if enabled
