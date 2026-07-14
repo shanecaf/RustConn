@@ -1,6 +1,6 @@
 # RustConn User Guide
 
-**Version 0.18.7** | GTK4/libadwaita Connection Manager for Linux
+**Version 0.18.8** | GTK4/libadwaita Connection Manager for Linux
 
 RustConn is a modern connection manager designed for Linux with Wayland-first approach. It supports SSH, RDP, VNC, SPICE, MOSH, SFTP, Telnet, Serial, Kubernetes, Web protocols and Zero Trust integrations through a native GTK4/libadwaita interface.
 
@@ -393,6 +393,26 @@ Right-click a group in the sidebar → **Connect All** to open all connections i
 
 When an SSH session disconnects unexpectedly (server reboot, network failure), RustConn automatically starts polling the host (every 5s for up to 5 minutes) and reconnects when the server comes back online. The reconnect banner is still shown for manual reconnect if auto-reconnect times out.
 
+### Network Change Monitor
+
+RustConn monitors network interface changes via `gio::NetworkMonitor` and reacts immediately when a network switch occurs (e.g. WiFi → Ethernet, VPN reconnect, dock/undock):
+
+1. **Stale socket cleanup** — all SSH `ControlMaster` sockets are closed (`ssh -O exit`) so new connections do not attempt to multiplex through dead master connections
+2. **Toast notification** — "Network changed — cleaning stale connections" informs the user
+3. **Auto-reconnect** — disconnected sessions with auto-reconnect enabled are reconnected without waiting for the backoff timer (3 s delay after socket cleanup to let background `ssh -O exit` complete)
+4. **Embedded RDP/VNC** — embedded (non-VTE) sessions in disconnected/error state are reconnected via their native `reconnect()` method, not only through the VTE reconnect overlay
+
+**Smart throttling:**
+
+| Condition | Behavior |
+|-----------|----------|
+| Connectivity below `Full` (captive portal, limited) | Reconnect skipped; toast: "Network limited — full connectivity not yet available" |
+| >3 network-change events within 60 seconds (VPN flapping) | Quiet mode: socket cleanup only, no toast spam or wasted reconnection attempts |
+
+**SSH keepalive defaults (0.18.8+):**
+
+All SSH sessions now apply `ServerAliveInterval=15` + `ServerAliveCountMax=3` by default (unless the user configures a custom value via Custom Options). Dead connections are detected within ~45 seconds instead of relying on TCP timeout (15+ minutes). This makes network-change detection faster: the SSH client notices the dead link promptly and exits, triggering the reconnect flow.
+
 ---
 
 ## Protocols
@@ -456,7 +476,7 @@ The SSH tab in the connection dialog contains session-level toggles that control
 | Agent Forwarding | `-A` | Forward your local SSH agent to the remote host, allowing key-based authentication to further servers without copying keys |
 | X11 Forwarding | `-X` | Forward X11 display to your local machine — run graphical X11 apps on the remote host and see them locally |
 | Compression | `-C` | Compress the SSH data stream — useful on slow or high-latency connections |
-| Connection Multiplexing | `ControlMaster=auto` | Reuse a single TCP connection for multiple SSH sessions to the same host. Subsequent connections open instantly without re-authenticating. RustConn adds `ControlPersist=10m` so the master connection stays alive for 10 minutes after the last session closes. When RustConn exits, all ControlMaster sockets are automatically closed to prevent stale sockets from lingering in the filesystem |
+| Connection Multiplexing | `ControlMaster=auto` | Reuse a single TCP connection for multiple SSH sessions to the same host. Subsequent connections open instantly without re-authenticating. RustConn adds `ControlPersist=60` so the master connection stays alive for 60 seconds after the last session closes. The shorter persist time (reduced from 10 minutes in 0.18.7) combined with proactive socket cleanup on network change prevents new connections from trying to multiplex through dead master sockets. When RustConn exits, all ControlMaster sockets are automatically closed to prevent stale sockets from lingering in the filesystem |
 | Waypipe | `waypipe ssh ...` | Forward Wayland GUI applications (see [Waypipe](#waypipe-wayland-forwarding) below) |
 | Verbose | `-v` | Show detailed SSH debug output in the terminal for diagnosing connection issues (auth failures, key negotiation, resets) |
 
@@ -490,6 +510,8 @@ You can also paste options in the `-o Key=Value` format directly from the comman
 | `ProxyCommand=nc -X 5 -x proxy:1080 %h %p` | `-o ProxyCommand=nc -X 5 -x proxy:1080 %h %p` |
 
 **Note:** For port forwarding (`-L`, `-R`, `-D`), use the dedicated **Port Forwarding** section instead of Custom Options. The subtitle in the dialog reminds you of this.
+
+**Note:** Since 0.18.8, `ServerAliveInterval=15` and `ServerAliveCountMax=3` are applied by default to all SSH sessions. You only need to set them in Custom Options if you want a *different* value (e.g. `ServerAliveInterval=60` for a slow satellite link). Setting either option explicitly in Custom Options overrides the default.
 
 **Dangerous directives** (`ProxyCommand`, `LocalCommand`, `PermitLocalCommand`) are filtered for security — they are logged as warnings but still passed through if explicitly set.
 
@@ -2239,6 +2261,13 @@ When working in remote sessions with TUI applications (nvim, tmux, htop, mc), Ru
 
 **Customization:** The list of shortcuts that remain active in passthrough mode can be configured in `config.toml` under `[keybindings] passthrough_exceptions`.
 
+**Automatic focus-based shortcut management (0.18.8+):**
+
+Independently from manual passthrough mode, RustConn automatically suspends single-modifier shortcuts (e.g. `Ctrl+W`) that conflict with terminal input when a terminal has focus, while keeping multi-modifier variants active (e.g. `Ctrl+Shift+W`). This means:
+- `Ctrl+W` in a focused terminal → sent to the remote session (shell word-delete)
+- `Ctrl+Shift+W` → still closes the tab (application shortcut)
+- If you remap "Close Tab" to a non-conflicting combo (e.g. `Ctrl+F4`), it works regardless of terminal focus
+
 ### Adaptive UI
 
 RustConn adapts to different window sizes using `adw::Breakpoint` and responsive dialog sizing.
@@ -2705,6 +2734,9 @@ When the preferred backend (e.g., KeePassXC) cannot be reached — database pass
 
 - RustConn performs a **pre-connect port check** before establishing connections
 - SSH connections verify host keys via the system `known_hosts` file
+- **SSH keepalive** — `ServerAliveInterval=15` + `ServerAliveCountMax=3` applied by default to all SSH sessions, detecting dead connections within ~45 seconds instead of relying on TCP timeout. Override via Custom Options if your server requires different values
+- **Network change detection** — `gio::NetworkMonitor` reacts to interface changes immediately (stale socket cleanup + auto-reconnect), preventing hanging sessions after VPN/WiFi switches
+- **ControlPersist=60s** — short master socket lifetime reduces the window for stale multiplexed connections after network changes
 - Use **SSH Proxy Jump** for connections behind bastion hosts
 - Use **Zero Trust providers** to eliminate direct SSH exposure
 - Enable **session logging** for audit trails

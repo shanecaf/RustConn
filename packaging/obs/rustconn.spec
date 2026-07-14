@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.18.7
+Version:        0.18.8
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -261,6 +261,12 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Tue Jul 14 2026 Anton Isaiev <totoshko88@gmail.com> - 0.18.8-0
+- Version bump to 0.18.8
+- Fixed: Network interface change breaks connections (#217)
+- Fixed: Terminal shortcuts after remapping (#216)
+- Improved: Captive portal detection, rate limiting, embedded reconnect
+
 * Sun Jul 13 2026 Anton Isaiev <totoshko88@gmail.com> - 0.18.7-0
 - Version bump to 0.18.7
 - Headless core-cli cleanup: rustconn-core defaults to empty features

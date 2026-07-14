@@ -197,8 +197,9 @@ pub async fn close_all_control_sockets() {
             cmd.arg("-o").arg(format!("ControlPath={path_str}"));
             // Use a dummy destination — ssh -O exit only needs the socket path
             // to identify the master, but requires a destination argument.
-            // We use "none" as a placeholder; the master is identified by ControlPath.
-            cmd.arg("none");
+            // We use "_" as a placeholder (less likely to collide with a real
+            // Host entry in ~/.ssh/config than "none" or "localhost").
+            cmd.arg("_");
             cmd.stdout(std::process::Stdio::null());
             cmd.stderr(std::process::Stdio::null());
 

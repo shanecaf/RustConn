@@ -140,6 +140,19 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.18.8" date="2026-07-14">
+      <description>
+        <p>Version 0.18.8 - Network resilience and keyboard improvements:</p>
+        <ul>
+          <li>Fixed: Connections stop working when switching network interfaces (#217)</li>
+          <li>Fixed: SSH connections hang for minutes after VPN/network change</li>
+          <li>Fixed: Terminal keyboard shortcuts work after remapping (#216)</li>
+          <li>Improved: Network monitor skips reconnect behind captive portals</li>
+          <li>Improved: Rate-limits reactions during VPN reconnect loops</li>
+          <li>Improved: Embedded RDP/VNC sessions reconnect on network change</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.18.7" date="2026-07-13">
       <description>
         <p>Version 0.18.7 - Headless core/CLI cleanup:</p>

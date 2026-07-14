@@ -1732,6 +1732,18 @@ impl EmbeddedRdpWidget {
         *self.state.borrow() == RdpConnectionState::Connected
     }
 
+    /// Returns whether the RDP session is disconnected or in error state.
+    ///
+    /// Used by the network monitor to determine if a session should be
+    /// reconnected after a network interface change.
+    #[must_use]
+    pub fn is_disconnected(&self) -> bool {
+        matches!(
+            *self.state.borrow(),
+            RdpConnectionState::Disconnected | RdpConnectionState::Error
+        )
+    }
+
     /// Returns the current configuration
     #[must_use]
     pub fn config(&self) -> Option<RdpConfig> {

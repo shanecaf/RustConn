@@ -15,6 +15,7 @@ mod edit_group;
 mod groups;
 mod history_actions;
 mod navigation_actions;
+mod network_monitor;
 mod operations;
 mod protocols;
 mod protocols_ssh;
@@ -402,7 +403,7 @@ impl MainWindow {
                     return;
                 };
                 if focused {
-                    crate::app::suspend_terminal_accels(&app);
+                    crate::app::suspend_terminal_accels(&app, &state_for_focus);
                 } else {
                     crate::app::restore_terminal_accels(&app, &state_for_focus);
                 }
@@ -951,6 +952,15 @@ impl MainWindow {
 
         // Connect signals
         main_window.connect_signals();
+
+        // Monitor network interface changes (VPN, WiFi/Ethernet switch) to
+        // clean up stale ControlMaster sockets and trigger auto-reconnect (#217)
+        network_monitor::setup_network_monitor(
+            &main_window.state,
+            &main_window.terminal_notebook,
+            &main_window.sidebar,
+            &main_window.toast_overlay,
+        );
 
         main_window
     }
