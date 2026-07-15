@@ -5,6 +5,12 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.9] - 2026-07-15
+
+### Fixed
+
+- **Secret values from vault backends now properly zeroize intermediates** — `load_variable_from_vault_with_path` returns `Zeroizing<String>` instead of plain `String`, ensuring that password intermediates are wiped from memory when dropped. Previously, a `Zeroizing` wrapper was created but then a new unprotected `String` copy escaped via `String::from(z.as_str())`, defeating the zeroization (9 call sites across Bitwarden, 1Password, Pass, Passbolt, KeePass, LibSecret, EncryptedFile, MacOS Keychain backends)
+
 ## [0.18.8] - 2026-07-14
 
 ### Fixed

@@ -493,11 +493,11 @@ impl VariablesDialog {
                                 .map_err(|_| "Vault retrieve timed out".to_string())?
                                 .map_err(|e| format!("{e}"))
                             })?;
-                            Ok(creds.and_then(|c| c.expose_password().map(String::from)))
+                            Ok(creds.and_then(|c| c.expose_password().map(|p| zeroize::Zeroizing::new(p.to_string()))))
                         })?
                     }
                 },
-                move |result: Result<Option<String>, String>| {
+                move |result: Result<Option<zeroize::Zeroizing<String>>, String>| {
                     btn_clone.set_sensitive(true);
                     btn_clone.set_icon_name("document-open-symbolic");
                     match result {

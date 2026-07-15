@@ -749,7 +749,7 @@ pub fn load_variable_from_vault_with_path(
     var_name: &str,
     kdbx_entry_path: Option<&str>,
     vault_entry_name: Option<&str>,
-) -> Result<Option<String>, String> {
+) -> Result<Option<zeroize::Zeroizing<String>>, String> {
     use rustconn_core::config::SecretBackendType;
     use secrecy::ExposeSecret;
 
@@ -793,10 +793,7 @@ pub fn load_variable_from_vault_with_path(
                 }
                 .map(|opt| {
                     opt.map(|s| {
-                        let z = zeroize::Zeroizing::new(s.expose_secret().to_string());
-                        // Return the zeroized string content; the Zeroizing wrapper
-                        // ensures the original is wiped when `z` drops at end of scope.
-                        String::from(z.as_str())
+                        zeroize::Zeroizing::new(s.expose_secret().to_string())
                     })
                 })
                 .map_err(|e| format!("{e}"));
@@ -814,7 +811,7 @@ pub fn load_variable_from_vault_with_path(
                         let fallback = dispatch_vault_op(settings, &default_key, VaultOp::Retrieve);
                         match fallback {
                             Ok(Some(creds)) if creds.expose_password().is_some() => {
-                                Ok(creds.expose_password().map(String::from))
+                                Ok(creds.expose_password().map(|p| zeroize::Zeroizing::new(p.to_string())))
                             }
                             _ => kdbx_result,
                         }
@@ -836,7 +833,7 @@ pub fn load_variable_from_vault_with_path(
                 retrieve_by_vault_entry_name(settings, entry_name)
             } else {
                 let creds = dispatch_vault_op(settings, &default_key, VaultOp::Retrieve)?;
-                Ok(creds.and_then(|c| c.expose_password().map(String::from)))
+                Ok(creds.and_then(|c| c.expose_password().map(|p| zeroize::Zeroizing::new(p.to_string()))))
             }
         }
     }
@@ -853,7 +850,7 @@ pub fn load_variable_from_vault_with_path(
 fn retrieve_by_vault_entry_name(
     settings: &rustconn_core::config::SecretSettings,
     entry_name: &str,
-) -> Result<Option<String>, String> {
+) -> Result<Option<zeroize::Zeroizing<String>>, String> {
     use rustconn_core::config::SecretBackendType;
     use rustconn_core::secret::SecretBackend;
     use secrecy::ExposeSecret;
@@ -873,8 +870,7 @@ fn retrieve_by_vault_entry_name(
                             .await
                             .map_err(|e| format!("{e}"))?;
                         Ok(password.map(|p| {
-                            let z = zeroize::Zeroizing::new(p.expose_secret().to_string());
-                            String::from(z.as_str())
+                            zeroize::Zeroizing::new(p.expose_secret().to_string())
                         }))
                     }
                     SecretBackendType::OnePassword => {
@@ -889,8 +885,7 @@ fn retrieve_by_vault_entry_name(
                             .map_err(|e| format!("{e}"))?;
                         Ok(creds.and_then(|c| {
                             c.expose_password().map(|p| {
-                                let z = zeroize::Zeroizing::new(p.to_string());
-                                String::from(z.as_str())
+                                zeroize::Zeroizing::new(p.to_string())
                             })
                         }))
                     }
@@ -904,8 +899,7 @@ fn retrieve_by_vault_entry_name(
                             .map_err(|e| format!("{e}"))?;
                         Ok(creds.and_then(|c| {
                             c.expose_password().map(|p| {
-                                let z = zeroize::Zeroizing::new(p.to_string());
-                                String::from(z.as_str())
+                                zeroize::Zeroizing::new(p.to_string())
                             })
                         }))
                     }
@@ -923,8 +917,7 @@ fn retrieve_by_vault_entry_name(
                             .map_err(|e| format!("{e}"))?;
                         Ok(creds.and_then(|c| {
                             c.expose_password().map(|p| {
-                                let z = zeroize::Zeroizing::new(p.to_string());
-                                String::from(z.as_str())
+                                zeroize::Zeroizing::new(p.to_string())
                             })
                         }))
                     }
@@ -937,8 +930,7 @@ fn retrieve_by_vault_entry_name(
                             .map_err(|e| format!("{e}"))?;
                         Ok(creds.and_then(|c| {
                             c.expose_password().map(|p| {
-                                let z = zeroize::Zeroizing::new(p.to_string());
-                                String::from(z.as_str())
+                                zeroize::Zeroizing::new(p.to_string())
                             })
                         }))
                     }
@@ -953,8 +945,7 @@ fn retrieve_by_vault_entry_name(
                             .map_err(|e| format!("{e}"))?;
                         Ok(creds.and_then(|c| {
                             c.expose_password().map(|p| {
-                                let z = zeroize::Zeroizing::new(p.to_string());
-                                String::from(z.as_str())
+                                zeroize::Zeroizing::new(p.to_string())
                             })
                         }))
                     }
@@ -972,8 +963,7 @@ fn retrieve_by_vault_entry_name(
                             .map_err(|e| format!("{e}"))?;
                         Ok(creds.and_then(|c| {
                             c.expose_password().map(|p| {
-                                let z = zeroize::Zeroizing::new(p.to_string());
-                                String::from(z.as_str())
+                                zeroize::Zeroizing::new(p.to_string())
                             })
                         }))
                     }
@@ -1006,7 +996,7 @@ pub fn resolve_global_variables(
                 var.kdbx_entry_path.as_deref(),
                 var.vault_entry_name.as_deref(),
             ) {
-                Ok(Some(pwd)) => var.value = pwd,
+                Ok(Some(pwd)) => var.value.clone_from(&pwd),
                 Ok(None) => {
                     tracing::debug!(var_name = %var.name, "No secret found in vault for variable");
                 }
