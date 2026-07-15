@@ -1,21 +1,35 @@
 //! System keyring helpers for storing/retrieving secret backend credentials.
+//!
+//! All save operations have a 5-second timeout ceiling to prevent blocking
+//! the GTK main thread if the Secret Service daemon is unresponsive.
+
+use std::time::Duration;
+
+/// Timeout for keyring save operations (protects GTK main thread).
+const KEYRING_SAVE_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// Saves Bitwarden master password to system keyring via rustconn-core
 pub(super) fn save_bw_password_to_keyring(password: &str) {
     let secret = secrecy::SecretString::from(password.to_owned());
     match crate::async_utils::with_runtime(|rt| {
-        rt.block_on(rustconn_core::secret::store_master_password_in_keyring(
-            &secret,
-        ))
+        rt.block_on(async {
+            tokio::time::timeout(
+                KEYRING_SAVE_TIMEOUT,
+                rustconn_core::secret::store_master_password_in_keyring(&secret),
+            )
+            .await
+            .map_err(|_| "keyring save timed out after 5s")?
+            .map_err(|e| e.to_string())
+        })
     }) {
         Ok(Ok(())) => {
             tracing::info!("Bitwarden master password saved to keyring");
         }
         Ok(Err(e)) => {
-            tracing::warn!(%e, "Failed to save Bitwarden password to keyring");
+            tracing::warn!(error = %e, "Failed to save Bitwarden password to keyring");
         }
         Err(e) => {
-            tracing::warn!(%e, "Runtime error saving Bitwarden password to keyring");
+            tracing::warn!(error = %e, "Runtime error saving Bitwarden password to keyring");
         }
     }
 }
@@ -35,11 +49,11 @@ pub(super) fn get_bw_password_from_keyring() -> Option<secrecy::SecretString> {
             None
         }
         Ok(Err(e)) => {
-            tracing::debug!(%e, "Failed to load Bitwarden password from keyring");
+            tracing::debug!(error = %e, "Failed to load Bitwarden password from keyring");
             None
         }
         Err(e) => {
-            tracing::debug!(%e, "Runtime error loading Bitwarden password from keyring");
+            tracing::debug!(error = %e, "Runtime error loading Bitwarden password from keyring");
             None
         }
     }
@@ -49,16 +63,24 @@ pub(super) fn get_bw_password_from_keyring() -> Option<secrecy::SecretString> {
 pub(super) fn save_op_token_to_keyring(token: &str) {
     let secret = secrecy::SecretString::from(token.to_owned());
     match crate::async_utils::with_runtime(|rt| {
-        rt.block_on(rustconn_core::secret::store_token_in_keyring(&secret))
+        rt.block_on(async {
+            tokio::time::timeout(
+                KEYRING_SAVE_TIMEOUT,
+                rustconn_core::secret::store_token_in_keyring(&secret),
+            )
+            .await
+            .map_err(|_| "keyring save timed out after 5s")?
+            .map_err(|e| e.to_string())
+        })
     }) {
         Ok(Ok(())) => {
             tracing::info!("1Password token saved to keyring");
         }
         Ok(Err(e)) => {
-            tracing::warn!(%e, "Failed to save 1Password token to keyring");
+            tracing::warn!(error = %e, "Failed to save 1Password token to keyring");
         }
         Err(e) => {
-            tracing::warn!(%e, "Runtime error saving 1Password token");
+            tracing::warn!(error = %e, "Runtime error saving 1Password token");
         }
     }
 }
@@ -81,16 +103,24 @@ pub(super) fn get_op_token_from_keyring() -> Option<secrecy::SecretString> {
 pub(super) fn save_pb_passphrase_to_keyring(passphrase: &str) {
     let secret = secrecy::SecretString::from(passphrase.to_owned());
     match crate::async_utils::with_runtime(|rt| {
-        rt.block_on(rustconn_core::secret::store_passphrase_in_keyring(&secret))
+        rt.block_on(async {
+            tokio::time::timeout(
+                KEYRING_SAVE_TIMEOUT,
+                rustconn_core::secret::store_passphrase_in_keyring(&secret),
+            )
+            .await
+            .map_err(|_| "keyring save timed out after 5s")?
+            .map_err(|e| e.to_string())
+        })
     }) {
         Ok(Ok(())) => {
             tracing::info!("Passbolt passphrase saved to keyring");
         }
         Ok(Err(e)) => {
-            tracing::warn!(%e, "Failed to save Passbolt passphrase to keyring");
+            tracing::warn!(error = %e, "Failed to save Passbolt passphrase to keyring");
         }
         Err(e) => {
-            tracing::warn!(%e, "Runtime error saving Passbolt passphrase");
+            tracing::warn!(error = %e, "Runtime error saving Passbolt passphrase");
         }
     }
 }
@@ -113,18 +143,24 @@ pub(super) fn get_pb_passphrase_from_keyring() -> Option<secrecy::SecretString> 
 pub(super) fn save_kdbx_password_to_keyring(password: &str) {
     let secret = secrecy::SecretString::from(password.to_owned());
     match crate::async_utils::with_runtime(|rt| {
-        rt.block_on(rustconn_core::secret::store_kdbx_password_in_keyring(
-            &secret,
-        ))
+        rt.block_on(async {
+            tokio::time::timeout(
+                KEYRING_SAVE_TIMEOUT,
+                rustconn_core::secret::store_kdbx_password_in_keyring(&secret),
+            )
+            .await
+            .map_err(|_| "keyring save timed out after 5s")?
+            .map_err(|e| e.to_string())
+        })
     }) {
         Ok(Ok(())) => {
             tracing::info!("KDBX password saved to keyring");
         }
         Ok(Err(e)) => {
-            tracing::warn!(%e, "Failed to save KDBX password to keyring");
+            tracing::warn!(error = %e, "Failed to save KDBX password to keyring");
         }
         Err(e) => {
-            tracing::warn!(%e, "Runtime error saving KDBX password");
+            tracing::warn!(error = %e, "Runtime error saving KDBX password");
         }
     }
 }

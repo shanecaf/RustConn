@@ -2135,11 +2135,22 @@ impl MainWindow {
             let folder_id = conn_clone.group_id;
 
             let result = crate::async_utils::with_runtime(|rt| {
-                rt.block_on(executor.execute_pre_connect(
-                    task,
-                    VariableScope::Connection(conn_id),
-                    folder_id,
-                ))
+                rt.block_on(async {
+                    // ponytail: 60s ceiling protects the GTK main thread from
+                    // hanging forever when the user omits a timeout on the task.
+                    // The task's own timeout (if set) fires first; this is a safety net.
+                    let ceiling = std::time::Duration::from_mins(1);
+                    tokio::time::timeout(
+                        ceiling,
+                        executor.execute_pre_connect(
+                            task,
+                            VariableScope::Connection(conn_id),
+                            folder_id,
+                        ),
+                    )
+                    .await
+                    .unwrap_or(Err(rustconn_core::automation::TaskError::Timeout(60_000)))
+                })
             });
 
             match result {

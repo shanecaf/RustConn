@@ -828,11 +828,13 @@ impl AppState {
                 Ok(Some(password)) => {
                     tracing::debug!(var_name, "[resolve_credentials_blocking] Variable resolved");
                     let creds = if let Some(ref username) = connection.username {
-                        Credentials::with_password(username, &password)
+                        Credentials::with_password(username, password.as_str())
                     } else {
                         Credentials {
                             username: None,
-                            password: Some(secrecy::SecretString::from(password)),
+                            password: Some(secrecy::SecretString::from(
+                                password.as_str().to_owned(),
+                            )),
                             key_passphrase: None,
                             domain: None,
                         }
