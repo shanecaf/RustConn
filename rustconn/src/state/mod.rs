@@ -832,7 +832,9 @@ impl AppState {
                     } else {
                         Credentials {
                             username: None,
-                            password: Some(secrecy::SecretString::from(password.as_str().to_owned())),
+                            password: Some(secrecy::SecretString::from(
+                                password.as_str().to_owned(),
+                            )),
                             key_passphrase: None,
                             domain: None,
                         }

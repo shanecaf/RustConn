@@ -493,7 +493,10 @@ impl VariablesDialog {
                                 .map_err(|_| "Vault retrieve timed out".to_string())?
                                 .map_err(|e| format!("{e}"))
                             })?;
-                            Ok(creds.and_then(|c| c.expose_password().map(|p| zeroize::Zeroizing::new(p.to_string()))))
+                            Ok(creds.and_then(|c| {
+                                c.expose_password()
+                                    .map(|p| zeroize::Zeroizing::new(p.to_string()))
+                            }))
                         })?
                     }
                 },

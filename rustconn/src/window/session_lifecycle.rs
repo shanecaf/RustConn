@@ -413,14 +413,14 @@ impl MainWindow {
                     rt.block_on(async {
                         // ponytail: 60s ceiling protects the GTK main thread;
                         // the task's own timeout (if configured) fires first.
-                        let ceiling = std::time::Duration::from_secs(60);
+                        let ceiling = std::time::Duration::from_mins(1);
                         tokio::time::timeout(ceiling, executor.execute_post_disconnect(
                             task,
                             VariableScope::Connection(connection_id),
                             post_disconnect_folder_id,
                         ))
                         .await
-                        .unwrap_or_else(|_| Err(rustconn_core::automation::TaskError::Timeout(60_000)))
+                        .unwrap_or(Err(rustconn_core::automation::TaskError::Timeout(60_000)))
                     })
                 });
 

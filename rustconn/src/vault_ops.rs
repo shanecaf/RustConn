@@ -791,11 +791,7 @@ pub fn load_variable_from_vault_with_path(
                         None,
                     )
                 }
-                .map(|opt| {
-                    opt.map(|s| {
-                        zeroize::Zeroizing::new(s.expose_secret().to_string())
-                    })
-                })
+                .map(|opt| opt.map(|s| zeroize::Zeroizing::new(s.expose_secret().to_string())))
                 .map_err(|e| format!("{e}"));
 
                 // If KeePass returned Ok(None) or Err and fallback is enabled,
@@ -810,9 +806,9 @@ pub fn load_variable_from_vault_with_path(
                         );
                         let fallback = dispatch_vault_op(settings, &default_key, VaultOp::Retrieve);
                         match fallback {
-                            Ok(Some(creds)) if creds.expose_password().is_some() => {
-                                Ok(creds.expose_password().map(|p| zeroize::Zeroizing::new(p.to_string())))
-                            }
+                            Ok(Some(creds)) if creds.expose_password().is_some() => Ok(creds
+                                .expose_password()
+                                .map(|p| zeroize::Zeroizing::new(p.to_string()))),
                             _ => kdbx_result,
                         }
                     }
@@ -833,7 +829,10 @@ pub fn load_variable_from_vault_with_path(
                 retrieve_by_vault_entry_name(settings, entry_name)
             } else {
                 let creds = dispatch_vault_op(settings, &default_key, VaultOp::Retrieve)?;
-                Ok(creds.and_then(|c| c.expose_password().map(|p| zeroize::Zeroizing::new(p.to_string()))))
+                Ok(creds.and_then(|c| {
+                    c.expose_password()
+                        .map(|p| zeroize::Zeroizing::new(p.to_string()))
+                }))
             }
         }
     }
@@ -869,9 +868,10 @@ fn retrieve_by_vault_entry_name(
                             .find_password_by_exact_name(entry_name)
                             .await
                             .map_err(|e| format!("{e}"))?;
-                        Ok(password.map(|p| {
-                            zeroize::Zeroizing::new(p.expose_secret().to_string())
-                        }))
+                        Ok(
+                            password
+                                .map(|p| zeroize::Zeroizing::new(p.expose_secret().to_string())),
+                        )
                     }
                     SecretBackendType::OnePassword => {
                         // 1Password: use `op item get "{name}" --fields password`
@@ -884,9 +884,8 @@ fn retrieve_by_vault_entry_name(
                             .await
                             .map_err(|e| format!("{e}"))?;
                         Ok(creds.and_then(|c| {
-                            c.expose_password().map(|p| {
-                                zeroize::Zeroizing::new(p.to_string())
-                            })
+                            c.expose_password()
+                                .map(|p| zeroize::Zeroizing::new(p.to_string()))
                         }))
                     }
                     SecretBackendType::Pass => {
@@ -898,9 +897,8 @@ fn retrieve_by_vault_entry_name(
                             .await
                             .map_err(|e| format!("{e}"))?;
                         Ok(creds.and_then(|c| {
-                            c.expose_password().map(|p| {
-                                zeroize::Zeroizing::new(p.to_string())
-                            })
+                            c.expose_password()
+                                .map(|p| zeroize::Zeroizing::new(p.to_string()))
                         }))
                     }
                     SecretBackendType::Passbolt => {
@@ -916,9 +914,8 @@ fn retrieve_by_vault_entry_name(
                             .await
                             .map_err(|e| format!("{e}"))?;
                         Ok(creds.and_then(|c| {
-                            c.expose_password().map(|p| {
-                                zeroize::Zeroizing::new(p.to_string())
-                            })
+                            c.expose_password()
+                                .map(|p| zeroize::Zeroizing::new(p.to_string()))
                         }))
                     }
                     #[cfg(target_os = "macos")]
@@ -929,9 +926,8 @@ fn retrieve_by_vault_entry_name(
                             .await
                             .map_err(|e| format!("{e}"))?;
                         Ok(creds.and_then(|c| {
-                            c.expose_password().map(|p| {
-                                zeroize::Zeroizing::new(p.to_string())
-                            })
+                            c.expose_password()
+                                .map(|p| zeroize::Zeroizing::new(p.to_string()))
                         }))
                     }
                     SecretBackendType::EncryptedFile => {
@@ -944,9 +940,8 @@ fn retrieve_by_vault_entry_name(
                             .await
                             .map_err(|e| format!("{e}"))?;
                         Ok(creds.and_then(|c| {
-                            c.expose_password().map(|p| {
-                                zeroize::Zeroizing::new(p.to_string())
-                            })
+                            c.expose_password()
+                                .map(|p| zeroize::Zeroizing::new(p.to_string()))
                         }))
                     }
                     _ => {
@@ -962,9 +957,8 @@ fn retrieve_by_vault_entry_name(
                             .await
                             .map_err(|e| format!("{e}"))?;
                         Ok(creds.and_then(|c| {
-                            c.expose_password().map(|p| {
-                                zeroize::Zeroizing::new(p.to_string())
-                            })
+                            c.expose_password()
+                                .map(|p| zeroize::Zeroizing::new(p.to_string()))
                         }))
                     }
                 }

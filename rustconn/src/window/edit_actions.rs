@@ -194,7 +194,11 @@ impl MainWindow {
                 if pw.is_empty() {
                     toast_clone.show_warning(&crate::i18n::i18n("Cached password is empty"));
                 } else {
-                    copy_to_clipboard(zeroize::Zeroizing::new(pw.to_string()), &window_weak, &toast_clone);
+                    copy_to_clipboard(
+                        zeroize::Zeroizing::new(pw.to_string()),
+                        &window_weak,
+                        &toast_clone,
+                    );
                 }
                 return;
             }
@@ -214,7 +218,11 @@ impl MainWindow {
                                     toast_clone2
                                         .show_warning(&crate::i18n::i18n("Password is empty"));
                                 } else {
-                                    copy_to_clipboard(zeroize::Zeroizing::new(pw.to_string()), &window_weak2, &toast_clone2);
+                                    copy_to_clipboard(
+                                        zeroize::Zeroizing::new(pw.to_string()),
+                                        &window_weak2,
+                                        &toast_clone2,
+                                    );
                                 }
                             } else {
                                 toast_clone2.show_warning(&crate::i18n::i18n(
