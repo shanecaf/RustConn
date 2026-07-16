@@ -45,7 +45,10 @@ pub struct ExportDialog {
     progress_bar: ProgressBar,
     progress_label: Label,
     #[cfg(feature = "adw-1-6")]
-    #[expect(dead_code, reason = "adw::Spinner spins automatically; field keeps widget alive")]
+    #[expect(
+        dead_code,
+        reason = "adw::Spinner spins automatically; field keeps widget alive"
+    )]
     progress_spinner: adw::Spinner,
     #[cfg(not(feature = "adw-1-6"))]
     progress_spinner: gtk4::Spinner,
