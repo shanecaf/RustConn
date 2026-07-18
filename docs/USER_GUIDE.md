@@ -1,6 +1,6 @@
 # RustConn User Guide
 
-**Version 0.18.12** | GTK4/libadwaita Connection Manager for Linux
+**Version 0.19.0** | GTK4/libadwaita Connection Manager for Linux
 
 RustConn is a modern connection manager designed for Linux with Wayland-first approach. It supports SSH, RDP, VNC, SPICE, MOSH, SFTP, Telnet, Serial, Kubernetes, Web protocols and Zero Trust integrations through a native GTK4/libadwaita interface.
 
@@ -432,7 +432,7 @@ Protocol-specific options are configured in the connection dialog's protocol tab
 | Serial | Device path, baud rate, data bits, stop bits, parity, flow control, custom picocom arguments |
 | Kubernetes | Kubeconfig path, context, namespace, pod, container, shell, busybox mode, busybox image, custom kubectl arguments |
 | ZeroTrust | Provider-specific (AWS SSM, GCP IAP, Azure Bastion, Azure SSH, OCI Bastion, Cloudflare Access, Teleport, Tailscale SSH, HashiCorp Boundary, Hoop.dev, Generic Command), custom CLI arguments |
-| Web | URL (opens in system browser), credentials for copy-to-clipboard |
+| Web | URL, browser mode (Embedded/System/Custom), credential autofill, JavaScript toggle, zoom level |
 
 ### SSH
 
@@ -1060,22 +1060,77 @@ Supported providers: AWS Session Manager, GCP IAP Tunnel, Azure Bastion, Azure S
 
 ### Web Bookmarks
 
-Web bookmark connections store website URLs and open them in the system's default browser. No embedded browser is used — RustConn delegates to the OS via GTK4 `UriLauncher` (portal-aware, works in Flatpak).
+Web connections store website URLs and can open them in three browser modes depending on platform and configuration.
 
 **Use cases:**
 - Quick access to web-based admin panels (AWS Console, Grafana, Proxmox, etc.)
 - Storing credentials for web services alongside SSH/RDP connections
 - Organizing all infrastructure access points in one place
 
-**Creating a Web bookmark:**
+**Browser Modes:**
+
+| Mode | Description | Default |
+|------|-------------|---------|
+| **Embedded** | Built-in WebKitGTK 6.0 browser in a notebook tab (Linux only) | Yes (Linux) |
+| **System** | Opens URL in the default system browser via GTK4 `UriLauncher` (portal-aware, works in Flatpak) | Fallback / other platforms |
+| **Custom** | Opens URL with a user-defined browser command | Manual |
+
+Configure the browser mode in the connection dialog's protocol tab.
+
+**Creating a Web connection:**
 1. Click "New Connection" → select **Web** protocol
 2. Enter the full URL in the **URL** field (must start with `http://` or `https://`)
-3. Optionally set username/password — these are stored in the configured secret backend for copy-to-clipboard via the sidebar context menu
-4. Click Save
+3. Select browser mode (Embedded, System, or Custom)
+4. Optionally set username/password — these are stored in the configured secret backend for credential autofill (embedded mode) or copy-to-clipboard (system/custom mode)
+5. Click Save
 
 **Connecting:**
-- Double-click the connection in the sidebar → the URL opens in your default browser
-- The sidebar status briefly shows "connecting" (yellow) then clears — Web bookmarks have no persistent session
+- Double-click the connection in the sidebar → opens in the configured browser mode
+- In embedded mode, a browser tab appears in the session area with a navigation toolbar
+- In system/custom mode, the URL opens externally and the sidebar status briefly shows "connecting" (yellow) then clears
+
+#### Embedded Browser (WebKitGTK 6.0)
+
+The embedded browser provides a full browsing experience inside a RustConn tab on Linux.
+
+**Navigation Toolbar:**
+- **Back / Forward / Reload / Home** buttons for standard navigation
+- Page title is shown in the toolbar; hover over it to see the current URL in a tooltip
+- **Ctrl+L** — copies the current URL to the clipboard
+
+**Zoom Controls:**
+- **Ctrl+Plus** — zoom in
+- **Ctrl+Minus** — zoom out
+- **Ctrl+0** — reset zoom to 100%
+- Zoom range: 30% to 300%
+
+**Credential Autofill:**
+When a connection has stored credentials (username/password), the embedded browser can fill login forms automatically:
+- **JavaScript injection** — fills standard login forms on page load
+- **HTTP Basic Auth** — responds to HTTP 401 challenges automatically
+
+**Persistent Sessions:**
+Cookies and session data persist across RustConn restarts, so you stay logged in to web services between sessions.
+
+**Per-connection JavaScript Toggle:**
+Disable JavaScript execution for specific connections in the connection dialog's protocol tab. Useful for lightweight pages or security-sensitive bookmarks.
+
+**Downloads:**
+Files are automatically saved to `~/Downloads/`.
+
+**Keyboard Shortcuts (Embedded Mode):**
+
+| Shortcut | Action |
+|----------|--------|
+| Ctrl+L | Copy current URL to clipboard |
+| Ctrl+Plus | Zoom in |
+| Ctrl+Minus | Zoom out |
+| Ctrl+0 | Reset zoom |
+
+**Known Limitations:**
+- WebKitGTK does not support WebCodecs (needed for Selkies/WebRTC streaming)
+- No DRM/EME content (Widevine not available in WebKitGTK)
+- Embedded mode is Linux-only (requires WebKitGTK 6.0)
 
 **Context menu actions:**
 - **Copy Username** / **Copy Password** — copies stored credentials to clipboard (auto-clears after 30 seconds)
@@ -1084,11 +1139,6 @@ Web bookmark connections store website URLs and open them in the system's defaul
 ```bash
 rustconn-cli add --name "AWS Console" --protocol web --host "https://console.aws.amazon.com"
 ```
-
-**Limitations:**
-- No embedded browser — always opens in the system default
-- No auto-fill — credentials are for copy-to-clipboard only
-- Port field is hidden (not applicable for URLs)
 
 ---
 
@@ -1107,6 +1157,7 @@ rustconn-cli add --name "AWS Console" --protocol web --host "https://console.aws
 | Serial | Embedded VTE terminal tab (external `picocom` client) |
 | Kubernetes | Embedded VTE terminal tab (external `kubectl exec`) |
 | ZeroTrust | Provider CLI in terminal |
+| Web | Embedded WebKitGTK tab (Linux) or system/custom browser (external) |
 | Local Shell | Local VTE terminal tab (user's default shell) |
 
 **Local Shell:** Open a local terminal tab without connecting to any remote host. Useful as a quick terminal emulator or for running local commands alongside remote sessions. Start via Menu → File → Local Shell, the startup action (Settings → Interface → Startup → Local Shell), or `rustconn --shell`.

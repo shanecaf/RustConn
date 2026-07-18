@@ -83,6 +83,9 @@ impl AppState {
     /// credentials deleted from the configured backend before the trash
     /// entries are removed. Credential cleanup failures are logged but
     /// do not prevent the trash from being emptied.
+    ///
+    /// Also removes webkit session data directories for Web connections
+    /// (`~/.local/share/rustconn/webkit/<uuid>/` and `~/.cache/rustconn/webkit/<uuid>/`).
     pub fn empty_trash(&mut self) -> ConfigResult<()> {
         use rustconn_core::models::PasswordSource;
 
@@ -101,6 +104,15 @@ impl AppState {
             .into_iter()
             .filter(|c| c.password_source == PasswordSource::Vault)
             .cloned()
+            .collect();
+
+        // Collect all trashed connection IDs for webkit session cleanup
+        #[cfg(feature = "web-embedded")]
+        let trashed_connection_ids: Vec<uuid::Uuid> = self
+            .connection_manager
+            .list_trash_connections()
+            .iter()
+            .map(|c| c.id)
             .collect();
 
         // Collect vault groups from trash for credential cleanup
@@ -128,6 +140,33 @@ impl AppState {
                     group_name = %group.name,
                     error = %e,
                     "Failed to clean up group vault credential on permanent delete"
+                );
+            }
+        }
+
+        // Remove webkit session data/cache directories for permanently deleted connections
+        #[cfg(feature = "web-embedded")]
+        for conn_id in &trashed_connection_ids {
+            let data_dir = crate::embedded_web::session_data_dir(conn_id);
+            let cache_dir = crate::embedded_web::session_cache_dir(conn_id);
+            if data_dir.exists()
+                && let Err(e) = std::fs::remove_dir_all(&data_dir)
+            {
+                tracing::warn!(
+                    connection_id = %conn_id,
+                    path = %data_dir.display(),
+                    error = %e,
+                    "Failed to remove webkit session data directory"
+                );
+            }
+            if cache_dir.exists()
+                && let Err(e) = std::fs::remove_dir_all(&cache_dir)
+            {
+                tracing::warn!(
+                    connection_id = %conn_id,
+                    path = %cache_dir.display(),
+                    error = %e,
+                    "Failed to remove webkit session cache directory"
                 );
             }
         }

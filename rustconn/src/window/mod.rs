@@ -2363,8 +2363,8 @@ impl MainWindow {
                 None
             }
             "web" => {
-                // Web opens URL in default browser — no terminal session
-                Self::handle_web_connect(state, sidebar, connection_id);
+                // Web: Embedded mode opens in-tab, System/Custom open externally
+                Self::handle_web_connect(state, notebook, sidebar, connection_id);
                 None
             }
             _ => {

@@ -1494,9 +1494,18 @@ impl ConnectionDialog {
     }
 
     pub(super) fn set_web_config(&self, web: &rustconn_core::models::WebConfig) {
+        use crate::dialogs::connection::web::combo_index_from_browser_mode;
+
         if let Some(ref browser) = web.browser {
             self.web_browser_entry.set_text(browser);
         }
         self.web_private_mode_switch.set_active(web.private_mode);
+        self.web_browser_mode_combo
+            .set_selected(combo_index_from_browser_mode(web.browser_mode));
+        self.web_javascript_switch
+            .set_active(web.javascript_enabled);
+        if let Some(ref user_agent) = web.user_agent {
+            self.web_user_agent_row.set_text(user_agent);
+        }
     }
 }

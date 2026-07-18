@@ -5,6 +5,24 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.0] - 2026-07-18
+
+### Added
+
+- **Embedded WebKitGTK 6.0 web browser for Web connections (Linux) (issue #151)** — Web protocol connections can now render pages inside RustConn tabs instead of opening an external browser, providing an integrated browsing experience for internal tools and dashboards
+- **Browser mode selection: Embedded, System, or Custom browser command** — each Web connection can choose how URLs are opened; Embedded renders in-tab via WebKitGTK, System delegates to `xdg-open`, and Custom executes a user-specified command
+- **Per-connection persistent sessions with isolated cookies and local storage** — each Web connection gets its own WebKitGTK `NetworkSession` backed by a dedicated directory (`~/.local/share/rustconn/webkit/<uuid>/`), so login sessions survive restarts and connections cannot read each other's data
+- **Navigation toolbar with back/forward/reload/home and zoom controls** — a compact toolbar above the embedded WebView provides standard browser navigation, a page title label, and zoom in/out/reset (Ctrl+Plus/Minus/0) clamped to 30–300%
+- **Credential autofill via JavaScript injection and HTTP Basic Auth** — the Autofill button injects stored credentials into login forms using targeted CSS selectors and dispatches input/change events; HTTP Basic/Digest challenges are answered automatically from the configured secret backend
+- **JavaScript enable/disable toggle per connection** — a switch in the connection dialog controls whether JavaScript runs in the embedded WebView, useful for security-sensitive internal tools
+- **Split view support for embedded web alongside terminals** — Web sessions using Embedded mode participate in the split-view system like RDP/VNC, so documentation can be viewed side-by-side with SSH terminals
+- **`web-embedded` feature flag (default on Linux, excluded on macOS)** — the WebKitGTK dependency is gated behind a Cargo feature so macOS builds and minimal Linux builds compile without it; all WebKitGTK code is conditionally compiled
+
+### Known Limitations
+
+- **WebKitGTK does not support WebCodecs API** — hardware-accelerated H.264/VP8 decoding via WebCodecs (used by Selkies WebRTC streaming) is not available in WebKitGTK. Low-latency streaming tools like Selkies require a Chromium-based engine. The embedded browser works well for noVNC, Apache Guacamole, KasmVNC, and internal web dashboards
+- **No DRM/EME content playback** — encrypted media (Netflix, Spotify) is not supported in the embedded view
+
 ## [0.18.12] - 2026-07-18
 
 ### Added

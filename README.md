@@ -63,7 +63,7 @@ More screenshots on the [Flathub listing](https://flathub.org/apps/io.github.tot
 | Kubernetes | kubectl exec via VTE | External |
 | MOSH | mosh via VTE | External |
 | Zero Trust | AWS SSM, GCP IAP, Azure, OCI, Cloudflare, Teleport, Tailscale, Boundary, Hoop.dev | External |
-| Web | System browser (UriLauncher / xdg-open) | External |
+| Web | Embedded WebKitGTK 6.0 browser (Linux) / System browser / Custom browser command | Embedded + external |
 
 ## Installation
 

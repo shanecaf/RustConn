@@ -68,6 +68,8 @@ pub mod embedded_toolbar_overflow;
 pub mod embedded_trait;
 pub mod embedded_vnc;
 pub mod embedded_vnc_types;
+#[cfg(feature = "web-embedded")]
+pub mod embedded_web;
 pub mod external_session;
 pub mod external_window;
 pub mod i18n;

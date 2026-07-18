@@ -183,6 +183,9 @@ impl ConnectionDialog {
         mosh_server_binary_entry: &Entry,
         web_browser_entry: &Entry,
         web_private_mode_switch: &adw::SwitchRow,
+        web_browser_mode_combo: &adw::ComboRow,
+        web_javascript_switch: &adw::SwitchRow,
+        web_user_agent_row: &adw::EntryRow,
         variables_rows: &Rc<RefCell<Vec<LocalVariableRow>>>,
         logging_tab: &logging_tab::LoggingTab,
         expect_rules: &Rc<RefCell<Vec<ExpectRule>>>,
@@ -375,6 +378,9 @@ impl ConnectionDialog {
         let mosh_server_binary_entry = mosh_server_binary_entry.clone();
         let web_browser_entry = web_browser_entry.clone();
         let web_private_mode_switch = web_private_mode_switch.clone();
+        let web_browser_mode_combo = web_browser_mode_combo.clone();
+        let web_javascript_switch = web_javascript_switch.clone();
+        let web_user_agent_row = web_user_agent_row.clone();
         let variables_rows = variables_rows.clone();
         let logging_enabled_switch = logging_tab.enabled_switch.clone();
         let logging_path_entry = logging_tab.path_entry.clone();
@@ -578,6 +584,9 @@ impl ConnectionDialog {
                 mosh_server_binary_entry: &mosh_server_binary_entry,
                 web_browser_entry: &web_browser_entry,
                 web_private_mode_switch: &web_private_mode_switch,
+                web_browser_mode_combo: &web_browser_mode_combo,
+                web_javascript_switch: &web_javascript_switch,
+                web_user_agent_row: &web_user_agent_row,
                 local_variables: &local_variables,
                 logging_tab: &logging_tab::LoggingTab {
                     enabled_switch: logging_enabled_switch.clone(),

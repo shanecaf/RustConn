@@ -285,6 +285,9 @@ pub struct ConnectionDialog {
     // Web fields
     web_browser_entry: Entry,
     web_private_mode_switch: adw::SwitchRow,
+    web_browser_mode_combo: adw::ComboRow,
+    web_javascript_switch: adw::SwitchRow,
+    web_user_agent_row: adw::EntryRow,
     // Variables fields
     variables_list: ListBox,
     variables_rows: Rc<RefCell<Vec<LocalVariableRow>>>,
