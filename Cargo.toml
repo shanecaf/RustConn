@@ -71,7 +71,7 @@ oo7 = { version = "0.6", default-features = false, features = ["tokio", "native_
 # native-tls instead of rustls-tls: minimises aws-lc-sys surface.
 # Note: sspi (via ironrdp-connector) still pulls aws-lc-sys transitively;
 # Flatpak manifests work around the GCC 15 -O2/-O0 conflict with a cc-wrap shim.
-reqwest = { version = "0.12", features = ["native-tls", "stream"], default-features = false }
+reqwest = { version = "0.13", features = ["native-tls", "stream"], default-features = false }
 zip = "8.2"
 flate2 = "1.1"
 tar = "0.4.45"
