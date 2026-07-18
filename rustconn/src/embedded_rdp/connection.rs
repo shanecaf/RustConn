@@ -1615,7 +1615,7 @@ impl super::EmbeddedRdpWidget {
                     .fallback_config
                     .borrow()
                     .as_ref()
-                    .map_or(true, |cfg| {
+                    .is_none_or(|cfg| {
                         matches!(cfg.graphics_mode, rustconn_core::rdp_client::graphics::GraphicsMode::Auto)
                     });
 

@@ -174,6 +174,7 @@ pub struct RdpConfig {
     /// - Auto (default): negotiate GFX/H.264 when available
     /// - Legacy: skip GFX pipeline entirely (most compatible, fixes #218)
     /// - RemoteFx: use RemoteFX codec without GFX pipeline
+    ///
     /// Only relevant for Embedded mode; External (FreeRDP) handles this itself.
     pub graphics_mode: GraphicsMode,
     /// Force Legacy/RemoteFX graphics path (skip GFX/EGFX pipeline).
