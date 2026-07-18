@@ -455,25 +455,25 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Download deb artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: debian-package
           path: dist/
 
       - name: Download RPM artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: rpm-package
           path: dist/
 
       - name: Download AppImage artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: appimage
           path: dist/
 
       - name: Download Flatpak artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: flatpak
           path: dist/
