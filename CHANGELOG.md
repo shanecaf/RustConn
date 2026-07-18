@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.18.12] - 2026-07-18
 
+### Added
+
+- **Graphics Pipeline selector for embedded RDP connections (issue #218)** — adds a "Graphics Pipeline" dropdown (Automatic / Legacy / RemoteFX) to the RDP connection properties dialog. Users experiencing incompatibility with the GFX/H.264 pipeline on certain Windows Server 2019 hosts can now set "Legacy (Compatible)" per-connection to skip the EGFX channel entirely. This eliminates the 15-second watchdog timeout, the retry cascade, and the fallback to external FreeRDP. The setting is persisted and only visible in Embedded client mode
+
 ### Fixed
 
 - **Missing mouse cursor on remote Wayland VNC sessions (issue #220)** — the embedded VNC client now advertises `CursorPseudo` (RFB encoding -239) and `DesktopSizePseudo` (-223) during connection negotiation. Without `CursorPseudo`, Wayland VNC servers never send cursor shape updates because the compositor does not composite the hardware cursor into the framebuffer capture (unlike X11). The cursor rendering handler in `embedded_vnc` was already implemented but never received events — this fix completes the pipeline so the remote pointer is visible on Fedora 42/44 Wayland sessions

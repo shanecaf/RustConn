@@ -2463,6 +2463,7 @@ impl TemplateDialog {
         ProtocolConfig::Rdp(RdpConfig {
             client_mode,
             performance_mode: RdpPerformanceMode::default(),
+            graphics_mode: Default::default(),
             resolution: Some(resolution),
             color_depth: Some(color_depth),
             audio_redirect: audio_check.is_active(),
