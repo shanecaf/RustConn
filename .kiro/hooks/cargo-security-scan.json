@@ -8,7 +8,7 @@
       "matcher": "Cargo\\.lock$",
       "action": {
         "type": "command",
-        "command": "cargo deny check advisories 2>/dev/null || cargo audit 2>/dev/null || echo 'Neither cargo-deny nor cargo-audit installed. Run: cargo install cargo-deny'"
+        "command": "git diff --quiet HEAD -- Cargo.lock 2>/dev/null && exit 0; cargo deny check advisories 2>/dev/null || cargo audit 2>/dev/null || echo 'Neither cargo-deny nor cargo-audit installed. Run: cargo install cargo-deny'"
       },
       "enabled": true
     }

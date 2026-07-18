@@ -22,20 +22,19 @@ Quick reference for all `.kiro/hooks/*.json` — what fires when, what it does, 
 | **uk-translation-review** | `po/uk\.po$` | agent | ~15s | Invokes `uk-translation-reviewer` sub-agent, may edit `po/uk.po` |
 | **cargo-security-scan** | `Cargo\.lock$` | command | ~5s | Runs `cargo deny`/`cargo audit` (read-only) |
 | **flatpak-manifest-check** | `Cargo\.lock$` | agent | ~2s | Warns about stale cargo-sources.json (no auto-fix) |
-| **sync-package-versions** | `Cargo\.toml$` | agent | ~5s | **LOGICALLY DISABLED** (description says superseded, but `enabled: true` — see note below) |
-| **kirograph-mark-dirty-on-save** | `\.(ts\|tsx\|js\|...\|rs\|...)$` | command | <100ms | Touches dirty marker file |
+| **kirograph-mark-dirty-on-save** | `\.(rs\|toml)$` | command | <100ms | Touches dirty marker file |
 
 ## PostFileCreate
 
 | Hook | Matcher | Type | Latency | Side-effects |
 |------|---------|------|---------|--------------|
-| **kirograph-mark-dirty-on-create** | `\.(ts\|tsx\|js\|...\|rs\|...)$` | command | <100ms | Touches dirty marker file |
+| **kirograph-mark-dirty-on-create** | `\.(rs\|toml)$` | command | <100ms | Touches dirty marker file |
 
 ## PostFileDelete
 
 | Hook | Matcher | Type | Latency | Side-effects |
 |------|---------|------|---------|--------------|
-| **kirograph-sync-on-delete** | `\.(ts\|tsx\|js\|...\|rs\|...)$` | command | ~1s | Runs full sync (immediate, not deferred) |
+| **kirograph-sync-on-delete** | `\.(rs\|toml)$` | command | ~1s | Runs full sync (immediate, not deferred) |
 
 ## PostTaskExec (after spec task completes)
 
@@ -65,10 +64,6 @@ When editing a `.rs` file in `rustconn/src/secret/`:
 When editing `Cargo.lock`:
 - `cargo-security-scan` + `flatpak-manifest-check` fire together
 
-When editing `Cargo.toml`:
-- `sync-package-versions` fires (but should be disabled — see cleanup note)
-
 ## Known issues
 
-- **sync-package-versions**: description says "DISABLED — superseded" but `"enabled": true`. Should be set to `"enabled": false` or deleted.
-- **KiroGraph matchers** include TypeScript/Python/Java/etc. for a Rust-only project. Can be narrowed to `\\.rs$` and `\\.toml$`.
+- **KiroGraph matchers** are narrowed to `\.(rs|toml)$` — matches the Rust-only project scope.
