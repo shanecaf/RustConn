@@ -487,8 +487,10 @@ impl super::EmbeddedRdpWidget {
         // Apply user-selected graphics mode for the embedded IronRDP client.
         // Auto (default) lets IronRDP negotiate GFX/H.264; Legacy/RemoteFx skip
         // the EGFX pipeline entirely. (Issue #218 — user workaround)
-        if !matches!(config.graphics_mode, rustconn_core::rdp_client::graphics::GraphicsMode::Auto)
-        {
+        if !matches!(
+            config.graphics_mode,
+            rustconn_core::rdp_client::graphics::GraphicsMode::Auto
+        ) {
             tracing::info!(
                 protocol = "rdp",
                 graphics_mode = ?config.graphics_mode,
