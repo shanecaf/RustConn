@@ -346,11 +346,35 @@ impl NavigationToolbar {
         let zoom_out_btn = self.zoom_out_button.clone();
 
         key_controller.connect_key_pressed(move |_, key, _, state| {
-            if !state.contains(gdk::ModifierType::CONTROL_MASK) {
+            let ctrl = state.contains(gdk::ModifierType::CONTROL_MASK);
+            let alt = state.contains(gdk::ModifierType::ALT_MASK);
+
+            // Alt+Left: navigate back
+            if alt && matches!(key.name().as_deref(), Some("Left")) {
+                if wv.can_go_back() {
+                    wv.go_back();
+                }
+                return glib::Propagation::Stop;
+            }
+
+            // Alt+Right: navigate forward
+            if alt && matches!(key.name().as_deref(), Some("Right")) {
+                if wv.can_go_forward() {
+                    wv.go_forward();
+                }
+                return glib::Propagation::Stop;
+            }
+
+            if !ctrl {
                 return glib::Propagation::Proceed;
             }
 
             match key.name().as_deref() {
+                Some("r") => {
+                    // Ctrl+R: reload page
+                    wv.reload();
+                    glib::Propagation::Stop
+                }
                 Some("plus" | "equal" | "KP_Add") => {
                     let new_level = zoom_in(&wv);
                     update_zoom_button_sensitivity(&zoom_in_btn, &zoom_out_btn, new_level);

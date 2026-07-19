@@ -3085,12 +3085,16 @@ impl Default for WebBrowserMode {
     }
 }
 
-/// Web bookmark configuration
+/// Web connection configuration.
 ///
 /// Configuration for web bookmark connections. These connections open a URL
 /// in the user's default browser or an embedded WebView. Credentials
 /// (username/password) are stored in the configured secret backend and can
 /// be used for autofill in embedded mode.
+///
+/// `Serialize` is derived, but `Deserialize` is implemented manually to
+/// validate `user_agent` length (max 512 chars) and clamp `zoom_level`
+/// to the [0.3, 3.0] range at parse time.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct WebConfig {
     /// Custom browser command (None = system default via xdg-open / portal)

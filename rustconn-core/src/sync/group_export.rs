@@ -427,11 +427,21 @@ fn build_template(name: &str, existing_variables: &[Variable]) -> VariableTempla
 ///
 /// For SSH and SFTP configs, `key_path` is set to `None` because it is a
 /// local filesystem path that differs between devices.  All other protocol
-/// configs are returned unchanged.
+/// Strips device-local fields from protocol configs before sync export.
+///
+/// SSH/SFTP: removes `key_path` (device-specific file path).
+/// Web: resets `zoom_level` to default 1.0 (device-dependent screen size).
+/// Other configs are returned unchanged.
 fn strip_local_only_ssh_fields(config: &ProtocolConfig) -> ProtocolConfig {
     match config {
         ProtocolConfig::Ssh(ssh) => ProtocolConfig::Ssh(strip_ssh_key_path(ssh)),
         ProtocolConfig::Sftp(ssh) => ProtocolConfig::Sftp(strip_ssh_key_path(ssh)),
+        ProtocolConfig::Web(web) => {
+            let mut cleaned = web.clone();
+            // Zoom level is device-local: a 13" laptop and a 32" monitor need different zoom.
+            cleaned.zoom_level = 1.0;
+            ProtocolConfig::Web(cleaned)
+        }
         other => other.clone(),
     }
 }

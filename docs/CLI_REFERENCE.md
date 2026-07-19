@@ -210,6 +210,10 @@ Options:
 | `--serial-parity` | — | Serial parity: `none` (default), `odd`, `even` |
 | `--serial-flow-control` | — | Serial flow control: `none` (default), `hardware`, `software` |
 | `--serial-custom-arg` | — | Custom serial client argument (repeatable) |
+| `--browser-mode` | — | Web browser mode: `embedded` (default on Linux), `system`, `custom` |
+| `--no-javascript` | — | Disable JavaScript in the embedded browser |
+| `--user-agent` | — | Custom user agent string (max 512 chars) |
+| `--accept-invalid-certs` | — | Accept invalid TLS certificates in embedded browser |
 | `--provider` | — | Zero Trust provider (see [Zero Trust examples](#zero-trust-examples) below) |
 
 **Protocol examples:**
@@ -254,6 +258,17 @@ rustconn-cli add -n "Mobile" -H 10.0.0.1 -P mosh -u admin \
 # Serial with full configuration
 rustconn-cli add -n "Router" -H /dev/ttyUSB0 -P serial --baud-rate 9600 \
     --serial-data-bits 8 --serial-parity none --serial-flow-control hardware
+
+# Web (embedded browser with self-signed cert)
+rustconn-cli add -n "Proxmox" -H "https://pve.local:8006" -P web --accept-invalid-certs
+
+# Web (system browser, no JavaScript)
+rustconn-cli add -n "Docs" -H "file:///usr/share/doc/index.html" -P web \
+    --browser-mode system --no-javascript
+
+# Web (custom user agent)
+rustconn-cli add -n "Grafana" -H "https://grafana.internal" -P web \
+    --user-agent "RustConn/0.19 Dashboard Monitor"
 
 # Kubernetes
 rustconn-cli add -n "Pod" -H pod-name -P k8s
