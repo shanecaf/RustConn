@@ -432,7 +432,7 @@ Protocol-specific options are configured in the connection dialog's protocol tab
 | Serial | Device path, baud rate, data bits, stop bits, parity, flow control, custom picocom arguments |
 | Kubernetes | Kubeconfig path, context, namespace, pod, container, shell, busybox mode, busybox image, custom kubectl arguments |
 | ZeroTrust | Provider-specific (AWS SSM, GCP IAP, Azure Bastion, Azure SSH, OCI Bastion, Cloudflare Access, Teleport, Tailscale SSH, HashiCorp Boundary, Hoop.dev, Generic Command), custom CLI arguments |
-| Web | URL, browser mode (Embedded/System/Custom), credential autofill, JavaScript toggle, zoom level |
+| Web | URL, browser mode (Embedded/System/Custom), credential autofill, JavaScript toggle, accept invalid TLS certs, zoom level |
 
 ### SSH
 
@@ -1079,7 +1079,7 @@ Configure the browser mode in the connection dialog's protocol tab.
 
 **Creating a Web connection:**
 1. Click "New Connection" → select **Web** protocol
-2. Enter the full URL in the **URL** field (must start with `http://` or `https://`)
+2. Enter the full URL in the **URL** field (must start with `http://`, `https://`, or `file://`)
 3. Select browser mode (Embedded, System, or Custom)
 4. Optionally set username/password — these are stored in the configured secret backend for credential autofill (embedded mode) or copy-to-clipboard (system/custom mode)
 5. Click Save
@@ -1130,6 +1130,9 @@ Cookies and session data persist across RustConn restarts, so you stay logged in
 **Per-connection JavaScript Toggle:**
 Disable JavaScript execution for specific connections in the connection dialog's protocol tab. Useful for lightweight pages or security-sensitive bookmarks.
 
+**Accept Invalid TLS Certificates:**
+Enable "Accept Invalid Certs" in the connection dialog's protocol tab to allow self-signed, expired, or hostname-mismatched certificates. Useful for local services like Cockpit, Proxmox, or development environments that use self-signed certificates. This setting applies only to the embedded browser mode.
+
 **Downloads:**
 Files are automatically saved to `~/Downloads/`. A toast notification "Downloaded: {filename}" appears when a download completes.
 
@@ -1157,6 +1160,9 @@ Available via the "⋯" menu → "Open in System Browser" — opens the current 
 **CLI:**
 ```bash
 rustconn-cli add --name "AWS Console" --protocol web --host "https://console.aws.amazon.com"
+rustconn-cli add --name "Proxmox" --protocol web --host "https://pve.local:8006" --accept-invalid-certs
+rustconn-cli add --name "Docs" --protocol web --host "file:///usr/share/doc/index.html" --no-javascript
+rustconn-cli add --name "Grafana" --protocol web --host "https://grafana.internal" --browser-mode system
 ```
 
 ---

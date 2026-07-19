@@ -9,37 +9,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Embedded WebKitGTK 6.0 web browser for Web connections (Linux) (issue #151)** — Web protocol connections can now render pages inside RustConn tabs instead of opening an external browser, providing an integrated browsing experience for internal tools and dashboards
-- **Browser mode selection: Embedded, System, or Custom browser command** — each Web connection can choose how URLs are opened; Embedded renders in-tab via WebKitGTK, System delegates to `xdg-open`, and Custom executes a user-specified command
-- **Per-connection persistent sessions with isolated cookies and local storage** — each Web connection gets its own WebKitGTK `NetworkSession` backed by a dedicated directory (`~/.local/share/rustconn/webkit/<uuid>/`), so login sessions survive restarts and connections cannot read each other's data
-- **Navigation toolbar with back/forward/reload/home and zoom controls** — a compact toolbar above the embedded WebView provides standard browser navigation, a page title label, and zoom in/out/reset (Ctrl+Plus/Minus/0) clamped to 30–300%
-- **Credential autofill via JavaScript injection and HTTP Basic Auth** — the Autofill button injects stored credentials into login forms using targeted CSS selectors and dispatches input/change events; HTTP Basic/Digest challenges are answered automatically from the configured secret backend
-- **JavaScript enable/disable toggle per connection** — a switch in the connection dialog controls whether JavaScript runs in the embedded WebView, useful for security-sensitive internal tools
-- **Split view support for embedded web alongside terminals** — Web sessions using Embedded mode participate in the split-view system like RDP/VNC, so documentation can be viewed side-by-side with SSH terminals
-- **`web-embedded` feature flag (default on Linux, excluded on macOS)** — the WebKitGTK dependency is gated behind a Cargo feature so macOS builds and minimal Linux builds compile without it; all WebKitGTK code is conditionally compiled
-- **URL address bar with manual navigation** — the navigation toolbar now includes an editable URL entry that shows the current page URL, allows typing or pasting a new URL (Enter to navigate), and auto-prepends `https://` for bare hostnames; page title is shown as a tooltip on hover; clicking the entry selects all text for easy replacement
-- **Browser menu with session actions** — the toolbar "⋯" menu button now opens a popover with: Copy URL (clipboard + toast), Open in System Browser (via `UriLauncher`), Zoom Reset (100%), and Clear Session Data (removes all cookies and cache for the connection)
-- **Loading progress bar** — a thin progress bar under the navigation toolbar shows page load progress in real time via `estimated-load-progress`, hiding automatically when the page finishes loading
-- **Download notification** — file downloads show an informational toast "Downloaded: {filename}" on completion instead of being silently saved to `~/Downloads/`
-- **Auto-fit zoom for narrow windows** — when the embedded web view is in a split panel or narrow window (< 1024px), the zoom level is automatically reduced proportionally (`width / 1024`) to prevent horizontal overflow, mimicking the RDP "fit to window" behaviour; always enabled by default
-
-### Improved
-
-- **Autofill button now functional** — the Autofill toolbar button triggers JavaScript credential injection on click, filling username/email and password fields on the current page; shows a toast if no form fields are detected after 3 seconds
-- **Reconnect banner on load failure** — when a page fails to load or the session disconnects, a banner with the error description and a "Reload" button appears below the toolbar (matching the RDP reconnect pattern); clicking Reload navigates back to the home URL
-- **Zoom level persisted across sessions** — the zoom level is saved to the connection config (debounced 2 seconds after last change) so it survives tab close and app restart
-- **Zoom button tooltips show current percentage** — zoom in/out buttons dynamically display the current zoom level (e.g. "Zoom in (120%)") in their tooltips
-- **Toolbar collapses on narrow width** — when the toolbar container is < 500px wide (e.g. in split view), secondary buttons (Home, Autofill, Zoom In, Zoom Out) are hidden to preserve space; all actions remain reachable via the menu button
+- **Embedded WebKitGTK 6.0 web browser for Web connections (issue #151)** — Web protocol connections now render pages inside RustConn tabs instead of opening an external browser. Provides an integrated browsing experience for internal tools, dashboards, and admin panels (noVNC, Guacamole, KasmVNC, Grafana, Proxmox, etc.)
+- **Browser mode selection** — each Web connection chooses how URLs open: **Embedded** (in-tab via WebKitGTK), **System** (xdg-open / UriLauncher), or **Custom** (user-specified command). Configured in the connection dialog protocol tab
+- **Per-connection persistent sessions** — each Web connection gets an isolated WebKitGTK `NetworkSession` backed by `~/.local/share/rustconn/webkit/<uuid>/`. Login sessions survive restarts; connections cannot read each other's cookies or local storage
+- **Navigation toolbar** — compact toolbar above the WebView with Back/Forward/Reload/Home buttons, editable URL address bar (Enter to navigate, auto-prepends `https://` for bare hostnames), Autofill button, Zoom In/Out, and a "⋯" menu (Copy URL, Open in System Browser, Zoom Reset, Clear Session Data)
+- **Credential autofill** — the Autofill button injects stored credentials into login forms via JavaScript (targets username/email + password fields, dispatches `input`/`change` events for framework compatibility). HTTP Basic/Digest 401 challenges are answered automatically from the configured secret backend
+- **Per-connection JavaScript toggle** — enable/disable JavaScript execution per connection in the dialog protocol tab; useful for security-sensitive internal tools
+- **Split view support** — embedded Web sessions participate in the split-view system alongside RDP/VNC/terminals
+- **`web-embedded` feature flag** — WebKitGTK dependency is gated behind a Cargo feature (default on Linux, excluded on macOS). All WebKitGTK code is conditionally compiled with `#[cfg(feature = "web-embedded")]`
+- **Loading progress bar** — thin animated bar under the toolbar shows real-time page load progress via `estimated-load-progress`
+- **Auto-fit zoom** — when the WebView is narrower than 1024px (split view, narrow window), zoom is automatically reduced proportionally to prevent horizontal overflow
+- **Download notifications** — file downloads show a toast "Downloaded: {filename}" on completion (saved to `~/Downloads/`)
+- **`file://` URL support** — Web connections now accept `file://` URLs in addition to `http://` and `https://`
+- **Accept invalid TLS certificates option** — new `accept_invalid_certs` field in WebConfig for self-signed certificates on local services (Cockpit, Proxmox dev, etc.)
+- **Custom user agent** — optional per-connection user agent string (max 512 chars, validated at deserialization)
+- **Zoom persistence** — zoom level saved to connection config (debounced 2s) and restored on reopen; range 30–300%
+- **WebConfig property tests** — new `web_config_tests.rs` with proptest coverage for serialization round-trip, user agent validation, and compile-time default behavior
+- **CLI: `--browser-mode`, `--no-javascript`, `--user-agent`, `--accept-invalid-certs` flags for `add --protocol web`** — Web connections can now be fully configured from the command line without editing JSON manually
+- **CLI: `show` command displays Web connection settings** — browser mode, JavaScript state, user agent, accept_invalid_certs, zoom level are shown in table, JSON, and CSV output formats
+- **`typos.toml` configuration** — project-wide typo checking via `typos-cli` with exclusions for generated/binary files and project-specific terminology
+- **`profile.test` optimizations** — proptest and rand_chacha compile with `opt-level = 3` in test builds, reducing property test runtime from ~120s to ~30s
 
 ### Fixed
 
-- **Potential panic on non-ASCII error messages** — the `load-failed` error truncation used byte-position slicing (`&description[..197]`) which panics on multi-byte UTF-8 characters (Cyrillic, CJK, emoji); now uses `floor_char_boundary` for safe truncation
-- **Embedded RDP fallback fails on servers behind RD Connection Broker (issue #218)** — when IronRDP cannot decode the Server License PDU (Windows Server 2019 with RDS licensing), RustConn falls back to an external FreeRDP process. Previously, the password was piped via `/from-stdin`, which broke on servers using a Connection Broker: the broker issues a Server Redirection PDU causing FreeRDP to reconnect to a different host, but stdin was already consumed. Passwords are now passed via a single-use ephemeral args file (`/args-from:file:`) that FreeRDP reads once into memory, surviving redirects without exposing the secret in `/proc/PID/cmdline`
+- **Embedded RDP fallback fails on servers behind RD Connection Broker (issue #218)** — when IronRDP falls back to an external FreeRDP process, passwords were previously piped via `/from-stdin`. This broke on servers using a Connection Broker: the broker issues a Server Redirection PDU, FreeRDP reconnects to a different host, but stdin was already consumed. All sessions (not just RemoteApp) now pass passwords via a single-use ephemeral args file (`/args-from:file:<path>`) that FreeRDP reads once into memory, surviving redirects without exposing the secret in `/proc/PID/cmdline`
+- **Zero Trust Generic provider double shell wrapping** — `build_command()` for the Generic provider already returns `("sh", ["-c", "template"])`, a complete shell invocation. Wrapping it in another `bash -c '...'` broke argument parsing. Now spawned directly
+- **Potential panic on non-ASCII error messages** — the `load-failed` error truncation used byte-position slicing (`&description[..197]`) which panics on multi-byte UTF-8 (Cyrillic, CJK, emoji); now uses `floor_char_boundary` for safe truncation
+- **Flatpak RDP: removed unnecessary `--forward-fd=0`** — `flatpak-spawn` no longer passes `--forward-fd=0` since stdin piping (`/from-stdin`) is replaced by the args file approach
+
+### Improved
+
+- **Group dialog UI** — replaced adaptive ViewSwitcher/breakpoint pattern with always-visible bottom `ViewSwitcherBar`; fixed minimum dialog height (500px); pages registered in consistent order (Identity → Connections → Cloud Sync → Dynamic → Automation)
+- **Responsive embedded browser toolbar** — secondary buttons (Home, Autofill, Zoom In/Out) auto-hide at < 500px width; all actions reachable via "⋯" menu
+- **Reconnect banner on load failure** — network errors display a banner with error description + "Reload" button (matching the RDP reconnect pattern)
+- **Zoom button tooltips** — dynamically show current percentage (e.g. "Zoom in (120%)")
+- **Stricter workspace lints (IronRDP-inspired)** — added `unreachable_pub`, `redundant_imports` (rustc); `unwrap_used`, `dbg_macro`, `todo`, `print_stdout`, `print_stderr`, `wildcard_imports` (clippy). `allow-unwrap-in-tests = true` in `.clippy.toml` to keep tests ergonomic
+- **Import style enforced** — `rustfmt.toml` now sets `imports_granularity = "Module"` and `group_imports = "StdExternalCrate"` (requires nightly `rustfmt`). All imports across the codebase reformatted: std → external → crate
+- **CLI module visibility tightened** — internal helpers in `rustconn-cli` changed from `pub` to `pub(super)` / `pub(crate)` to prevent accidental API surface
+- **`rustconn-core` re-exports alphabetized** — `lib.rs` pub use statements sorted and grouped consistently
+- **Trash cleanup includes webkit sessions** — `empty_trash()` now removes WebKit data/cache directories for permanently deleted Web connections
+
+### Documentation
+
+- Updated USER_GUIDE.md to version 0.19.0 with comprehensive embedded browser section (toolbar, zoom, autofill, keyboard shortcuts, known limitations)
+- Updated README.md demo video link and Web protocol description in feature table
+- Updated metainfo XML with 0.19.0 release entry
+- Updated debian/changelog and OBS packaging changelogs
+
+### Dependencies
+
+- **Added**: webkit6 0.6 (WebKitGTK 6.0 Rust bindings), javascriptcore6 0.6, soup3 0.9
+- **Updated**: anyhow 1.0.106→1.0.107, proc-macro2 1.0.106→1.0.107, serde 1.0.228→1.0.229, syn 2.0.18→2.0.19, thiserror 1.2.67→1.3.0, tracing-subscriber 0.1.20→0.1.21
+- **CI**: added `libwebkitgtk-6.0-dev` to install-deps action
 
 ### Known Limitations
 
-- **WebKitGTK does not support WebCodecs API** — hardware-accelerated H.264/VP8 decoding via WebCodecs (used by Selkies WebRTC streaming) is not available in WebKitGTK. Low-latency streaming tools like Selkies require a Chromium-based engine. The embedded browser works well for noVNC, Apache Guacamole, KasmVNC, and internal web dashboards
-- **No DRM/EME content playback** — encrypted media (Netflix, Spotify) is not supported in the embedded view
+- **WebKitGTK does not support WebCodecs API** — hardware-accelerated H.264/VP8 decoding via WebCodecs (used by Selkies WebRTC streaming) is not available. Low-latency streaming tools like Selkies require a Chromium-based engine
+- **No DRM/EME content playback** — encrypted media (Netflix, Spotify) is not supported in the embedded view (Widevine not available in WebKitGTK)
+- **Embedded mode is Linux-only** — requires WebKitGTK 6.0; other platforms fall back to System modew
 
 ## [0.18.12] - 2026-07-18
 

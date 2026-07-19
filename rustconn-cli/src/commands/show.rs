@@ -225,6 +225,43 @@ fn print_json(
                 );
             }
         }
+        ProtocolConfig::Web(config) => {
+            map.insert(
+                "browser_mode".to_string(),
+                serde_json::Value::String(format!("{:?}", config.browser_mode)),
+            );
+            map.insert(
+                "javascript_enabled".to_string(),
+                serde_json::Value::Bool(config.javascript_enabled),
+            );
+            if let Some(ref browser) = config.browser {
+                map.insert(
+                    "browser_command".to_string(),
+                    serde_json::Value::String(browser.clone()),
+                );
+            }
+            if let Some(ref ua) = config.user_agent {
+                map.insert(
+                    "user_agent".to_string(),
+                    serde_json::Value::String(ua.clone()),
+                );
+            }
+            if config.accept_invalid_certs {
+                map.insert(
+                    "accept_invalid_certs".to_string(),
+                    serde_json::Value::Bool(true),
+                );
+            }
+            if config.private_mode {
+                map.insert("private_mode".to_string(), serde_json::Value::Bool(true));
+            }
+            if (config.zoom_level - 1.0).abs() > f64::EPSILON {
+                map.insert(
+                    "zoom_level".to_string(),
+                    serde_json::json!(config.zoom_level),
+                );
+            }
+        }
         _ => {}
     }
 
@@ -434,6 +471,32 @@ fn print_table(connection: &Connection, connections: &[Connection]) -> Result<()
         ProtocolConfig::Spice(ref config) => {
             if let Some(jump_id) = config.jump_host_id {
                 println!("  Jump Host: {}", resolve_jump(jump_id));
+            }
+        }
+        ProtocolConfig::Web(ref config) => {
+            println!("  Browser Mode: {:?}", config.browser_mode);
+            println!(
+                "  JavaScript:   {}",
+                if config.javascript_enabled {
+                    "enabled"
+                } else {
+                    "disabled"
+                }
+            );
+            if let Some(ref browser) = config.browser {
+                println!("  Browser Cmd:  {browser}");
+            }
+            if let Some(ref ua) = config.user_agent {
+                println!("  User Agent:   {ua}");
+            }
+            if config.accept_invalid_certs {
+                println!("  Accept Invalid TLS: yes");
+            }
+            if config.private_mode {
+                println!("  Private Mode: yes");
+            }
+            if (config.zoom_level - 1.0).abs() > f64::EPSILON {
+                println!("  Zoom Level:   {:.0}%", config.zoom_level * 100.0);
             }
         }
         _ => {}

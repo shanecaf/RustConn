@@ -116,6 +116,11 @@ pub(super) struct AddParams<'a> {
     pub serial_parity: Option<&'a str>,
     pub serial_flow_control: Option<&'a str>,
     pub serial_custom_arg: &'a [String],
+    // Web
+    pub browser_mode: Option<&'a str>,
+    pub no_javascript: bool,
+    pub user_agent: Option<&'a str>,
+    pub accept_invalid_certs: bool,
 }
 
 /// Add connection command handler
@@ -408,6 +413,45 @@ pub(super) fn cmd_add(config_path: Option<&Path>, params: AddParams<'_>) -> Resu
                 "Serial-specific options (--serial-data-bits, --serial-stop-bits, \
                  --serial-parity, --serial-flow-control, --serial-custom-arg) \
                  are only applicable to Serial connections"
+            );
+        }
+    }
+
+    // Apply Web-specific settings
+    if params.browser_mode.is_some()
+        || params.no_javascript
+        || params.user_agent.is_some()
+        || params.accept_invalid_certs
+    {
+        if let rustconn_core::models::ProtocolConfig::Web(ref mut cfg) =
+            connection.protocol_config
+        {
+            if let Some(mode) = params.browser_mode {
+                cfg.browser_mode = match mode {
+                    "system" => rustconn_core::models::WebBrowserMode::System,
+                    "custom" => rustconn_core::models::WebBrowserMode::Custom,
+                    // "embedded" or any other value → compile-time default
+                    _ => rustconn_core::models::WebBrowserMode::default(),
+                };
+            }
+            if params.no_javascript {
+                cfg.javascript_enabled = false;
+            }
+            if let Some(ua) = params.user_agent {
+                if ua.len() > 512 {
+                    return Err(CliError::Config(
+                        "--user-agent exceeds maximum allowed length of 512 characters".to_string(),
+                    ));
+                }
+                cfg.user_agent = Some(ua.to_string());
+            }
+            if params.accept_invalid_certs {
+                cfg.accept_invalid_certs = true;
+            }
+        } else {
+            tracing::warn!(
+                "Web-specific options (--browser-mode, --no-javascript, --user-agent, \
+                 --accept-invalid-certs) are only applicable to Web connections"
             );
         }
     }

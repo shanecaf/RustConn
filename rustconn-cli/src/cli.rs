@@ -448,6 +448,23 @@ pub enum Commands {
         /// Custom serial client argument (repeatable)
         #[arg(long, value_name = "ARG")]
         serial_custom_arg: Vec<String>,
+
+        // --- Web-specific flags ---
+        /// Web browser mode: embedded (default on Linux), system, or custom
+        #[arg(long, value_name = "MODE", value_parser = ["embedded", "system", "custom"])]
+        browser_mode: Option<String>,
+
+        /// Disable JavaScript in the embedded WebView (default: enabled)
+        #[arg(long)]
+        no_javascript: bool,
+
+        /// Custom user agent string for the embedded browser (max 512 chars)
+        #[arg(long, value_name = "STRING")]
+        user_agent: Option<String>,
+
+        /// Accept invalid TLS certificates (self-signed, expired) in embedded browser
+        #[arg(long)]
+        accept_invalid_certs: bool,
     },
 
     /// Export connections to external format
