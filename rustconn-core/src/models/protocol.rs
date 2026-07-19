@@ -3107,6 +3107,10 @@ pub struct WebConfig {
     /// Persisted zoom level (1.0 = 100%, range 0.3–3.0)
     #[serde(default = "default_zoom")]
     pub zoom_level: f64,
+    /// Accept invalid TLS certificates (self-signed, expired, wrong host).
+    /// Useful for local services like Cockpit, Proxmox, or dev environments.
+    #[serde(default)]
+    pub accept_invalid_certs: bool,
 }
 
 // Manual Eq: zoom_level is always clamped to [0.3, 3.0] (finite, no NaN),
@@ -3122,6 +3126,7 @@ impl Default for WebConfig {
             javascript_enabled: true,
             user_agent: None,
             zoom_level: 1.0,
+            accept_invalid_certs: false,
         }
     }
 }
@@ -3146,6 +3151,8 @@ impl<'de> Deserialize<'de> for WebConfig {
             user_agent: Option<String>,
             #[serde(default = "default_zoom")]
             zoom_level: f64,
+            #[serde(default)]
+            accept_invalid_certs: bool,
         }
 
         let raw = WebConfigRaw::deserialize(deserializer)?;
@@ -3166,6 +3173,7 @@ impl<'de> Deserialize<'de> for WebConfig {
             javascript_enabled: raw.javascript_enabled,
             user_agent: raw.user_agent,
             zoom_level: raw.zoom_level.clamp(0.3, 3.0),
+            accept_invalid_certs: raw.accept_invalid_certs,
         })
     }
 }

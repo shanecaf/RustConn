@@ -1095,28 +1095,46 @@ The embedded browser provides a full browsing experience inside a RustConn tab o
 
 **Navigation Toolbar:**
 - **Back / Forward / Reload / Home** buttons for standard navigation
-- Page title is shown in the toolbar; hover over it to see the current URL in a tooltip
+- **URL address bar** — shows the current page URL; click to edit, type a new URL and press Enter to navigate (auto-prepends `https://` for bare hostnames); page title shown as tooltip on hover
 - **Ctrl+L** — copies the current URL to the clipboard
+- **Autofill** button — injects stored credentials into login forms; shows a toast if no form fields are detected
+- **Zoom In / Zoom Out** buttons with dynamic tooltip showing current zoom percentage (e.g. "Zoom in (120%)")
+- **Menu (⋯)** button with: Copy URL, Open in System Browser, Zoom Reset (100%), Clear Session Data
+
+**Responsive Toolbar:**
+When the toolbar is narrow (e.g. in split view, < 500px), secondary buttons (Home, Autofill, Zoom In, Zoom Out) are hidden automatically. All actions remain reachable via the "⋯" menu button.
+
+**Loading Progress Bar:**
+A thin progress bar appears under the toolbar during page loads, showing real-time load progress. It disappears automatically when the page finishes loading.
 
 **Zoom Controls:**
 - **Ctrl+Plus** — zoom in
 - **Ctrl+Minus** — zoom out
 - **Ctrl+0** — reset zoom to 100%
 - Zoom range: 30% to 300%
+- **Auto-fit zoom** — when the WebView is narrower than 1024px (split view, small window), zoom is automatically reduced proportionally to prevent horizontal overflow; always enabled by default
+- **Zoom persistence** — the zoom level is saved to the connection config (debounced 2 seconds) and restored when the connection is reopened
 
 **Credential Autofill:**
-When a connection has stored credentials (username/password), the embedded browser can fill login forms automatically:
-- **JavaScript injection** — fills standard login forms on page load
-- **HTTP Basic Auth** — responds to HTTP 401 challenges automatically
+When a connection has stored credentials (username/password), the embedded browser can fill login forms:
+- **Autofill button** — click to inject credentials via JavaScript into username/email and password fields; dispatches `input` and `change` events for framework compatibility
+- **HTTP Basic Auth** — responds to HTTP 401/Digest challenges automatically using stored credentials
+- Shows an informational toast "No login form fields found on this page" if no fields are detected after 3 seconds
+
+**Reconnect Banner:**
+When a page fails to load (network error, timeout, DNS failure), a banner appears below the toolbar with the error description and a "Reload" button. Clicking Reload navigates back to the configured URL.
 
 **Persistent Sessions:**
-Cookies and session data persist across RustConn restarts, so you stay logged in to web services between sessions.
+Cookies and session data persist across RustConn restarts, so you stay logged in to web services between sessions. Each connection has isolated storage — no cross-connection data leakage.
 
 **Per-connection JavaScript Toggle:**
 Disable JavaScript execution for specific connections in the connection dialog's protocol tab. Useful for lightweight pages or security-sensitive bookmarks.
 
 **Downloads:**
-Files are automatically saved to `~/Downloads/`.
+Files are automatically saved to `~/Downloads/`. A toast notification "Downloaded: {filename}" appears when a download completes.
+
+**Open in System Browser:**
+Available via the "⋯" menu → "Open in System Browser" — opens the current page URL in your default system browser using `UriLauncher` (portal-aware, works in Flatpak).
 
 **Keyboard Shortcuts (Embedded Mode):**
 
@@ -1126,6 +1144,7 @@ Files are automatically saved to `~/Downloads/`.
 | Ctrl+Plus | Zoom in |
 | Ctrl+Minus | Zoom out |
 | Ctrl+0 | Reset zoom |
+| Enter (in URL bar) | Navigate to entered URL |
 
 **Known Limitations:**
 - WebKitGTK does not support WebCodecs (needed for Selkies/WebRTC streaming)

@@ -554,6 +554,33 @@ impl AppState {
             .map_err(|e| format!("Failed to update last connected: {e}"))
     }
 
+    /// Updates the persisted zoom level for a Web connection.
+    ///
+    /// Called by the debounced zoom-change handler in the embedded web widget.
+    /// Only updates when the connection uses `ProtocolConfig::Web`.
+    pub fn update_web_zoom_level(&mut self, connection_id: Uuid, zoom_level: f64) {
+        use rustconn_core::models::ProtocolConfig;
+
+        let Some(conn) = self.connection_manager.get_connection(connection_id) else {
+            tracing::debug!(%connection_id, "Connection not found for zoom persist");
+            return;
+        };
+
+        let mut updated = conn.clone();
+        if let ProtocolConfig::Web(ref mut web_config) = updated.protocol_config {
+            web_config.zoom_level = zoom_level.clamp(0.3, 3.0);
+        } else {
+            return;
+        }
+
+        if let Err(e) = self
+            .connection_manager
+            .update_connection(connection_id, updated)
+        {
+            tracing::debug!(%connection_id, %e, "Failed to persist zoom level");
+        }
+    }
+
     /// Sorts all connections by `last_connected` timestamp (most recent first)
     pub fn sort_by_recent(&mut self) -> Result<(), String> {
         self.connection_manager

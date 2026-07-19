@@ -212,6 +212,10 @@ pub fn combo_index_from_browser_mode(mode: WebBrowserMode) -> u32 {
 /// Returns `true` if the configuration is valid (either not Custom mode,
 /// or Custom mode with a non-empty browser command).
 #[must_use]
+#[expect(
+    dead_code,
+    reason = "public API for upcoming connection-editor validation wiring"
+)]
 pub fn validate_web_options(combo: &adw::ComboRow, browser_entry: &Entry) -> bool {
     let mode = browser_mode_from_combo_index(combo.selected());
     if mode == WebBrowserMode::Custom {

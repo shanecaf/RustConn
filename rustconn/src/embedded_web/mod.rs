@@ -49,12 +49,6 @@ pub struct EmbeddedWebWidget {
     /// WebKitGTK WebView instance
     web_view: webkit6::WebView,
     /// Per-connection network session (persistent cookies/storage).
-    /// The field is read by `connect_download_signal` (download manager)
-    /// and kept alive for the GTK widget lifecycle so cookies persist.
-    #[expect(
-        dead_code,
-        reason = "kept alive for NetworkSession lifetime and download signal"
-    )]
     network_session: webkit6::NetworkSession,
     /// Current connection state
     state: Rc<RefCell<EmbeddedConnectionState>>,
@@ -74,11 +68,16 @@ pub struct EmbeddedWebWidget {
     autofill: AutofillManager,
     /// Reconnect banner (shown on disconnect/error).
     /// Appended to the container widget tree; visibility toggled on state changes.
-    #[expect(
-        dead_code,
-        reason = "kept alive in widget tree; visibility toggled by state changes"
-    )]
     reconnect_banner: gtk4::Box,
+    /// Status label inside the reconnect banner (updated with error description).
+    banner_label: gtk4::Label,
+    /// Thin progress bar shown during page load (between toolbar and content).
+    progress_bar: gtk4::ProgressBar,
+    /// Debounce timer for zoom persistence (2 seconds after last change).
+    zoom_persist_timer: Rc<RefCell<Option<glib::SourceId>>>,
+    /// Callback invoked when zoom level changes (debounced). Receives the new
+    /// zoom level for persistence to connection config.
+    on_zoom_changed: Rc<RefCell<Option<Box<dyn Fn(f64) + 'static>>>>,
 }
 
 /// Validates that a URL has a supported scheme for the embedded web browser.
@@ -114,7 +113,11 @@ pub fn validate_url(url: &str) -> Result<(), EmbeddedError> {
 /// Data is stored at `~/.local/share/rustconn/webkit/<uuid>/` and cache at
 /// `~/.cache/rustconn/webkit/<uuid>/`. Falls back to an ephemeral session
 /// if the directories cannot be created.
-pub fn create_network_session(uuid: &Uuid) -> webkit6::NetworkSession {
+///
+/// When `accept_invalid_certs` is true, the session's TLS errors policy is set
+/// to `Ignore`, allowing self-signed or expired certificates (common for local
+/// services like Cockpit, Proxmox, or dev environments).
+pub fn create_network_session(uuid: &Uuid, accept_invalid_certs: bool) -> webkit6::NetworkSession {
     let uuid_str = uuid.to_string();
 
     let data_dir = dirs::data_dir()
@@ -151,7 +154,13 @@ pub fn create_network_session(uuid: &Uuid) -> webkit6::NetworkSession {
     let data_str = data_dir.to_string_lossy().to_string();
     let cache_str = cache_dir.to_string_lossy().to_string();
 
-    webkit6::NetworkSession::new(Some(&data_str), Some(&cache_str))
+    let session = webkit6::NetworkSession::new(Some(&data_str), Some(&cache_str));
+
+    if accept_invalid_certs {
+        session.set_tls_errors_policy(webkit6::TLSErrorsPolicy::Ignore);
+    }
+
+    session
 }
 
 /// Returns the data directory path for a connection's webkit session.
@@ -197,7 +206,7 @@ impl EmbeddedWebWidget {
         validate_url(url)?;
 
         // Create persistent network session for this connection
-        let network_session = create_network_session(&connection_uuid);
+        let network_session = create_network_session(&connection_uuid, config.accept_invalid_certs);
 
         // Create WebView with the network session
         let web_view = webkit6::WebView::builder()
@@ -218,14 +227,40 @@ impl EmbeddedWebWidget {
         // Create navigation toolbar (placeholder — fully implemented in task 4.1)
         let toolbar = NavigationToolbar::new();
 
-        // Create reconnect banner (hidden by default)
+        // Create reconnect banner (hidden by default): [⚠ icon] [status label] [Reload button]
         let reconnect_banner = gtk4::Box::new(gtk4::Orientation::Horizontal, 6);
         reconnect_banner.set_visible(false);
         reconnect_banner.add_css_class("toolbar");
+        reconnect_banner.set_margin_start(6);
+        reconnect_banner.set_margin_end(6);
+        reconnect_banner.set_margin_top(4);
+        reconnect_banner.set_margin_bottom(4);
 
-        // Build vertical container: toolbar + webview
+        let banner_icon = gtk4::Image::from_icon_name("dialog-warning-symbolic");
+        banner_icon.add_css_class("warning");
+        reconnect_banner.append(&banner_icon);
+
+        let banner_label = gtk4::Label::new(Some(&crate::i18n::i18n("Disconnected")));
+        banner_label.set_hexpand(true);
+        banner_label.set_halign(gtk4::Align::Start);
+        banner_label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
+        reconnect_banner.append(&banner_label);
+
+        let reload_button = gtk4::Button::with_label(&crate::i18n::i18n("Reload"));
+        reload_button.add_css_class("suggested-action");
+        reconnect_banner.append(&reload_button);
+
+        // Build vertical container: toolbar + progress bar + reconnect banner + webview
+        let progress_bar = gtk4::ProgressBar::new();
+        progress_bar.set_visible(false);
+        // Thin 2px progress bar (Firefox/Chrome style)
+        progress_bar.set_margin_start(0);
+        progress_bar.set_margin_end(0);
+        progress_bar.add_css_class("osd");
+
         let container = gtk4::Box::new(gtk4::Orientation::Vertical, 0);
         container.append(toolbar.widget());
+        container.append(&progress_bar);
         container.append(&reconnect_banner);
         container.append(&web_view);
 
@@ -254,15 +289,42 @@ impl EmbeddedWebWidget {
             load_timeout,
             autofill,
             reconnect_banner,
+            banner_label,
+            progress_bar,
+            zoom_persist_timer: Rc::new(RefCell::new(None)),
+            on_zoom_changed: Rc::new(RefCell::new(None)),
         };
+
+        // Connect Reload button in the reconnect banner
+        {
+            let home_url = Rc::clone(&widget.home_url);
+            let wv = widget.web_view.clone();
+            let banner = widget.reconnect_banner.clone();
+            let state_ref = Rc::clone(&widget.state);
+            let on_state_changed_ref = Rc::clone(&widget.on_state_changed);
+            reload_button.connect_clicked(move |_| {
+                let url = home_url.borrow().clone();
+                if validate_url(&url).is_ok() {
+                    *state_ref.borrow_mut() = EmbeddedConnectionState::Connecting;
+                    if let Some(ref cb) = *on_state_changed_ref.borrow() {
+                        cb(EmbeddedConnectionState::Connecting);
+                    }
+                    banner.set_visible(false);
+                    wv.load_uri(&url);
+                }
+            });
+        }
 
         // Bind navigation toolbar to the web view
         widget
             .toolbar
             .bind_to_webview(&widget.web_view, &widget.home_url);
 
-        // Disable autofill button if no credentials available
-        if !widget.autofill.is_available() {
+        // Disable autofill button if no credentials available; otherwise
+        // connect the click handler to inject credentials into the page.
+        if widget.autofill.is_available() {
+            widget.connect_autofill_button();
+        } else {
             widget.toolbar.autofill_button().set_sensitive(false);
             widget
                 .toolbar
@@ -275,11 +337,23 @@ impl EmbeddedWebWidget {
         // Connect load-changed signal
         widget.connect_load_changed_signal();
 
+        // Connect TLS certificate error signal for self-signed cert handling
+        widget.connect_tls_error_signal();
+
         // Connect authenticate signal for HTTP Basic/Digest Auth
         widget.connect_authenticate_signal();
 
         // Connect download signal for file downloads
         widget.connect_download_signal();
+
+        // Connect progress bar to estimated-load-progress
+        widget.connect_progress_signal();
+
+        // Connect zoom persistence (debounced 2s)
+        widget.connect_zoom_persist_signal();
+
+        // Connect auto-fit zoom for small containers (enabled by default)
+        widget.connect_autofit_zoom();
 
         // Set initial state and begin loading
         widget.set_state(EmbeddedConnectionState::Connecting);
@@ -289,9 +363,25 @@ impl EmbeddedWebWidget {
         Ok(widget)
     }
 
-    /// Sets the connection state and notifies the callback.
+    /// Sets the connection state, notifies the callback, and updates banner visibility.
     fn set_state(&self, new_state: EmbeddedConnectionState) {
         *self.state.borrow_mut() = new_state;
+
+        // Toggle reconnect banner based on state
+        match new_state {
+            EmbeddedConnectionState::Error => {
+                self.reconnect_banner.set_visible(true);
+            }
+            EmbeddedConnectionState::Disconnected => {
+                self.banner_label
+                    .set_text(&crate::i18n::i18n("Disconnected"));
+                self.reconnect_banner.set_visible(true);
+            }
+            EmbeddedConnectionState::Connecting | EmbeddedConnectionState::Connected => {
+                self.reconnect_banner.set_visible(false);
+            }
+        }
+
         if let Some(ref callback) = *self.on_state_changed.borrow() {
             callback(new_state);
         }
@@ -358,6 +448,7 @@ impl EmbeddedWebWidget {
         let state = Rc::clone(&self.state);
         let on_state_changed = Rc::clone(&self.on_state_changed);
         let load_timeout = Rc::clone(&self.load_timeout);
+        let banner_for_load = self.reconnect_banner.clone();
 
         self.web_view.connect_load_changed(move |_web_view, event| {
             use webkit6::LoadEvent;
@@ -379,6 +470,13 @@ impl EmbeddedWebWidget {
 
             if let Some(new_state) = new_state {
                 *state.borrow_mut() = new_state;
+                // Hide banner on successful navigation
+                match new_state {
+                    EmbeddedConnectionState::Connecting | EmbeddedConnectionState::Connected => {
+                        banner_for_load.set_visible(false);
+                    }
+                    _ => {}
+                }
                 if let Some(ref callback) = *on_state_changed.borrow() {
                     callback(new_state);
                 }
@@ -390,6 +488,8 @@ impl EmbeddedWebWidget {
         let on_state_changed_err = Rc::clone(&self.on_state_changed);
         let on_error = Rc::clone(&self.on_error);
         let load_timeout_err = Rc::clone(&self.load_timeout);
+        let banner_for_error = self.reconnect_banner.clone();
+        let banner_label_for_error = self.banner_label.clone();
 
         self.web_view
             .connect_load_failed(move |_web_view, _event, _uri, error| {
@@ -399,17 +499,23 @@ impl EmbeddedWebWidget {
                 }
 
                 *state_err.borrow_mut() = EmbeddedConnectionState::Error;
-                if let Some(ref callback) = *on_state_changed_err.borrow() {
-                    callback(EmbeddedConnectionState::Error);
-                }
 
-                // Truncate error description to 200 characters
+                // Truncate error description to 200 characters (UTF-8 safe)
                 let description = error.message().to_string();
                 let truncated = if description.len() > 200 {
-                    format!("{}...", &description[..197])
+                    let boundary = description.floor_char_boundary(197);
+                    format!("{}...", &description[..boundary])
                 } else {
                     description
                 };
+
+                // Update banner label with error and show it
+                banner_label_for_error.set_text(&truncated);
+                banner_for_error.set_visible(true);
+
+                if let Some(ref callback) = *on_state_changed_err.borrow() {
+                    callback(EmbeddedConnectionState::Error);
+                }
 
                 let embedded_error = EmbeddedError::ConnectionFailed(truncated);
                 if let Some(ref callback) = *on_error.borrow() {
@@ -419,6 +525,47 @@ impl EmbeddedWebWidget {
                 // Return true to indicate we handled the error
                 true
             });
+    }
+
+    /// Connects the `load-failed-with-tls-errors` signal for TOFU certificate handling.
+    ///
+    /// When WebKitGTK encounters a TLS certificate error (self-signed, expired,
+    /// wrong host), this handler applies the "Trust On First Use" pattern:
+    /// sets the TLS policy to Ignore and reloads the page automatically.
+    /// A toast is shown to inform the user that the certificate was accepted.
+    fn connect_tls_error_signal(&self) {
+        let network_session = self.network_session.clone();
+        let home_url = Rc::clone(&self.home_url);
+        let load_timeout = Rc::clone(&self.load_timeout);
+
+        self.web_view.connect_load_failed_with_tls_errors(
+            move |web_view, failing_uri, _certificate, _errors| {
+                // Cancel timeout — we are about to retry
+                if let Some(source_id) = load_timeout.borrow_mut().take() {
+                    source_id.remove();
+                }
+
+                tracing::info!(
+                    uri = %failing_uri,
+                    "TLS certificate error — accepting and reloading (TOFU)"
+                );
+
+                // Switch policy to ignore TLS errors and reload
+                network_session.set_tls_errors_policy(webkit6::TLSErrorsPolicy::Ignore);
+
+                // Reload using the original URL (failing_uri may differ due to redirects)
+                let url = home_url.borrow().clone();
+                web_view.load_uri(&url);
+
+                // Show informational toast
+                crate::toast::show_info_toast_on_active_window(&crate::i18n::i18n(
+                    "TLS certificate accepted (self-signed or untrusted)",
+                ));
+
+                // Return true — we handled the error, suppress default behavior
+                true
+            },
+        );
     }
 
     /// Connects the `authenticate` signal for HTTP Basic/Digest auth handling.
@@ -511,6 +658,141 @@ impl EmbeddedWebWidget {
                 destination = %dest_path.display(),
                 "Download started"
             );
+
+            // Show toast when download finishes
+            let filename_for_toast = filename.clone();
+            download.connect_finished(move |_| {
+                crate::toast::show_info_toast_on_active_window(&crate::i18n::i18n_f(
+                    "Downloaded: {}",
+                    &[&filename_for_toast],
+                ));
+            });
+        });
+    }
+
+    /// Connects the Autofill toolbar button to inject credentials into the page.
+    ///
+    /// On click, runs `AutofillManager::inject_credentials` which fills
+    /// username/email and password fields via JavaScript. If no form fields
+    /// are detected after 3 seconds, shows an informational toast.
+    fn connect_autofill_button(&self) {
+        let web_view = self.web_view.clone();
+        let autofill = AutofillManager::new(self.autofill.username().map(|u| {
+            (
+                u.to_string(),
+                self.autofill
+                    .password()
+                    .expect("password must be Some when is_available() is true")
+                    .clone(),
+            )
+        }));
+
+        self.toolbar.autofill_button().connect_clicked(move |_| {
+            autofill.inject_credentials(&web_view, || {
+                crate::toast::show_info_toast_on_active_window(&crate::i18n::i18n(
+                    "No login form fields found on this page",
+                ));
+            });
+        });
+    }
+
+    /// Connects `notify::estimated-load-progress` to show a thin progress bar
+    /// during page loads.
+    ///
+    /// The progress bar is shown when loading starts (progress > 0) and hidden
+    /// when loading completes (progress reaches 1.0 or load finishes).
+    fn connect_progress_signal(&self) {
+        let progress_bar = self.progress_bar.clone();
+
+        self.web_view
+            .connect_notify_local(Some("estimated-load-progress"), move |web_view, _| {
+                let progress = web_view.estimated_load_progress();
+                if progress > 0.0 && progress < 1.0 {
+                    progress_bar.set_visible(true);
+                    progress_bar.set_fraction(progress);
+                } else {
+                    // Loading complete or not started — hide the bar
+                    progress_bar.set_visible(false);
+                    progress_bar.set_fraction(0.0);
+                }
+            });
+    }
+
+    /// Connects `notify::zoom-level` with a 2-second debounce to persist the
+    /// zoom level when the user changes it.
+    ///
+    /// Each zoom change resets the 2-second timer. When the timer fires, the
+    /// `on_zoom_changed` callback is invoked with the current zoom level.
+    fn connect_zoom_persist_signal(&self) {
+        let zoom_timer = Rc::clone(&self.zoom_persist_timer);
+        let on_zoom_changed = Rc::clone(&self.on_zoom_changed);
+
+        self.web_view
+            .connect_notify_local(Some("zoom-level"), move |web_view, _| {
+                let new_zoom = web_view.zoom_level();
+
+                // Cancel any pending timer (debounce reset)
+                if let Some(source_id) = zoom_timer.borrow_mut().take() {
+                    source_id.remove();
+                }
+
+                // Schedule persistence after 2 seconds of no further changes
+                let on_zoom_cb = Rc::clone(&on_zoom_changed);
+                let timer_ref = Rc::clone(&zoom_timer);
+                let source_id = glib::timeout_add_seconds_local_once(2, move || {
+                    // Clear the timer reference
+                    timer_ref.borrow_mut().take();
+                    // Invoke the persistence callback
+                    if let Some(ref callback) = *on_zoom_cb.borrow() {
+                        callback(new_zoom);
+                    }
+                });
+
+                *zoom_timer.borrow_mut() = Some(source_id);
+            });
+    }
+
+    /// Registers a callback invoked when the zoom level changes (debounced 2s).
+    ///
+    /// The callback receives the new zoom level (f64, range 0.3–3.0) and should
+    /// persist it to the connection's `WebConfig.zoom_level` field.
+    pub fn connect_zoom_changed<F>(&self, callback: F)
+    where
+        F: Fn(f64) + 'static,
+    {
+        *self.on_zoom_changed.borrow_mut() = Some(Box::new(callback));
+    }
+
+    /// Connects auto-fit zoom that adjusts the zoom level when the WebView
+    /// container is narrow (< 1024px width), scaling down proportionally.
+    ///
+    /// When the container width is ≥ 1024px, the user's configured zoom is
+    /// applied. When narrower, zoom is set to `width / 1024.0` (clamped to
+    /// 0.3 minimum), mimicking the RDP "fit to window" behaviour.
+    /// Threshold of 640px from RDP as the minimum functional width.
+    ///
+    /// Auto-fit is always enabled; manual zoom actions temporarily override
+    /// it until the next page navigation or resize.
+    fn connect_autofit_zoom(&self) {
+        /// Reference width for auto-fit calculation. Pages are assumed
+        /// designed for ~1024px; narrower containers scale down.
+        const AUTOFIT_REFERENCE_WIDTH: f64 = 1024.0;
+
+        let web_view = self.web_view.clone();
+        self.web_view.add_tick_callback(move |wv, _| {
+            let width = f64::from(wv.width());
+            // Only apply auto-fit when widget has been allocated and is narrow
+            if width > 0.0 && width < AUTOFIT_REFERENCE_WIDTH {
+                let target_zoom = (width / AUTOFIT_REFERENCE_WIDTH).max(0.3);
+                // Round to one decimal place to avoid sub-pixel jitter
+                let target_zoom = (target_zoom * 10.0).round() / 10.0;
+                let current = web_view.zoom_level();
+                // Only adjust if significantly different (avoid feedback loop)
+                if (current - target_zoom).abs() > 0.05 {
+                    web_view.set_zoom_level(target_zoom);
+                }
+            }
+            glib::ControlFlow::Continue
         });
     }
 

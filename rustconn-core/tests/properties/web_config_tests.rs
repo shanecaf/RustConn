@@ -38,6 +38,7 @@ fn arb_web_config() -> impl Strategy<Value = WebConfig> {
                     javascript_enabled,
                     user_agent,
                     zoom_level,
+                    accept_invalid_certs: false,
                 }
             },
         )

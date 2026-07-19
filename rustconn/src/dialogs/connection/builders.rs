@@ -1232,6 +1232,7 @@ impl ConnectionDialogData<'_> {
             javascript_enabled: self.web_javascript_switch.is_active(),
             user_agent,
             zoom_level: 1.0,
+            accept_invalid_certs: false,
         }
     }
 

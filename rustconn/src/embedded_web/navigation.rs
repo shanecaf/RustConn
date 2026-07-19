@@ -25,7 +25,10 @@ const ZOOM_DEFAULT: f64 = 1.0;
 
 /// Web browser navigation toolbar.
 ///
-/// Layout: [Back] [Forward] [Reload] [Home] | Page Title | [Autofill] [Zoom+] [Zoom-] [Menu]
+/// Layout: [Back] [Forward] [Reload] [Home] | [URL Entry] | [Autofill] [Zoom+] [Zoom-] [Menu]
+///
+/// When the toolbar is narrow (< 500px), secondary actions (Home, Autofill,
+/// Zoom In, Zoom Out) are hidden and available via the overflow menu.
 ///
 /// All icon-only buttons carry both `set_tooltip_text` and `update_property`
 /// for GNOME HIG accessibility compliance.
@@ -40,8 +43,8 @@ pub struct NavigationToolbar {
     reload_button: gtk4::Button,
     /// Navigate to home (configured URL) button
     home_button: gtk4::Button,
-    /// Current page title label
-    title_label: gtk4::Label,
+    /// URL address bar entry (shows current URL, allows manual navigation)
+    url_entry: gtk4::Entry,
     /// Autofill credentials button
     autofill_button: gtk4::Button,
     /// Zoom in button
@@ -50,6 +53,13 @@ pub struct NavigationToolbar {
     zoom_out_button: gtk4::Button,
     /// Menu button for additional actions
     menu_button: gtk4::MenuButton,
+    /// Box containing secondary actions that collapse on narrow width.
+    /// Stored to prevent GTK from dropping the widget (it has no other owning reference).
+    #[expect(
+        dead_code,
+        reason = "field keeps the GTK widget alive; removing it destroys the box"
+    )]
+    secondary_box: gtk4::Box,
 }
 
 impl NavigationToolbar {
@@ -93,16 +103,24 @@ impl NavigationToolbar {
         home_button.update_property(&[gtk4::accessible::Property::Label(&i18n("Home"))]);
         container.append(&home_button);
 
-        // --- Center: page title label (expands to fill available space) ---
+        // --- Center: URL address bar (expands to fill available space) ---
 
-        let title_label = gtk4::Label::new(None);
-        title_label.set_hexpand(true);
-        title_label.set_ellipsize(gtk4::pango::EllipsizeMode::End);
-        title_label.set_halign(gtk4::Align::Center);
-        title_label.add_css_class("dim-label");
-        container.append(&title_label);
+        let url_entry = gtk4::Entry::new();
+        url_entry.set_hexpand(true);
+        url_entry.set_halign(gtk4::Align::Fill);
+        url_entry.set_placeholder_text(Some(&i18n("Enter URL")));
+        url_entry.update_property(&[gtk4::accessible::Property::Label(&i18n("URL address bar"))]);
+        // Select all text on focus for easy URL replacement
+        url_entry.connect_has_focus_notify(|entry| {
+            if entry.has_focus() {
+                entry.select_region(0, -1);
+            }
+        });
+        container.append(&url_entry);
 
-        // --- Right buttons: Autofill, Zoom, Menu ---
+        // --- Right buttons: secondary (collapsible) + menu (always visible) ---
+
+        let secondary_box = gtk4::Box::new(gtk4::Orientation::Horizontal, 4);
 
         let autofill_button = gtk4::Button::from_icon_name("dialog-password-symbolic");
         autofill_button.add_css_class("flat");
@@ -110,19 +128,21 @@ impl NavigationToolbar {
         autofill_button.update_property(&[gtk4::accessible::Property::Label(&i18n(
             "Autofill credentials",
         ))]);
-        container.append(&autofill_button);
+        secondary_box.append(&autofill_button);
 
         let zoom_in_button = gtk4::Button::from_icon_name("zoom-in-symbolic");
         zoom_in_button.add_css_class("flat");
         zoom_in_button.set_tooltip_text(Some(&i18n("Zoom in")));
         zoom_in_button.update_property(&[gtk4::accessible::Property::Label(&i18n("Zoom in"))]);
-        container.append(&zoom_in_button);
+        secondary_box.append(&zoom_in_button);
 
         let zoom_out_button = gtk4::Button::from_icon_name("zoom-out-symbolic");
         zoom_out_button.add_css_class("flat");
         zoom_out_button.set_tooltip_text(Some(&i18n("Zoom out")));
         zoom_out_button.update_property(&[gtk4::accessible::Property::Label(&i18n("Zoom out"))]);
-        container.append(&zoom_out_button);
+        secondary_box.append(&zoom_out_button);
+
+        container.append(&secondary_box);
 
         let menu_button = gtk4::MenuButton::new();
         menu_button.set_icon_name("open-menu-symbolic");
@@ -131,17 +151,37 @@ impl NavigationToolbar {
         menu_button.update_property(&[gtk4::accessible::Property::Label(&i18n("Menu"))]);
         container.append(&menu_button);
 
+        // --- Responsive overflow: hide secondary actions on narrow width ---
+        // Threshold: 500px. Secondary buttons + Home are hidden; actions
+        // remain reachable via the menu popover.
+        {
+            // Overflow threshold: below this width, hide secondary actions.
+            const OVERFLOW_THRESHOLD_PX: i32 = 500;
+            let secondary_for_overflow = secondary_box.clone();
+            let home_for_overflow = home_button.clone();
+            container.add_tick_callback(move |widget, _| {
+                let width = widget.width();
+                if width > 0 {
+                    let narrow = width < OVERFLOW_THRESHOLD_PX;
+                    secondary_for_overflow.set_visible(!narrow);
+                    home_for_overflow.set_visible(!narrow);
+                }
+                glib::ControlFlow::Continue
+            });
+        }
+
         Self {
             container,
             back_button,
             forward_button,
             reload_button,
             home_button,
-            title_label,
+            url_entry,
             autofill_button,
             zoom_in_button,
             zoom_out_button,
             menu_button,
+            secondary_box,
         }
     }
 
@@ -177,6 +217,7 @@ impl NavigationToolbar {
         self.connect_property_notifications(web_view);
         self.connect_zoom_buttons(web_view);
         self.setup_keyboard_shortcuts(web_view);
+        self.setup_menu(web_view, home_url);
     }
 
     /// Connects Back, Forward, Reload, Home button click signals.
@@ -213,7 +254,7 @@ impl NavigationToolbar {
     }
 
     /// Connects WebView property notifications to update button sensitivity
-    /// and title label.
+    /// and URL entry.
     fn connect_property_notifications(&self, web_view: &webkit6::WebView) {
         // can-go-back → back button sensitivity
         let back_btn = self.back_button.clone();
@@ -227,21 +268,40 @@ impl NavigationToolbar {
             fwd_btn.set_sensitive(wv.can_go_forward());
         });
 
-        // title → title label text
-        let label = self.title_label.clone();
+        // title → URL entry tooltip (page title shown on hover)
+        let entry_for_title = self.url_entry.clone();
         web_view.connect_notify_local(Some("title"), move |wv, _| {
             let title = wv.title().map(|t| t.to_string()).unwrap_or_default();
-            label.set_text(&title);
+            if title.is_empty() {
+                entry_for_title.set_tooltip_text(None);
+            } else {
+                entry_for_title.set_tooltip_text(Some(&title));
+            }
         });
 
-        // uri → title label tooltip (shows current URL on hover)
-        let label_for_uri = self.title_label.clone();
+        // uri → URL entry text (shows current URL)
+        let entry_for_uri = self.url_entry.clone();
         web_view.connect_notify_local(Some("uri"), move |wv, _| {
             let uri = wv.uri().map(|u| u.to_string()).unwrap_or_default();
-            if uri.is_empty() || uri == "about:blank" {
-                label_for_uri.set_tooltip_text(None);
+            if uri == "about:blank" {
+                entry_for_uri.set_text("");
             } else {
-                label_for_uri.set_tooltip_text(Some(&uri));
+                entry_for_uri.set_text(&uri);
+            }
+        });
+
+        // URL entry activation (Enter key) → navigate to the entered URL
+        let wv_for_activate = web_view.clone();
+        self.url_entry.connect_activate(move |entry| {
+            let text = entry.text().to_string();
+            let url = if text.contains("://") {
+                text
+            } else {
+                // Add https:// if no scheme provided
+                format!("https://{text}")
+            };
+            if crate::embedded_web::validate_url(&url).is_ok() {
+                wv_for_activate.load_uri(&url);
             }
         });
     }
@@ -262,6 +322,17 @@ impl NavigationToolbar {
         self.zoom_out_button.connect_clicked(move |_| {
             let new_level = zoom_out(&wv_out);
             update_zoom_button_sensitivity(&zoom_in_btn_for_out, &zoom_out_btn, new_level);
+        });
+
+        // Update zoom button tooltips with current percentage on zoom change
+        let zoom_in_tooltip = self.zoom_in_button.clone();
+        let zoom_out_tooltip = self.zoom_out_button.clone();
+        web_view.connect_notify_local(Some("zoom-level"), move |wv, _| {
+            let pct = (wv.zoom_level() * 100.0).round() as u32;
+            let in_tip = format!("{} ({}%)", i18n("Zoom in"), pct);
+            let out_tip = format!("{} ({}%)", i18n("Zoom out"), pct);
+            zoom_in_tooltip.set_tooltip_text(Some(&in_tip));
+            zoom_out_tooltip.set_tooltip_text(Some(&out_tip));
         });
     }
 
@@ -307,6 +378,105 @@ impl NavigationToolbar {
         });
 
         web_view.add_controller(key_controller);
+    }
+
+    /// Sets up the menu button's popover menu with browser actions.
+    ///
+    /// Menu items: Copy URL, Open in System Browser, separator,
+    /// Zoom Reset (100%), separator, Clear Session Data.
+    fn setup_menu(&self, web_view: &webkit6::WebView, home_url: &Rc<RefCell<String>>) {
+        use gtk4::gio;
+
+        // Build menu model
+        let menu = gio::Menu::new();
+
+        let nav_section = gio::Menu::new();
+        nav_section.append(Some(&i18n("Copy URL")), Some("web.copy-url"));
+        nav_section.append(
+            Some(&i18n("Open in System Browser")),
+            Some("web.open-external"),
+        );
+        menu.append_section(None, &nav_section);
+
+        let zoom_section = gio::Menu::new();
+        zoom_section.append(Some(&i18n("Zoom Reset (100%)")), Some("web.zoom-reset"));
+        menu.append_section(None, &zoom_section);
+
+        let session_section = gio::Menu::new();
+        session_section.append(Some(&i18n("Clear Session Data")), Some("web.clear-session"));
+        menu.append_section(None, &session_section);
+
+        self.menu_button.set_menu_model(Some(&menu));
+
+        // Create action group and register actions
+        let action_group = gio::SimpleActionGroup::new();
+
+        // Copy URL action
+        let wv_copy = web_view.clone();
+        let copy_action = gio::SimpleAction::new("copy-url", None);
+        copy_action.connect_activate(move |_, _| {
+            if let Some(uri) = wv_copy.uri() {
+                let display = wv_copy.display();
+                display.clipboard().set_text(&uri);
+                crate::toast::show_info_toast_on_active_window(&crate::i18n::i18n(
+                    "URL copied to clipboard",
+                ));
+            }
+        });
+        action_group.add_action(&copy_action);
+
+        // Open in system browser action
+        let wv_open = web_view.clone();
+        let home_url_open = Rc::clone(home_url);
+        let open_action = gio::SimpleAction::new("open-external", None);
+        open_action.connect_activate(move |_, _| {
+            // Use current page URI if available, fall back to configured home URL
+            let uri = wv_open
+                .uri()
+                .map(|u| u.to_string())
+                .unwrap_or_else(|| home_url_open.borrow().clone());
+            let launcher = gtk4::UriLauncher::new(&uri);
+            let window = wv_open
+                .root()
+                .and_then(|r| r.downcast::<gtk4::Window>().ok());
+            launcher.launch(window.as_ref(), gtk4::gio::Cancellable::NONE, |_| {});
+        });
+        action_group.add_action(&open_action);
+
+        // Zoom reset action
+        let wv_zoom = web_view.clone();
+        let zoom_in_btn = self.zoom_in_button.clone();
+        let zoom_out_btn = self.zoom_out_button.clone();
+        let zoom_reset_action = gio::SimpleAction::new("zoom-reset", None);
+        zoom_reset_action.connect_activate(move |_, _| {
+            let new_level = zoom_reset(&wv_zoom);
+            update_zoom_button_sensitivity(&zoom_in_btn, &zoom_out_btn, new_level);
+        });
+        action_group.add_action(&zoom_reset_action);
+
+        // Clear session data action
+        let wv_clear = web_view.clone();
+        let clear_action = gio::SimpleAction::new("clear-session", None);
+        clear_action.connect_activate(move |_, _| {
+            if let Some(session) = wv_clear.network_session()
+                && let Some(data_manager) = session.website_data_manager()
+            {
+                data_manager.clear(
+                    webkit6::WebsiteDataTypes::all(),
+                    glib::TimeSpan(0), // timespan: 0 = all time
+                    gtk4::gio::Cancellable::NONE,
+                    |_| {},
+                );
+                crate::toast::show_info_toast_on_active_window(&crate::i18n::i18n(
+                    "Session data cleared",
+                ));
+            }
+        });
+        action_group.add_action(&clear_action);
+
+        // Install the action group on the toolbar container
+        self.container
+            .insert_action_group("web", Some(&action_group));
     }
 }
 

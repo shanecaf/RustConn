@@ -966,6 +966,16 @@ impl MainWindow {
             match EmbeddedWebWidget::new(connection_id, &url, &web_config, credentials) {
                 Ok(widget) => {
                     let widget = Rc::new(widget);
+
+                    // Wire zoom persistence: save zoom level to connection config on change
+                    let state_for_zoom = Rc::clone(state);
+                    let conn_id_for_zoom = connection_id;
+                    widget.connect_zoom_changed(move |new_zoom| {
+                        if let Ok(mut state_mut) = state_for_zoom.try_borrow_mut() {
+                            state_mut.update_web_zoom_level(conn_id_for_zoom, new_zoom);
+                        }
+                    });
+
                     notebook.add_embedded_web_tab(session_id, connection_id, &conn_name, widget);
                     sidebar.update_connection_status(&connection_id.to_string(), "connected");
                     tracing::info!(

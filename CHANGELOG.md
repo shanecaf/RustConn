@@ -17,6 +17,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **JavaScript enable/disable toggle per connection** — a switch in the connection dialog controls whether JavaScript runs in the embedded WebView, useful for security-sensitive internal tools
 - **Split view support for embedded web alongside terminals** — Web sessions using Embedded mode participate in the split-view system like RDP/VNC, so documentation can be viewed side-by-side with SSH terminals
 - **`web-embedded` feature flag (default on Linux, excluded on macOS)** — the WebKitGTK dependency is gated behind a Cargo feature so macOS builds and minimal Linux builds compile without it; all WebKitGTK code is conditionally compiled
+- **URL address bar with manual navigation** — the navigation toolbar now includes an editable URL entry that shows the current page URL, allows typing or pasting a new URL (Enter to navigate), and auto-prepends `https://` for bare hostnames; page title is shown as a tooltip on hover; clicking the entry selects all text for easy replacement
+- **Browser menu with session actions** — the toolbar "⋯" menu button now opens a popover with: Copy URL (clipboard + toast), Open in System Browser (via `UriLauncher`), Zoom Reset (100%), and Clear Session Data (removes all cookies and cache for the connection)
+- **Loading progress bar** — a thin progress bar under the navigation toolbar shows page load progress in real time via `estimated-load-progress`, hiding automatically when the page finishes loading
+- **Download notification** — file downloads show an informational toast "Downloaded: {filename}" on completion instead of being silently saved to `~/Downloads/`
+- **Auto-fit zoom for narrow windows** — when the embedded web view is in a split panel or narrow window (< 1024px), the zoom level is automatically reduced proportionally (`width / 1024`) to prevent horizontal overflow, mimicking the RDP "fit to window" behaviour; always enabled by default
+
+### Improved
+
+- **Autofill button now functional** — the Autofill toolbar button triggers JavaScript credential injection on click, filling username/email and password fields on the current page; shows a toast if no form fields are detected after 3 seconds
+- **Reconnect banner on load failure** — when a page fails to load or the session disconnects, a banner with the error description and a "Reload" button appears below the toolbar (matching the RDP reconnect pattern); clicking Reload navigates back to the home URL
+- **Zoom level persisted across sessions** — the zoom level is saved to the connection config (debounced 2 seconds after last change) so it survives tab close and app restart
+- **Zoom button tooltips show current percentage** — zoom in/out buttons dynamically display the current zoom level (e.g. "Zoom in (120%)") in their tooltips
+- **Toolbar collapses on narrow width** — when the toolbar container is < 500px wide (e.g. in split view), secondary buttons (Home, Autofill, Zoom In, Zoom Out) are hidden to preserve space; all actions remain reachable via the menu button
+
+### Fixed
+
+- **Potential panic on non-ASCII error messages** — the `load-failed` error truncation used byte-position slicing (`&description[..197]`) which panics on multi-byte UTF-8 characters (Cyrillic, CJK, emoji); now uses `floor_char_boundary` for safe truncation
 
 ### Known Limitations
 
