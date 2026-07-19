@@ -14,7 +14,7 @@
       {
         packages.default = pkgs.rustPlatform.buildRustPackage {
           pname = "rustconn";
-          version = "0.18.11";
+          version = "0.19.0";
 
           src = self;
 
@@ -32,6 +32,7 @@
             gtk4
             libadwaita
             vte-gtk4
+            webkitgtk_6_0
             openssl
             dbus
             alsa-lib

@@ -40,6 +40,7 @@ BuildRequires:  alsa-lib-devel
 BuildRequires:  pkgconfig(gtk4) >= 4.14
 BuildRequires:  pkgconfig(vte-2.91-gtk4)
 BuildRequires:  pkgconfig(libadwaita-1)
+BuildRequires:  pkgconfig(webkitgtk-6.0)
 BuildRequires:  pkgconfig(dbus-1)
 BuildRequires:  desktop-file-utils
 BuildRequires:  pkgconfig(openssl)
