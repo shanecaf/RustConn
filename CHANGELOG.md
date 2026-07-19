@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Potential panic on non-ASCII error messages** — the `load-failed` error truncation used byte-position slicing (`&description[..197]`) which panics on multi-byte UTF-8 characters (Cyrillic, CJK, emoji); now uses `floor_char_boundary` for safe truncation
+- **Embedded RDP fallback fails on servers behind RD Connection Broker (issue #218)** — when IronRDP cannot decode the Server License PDU (Windows Server 2019 with RDS licensing), RustConn falls back to an external FreeRDP process. Previously, the password was piped via `/from-stdin`, which broke on servers using a Connection Broker: the broker issues a Server Redirection PDU causing FreeRDP to reconnect to a different host, but stdin was already consumed. Passwords are now passed via a single-use ephemeral args file (`/args-from:file:`) that FreeRDP reads once into memory, surviving redirects without exposing the secret in `/proc/PID/cmdline`
 
 ### Known Limitations
 

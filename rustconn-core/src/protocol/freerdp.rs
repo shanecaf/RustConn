@@ -5,7 +5,7 @@
 //! geometry persistence, and various RDP options.
 
 use crate::models::WindowGeometry;
-use secrecy::{ExposeSecret, SecretString};
+use secrecy::SecretString;
 use std::path::PathBuf;
 
 /// A shared folder for RDP drive redirection
@@ -173,14 +173,10 @@ pub fn build_freerdp_args(config: &FreeRdpConfig) -> Vec<String> {
         args.push(format!("/u:{username}"));
     }
 
-    // Password — use /from-stdin to avoid /proc/PID/cmdline exposure
-    if config
-        .password
-        .as_ref()
-        .is_some_and(|p| !p.expose_secret().is_empty())
-    {
-        args.push("/from-stdin".to_string());
-    }
+    // Password — handled externally via ephemeral args file (/args-from:file:)
+    // to survive RD Connection Broker redirects (issue #218). The password
+    // never appears on argv or stdin. The caller is responsible for writing
+    // the args file and passing /args-from:file:<path> separately.
 
     // Resolution
     args.push(format!("/w:{}", config.width));
@@ -312,8 +308,10 @@ mod tests {
         let args = build_freerdp_args(&config);
 
         assert!(args.contains(&"/u:admin".to_string()));
-        assert!(args.contains(&"/from-stdin".to_string()));
+        // Password is no longer on the arg list — it's passed via a
+        // separate ephemeral args file (/args-from:file:) at launch time
         assert!(!args.iter().any(|a| a.starts_with("/p:")));
+        assert!(!args.iter().any(|a| a == "/from-stdin"));
         assert!(args.contains(&"/d:CORP".to_string()));
     }
 

@@ -1677,7 +1677,7 @@ impl super::EmbeddedRdpWidget {
             }
 
             // Attempt FreeRDP external fallback via SafeFreeRdpLauncher
-            // (uses /from-stdin to avoid exposing password in /proc/PID/cmdline)
+            // (uses ephemeral args file to avoid exposing password in /proc/PID/cmdline)
             let fallback_result = ctx
                 .fallback_config
                 .borrow()
