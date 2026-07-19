@@ -19,23 +19,23 @@ mod autofill;
 mod navigation;
 mod settings;
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 pub use autofill::AutofillManager;
+use gtk4::glib;
+use gtk4::prelude::*;
 pub use navigation::NavigationToolbar;
+use rustconn_core::models::WebConfig;
+use secrecy::SecretString;
 pub use settings::apply_settings;
+use uuid::Uuid;
+use webkit6::prelude::*;
 
 use crate::embedded_trait::{
     EmbeddedConnectionState, EmbeddedError, EmbeddedWidget, ErrorCallback, ReconnectCallback,
     StateCallback,
 };
-use gtk4::glib;
-use gtk4::prelude::*;
-use secrecy::SecretString;
-use std::cell::RefCell;
-use std::rc::Rc;
-use uuid::Uuid;
-use webkit6::prelude::*;
-
-use rustconn_core::models::WebConfig;
 
 /// Embedded web browser widget using WebKitGTK 6.0.
 ///
@@ -1010,8 +1010,9 @@ mod tests {
 
     // Feature: embedded-web-browser, Property 1: URL Validation Round-Trip
     mod property_tests {
-        use super::*;
         use proptest::prelude::*;
+
+        use super::*;
 
         /// Supported URL schemes for the embedded web browser.
         const SUPPORTED_SCHEMES: &[&str] = &["http://", "https://", "file://"];

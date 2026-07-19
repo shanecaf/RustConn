@@ -7,21 +7,22 @@
     reason = "module-wide override for legacy code; refactored case by case"
 )]
 
-use crate::alert;
-use crate::dialogs::connection::builders::ConnectionDialogData;
-use crate::dialogs::connection::logging_tab;
-use crate::i18n::i18n;
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use adw::prelude::*;
 use gtk4::prelude::*;
 use gtk4::{Button, CheckButton, ColorDialogButton, DropDown, Entry, SpinButton, TextView};
 use libadwaita as adw;
 use rustconn_core::automation::ExpectRule;
 use rustconn_core::models::{CustomProperty, HighlightRule, SharedFolder};
-use std::cell::RefCell;
-use std::rc::Rc;
 use uuid::Uuid;
 
 use super::{ConnectionDialog, LocalVariableRow};
+use crate::alert;
+use crate::dialogs::connection::builders::ConnectionDialogData;
+use crate::dialogs::connection::logging_tab;
+use crate::i18n::i18n;
 
 impl ConnectionDialog {
     /// Connects the save button to validate and save the connection

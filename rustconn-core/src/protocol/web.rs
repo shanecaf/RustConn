@@ -5,10 +5,9 @@
 //! Credentials are stored in the configured secret backend for
 //! copy-to-clipboard functionality.
 
+use super::{Protocol, ProtocolCapabilities, ProtocolResult};
 use crate::error::ProtocolError;
 use crate::models::{Connection, ProtocolConfig, WebConfig};
-
-use super::{Protocol, ProtocolCapabilities, ProtocolResult};
 
 /// Web bookmark protocol handler
 ///

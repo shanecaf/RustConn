@@ -14,12 +14,11 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use super::group_export::SyncError;
+use super::tombstone::Tombstone;
 use crate::cluster::Cluster;
 use crate::models::{Connection, ConnectionGroup, ConnectionTemplate, Snippet};
 use crate::variables::Variable;
-
-use super::group_export::SyncError;
-use super::tombstone::Tombstone;
 
 /// Current sync format version.
 const SYNC_VERSION: u32 = 1;

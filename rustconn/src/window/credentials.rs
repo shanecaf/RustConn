@@ -72,12 +72,33 @@ impl MainWindow {
             return;
         }
 
-        // Web bookmarks: Embedded mode needs a tab, System/Custom open externally.
-        // Vault resolution is unnecessary — credentials are resolved on-demand.
+        // Web bookmarks: If credentials are configured (Vault/Variable), resolve
+        // them first so they are cached for autofill. Otherwise skip resolution.
         if protocol_type == rustconn_core::models::ProtocolType::Web {
-            drop(busy_guard);
-            Self::handle_web_connect(&state, &notebook, &sidebar, connection_id);
-            return;
+            let needs_web_credentials = {
+                let Ok(state_ref) = state.try_borrow() else {
+                    drop(busy_guard);
+                    return;
+                };
+                state_ref.get_connection(connection_id).is_some_and(|c| {
+                    matches!(
+                        c.password_source,
+                        rustconn_core::models::PasswordSource::Vault
+                            | rustconn_core::models::PasswordSource::Variable(_)
+                            | rustconn_core::models::PasswordSource::Script(_)
+                    )
+                })
+            };
+
+            if !needs_web_credentials || cached_credentials.is_some() {
+                // No vault credentials needed, or already cached — launch immediately
+                drop(busy_guard);
+                Self::handle_web_connect(&state, &notebook, &sidebar, connection_id);
+                return;
+            }
+            // Fall through to async vault resolution below — after resolution
+            // completes, handle_resolved_credentials will be called which routes
+            // to handle_web_connect for Web protocol.
         }
 
         // Skip async credential resolution for connections that don't use

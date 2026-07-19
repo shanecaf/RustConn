@@ -7,8 +7,11 @@
     reason = "module-wide override for legacy code; refactored case by case"
 )]
 
-use crate::dialogs::connection::ssh;
-use crate::i18n::{i18n, i18n_f};
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::rc::Rc;
+
 use adw::prelude::*;
 use gtk4::prelude::*;
 use gtk4::{Box as GtkBox, Button, FileDialog, Label, ListBox, Orientation, StringList};
@@ -25,13 +28,11 @@ use rustconn_core::variables::Variable;
 use rustconn_core::wol::{
     DEFAULT_BROADCAST_ADDRESS, DEFAULT_WOL_PORT, DEFAULT_WOL_WAIT_SECONDS, WolConfig,
 };
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::path::PathBuf;
-use std::rc::Rc;
 use uuid::Uuid;
 
 use super::{ConnectionDialog, klid_to_dropdown_index};
+use crate::dialogs::connection::ssh;
+use crate::i18n::{i18n, i18n_f};
 
 impl ConnectionDialog {
     /// Sets up the file chooser button for SSH key selection using portal

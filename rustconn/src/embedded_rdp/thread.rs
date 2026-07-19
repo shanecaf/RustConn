@@ -10,18 +10,18 @@
 //! holding the lock), we recover gracefully by extracting the inner value and
 //! setting an error state rather than propagating the panic.
 
-use super::types::{EmbeddedRdpError, FreeRdpThreadState, RdpCommand, RdpConfig, RdpEvent};
-use secrecy::ExposeSecret;
 use std::collections::HashMap;
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
-use std::sync::mpsc;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, mpsc};
 use std::thread::{self, JoinHandle};
 
 #[cfg(feature = "rdp-embedded")]
 use rustconn_core::rdp_client::ClipboardFileInfo;
+use secrecy::ExposeSecret;
+
+use super::types::{EmbeddedRdpError, FreeRdpThreadState, RdpCommand, RdpConfig, RdpEvent};
 
 // ============================================================================
 // Clipboard File Transfer State (for rdp-embedded feature)

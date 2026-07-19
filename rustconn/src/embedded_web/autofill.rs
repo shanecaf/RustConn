@@ -11,9 +11,8 @@
 use gtk4::glib;
 use gtk4::prelude::*;
 use secrecy::{ExposeSecret, SecretString};
-use webkit6::gio;
-use webkit6::javascriptcore;
 use webkit6::prelude::*;
+use webkit6::{gio, javascriptcore};
 use zeroize::Zeroizing;
 
 /// Timeout for field detection after JavaScript injection (3 seconds).
@@ -71,9 +70,11 @@ impl AutofillManager {
     /// Injects credentials into the current page via JavaScript.
     ///
     /// Fills `input[type=password]`, `input[type=text][name*=user]`,
-    /// `input[type=text][name*=login]`, `input[type=email]`, and
-    /// `input[name=username]` fields, dispatching `input` and `change`
-    /// events on each filled field.
+    /// `input[type=text][name*=login]`, `input[type=email]`,
+    /// `input[name=username]`, `input[type=text][id*=user]`,
+    /// `input[type=text][id*=login]`, and
+    /// `input[type=text][autocomplete=username]` fields, dispatching
+    /// `input` and `change` events on each filled field.
     ///
     /// Uses `Zeroizing<String>` for the interpolated JavaScript string
     /// to ensure credential values are wiped from memory on drop.
@@ -206,6 +207,9 @@ impl AutofillManager {
     userFilled += fill('input[type="text"][name*="login"]', username);
     userFilled += fill('input[type="email"]', username);
     userFilled += fill('input[name="username"]', username);
+    userFilled += fill('input[type="text"][id*="user"]', username);
+    userFilled += fill('input[type="text"][id*="login"]', username);
+    userFilled += fill('input[type="text"][autocomplete="username"]', username);
     const passFilled = fill('input[type="password"]', password);
 
     return JSON.stringify({{ userFilled: userFilled, passFilled: passFilled }});
@@ -463,8 +467,9 @@ mod tests {
 
     // Feature: embedded-web-browser, Property 8: Autofill Credential Handling (No Partial Injection)
     mod property_tests {
-        use super::*;
         use proptest::prelude::*;
+
+        use super::*;
 
         /// Strategy generating arbitrary credential inputs as `Option<(String, SecretString)>`.
         ///

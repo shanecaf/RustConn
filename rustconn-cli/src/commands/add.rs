@@ -22,7 +22,7 @@ use crate::util::{
     reason = "AddParams/UpdateParams mirror Clap-derived flags 1:1; bundling related \
               booleans into enums would force callers to convert and obscure CLI mapping"
 )]
-pub struct AddParams<'a> {
+pub(super) struct AddParams<'a> {
     pub name: &'a str,
     pub host: &'a str,
     pub port: Option<u16>,
@@ -132,7 +132,7 @@ pub struct AddParams<'a> {
     reason = "AddParams is consumed by value to take ownership of borrowed flag values \
               from Clap; the long body builds every protocol's connection inline"
 )]
-pub fn cmd_add(config_path: Option<&Path>, params: AddParams<'_>) -> Result<(), CliError> {
+pub(super) fn cmd_add(config_path: Option<&Path>, params: AddParams<'_>) -> Result<(), CliError> {
     let (protocol_type, default_port) = parse_protocol(params.protocol)?;
     let port = params.port.unwrap_or(default_port);
 
@@ -493,7 +493,7 @@ pub fn cmd_add(config_path: Option<&Path>, params: AddParams<'_>) -> Result<(), 
 }
 
 /// Parse auth method string into `SshAuthMethod`
-pub fn parse_auth_method(s: &str) -> Result<SshAuthMethod, CliError> {
+pub(super) fn parse_auth_method(s: &str) -> Result<SshAuthMethod, CliError> {
     match s.to_lowercase().as_str() {
         "password" => Ok(SshAuthMethod::Password),
         "publickey" | "public-key" => Ok(SshAuthMethod::PublicKey),
@@ -508,7 +508,7 @@ pub fn parse_auth_method(s: &str) -> Result<SshAuthMethod, CliError> {
 }
 
 /// Parse protocol string and return protocol type with default port
-pub fn parse_protocol(protocol: &str) -> Result<(ProtocolType, u16), CliError> {
+pub(super) fn parse_protocol(protocol: &str) -> Result<(ProtocolType, u16), CliError> {
     let proto = parse_protocol_type(protocol)?;
     let port = default_port_for_protocol(proto);
     Ok((proto, port))
@@ -844,7 +844,7 @@ fn create_zerotrust_connection(name: &str, params: &AddParams<'_>) -> Result<Con
 ///
 /// Supported protocols: SSH, SFTP, RDP, VNC, SPICE.
 /// Returns an error for protocols that don't support jump hosts.
-pub fn apply_jump_host_id(
+pub(super) fn apply_jump_host_id(
     connection: &mut Connection,
     jump_id: uuid::Uuid,
 ) -> Result<(), CliError> {
@@ -883,7 +883,7 @@ pub fn apply_jump_host_id(
     reason = "wave-2 SSH/SFTP fields are flat in the Clap-derived AddParams; \
               regrouping into a struct would only restate the field list"
 )]
-pub fn apply_ssh_wave2_fields(
+pub(super) fn apply_ssh_wave2_fields(
     cfg: &mut rustconn_core::models::SshConfig,
     x11_forwarding: bool,
     agent_forwarding: bool,
@@ -934,7 +934,7 @@ pub fn apply_ssh_wave2_fields(
 }
 
 /// Parse a local or remote port forward spec: `LOCAL_PORT:HOST:REMOTE_PORT`.
-pub fn parse_port_forward(
+pub(super) fn parse_port_forward(
     spec: &str,
     direction: PortForwardDirection,
     flag: &str,
@@ -967,7 +967,7 @@ pub fn parse_port_forward(
 }
 
 /// Parse a dynamic (SOCKS) port forward spec: just a port number.
-pub fn parse_dynamic_forward(spec: &str) -> Result<PortForward, CliError> {
+pub(super) fn parse_dynamic_forward(spec: &str) -> Result<PortForward, CliError> {
     let port: u16 = spec.parse().map_err(|_| {
         CliError::Config(format!(
             "Invalid --dynamic-forward port '{spec}'. Expected a port number (e.g. 1080)"
@@ -982,7 +982,7 @@ pub fn parse_dynamic_forward(spec: &str) -> Result<PortForward, CliError> {
 }
 
 /// Apply RDP-specific fields (gateway, RemoteApp, resolution, etc.) to an `RdpConfig`.
-pub fn apply_rdp_fields(
+pub(super) fn apply_rdp_fields(
     cfg: &mut rustconn_core::models::RdpConfig,
     params: &AddParams<'_>,
 ) -> Result<(), CliError> {
@@ -1055,7 +1055,7 @@ pub fn apply_rdp_fields(
 }
 
 /// Parse a resolution string like "1920x1080" into a `Resolution`.
-pub fn parse_resolution(spec: &str) -> Result<Resolution, CliError> {
+pub(super) fn parse_resolution(spec: &str) -> Result<Resolution, CliError> {
     let parts: Vec<&str> = spec.split('x').collect();
     if parts.len() != 2 {
         return Err(CliError::Config(format!(
@@ -1078,7 +1078,7 @@ pub fn parse_resolution(spec: &str) -> Result<Resolution, CliError> {
 }
 
 /// Parse a shared folder spec: "NAME:PATH" (e.g. "docs:/home/user/Documents").
-pub fn parse_shared_folder(spec: &str) -> Result<SharedFolder, CliError> {
+pub(super) fn parse_shared_folder(spec: &str) -> Result<SharedFolder, CliError> {
     let Some((name, path)) = spec.split_once(':') else {
         return Err(CliError::Config(format!(
             "Invalid --shared-folder format '{spec}'. Expected: NAME:PATH (e.g. docs:/home/user/Documents)"
@@ -1096,7 +1096,7 @@ pub fn parse_shared_folder(spec: &str) -> Result<SharedFolder, CliError> {
 }
 
 /// Apply VNC-specific fields to a `VncConfig`.
-pub fn apply_vnc_fields(
+pub(super) fn apply_vnc_fields(
     cfg: &mut rustconn_core::models::VncConfig,
     params: &AddParams<'_>,
 ) -> Result<(), CliError> {
@@ -1138,7 +1138,7 @@ pub fn apply_vnc_fields(
 }
 
 /// Apply SPICE-specific fields to a `SpiceConfig`.
-pub fn apply_spice_fields(
+pub(super) fn apply_spice_fields(
     cfg: &mut rustconn_core::models::SpiceConfig,
     params: &AddParams<'_>,
 ) -> Result<(), CliError> {
@@ -1170,7 +1170,7 @@ pub fn apply_spice_fields(
 }
 
 /// Parse a SPICE image compression mode string.
-pub fn parse_spice_image_compression(
+pub(super) fn parse_spice_image_compression(
     mode: &str,
 ) -> Result<rustconn_core::models::SpiceImageCompression, CliError> {
     use rustconn_core::models::SpiceImageCompression;
@@ -1187,7 +1187,7 @@ pub fn parse_spice_image_compression(
 }
 
 /// Apply MOSH-specific fields to a `MoshConfig`.
-pub fn apply_mosh_fields(
+pub(super) fn apply_mosh_fields(
     cfg: &mut rustconn_core::models::MoshConfig,
     params: &AddParams<'_>,
 ) -> Result<(), CliError> {
@@ -1233,7 +1233,7 @@ pub fn apply_mosh_fields(
 }
 
 /// Apply Serial wave-2 fields (data-bits, stop-bits, parity, flow-control, custom-arg).
-pub fn apply_serial_wave2_fields(
+pub(super) fn apply_serial_wave2_fields(
     cfg: &mut rustconn_core::models::SerialConfig,
     params: &AddParams<'_>,
 ) -> Result<(), CliError> {

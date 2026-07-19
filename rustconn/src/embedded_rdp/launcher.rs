@@ -3,10 +3,12 @@
 //! This module provides the `SafeFreeRdpLauncher` struct for launching FreeRDP
 //! with environment variables set to suppress Qt/Wayland warnings.
 
-use super::types::{EmbeddedRdpError, RdpConfig};
-use secrecy::{ExposeSecret, SecretString};
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
+
+use secrecy::{ExposeSecret, SecretString};
+
+use super::types::{EmbeddedRdpError, RdpConfig};
 
 /// Shared buffer collecting stderr lines from the external FreeRDP process.
 ///

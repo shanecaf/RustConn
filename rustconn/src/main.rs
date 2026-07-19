@@ -51,6 +51,11 @@
     clippy::missing_panics_doc,
     reason = "Internal GUI functions don't need panic docs"
 )]
+// Binary crate: pub items are internal helpers shared between modules, not a public API.
+#![allow(
+    unreachable_pub,
+    reason = "binary crate — pub is for inter-module visibility only"
+)]
 
 pub mod activity_coordinator;
 pub mod alert;

@@ -1,9 +1,6 @@
-use super::super::audio::RustConnAudioBackend;
-use super::super::clipboard::RustConnClipboardBackend;
-#[cfg(feature = "gfx-h264")]
-use super::super::gfx_handler::{GfxFrameUpdate, RustConnGfxHandler, try_load_openh264};
-use super::super::rdpdr::{RustConnRdpdrBackend, cups_default_printer, list_cups_printers};
-use super::super::{RdpClientConfig, RdpClientError, RdpClientEvent};
+use std::net::SocketAddr;
+use std::panic::AssertUnwindSafe;
+
 use ironrdp::cliprdr::CliprdrClient;
 use ironrdp::connector::{
     BitmapConfig, ClientConnector, Config, ConnectionResult, Credentials, DesktopSize, ServerName,
@@ -22,9 +19,14 @@ use ironrdp_egfx::client::GraphicsPipelineClient;
 use ironrdp_tokio::TokioFramed;
 use ironrdp_tokio::reqwest::ReqwestNetworkClient;
 use secrecy::ExposeSecret;
-use std::net::SocketAddr;
-use std::panic::AssertUnwindSafe;
 use tokio::net::TcpStream;
+
+use super::super::audio::RustConnAudioBackend;
+use super::super::clipboard::RustConnClipboardBackend;
+#[cfg(feature = "gfx-h264")]
+use super::super::gfx_handler::{GfxFrameUpdate, RustConnGfxHandler, try_load_openh264};
+use super::super::rdpdr::{RustConnRdpdrBackend, cups_default_printer, list_cups_printers};
+use super::super::{RdpClientConfig, RdpClientError, RdpClientEvent};
 
 /// Transport layer: either a direct TCP connection or a gateway tunnel.
 enum GatewayOrTcp {
@@ -34,7 +36,7 @@ enum GatewayOrTcp {
 }
 
 /// Helper trait that combines `AsyncRead + AsyncWrite + Unpin + Send + Sync` for type-erased streams.
-pub trait AsyncReadWrite:
+pub(super) trait AsyncReadWrite:
     tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + Sync
 {
 }
@@ -42,15 +44,15 @@ impl<T: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send + Sync> Asyn
 
 /// Type-erased async stream used after TLS upgrade.
 /// Supports both direct TCP and gateway-tunneled connections.
-pub type RdpStream = Box<dyn AsyncReadWrite>;
+pub(super) type RdpStream = Box<dyn AsyncReadWrite>;
 
-pub type UpgradedFramed = TokioFramed<RdpStream>;
+pub(super) type UpgradedFramed = TokioFramed<RdpStream>;
 
 /// Result of a successful RDP connection establishment.
 ///
 /// Wraps the framed transport, connection metadata, and optional GFX channel
 /// receiver (present only when `gfx-h264` feature is enabled).
-pub struct ConnectionSetup {
+pub(super) struct ConnectionSetup {
     /// Framed TLS stream for the active session
     pub framed: UpgradedFramed,
     /// IronRDP connection result with negotiated capabilities
@@ -82,7 +84,7 @@ pub struct ConnectionSetup {
     clippy::too_many_lines,
     reason = "long match/dispatch over many enum variants; splitting per variant only relocates the boilerplate"
 )]
-pub async fn establish_connection(
+pub(super) async fn establish_connection(
     config: &RdpClientConfig,
     event_tx: std::sync::mpsc::Sender<RdpClientEvent>,
 ) -> Result<ConnectionSetup, RdpClientError> {

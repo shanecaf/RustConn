@@ -4,9 +4,11 @@
 //! for external mode RDP connections. It supports window decorations,
 //! geometry persistence, and various RDP options.
 
-use crate::models::WindowGeometry;
-use secrecy::SecretString;
 use std::path::PathBuf;
+
+use secrecy::SecretString;
+
+use crate::models::WindowGeometry;
 
 /// A shared folder for RDP drive redirection
 #[derive(Debug, Clone)]

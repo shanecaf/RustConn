@@ -15,7 +15,7 @@ use crate::util::{create_config_manager, find_connection};
 /// Returns:
 /// - [`CliError::Config`] when connections or groups cannot be loaded
 /// - [`CliError::ConnectionNotFound`] when no connection matches `name`
-pub fn cmd_show(
+pub(super) fn cmd_show(
     config_path: Option<&Path>,
     name: &str,
     format: OutputFormat,

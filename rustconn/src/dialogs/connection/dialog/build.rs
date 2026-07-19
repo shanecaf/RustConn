@@ -7,21 +7,21 @@
     reason = "module-wide override for legacy code; refactored case by case"
 )]
 
-use crate::alert;
-use crate::dialogs::connection::logging_tab;
-use crate::dialogs::connection::ssh;
-use crate::i18n::{i18n, i18n_f};
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::rc::Rc;
+
 use gtk4::ScrolledWindow;
 use gtk4::prelude::*;
 use rustconn_core::automation::ExpectRule;
 use rustconn_core::models::{CustomProperty, HighlightRule};
 use rustconn_core::variables::Variable;
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::rc::Rc;
 use uuid::Uuid;
 
 use super::{ConnectionDialog, LocalVariableRow};
+use crate::alert;
+use crate::dialogs::connection::{logging_tab, ssh};
+use crate::i18n::{i18n, i18n_f};
 
 impl ConnectionDialog {
     /// Creates a new connection dialog

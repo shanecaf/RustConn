@@ -6,6 +6,7 @@ use std::cell::RefCell;
 use std::path::PathBuf;
 use std::process::Child;
 use std::rc::Rc;
+
 use uuid::Uuid;
 
 use crate::embedded_rdp::EmbeddedRdpWidget;

@@ -17,7 +17,11 @@ pub mod tab_container;
 mod tab_menu;
 mod types;
 
-pub use types::{SessionWidgetStorage, TerminalSession};
+use std::cell::RefCell;
+use std::collections::{HashMap, HashSet};
+use std::path::PathBuf;
+use std::rc::Rc;
+use std::time::Instant;
 
 use gtk4::prelude::*;
 use gtk4::{Box as GtkBox, Orientation, Widget, gio, glib};
@@ -25,11 +29,7 @@ use libadwaita as adw;
 use libadwaita::prelude::*;
 use rustconn_core::models::AutomationConfig;
 use rustconn_core::terminal_themes::TerminalTheme;
-use std::cell::RefCell;
-use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
-use std::rc::Rc;
-use std::time::Instant;
+pub use types::{SessionWidgetStorage, TerminalSession};
 use uuid::Uuid;
 #[cfg(not(target_os = "macos"))]
 use vte4::PtyFlags;
@@ -42,6 +42,12 @@ use vte4::prelude::*;
 /// `_vte_regex_has_multiline_compile_flag(regex)` check failed.
 const PCRE2_MULTILINE: u32 = 0x0000_0400;
 
+use rustconn_core::automation::{KeyElement, KeySequence};
+use rustconn_core::highlight::CompiledHighlightRules;
+use rustconn_core::models::HighlightRule;
+use rustconn_core::session::recording::{RecordingMetadata, metadata_path, write_metadata};
+use rustconn_core::split::tab_groups::TabGroupManager;
+
 use crate::activity_coordinator::ActivityCoordinator;
 use crate::automation::{AutomationSession, prepare_rules_from_config};
 use crate::embedded_rdp::EmbeddedRdpWidget;
@@ -49,11 +55,6 @@ use crate::i18n::{i18n, i18n_f};
 use crate::session::{SessionState, SessionWidget, VncSessionWidget};
 use crate::terminal::highlight_overlay::HighlightOverlay;
 use crate::terminal::tab_container::TabPageContainer;
-use rustconn_core::automation::{KeyElement, KeySequence};
-use rustconn_core::highlight::CompiledHighlightRules;
-use rustconn_core::models::HighlightRule;
-use rustconn_core::session::recording::{RecordingMetadata, metadata_path, write_metadata};
-use rustconn_core::split::tab_groups::TabGroupManager;
 
 /// SSH connection parameters needed for remote recording file retrieval.
 #[derive(Debug, Clone)]
@@ -3335,9 +3336,10 @@ fn cursor_line_text(terminal: &Terminal) -> Option<String> {
 
 #[cfg(test)]
 mod split_eligibility_tests {
-    use super::{SessionWidgetStorage, SplitEligibility, eligibility_from};
     use std::cell::RefCell;
     use std::rc::Rc;
+
+    use super::{SessionWidgetStorage, SplitEligibility, eligibility_from};
 
     #[test]
     fn external_process_is_external_viewer() {

@@ -8,6 +8,7 @@
 //! File I/O uses atomic writes (temp file + rename) so readers never see
 //! partial or corrupt JSON.
 
+use std::collections::HashSet;
 use std::io::{BufReader, BufWriter, Write};
 use std::path::Path;
 
@@ -15,8 +16,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use std::collections::HashSet;
-
+use super::variable_template::VariableTemplate;
 use crate::automation::ConnectionTask;
 use crate::models::{
     AutomationConfig, Connection, ConnectionGroup, CustomProperty, HighlightRule, PasswordSource,
@@ -24,8 +24,6 @@ use crate::models::{
 };
 use crate::variables::Variable;
 use crate::wol::WolConfig;
-
-use super::variable_template::VariableTemplate;
 
 /// Errors that can occur during sync file operations.
 #[derive(Debug, thiserror::Error)]
@@ -579,8 +577,6 @@ pub fn group_name_to_filename(name: &str) -> String {
 /// Returns [`SyncError::InvalidSyncFilename`] if the filename contains
 /// path traversal components (`..`), directory separators, or is an absolute path.
 pub fn validate_sync_filename(filename: &str) -> Result<(), SyncError> {
-    use std::path::Path;
-
     let path = Path::new(filename);
 
     // Reject absolute paths

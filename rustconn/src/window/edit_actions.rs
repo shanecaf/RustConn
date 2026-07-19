@@ -941,8 +941,9 @@ impl MainWindow {
         // Embedded mode: create an in-tab WebKitGTK widget
         #[cfg(feature = "web-embedded")]
         if web_config.browser_mode == rustconn_core::models::WebBrowserMode::Embedded {
-            use crate::embedded_web::EmbeddedWebWidget;
             use std::rc::Rc;
+
+            use crate::embedded_web::EmbeddedWebWidget;
 
             // Retrieve cached credentials for autofill (username + SecretString password)
             let credentials = {

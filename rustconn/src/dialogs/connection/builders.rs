@@ -10,8 +10,11 @@
 //! to all dialog widgets and provides `validate()` and `build_connection()` methods
 //! to produce a `ConnectionDialogResult` from the current widget state.
 
-use super::logging_tab;
-use crate::i18n::i18n;
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::rc::Rc;
+
 use adw::prelude::*;
 use gtk4::prelude::*;
 use gtk4::{CheckButton, ColorDialogButton, DropDown, Entry, SpinButton, TextView};
@@ -30,11 +33,10 @@ use rustconn_core::models::{
 use rustconn_core::session::LogConfig;
 use rustconn_core::variables::Variable;
 use rustconn_core::wol::{DEFAULT_BROADCAST_ADDRESS, MacAddress, WolConfig};
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::path::PathBuf;
-use std::rc::Rc;
 use uuid::Uuid;
+
+use super::logging_tab;
+use crate::i18n::i18n;
 
 pub(super) struct ConnectionDialogData<'a> {
     pub name_entry: &'a Entry,

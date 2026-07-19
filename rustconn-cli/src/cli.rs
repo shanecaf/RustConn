@@ -1075,7 +1075,7 @@ impl OutputFormat {
     /// Per clig.dev: "If stdin or stdout is not an interactive terminal,
     /// prefer structured output."
     #[must_use]
-    pub fn effective(self) -> Self {
+    pub(crate) fn effective(self) -> Self {
         if matches!(self, Self::Table) && !std::io::stdout().is_terminal() {
             Self::Json
         } else {

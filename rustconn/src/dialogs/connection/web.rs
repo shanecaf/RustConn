@@ -3,14 +3,14 @@
 //! UI panel for Web bookmark connections with browser mode selection,
 //! JavaScript toggle, user agent configuration, and private/incognito mode.
 
-use super::protocol_layout::ProtocolLayoutBuilder;
-use super::widgets::{EntryRowBuilder, SwitchRowBuilder};
 use adw::prelude::*;
 use gtk4::prelude::*;
 use gtk4::{Box as GtkBox, Entry, StringList};
 use libadwaita as adw;
 use rustconn_core::models::WebBrowserMode;
 
+use super::protocol_layout::ProtocolLayoutBuilder;
+use super::widgets::{EntryRowBuilder, SwitchRowBuilder};
 use crate::i18n::i18n;
 
 /// Return type for Web options creation (extended for embedded browser).

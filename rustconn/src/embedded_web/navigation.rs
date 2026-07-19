@@ -3,13 +3,14 @@
 //! Provides Back, Forward, Reload, Home, page title, Autofill, Zoom, and Menu
 //! controls following the GNOME HIG pattern used by the RDP embedded toolbar.
 
-use crate::i18n::i18n;
-use gtk4::gdk;
-use gtk4::glib;
-use gtk4::prelude::*;
 use std::cell::RefCell;
 use std::rc::Rc;
+
+use gtk4::prelude::*;
+use gtk4::{gdk, glib};
 use webkit6::prelude::*;
+
+use crate::i18n::i18n;
 
 /// Zoom step: 10% per click/shortcut.
 const ZOOM_STEP: f64 = 0.1;
@@ -582,8 +583,9 @@ pub const TEST_ZOOM_STEP: f64 = ZOOM_STEP;
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use proptest::prelude::*;
+
+    use super::*;
 
     // Feature: embedded-web-browser, Property 2: Zoom Level Clamping
 

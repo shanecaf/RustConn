@@ -1,8 +1,9 @@
 //! Protocol configuration types for SSH, RDP, and VNC connections.
 
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
+
+use serde::{Deserialize, Serialize};
 
 /// Protocol type identifier
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

@@ -2,16 +2,16 @@
 //!
 //! Extracted from `state.rs` as part of ARCH-5 decomposition.
 
-use crate::async_utils::with_runtime;
-use crate::vault_ops::{
-    delete_group_vault_credential, delete_vault_credential, migrate_vault_entries_on_group_change,
-    rename_vault_credential_for_move,
-};
 use rustconn_core::error::ConfigResult;
 use rustconn_core::models::{Connection, ConnectionGroup};
 use uuid::Uuid;
 
 use super::AppState;
+use crate::async_utils::with_runtime;
+use crate::vault_ops::{
+    delete_group_vault_credential, delete_vault_credential, migrate_vault_entries_on_group_change,
+    rename_vault_credential_for_move,
+};
 
 impl AppState {
     /// Creates a new connection

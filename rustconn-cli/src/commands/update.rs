@@ -18,7 +18,7 @@ use crate::util::{create_config_manager, find_connection};
     reason = "AddParams/UpdateParams mirror Clap-derived flags 1:1; bundling related \
               booleans into enums would force callers to convert and obscure CLI mapping"
 )]
-pub struct UpdateParams<'a> {
+pub(super) struct UpdateParams<'a> {
     pub name: &'a str,
     pub new_name: Option<&'a str>,
     pub host: Option<&'a str>,
@@ -132,7 +132,10 @@ pub struct UpdateParams<'a> {
     reason = "UpdateParams is consumed by value to take ownership of borrowed flag values \
               from Clap; the long body matches every editable field in turn"
 )]
-pub fn cmd_update(config_path: Option<&Path>, params: UpdateParams<'_>) -> Result<(), CliError> {
+pub(super) fn cmd_update(
+    config_path: Option<&Path>,
+    params: UpdateParams<'_>,
+) -> Result<(), CliError> {
     let config_manager = create_config_manager(config_path)?;
 
     let mut connections = config_manager
