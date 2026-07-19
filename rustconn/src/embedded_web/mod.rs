@@ -224,7 +224,7 @@ impl EmbeddedWebWidget {
         // Create autofill manager
         let autofill = AutofillManager::new(credentials);
 
-        // Create navigation toolbar (placeholder — fully implemented in task 4.1)
+        // Create navigation toolbar
         let toolbar = NavigationToolbar::new();
 
         // Create reconnect banner (hidden by default): [⚠ icon] [status label] [Reload button]

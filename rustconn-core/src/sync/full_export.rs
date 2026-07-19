@@ -195,6 +195,8 @@ fn filter_secret_variables(variables: &[Variable]) -> Vec<Variable> {
 /// `window_geometry`, `window_mode`, `remember_window_position`, and
 /// `skip_port_check` to their default values. These fields are
 /// device-specific and should not be synced between devices.
+///
+/// Web connections: `zoom_level` is reset to 1.0 (device-dependent screen size).
 fn strip_local_only_connection_fields(connections: Vec<Connection>) -> Vec<Connection> {
     connections
         .into_iter()
@@ -207,6 +209,12 @@ fn strip_local_only_connection_fields(connections: Vec<Connection>) -> Vec<Conne
             c.window_mode = crate::models::WindowMode::default();
             c.remember_window_position = false;
             c.skip_port_check = false;
+            // Web: zoom level is device-local (a 13" laptop and a 32" monitor
+            // need different zoom). Reset to default so per-device preferences
+            // do not propagate between machines.
+            if let crate::models::ProtocolConfig::Web(ref mut web) = c.protocol_config {
+                web.zoom_level = 1.0;
+            }
             c
         })
         .collect()
