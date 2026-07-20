@@ -112,7 +112,7 @@ jobs:
           mv "${PKG_DIR}.deb" dist/
 
       - name: Upload deb artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: debian-package
           path: dist/*.deb
@@ -224,7 +224,7 @@ jobs:
           ls -la dist/
 
       - name: Upload RPM artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: rpm-package
           path: dist/*.rpm
@@ -314,7 +314,7 @@ jobs:
           mv RustConn*.AppImage "RustConn-${VERSION}-x86_64.AppImage"
 
       - name: Upload AppImage artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: appimage
           path: "*.AppImage"
@@ -374,7 +374,7 @@ jobs:
           echo "Built: $SNAP_FILE"
 
       - name: Upload Snap artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: snap-package-${{ matrix.arch }}
           path: ${{ steps.build.outputs.snap }}
@@ -441,7 +441,7 @@ jobs:
           build-bundle: true
 
       - name: Upload Flatpak artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: flatpak
           path: RustConn.flatpak
