@@ -40,8 +40,12 @@ BuildRequires:  alsa-lib-devel
 BuildRequires:  pkgconfig(gtk4) >= 4.14
 BuildRequires:  pkgconfig(vte-2.91-gtk4)
 BuildRequires:  pkgconfig(libadwaita-1)
-BuildRequires:  pkgconfig(webkitgtk-6.0)
 BuildRequires:  pkgconfig(dbus-1)
+# WebKitGTK 6.0 — only on distros that ship it (Tumbleweed, Fedora 43+)
+%if 0%{?suse_version} > 1600 || 0%{?fedora} >= 43
+BuildRequires:  pkgconfig(webkitgtk-6.0)
+BuildRequires:  pkgconfig(javascriptcoregtk-6.0)
+%endif
 BuildRequires:  desktop-file-utils
 BuildRequires:  pkgconfig(openssl)
 BuildRequires:  zstd
@@ -181,33 +185,45 @@ export PATH="$PWD/rust-toolchain/bin:$PATH"
 #   adw-1-8: libadwaita >= 1.8 (Tumbleweed/Slowroll, Fedora 43+)
 #   adw-1-7: libadwaita >= 1.7 (Leap 16.0, Fedora 42)
 #   (none):  libadwaita 1.5 baseline (older distros)
+#
+# WebKitGTK 6.0 (web-embedded feature):
+#   Available on Tumbleweed/Slowroll, Fedora 43+, Fedora 44+
+#   NOT available on Leap 16.0, Fedora 42 (only webkit2gtk 4.1 for GTK3)
+#   Passed as a separate --features flag; cargo merges it with defaults.
 %if 0%{?suse_version} > 1600
 # Tumbleweed / Slowroll — libadwaita 1.8+ (1.9 with GNOME 50)
 %define adw_features --features adw-1-8
+%define web_features ,web-embedded
 %else
 %if 0%{?suse_version} == 1600
-# Leap 16.0 — GNOME 48, libadwaita 1.7
+# Leap 16.0 — GNOME 48, libadwaita 1.7 (no WebKitGTK 6.0)
 %define adw_features --features adw-1-7
+%define web_features %{nil}
 %endif
 %endif
 
 %if 0%{?fedora} >= 43
-# Fedora 43+ — GNOME 49+, libadwaita 1.8+
+# Fedora 43+ — GNOME 49+, libadwaita 1.8+, WebKitGTK 6.0
 %define adw_features --features adw-1-8
+%define web_features ,web-embedded
 %else
 %if 0%{?fedora} == 42
-# Fedora 42 — GNOME 48, libadwaita 1.7
+# Fedora 42 — GNOME 48, libadwaita 1.7 (no WebKitGTK 6.0)
 %define adw_features --features adw-1-7
+%define web_features %{nil}
 %endif
 %endif
 
+# Base features: everything from `default` except web-embedded (conditional above)
+%define base_features tray,system-keyring,vnc-embedded,rdp-embedded,gfx-h264,rdp-audio,rd-gateway,wayland-native
+
 %if 0%{?suse_version}
-%{cargo_build} -p rustconn %{?adw_features}
+%{cargo_build} -p rustconn --no-default-features --features %{base_features}%{?web_features} %{?adw_features}
 %{cargo_build} -p rustconn-cli --features full
 %else
 # --offline: belt-and-suspenders against accidental network access —
 # all crates come from the vendored sources configured in .cargo/config.toml
-cargo build --release --offline -p rustconn %{?adw_features}
+cargo build --release --offline -p rustconn --no-default-features --features %{base_features}%{?web_features} %{?adw_features}
 cargo build --release --offline -p rustconn-cli --features full
 %endif
 

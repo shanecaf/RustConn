@@ -37,9 +37,15 @@ override_dh_auto_build:
 		1.7*)       ADW_FEATURES="--features adw-1-7" ;; \
 		1.6*)       ADW_FEATURES="--features adw-1-6" ;; \
 	esac; \
-	echo "=== libadwaita $$ADW_VERSION => features: $$ADW_FEATURES ==="; \
+	WEB_FEATURES=""; \
+	if pkg-config --exists webkitgtk-6.0 2>/dev/null; then \
+		WEB_FEATURES=",web-embedded"; \
+	fi; \
+	BASE_FEATURES="tray,system-keyring,vnc-embedded,rdp-embedded,gfx-h264,rdp-audio,rd-gateway,wayland-native"; \
+	echo "=== libadwaita $$ADW_VERSION => features: $$ADW_FEATURES | web: $$WEB_FEATURES ==="; \
 	export PATH="$(CURDIR)/rust-toolchain/bin:$$PATH"; \
-	cargo build --release --offline -p rustconn $$ADW_FEATURES -p rustconn-cli --features full
+	cargo build --release --offline -p rustconn --no-default-features --features $${BASE_FEATURES}$${WEB_FEATURES} $$ADW_FEATURES; \
+	cargo build --release --offline -p rustconn-cli --features full
 
 override_dh_auto_install:
 	install -Dm755 target/release/rustconn debian/rustconn/usr/bin/rustconn
