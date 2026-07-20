@@ -3056,7 +3056,11 @@ mod zerotrust_tests {
 ///
 /// Determines how a Web connection URL is opened: embedded inside the tab,
 /// in the system default browser, or via a custom command.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+///
+/// Uses a manual `Deserialize` so that a config containing
+/// `browser_mode = "embedded"` (saved with `web-embedded` enabled) falls back
+/// to `System` on a build without the feature instead of failing to parse.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum WebBrowserMode {
     /// Embedded WebKitGTK 6.0 WebView inside the tab
@@ -3066,6 +3070,36 @@ pub enum WebBrowserMode {
     System,
     /// Custom browser command
     Custom,
+}
+
+impl<'de> serde::Deserialize<'de> for WebBrowserMode {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        match s.as_str() {
+            #[cfg(feature = "web-embedded")]
+            "embedded" => Ok(Self::Embedded),
+            #[cfg(not(feature = "web-embedded"))]
+            "embedded" => {
+                tracing::debug!(
+                    "browser_mode \"embedded\" unavailable (web-embedded feature disabled); \
+                     falling back to System"
+                );
+                Ok(Self::System)
+            }
+            "system" => Ok(Self::System),
+            "custom" => Ok(Self::Custom),
+            other => {
+                tracing::warn!(
+                    browser_mode = other,
+                    "Unknown browser_mode value; falling back to System"
+                );
+                Ok(Self::System)
+            }
+        }
+    }
 }
 
 #[expect(
