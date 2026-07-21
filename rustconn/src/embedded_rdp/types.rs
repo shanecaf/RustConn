@@ -427,6 +427,12 @@ pub type ErrorCallback = Box<dyn Fn(&str) + 'static>;
 /// Callback type for fallback notifications
 pub type FallbackCallback = Box<dyn Fn(&str) + 'static>;
 
+/// Callback type for certificate change notifications.
+///
+/// Called when FreeRDP detects a server certificate mismatch. The callback
+/// receives `(host, port, message)` and should show a confirmation dialog.
+pub type CertChangedCallback = Box<dyn Fn(&str, u16, &str) + 'static>;
+
 #[cfg(test)]
 mod tests {
     use super::*;

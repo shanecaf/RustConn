@@ -677,6 +677,40 @@ fn start_embedded_rdp_session(
         }
     });
 
+    // Connect certificate-changed callback — shows a confirmation dialog when
+    // FreeRDP detects the server certificate has changed since the last connection.
+    // On acceptance, removes the old certificate from FreeRDP's TOFU store and
+    // reconnects so the new certificate is trusted automatically.
+    let notebook_for_cert = notebook.clone();
+    let widget_for_cert = embedded_widget.clone();
+    embedded_widget.connect_cert_changed(move |host, port, message| {
+        let Some(window) = notebook_for_cert
+            .widget()
+            .ancestor(gtk4::Window::static_type())
+            .and_then(|w| w.downcast::<gtk4::Window>().ok())
+        else {
+            return;
+        };
+
+        let host = host.to_owned();
+        let widget = widget_for_cert.clone();
+        crate::alert::show_confirm(
+            &window,
+            &crate::i18n::i18n("Certificate changed"),
+            message,
+            &crate::i18n::i18n("Accept new certificate"),
+            false,
+            move |accepted| {
+                if accepted {
+                    crate::embedded_rdp::cert::remove_known_certificate(&host, port);
+                    if let Err(e) = widget.reconnect() {
+                        tracing::error!(%e, "RDP reconnect after cert accept failed");
+                    }
+                }
+            },
+        );
+    });
+
     // Add tab first, then connect after widget is realized
     notebook.add_embedded_rdp_tab(
         session_id,

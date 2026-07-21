@@ -5,6 +5,18 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.1] - 2026-07-21
+
+### Fixed
+
+- **RDP certificate mismatch causes silent connection failure (exit 255)** — when a server's TLS certificate changed since the last connection, FreeRDP's TOFU check required interactive confirmation (`Y/T/N`) that the embedded process could not provide, resulting in an immediate exit with no useful feedback. Now RustConn detects the certificate mismatch from FreeRDP stderr and shows an `adw::AlertDialog` asking the user whether to accept the new certificate. On acceptance, the old fingerprint is removed from `~/.config/freerdp3/known_hosts2` and the connection is retried with TOFU — saving the new certificate as trusted permanently.
+- **SSH password auto-fill intermittently stuck on prompt** — VTE in no-echo mode may not emit `contents-changed` or `cursor-moved` signals after the SSH password prompt lands in the terminal grid. The previous single 120 ms deferred re-check was insufficient when the SSH handshake took longer than 120 ms to display the prompt. Replaced with a 150 ms polling timer (up to 10 s) that continuously checks the VTE grid for the password prompt and self-cancels once credentials are injected or the deadline expires. Affects both initial connect and in-place reconnect paths.
+
+### Improved
+
+- **RDP certificate store: exact hostname matching** — `remove_from_known_hosts2` now compares the first two whitespace-separated fields (host and port) exactly instead of using substring `contains()`, preventing false-positive removal of entries where one hostname is a substring of another (e.g. `db.example.com` would no longer accidentally remove `my-db.example.com`)
+- **SSH password polling stops on closed session** — the 150 ms polling timer now checks whether the terminal still exists before each tick; if the user closes the tab while the prompt is stuck, the timer stops immediately instead of running for up to 10 s
+
 ## [0.19.0] - 2026-07-20
 
 ### Added

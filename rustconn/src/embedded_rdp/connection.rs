@@ -19,12 +19,24 @@ use super::types::{
 };
 use crate::i18n::{i18n, i18n_f};
 
+/// Result of classifying a FreeRDP stderr failure.
+///
+/// Distinguishes certificate mismatch (which needs a user confirmation dialog)
+/// from regular errors (which show a toast).
+pub(super) enum FreerdpFailure {
+    /// The server certificate changed since the last connection.
+    /// The user should be prompted to accept or reject the new certificate.
+    CertificateMismatch(String),
+    /// A regular connection error (auth, transport, codec, etc.)
+    Error(String),
+}
+
 /// Classifies FreeRDP stderr output into a user-friendly error message.
 ///
 /// Scans accumulated stderr lines for known FreeRDP error patterns and returns
 /// an appropriate localized message. Falls back to a generic message when the
 /// failure reason is unrecognizable.
-fn classify_freerdp_failure(stderr_lines: &StderrLines, status_str: &str) -> String {
+fn classify_freerdp_failure(stderr_lines: &StderrLines, status_str: &str) -> FreerdpFailure {
     let lines = stderr_lines.lock().unwrap_or_else(|e| e.into_inner());
     let joined = lines.join(" ");
 
@@ -34,28 +46,41 @@ fn classify_freerdp_failure(stderr_lines: &StderrLines, status_str: &str) -> Str
         || joined.contains("nla_recv_pdu")
             && (joined.contains("STATUS_LOGON_FAILURE") || joined.contains("0x00020014"))
     {
-        i18n("Authentication failed: invalid username or password.")
+        FreerdpFailure::Error(i18n("Authentication failed: invalid username or password."))
     } else if joined.contains("ERRCONNECT_LOGON_TYPE_NOT_GRANTED") {
-        i18n("Access denied: you do not have permission to log on to this server via RDP.")
+        FreerdpFailure::Error(i18n(
+            "Access denied: you do not have permission to log on to this server via RDP.",
+        ))
     } else if joined.contains("ERRCONNECT_ACCOUNT_LOCKED_OUT") {
-        i18n("Account is locked out. Wait a few minutes and try again.")
+        FreerdpFailure::Error(i18n(
+            "Account is locked out. Wait a few minutes and try again.",
+        ))
     } else if joined.contains("ERRCONNECT_ACCOUNT_DISABLED") {
-        i18n("Account is disabled on the server.")
+        FreerdpFailure::Error(i18n("Account is disabled on the server."))
     } else if joined.contains("ERRCONNECT_PASSWORD_EXPIRED")
         || joined.contains("ERRCONNECT_PASSWORD_MUST_CHANGE")
     {
-        i18n("Password expired. Change the password on the server and try again.")
+        FreerdpFailure::Error(i18n(
+            "Password expired. Change the password on the server and try again.",
+        ))
     } else if joined.contains("ERRCONNECT_CONNECT_TRANSPORT_FAILED")
         || joined.contains("connect_failed")
     {
-        i18n("Connection failed: server is unreachable. Check the host address and port.")
-    } else if joined.contains("Certificate") && joined.contains("denied") {
-        i18n("Connection rejected: server certificate was not accepted.")
+        FreerdpFailure::Error(i18n(
+            "Connection failed: server is unreachable. Check the host address and port.",
+        ))
+    } else if joined.contains("certificate not trusted")
+        || joined.contains("does not match the certificate used for previous connections")
+        || joined.contains("Certificate") && joined.contains("denied")
+    {
+        FreerdpFailure::CertificateMismatch(i18n(
+            "Server certificate has changed since the last connection.",
+        ))
     } else {
-        i18n_f(
+        FreerdpFailure::Error(i18n_f(
             "RDP connection failed ({}). Run with RUST_LOG=debug for details.",
             &[status_str],
-        )
+        ))
     }
 }
 
@@ -70,13 +95,20 @@ fn classify_freerdp_failure(stderr_lines: &StderrLines, status_str: &str) -> Str
 /// Surfaces the exit as an `Error` (with the process status) instead. The real
 /// failure reason is captured separately from the client's stderr by
 /// [`SafeFreeRdpLauncher::launch`]. (Fixes #177 follow-up: "it closes automatically")
+#[expect(
+    clippy::too_many_arguments,
+    reason = "watchdog needs all shared state refs to detect and report early-exit failures"
+)]
 fn arm_external_exit_watchdog(
     process: Rc<RefCell<Option<std::process::Child>>>,
     state: Rc<RefCell<RdpConnectionState>>,
     on_state_changed: Rc<RefCell<Option<super::types::StateCallback>>>,
     on_error: Rc<RefCell<Option<super::types::ErrorCallback>>>,
+    on_cert_changed: Rc<RefCell<Option<super::types::CertChangedCallback>>>,
     drawing_area: gtk4::DrawingArea,
     stderr_lines: StderrLines,
+    host: String,
+    port: u16,
 ) {
     // Poll every 500 ms for ~3 s. Long enough to catch an immediate auth/cert
     // rejection, short enough not to delay reporting a genuine failure.
@@ -109,7 +141,7 @@ fn arm_external_exit_watchdog(
                 "[FreeRDP] External client exited shortly after launch — connection failed"
             );
 
-            let msg = classify_freerdp_failure(&stderr_lines, &status_str);
+            let failure = classify_freerdp_failure(&stderr_lines, &status_str);
 
             // take-invoke-restore: the callbacks may close the tab and re-enter
             // these cells, which would otherwise panic with BorrowMutError.
@@ -119,11 +151,22 @@ fn arm_external_exit_watchdog(
             }
             *on_state_changed.borrow_mut() = scb;
 
-            let ecb = on_error.borrow_mut().take();
-            if let Some(ref cb) = ecb {
-                cb(&msg);
+            match failure {
+                FreerdpFailure::CertificateMismatch(ref msg) => {
+                    let ccb = on_cert_changed.borrow_mut().take();
+                    if let Some(ref cb) = ccb {
+                        cb(&host, port, msg);
+                    }
+                    *on_cert_changed.borrow_mut() = ccb;
+                }
+                FreerdpFailure::Error(ref msg) => {
+                    let ecb = on_error.borrow_mut().take();
+                    if let Some(ref cb) = ecb {
+                        cb(msg);
+                    }
+                    *on_error.borrow_mut() = ecb;
+                }
             }
-            *on_error.borrow_mut() = ecb;
 
             return glib::ControlFlow::Break;
         }
@@ -150,6 +193,7 @@ pub(super) struct RdpConnectionContext {
     pub on_state_changed: Rc<RefCell<Option<super::types::StateCallback>>>,
     pub on_error: Rc<RefCell<Option<super::types::ErrorCallback>>>,
     pub on_fallback: Rc<RefCell<Option<super::types::FallbackCallback>>>,
+    pub on_cert_changed: Rc<RefCell<Option<super::types::CertChangedCallback>>>,
     pub is_embedded: Rc<RefCell<bool>>,
     pub is_ironrdp: Rc<RefCell<bool>>,
     pub ironrdp_tx: Rc<RefCell<Option<tokio::sync::mpsc::UnboundedSender<RdpClientCommand>>>>,
@@ -606,6 +650,7 @@ impl super::EmbeddedRdpWidget {
         // Capture fallback-related state for auto-fallback on protocol errors
         // (e.g. xrdp ServerDemandActive incompatibility — IronRDP issue #139)
         let on_fallback = self.on_fallback.clone();
+        let on_cert_changed = self.on_cert_changed.clone();
         let fallback_config = self.config.clone();
         let fallback_process = self.process.clone();
 
@@ -1514,6 +1559,7 @@ impl super::EmbeddedRdpWidget {
                         on_state_changed: on_state_changed.clone(),
                         on_error: on_error.clone(),
                         on_fallback: on_fallback.clone(),
+                        on_cert_changed: on_cert_changed.clone(),
                         is_embedded: is_embedded.clone(),
                         is_ironrdp: is_ironrdp.clone(),
                         ironrdp_tx: ironrdp_tx.clone(),
@@ -1725,8 +1771,17 @@ impl super::EmbeddedRdpWidget {
                     ctx.state.clone(),
                     ctx.on_state_changed.clone(),
                     ctx.on_error.clone(),
+                    ctx.on_cert_changed.clone(),
                     ctx.drawing_area.clone(),
                     stderr_buf,
+                    ctx.fallback_config
+                        .borrow()
+                        .as_ref()
+                        .map_or_else(String::new, |c| c.host.clone()),
+                    ctx.fallback_config
+                        .borrow()
+                        .as_ref()
+                        .map_or(3389, |c| c.port),
                 );
             } else {
                 *ctx.state.borrow_mut() = RdpConnectionState::Error;
@@ -2259,8 +2314,14 @@ impl super::EmbeddedRdpWidget {
             self.state.clone(),
             self.on_state_changed.clone(),
             self.on_error.clone(),
+            self.on_cert_changed.clone(),
             self.drawing_area.clone(),
             stderr_buf,
+            self.config
+                .borrow()
+                .as_ref()
+                .map_or_else(String::new, |c| c.host.clone()),
+            self.config.borrow().as_ref().map_or(3389, |c| c.port),
         );
     }
 

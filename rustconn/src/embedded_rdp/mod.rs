@@ -37,6 +37,7 @@ pub mod types;
 pub mod ui;
 
 mod autotype;
+pub(crate) mod cert;
 mod clipboard;
 mod connection;
 mod drawing;
@@ -289,6 +290,8 @@ pub struct EmbeddedRdpWidget {
     on_error: Rc<RefCell<Option<ErrorCallback>>>,
     /// Fallback notification callback
     on_fallback: Rc<RefCell<Option<FallbackCallback>>>,
+    /// Certificate changed callback — shown as a dialog instead of a toast
+    on_cert_changed: Rc<RefCell<Option<super::embedded_rdp::types::CertChangedCallback>>>,
     /// Reconnect callback
     on_reconnect: Rc<RefCell<Option<Box<dyn Fn() + 'static>>>>,
     /// Reconnect banner (shown when disconnected, at bottom of container)
@@ -745,6 +748,7 @@ impl EmbeddedRdpWidget {
             on_state_changed: Rc::new(RefCell::new(None)),
             on_error: Rc::new(RefCell::new(None)),
             on_fallback: Rc::new(RefCell::new(None)),
+            on_cert_changed: Rc::new(RefCell::new(None)),
             on_reconnect: Rc::new(RefCell::new(None)),
             reconnect_banner,
             reconnect_button,
@@ -1531,6 +1535,20 @@ impl EmbeddedRdpWidget {
         F: Fn(&str) + 'static,
     {
         *self.on_fallback.borrow_mut() = Some(Box::new(callback));
+    }
+
+    /// Connects a callback for certificate change notifications.
+    ///
+    /// Called when FreeRDP detects that the server certificate has changed.
+    /// The callback receives `(host, port, message)` and should show a
+    /// confirmation dialog. On user acceptance, call
+    /// [`cert::remove_known_certificate`](super::embedded_rdp::cert::remove_known_certificate)
+    /// then reconnect.
+    pub fn connect_cert_changed<F>(&self, callback: F)
+    where
+        F: Fn(&str, u16, &str) + 'static,
+    {
+        *self.on_cert_changed.borrow_mut() = Some(Box::new(callback));
     }
 
     /// Reports a fallback and notifies listeners
