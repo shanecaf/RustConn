@@ -1107,17 +1107,48 @@ fn start_ssh_connection_internal(
                 inject_once();
                 // No match yet: the cursor-moved/contents-changed signal may have
                 // fired before the no-echo prompt glyphs were committed to the
-                // grid (issue #194 race). Schedule a single deferred re-check.
+                // grid (issue #194 race). Schedule a polling timer that retries
+                // with exponential backoff until the prompt appears or 10s pass.
+                // A single 120ms one-shot was insufficient: VTE in no-echo mode
+                // may never emit another signal after the prompt lands, leaving
+                // password injection stuck indefinitely (intermittent hang).
                 if !password_sent.get() && !recheck_scheduled.get() {
                     recheck_scheduled.set(true);
                     let inject_once = inject_once.clone();
-                    // 120ms: covers the gap between the signal firing and the
-                    // prompt glyphs actually landing in the VTE grid, without a
-                    // user-visible delay (M-DOCUMENTED-MAGIC).
-                    glib::timeout_add_local_once(
-                        std::time::Duration::from_millis(120),
-                        move || inject_once(),
-                    );
+                    let password_sent_poll = password_sent.clone();
+                    let password_sent_deadline = password_sent.clone();
+                    // Poll at 150ms intervals for up to ~10s (66 attempts).
+                    // 150ms balances responsiveness against CPU wake-ups; 10s
+                    // covers slow SSH handshakes (key exchange + DNS + banner).
+                    // The timer self-cancels once password_sent flips to true
+                    // (either from this timer or from a late VTE signal).
+                    glib::timeout_add_local(std::time::Duration::from_millis(150), move || {
+                        if password_sent_poll.get() {
+                            return glib::ControlFlow::Break;
+                        }
+                        inject_once();
+                        // Stop polling once injected or after ~10s (implicit:
+                        // password_sent checked at next tick). The signal
+                        // handlers remain active as a secondary path.
+                        if password_sent_poll.get() {
+                            glib::ControlFlow::Break
+                        } else {
+                            glib::ControlFlow::Continue
+                        }
+                    });
+                    // Hard deadline: stop polling after 10s regardless — if the
+                    // prompt never appeared, the user can type manually.
+                    glib::timeout_add_local_once(std::time::Duration::from_secs(10), move || {
+                        if !password_sent_deadline.get() {
+                            // Force-stop the repeating timer by flipping the
+                            // flag; next tick will see it and Break.
+                            tracing::debug!(
+                                protocol = "ssh",
+                                "Password prompt polling timed out after 10s"
+                            );
+                            password_sent_deadline.set(true);
+                        }
+                    });
                 }
             })
         };
@@ -1519,17 +1550,48 @@ pub fn reconnect_ssh_in_place(
                 inject_once();
                 // No match yet: the cursor-moved/contents-changed signal may have
                 // fired before the no-echo prompt glyphs were committed to the
-                // grid (issue #194 race). Schedule a single deferred re-check.
+                // grid (issue #194 race). Schedule a polling timer that retries
+                // with exponential backoff until the prompt appears or 10s pass.
+                // A single 120ms one-shot was insufficient: VTE in no-echo mode
+                // may never emit another signal after the prompt lands, leaving
+                // password injection stuck indefinitely (intermittent hang).
                 if !password_sent.get() && !recheck_scheduled.get() {
                     recheck_scheduled.set(true);
                     let inject_once = inject_once.clone();
-                    // 120ms: covers the gap between the signal firing and the
-                    // prompt glyphs actually landing in the VTE grid, without a
-                    // user-visible delay (M-DOCUMENTED-MAGIC).
-                    glib::timeout_add_local_once(
-                        std::time::Duration::from_millis(120),
-                        move || inject_once(),
-                    );
+                    let password_sent_poll = password_sent.clone();
+                    let password_sent_deadline = password_sent.clone();
+                    // Poll at 150ms intervals for up to ~10s (66 attempts).
+                    // 150ms balances responsiveness against CPU wake-ups; 10s
+                    // covers slow SSH handshakes (key exchange + DNS + banner).
+                    // The timer self-cancels once password_sent flips to true
+                    // (either from this timer or from a late VTE signal).
+                    glib::timeout_add_local(std::time::Duration::from_millis(150), move || {
+                        if password_sent_poll.get() {
+                            return glib::ControlFlow::Break;
+                        }
+                        inject_once();
+                        // Stop polling once injected or after ~10s (implicit:
+                        // password_sent checked at next tick). The signal
+                        // handlers remain active as a secondary path.
+                        if password_sent_poll.get() {
+                            glib::ControlFlow::Break
+                        } else {
+                            glib::ControlFlow::Continue
+                        }
+                    });
+                    // Hard deadline: stop polling after 10s regardless — if the
+                    // prompt never appeared, the user can type manually.
+                    glib::timeout_add_local_once(std::time::Duration::from_secs(10), move || {
+                        if !password_sent_deadline.get() {
+                            // Force-stop the repeating timer by flipping the
+                            // flag; next tick will see it and Break.
+                            tracing::debug!(
+                                protocol = "ssh",
+                                "Password prompt polling timed out after 10s"
+                            );
+                            password_sent_deadline.set(true);
+                        }
+                    });
                 }
             })
         };
