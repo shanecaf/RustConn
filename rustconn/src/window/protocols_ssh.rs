@@ -1103,12 +1103,13 @@ fn start_ssh_connection_internal(
             let inject_once = inject_once.clone();
             let password_sent = password_sent.clone();
             let recheck_scheduled = recheck_scheduled.clone();
+            let notebook_for_poll = notebook.clone();
             std::rc::Rc::new(move || {
                 inject_once();
                 // No match yet: the cursor-moved/contents-changed signal may have
                 // fired before the no-echo prompt glyphs were committed to the
                 // grid (issue #194 race). Schedule a polling timer that retries
-                // with exponential backoff until the prompt appears or 10s pass.
+                // at a fixed interval until the prompt appears or 10s pass.
                 // A single 120ms one-shot was insufficient: VTE in no-echo mode
                 // may never emit another signal after the prompt lands, leaving
                 // password injection stuck indefinitely (intermittent hang).
@@ -1122,8 +1123,15 @@ fn start_ssh_connection_internal(
                     // covers slow SSH handshakes (key exchange + DNS + banner).
                     // The timer self-cancels once password_sent flips to true
                     // (either from this timer or from a late VTE signal).
+                    let notebook_poll = notebook_for_poll.clone();
                     glib::timeout_add_local(std::time::Duration::from_millis(150), move || {
                         if password_sent_poll.get() {
+                            return glib::ControlFlow::Break;
+                        }
+                        // Early exit: stop polling if the session was closed
+                        // (tab closed, child exited) — avoids 10s of useless
+                        // wake-ups after the user closes the stuck tab.
+                        if notebook_poll.get_terminal(session_id).is_none() {
                             return glib::ControlFlow::Break;
                         }
                         inject_once();
@@ -1546,12 +1554,13 @@ pub fn reconnect_ssh_in_place(
             let inject_once = inject_once.clone();
             let password_sent = password_sent.clone();
             let recheck_scheduled = recheck_scheduled.clone();
+            let notebook_for_poll = notebook.clone();
             std::rc::Rc::new(move || {
                 inject_once();
                 // No match yet: the cursor-moved/contents-changed signal may have
                 // fired before the no-echo prompt glyphs were committed to the
                 // grid (issue #194 race). Schedule a polling timer that retries
-                // with exponential backoff until the prompt appears or 10s pass.
+                // at a fixed interval until the prompt appears or 10s pass.
                 // A single 120ms one-shot was insufficient: VTE in no-echo mode
                 // may never emit another signal after the prompt lands, leaving
                 // password injection stuck indefinitely (intermittent hang).
@@ -1565,8 +1574,15 @@ pub fn reconnect_ssh_in_place(
                     // covers slow SSH handshakes (key exchange + DNS + banner).
                     // The timer self-cancels once password_sent flips to true
                     // (either from this timer or from a late VTE signal).
+                    let notebook_poll = notebook_for_poll.clone();
                     glib::timeout_add_local(std::time::Duration::from_millis(150), move || {
                         if password_sent_poll.get() {
+                            return glib::ControlFlow::Break;
+                        }
+                        // Early exit: stop polling if the session was closed
+                        // (tab closed, child exited) — avoids 10s of useless
+                        // wake-ups after the user closes the stuck tab.
+                        if notebook_poll.get_terminal(session_id).is_none() {
                             return glib::ControlFlow::Break;
                         }
                         inject_once();
