@@ -5,6 +5,12 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.2] - 2026-07-22
+
+### Fixed
+
+- **VPN connect/disconnect no longer kills healthy SSH sessions (issue #230)** — the network-change handler previously ran `ssh -O exit` on all ControlMaster sockets unconditionally, terminating active SSH sessions even when the VPN only added/removed specific routes without affecting the default gateway. Now uses `ssh -O check` to probe each socket first: healthy masters are left untouched, and only truly dead sockets are removed. Unconditional cleanup (`ssh -O exit`) is reserved for the network-down path where all TCP connections are assumed dead.
+
 ## [0.19.1] - 2026-07-21
 
 ### Fixed
