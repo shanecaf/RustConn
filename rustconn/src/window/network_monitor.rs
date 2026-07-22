@@ -190,7 +190,7 @@ pub fn setup_network_monitor(
 ///
 /// Used when the network went completely down — all masters are assumed dead.
 fn close_all_sockets_unconditionally() {
-    std::thread::Builder::new()
+    if let Err(e) = std::thread::Builder::new()
         .name("net-down-socket-cleanup".into())
         .spawn(|| {
             let rt = tokio::runtime::Builder::new_current_thread()
@@ -206,7 +206,9 @@ fn close_all_sockets_unconditionally() {
                 }
             }
         })
-        .ok();
+    {
+        tracing::warn!(error = %e, "Failed to spawn socket-cleanup thread (ulimit reached?)");
+    }
 }
 
 /// Checks ControlMaster sockets and removes only dead ones.
@@ -215,7 +217,7 @@ fn close_all_sockets_unconditionally() {
 /// VPN connect/disconnect that doesn't affect the default route). Healthy
 /// sockets are left untouched — their SSH sessions continue uninterrupted.
 fn close_only_dead_sockets() {
-    std::thread::Builder::new()
+    if let Err(e) = std::thread::Builder::new()
         .name("net-change-socket-check".into())
         .spawn(|| {
             let rt = tokio::runtime::Builder::new_current_thread()
@@ -234,7 +236,9 @@ fn close_only_dead_sockets() {
                 }
             }
         })
-        .ok();
+    {
+        tracing::warn!(error = %e, "Failed to spawn socket-check thread (ulimit reached?)");
+    }
 }
 
 /// Triggers in-place reconnect for VTE sessions currently showing the

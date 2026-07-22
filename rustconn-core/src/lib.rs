@@ -191,9 +191,8 @@ pub use monitoring::{
     CollectorHandle, CpuSnapshot, DiskMetrics, LoadAverage, METRICS_COMMAND, MemoryMetrics,
     MetricsComputer, MetricsEvent, MetricsParser, MonitoringConfig, MonitoringError,
     MonitoringResult, MonitoringSettings, NetworkMetrics, NetworkSnapshot, RemoteMetrics,
-    RemoteOsType, SYSTEM_INFO_COMMAND, SystemInfo, close_all_control_sockets,
-    close_control_socket, close_dead_control_sockets, ssh_control_path, ssh_exec_factory,
-    start_collector,
+    RemoteOsType, SYSTEM_INFO_COMMAND, SystemInfo, close_all_control_sockets, close_control_socket,
+    close_dead_control_sockets, ssh_control_path, ssh_exec_factory, start_collector,
 };
 pub use password_generator::{
     CharacterSet, PasswordGenerator, PasswordGeneratorConfig, PasswordGeneratorError,
