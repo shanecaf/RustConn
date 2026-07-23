@@ -13,8 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **FreeRDP fallback fails on FreeRDP 3.26+ due to `/args-from:file:` exclusivity** — FreeRDP 3.26 ([PR #12697](https://github.com/FreeRDP/FreeRDP/pull/12697)) enforces that `/args-from:file:` must be the sole CLI argument and cannot be combined with other arguments on the command line. The previous approach wrote only the password to the args file while passing all other connection parameters (`/v:`, `/u:`, `/w:`, `/h:`, etc.) directly on argv. Users who updated to FreeRDP 3.26+ (shipped in recent distro updates) got "can not be used in combination with other arguments" errors, breaking both the IronRDP→FreeRDP fallback path and direct FreeRDP launches. Now all connection arguments are written into the ephemeral args file in `$XDG_RUNTIME_DIR`, with only `/args-from:file:<path>` on the command line. This also improves security: no connection parameters (including hostname and username) are visible via `/proc/<pid>/cmdline`.
 - **RDP clipboard syncing even when disabled in connection settings (issue #233)** — the embedded RDP session builder hardcoded `.with_clipboard(true)` when constructing the `EmbeddedRdpConfig`, completely ignoring the saved `clipboard_enabled` setting from the connection profile. Users who disabled clipboard sharing in connection properties still had full clipboard sync between client and server. Now correctly reads `rdp_config.clipboard_enabled` from the persisted connection.
 - **SSH MPTCP used non-existent `-o TCPMultipath=yes` option (issue #231)** — OpenSSH has no `TCPMultipath` option; the previous implementation was based on a hallucinated SSH directive. SSH MPTCP now correctly wraps the command with `mptcpize run` (from the mptcpd package), which forces TCP sockets to use the MPTCP protocol. SSH config import/export no longer reads or writes the invalid `TCPMultipath` directive. Embedded RDP/VNC MPTCP (via `socket2` with `IPPROTO_MPTCP`) remains unchanged and valid.
+
+### Dependencies
+
+- **Updated**: rustls-pki-types 1.15.0 → 1.15.1
 
 ## [0.19.2] - 2026-07-23
 

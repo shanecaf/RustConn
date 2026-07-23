@@ -142,9 +142,12 @@
   <releases>
     <release version="0.19.3" date="2026-07-23">
       <description>
-        <p>Version 0.19.3 - RDP clipboard fix:</p>
+        <p>Version 0.19.3 - FreeRDP compatibility and startup improvements:</p>
         <ul>
+          <li>Added option to hide Welcome tab at startup</li>
+          <li>Fixed FreeRDP fallback failing on FreeRDP 3.26+ due to args-from exclusivity</li>
           <li>Fixed RDP clipboard syncing even when disabled in connection settings</li>
+          <li>Fixed SSH MPTCP using non-existent TCPMultipath option</li>
         </ul>
       </description>
     </release>

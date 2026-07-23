@@ -1,28 +1,25 @@
-//! Ephemeral FreeRDP args file for RemoteApp passwords.
+//! Ephemeral FreeRDP args file for connection arguments.
 //!
-//! `xfreerdp3 /from-stdin` does not work for RemoteApp (RAIL) sessions:
-//! the FreeRDP RAIL handshake bypasses the stdin password reader, so the
-//! credentials never reach the server. Until [FreeRDP#12485] is fixed
-//! upstream we previously fell back to `/p:<password>` on the command
-//! line, which exposes the password in `/proc/<pid>/cmdline` to any
-//! process running under the same uid (Known Issue from 0.14.10).
+//! FreeRDP 3.26+ requires that `/args-from:file:<path>` is the **only**
+//! argument on the command line — it cannot be combined with other CLI
+//! arguments ([FreeRDP#12697]). All connection parameters (including
+//! secrets like `/p:<password>`) are written into a single-use file in
+//! `$XDG_RUNTIME_DIR` (mode 0600), keeping everything out of
+//! `/proc/<pid>/cmdline`.
 //!
-//! `xfreerdp3 /args-from:file:<path>` reads CLI arguments from a file
-//! instead of the command line, so writing `/p:<password>` into a
-//! single-use file in `$XDG_RUNTIME_DIR` (mode 0600) keeps the secret
-//! out of `cmdline` while still satisfying the RAIL handshake.
+//! Prior to FreeRDP 3.26 it was possible to mix `/args-from:file:` with
+//! other CLI args, but that is no longer the case.
 //!
-//! [FreeRDP#12485]: https://github.com/FreeRDP/FreeRDP/issues/12485
+//! [FreeRDP#12697]: https://github.com/FreeRDP/FreeRDP/pull/12697
 //!
 //! # Lifecycle
 //!
-//! [`EphemeralRdpArgs`] writes the args file in [`Self::write`] and
+//! [`EphemeralRdpArgs`] writes the args file in [`Self::write_all`] and
 //! removes it on `Drop` (best-effort). Callers must hold the guard
-//! alive until the spawned `xfreerdp3` process has actually consumed
+//! alive until the spawned FreeRDP process has actually consumed
 //! the file (a fraction of a second after `spawn`). Because FreeRDP
-//! keeps the file open for the duration of the unaltered argument
-//! parsing, dropping the guard immediately after `child.try_wait()`
-//! returns `None` is safe.
+//! reads the file during argument parsing, dropping the guard
+//! immediately after `child.try_wait()` returns `None` is safe.
 
 use std::fs::{File, OpenOptions};
 use std::io::Write;
@@ -32,9 +29,11 @@ use std::path::{Path, PathBuf};
 use rustconn_core::error::SecretResult;
 use secrecy::{ExposeSecret, SecretString};
 
-/// Single-use args file containing only the RemoteApp password line.
+/// Single-use args file containing all FreeRDP connection arguments.
 ///
-/// The file is created with mode `0600` so only the owning user can
+/// FreeRDP 3.26+ requires `/args-from:file:` to be the sole CLI argument.
+/// All parameters (secret and plain) are written one-per-line into this
+/// file. The file is created with mode `0600` so only the owning user can
 /// read it. It is removed when the guard is dropped, even if the
 /// launcher panics partway through `spawn`.
 pub(super) struct EphemeralRdpArgs {
@@ -48,18 +47,28 @@ impl EphemeralRdpArgs {
         &self.path
     }
 
-    /// Writes one `/<flag>:<secret>` line per entry to a fresh file in
+    /// Writes all connection arguments (plain + secret) to a fresh file in
     /// `$XDG_RUNTIME_DIR` and returns a guard that removes the file on drop.
     ///
-    /// Used for the RemoteApp session password (`/p:`), which may not appear
-    /// on argv.
+    /// FreeRDP 3.26+ requires `/args-from:file:` to be the **only** CLI
+    /// argument — it cannot be combined with other arguments. All connection
+    /// parameters are therefore written into this file, one per line.
+    ///
+    /// # Arguments
+    ///
+    /// * `plain_args` — non-secret arguments (e.g. `/v:host`, `/w:1920`)
+    /// * `secret_args` — secret arguments written as `/<flag>:<secret>`
+    ///   (e.g. `/p:<password>`); the in-memory copy is zeroized after write
     ///
     /// # Errors
     ///
     /// Returns `SecretError::Pass` when the runtime directory cannot
     /// be located or the file cannot be created with the requested
     /// permissions.
-    pub(super) fn write_args(args: &[(&str, &SecretString)]) -> SecretResult<Self> {
+    pub(super) fn write_all(
+        plain_args: &[String],
+        secret_args: &[(&str, &SecretString)],
+    ) -> SecretResult<Self> {
         use rustconn_core::error::SecretError;
 
         // $XDG_RUNTIME_DIR is the natural choice on Linux desktops:
@@ -75,12 +84,16 @@ impl EphemeralRdpArgs {
                 )
             })?;
 
-        Self::write_in_dir(&dir, args)
+        Self::write_all_in_dir(&dir, plain_args, secret_args)
     }
 
-    /// Writes the args file into a specific directory. Used by `write_args`
-    /// (with `$XDG_RUNTIME_DIR`) and by the tests.
-    fn write_in_dir(dir: &Path, args: &[(&str, &SecretString)]) -> SecretResult<Self> {
+    /// Writes all connection arguments into a specific directory.
+    /// Used by `write_all` (with `$XDG_RUNTIME_DIR`) and by the tests.
+    fn write_all_in_dir(
+        dir: &Path,
+        plain_args: &[String],
+        secret_args: &[(&str, &SecretString)],
+    ) -> SecretResult<Self> {
         use rustconn_core::error::SecretError;
 
         // Avoid name collisions across concurrent RDP launches by
@@ -99,30 +112,54 @@ impl EphemeralRdpArgs {
                 ))
             })?;
 
-        // FreeRDP /args-from:file: format is one argument per line. We put
-        // exactly the secret switches (e.g. `/p:`) into the file; everything
-        // else is still passed on the command line so it stays visible in `ps`
-        // (helpful for debugging) without exposing secrets.
-        let mut line = String::new();
-        for (flag, secret) in args {
-            line.push('/');
-            line.push_str(flag);
-            line.push(':');
-            line.push_str(secret.expose_secret());
-            line.push('\n');
+        // FreeRDP /args-from:file: format is one argument per line.
+        // Since FreeRDP 3.26 this file must contain ALL arguments —
+        // nothing else may appear on the command line alongside
+        // `/args-from:file:<path>`.
+
+        // Write plain-text arguments first (non-secret, e.g. /v:host)
+        for arg in plain_args {
+            file.write_all(arg.as_bytes()).map_err(|e| {
+                SecretError::Pass(format!(
+                    "failed to write ephemeral RDP args file at {}: {e}",
+                    path.display()
+                ))
+            })?;
+            file.write_all(b"\n").map_err(|e| {
+                SecretError::Pass(format!(
+                    "failed to write ephemeral RDP args file at {}: {e}",
+                    path.display()
+                ))
+            })?;
         }
-        // Wrap in Zeroizing so the heap copy of the joined secret line is
-        // wiped once the write completes; the file holds the secrets until
-        // it is removed in `Drop`.
-        let zline = zeroize::Zeroizing::new(line);
-        file.write_all(zline.as_bytes()).map_err(|e| {
-            SecretError::Pass(format!(
-                "failed to write ephemeral RDP args file at {}: {e}",
-                path.display()
-            ))
-        })?;
+
+        // Write secret arguments last; wrap in Zeroizing so the heap copy
+        // is wiped once the write completes.
+        if !secret_args.is_empty() {
+            let mut secret_content = String::new();
+            for (flag, secret) in secret_args {
+                secret_content.push('/');
+                secret_content.push_str(flag);
+                secret_content.push(':');
+                secret_content.push_str(secret.expose_secret());
+                secret_content.push('\n');
+            }
+            let zline = zeroize::Zeroizing::new(secret_content);
+            file.write_all(zline.as_bytes()).map_err(|e| {
+                SecretError::Pass(format!(
+                    "failed to write ephemeral RDP args file at {}: {e}",
+                    path.display()
+                ))
+            })?;
+        }
 
         Ok(Self { path })
+    }
+
+    /// Legacy helper used by tests.
+    #[cfg(test)]
+    fn write_in_dir(dir: &Path, args: &[(&str, &SecretString)]) -> SecretResult<Self> {
+        Self::write_all_in_dir(dir, &[], args)
     }
 }
 
@@ -274,5 +311,37 @@ mod tests {
                 .expect("write args file");
         let content = std::fs::read_to_string(guard.path()).expect("read args file");
         assert_eq!(content, "/p:session-pw\n/gp:gateway-pw\n");
+    }
+
+    #[test]
+    fn write_all_combines_plain_and_secret_args() {
+        let dir = TempRuntimeDir::new();
+        let plain = vec![
+            "/v:myhost".to_string(),
+            "/u:admin".to_string(),
+            "/w:1920".to_string(),
+            "/h:1080".to_string(),
+            "+clipboard".to_string(),
+        ];
+        let password = SecretString::from("s3cret".to_string());
+        let guard =
+            EphemeralRdpArgs::write_all_in_dir(dir.path(), &plain, &[("p", &password)])
+                .expect("write args file");
+        let content = std::fs::read_to_string(guard.path()).expect("read args file");
+        assert_eq!(
+            content,
+            "/v:myhost\n/u:admin\n/w:1920\n/h:1080\n+clipboard\n/p:s3cret\n"
+        );
+    }
+
+    #[test]
+    fn write_all_no_secrets_writes_only_plain_args() {
+        let dir = TempRuntimeDir::new();
+        let plain = vec!["/v:host".to_string(), "/cert:ignore".to_string()];
+        let guard =
+            EphemeralRdpArgs::write_all_in_dir(dir.path(), &plain, &[])
+                .expect("write args file");
+        let content = std::fs::read_to_string(guard.path()).expect("read args file");
+        assert_eq!(content, "/v:host\n/cert:ignore\n");
     }
 }

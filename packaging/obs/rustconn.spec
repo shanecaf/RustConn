@@ -280,7 +280,10 @@ done
 %changelog
 * Wed Jul 23 2026 Anton Isaiev <totoshko88@gmail.com> - 0.19.3-0
 - Version bump to 0.19.3
+- Added option to hide Welcome tab at startup (issue #232)
+- Fixed FreeRDP fallback fails on FreeRDP 3.26+ due to args-from exclusivity (issue #234)
 - Fixed RDP clipboard syncing even when disabled in connection settings (issue #233)
+- Fixed SSH MPTCP used non-existent TCPMultipath option (issue #231)
 
 * Thu Jul 23 2026 Anton Isaiev <totoshko88@gmail.com> - 0.19.2-0
 - Version bump to 0.19.2
