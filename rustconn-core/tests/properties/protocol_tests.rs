@@ -2074,16 +2074,16 @@ proptest! {
         }
     }
 
-    /// SSH build_command_args includes TCPMultipath=yes when mptcp is true,
-    /// and does NOT include it when mptcp is false.
+    /// SSH build_command_args does NOT include TCPMultipath=yes (MPTCP is
+    /// handled by `mptcpize run` wrapper at the command-launch level, not
+    /// via SSH options).
     #[test]
-    fn prop_ssh_mptcp_flag_in_command_args(config in arb_ssh_config()) {
+    fn prop_ssh_mptcp_not_in_command_args(config in arb_ssh_config()) {
         let args = config.build_command_args();
         let has_mptcp_arg = args.iter().any(|a| a == "TCPMultipath=yes");
-        prop_assert_eq!(
-            has_mptcp_arg,
-            config.mptcp,
-            "TCPMultipath=yes should be present iff mptcp is enabled"
+        prop_assert!(
+            !has_mptcp_arg,
+            "TCPMultipath=yes must never appear in build_command_args (not a valid SSH option)"
         );
     }
 }

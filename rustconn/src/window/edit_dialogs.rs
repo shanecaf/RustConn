@@ -501,6 +501,7 @@ fn start_quick_ssh(
         None,
         None,
         None,
+        false,
     );
 }
 

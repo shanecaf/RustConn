@@ -32,6 +32,7 @@ pub fn create_ui_page() -> (
     adw::SwitchRow,
     adw::SwitchRow,
     adw::SwitchRow,
+    adw::SwitchRow,
 ) {
     let page = adw::PreferencesPage::builder()
         .title(i18n("Interface"))
@@ -270,6 +271,13 @@ pub fn create_ui_page() -> (
     startup_action_row.set_activatable_widget(Some(&startup_action_dropdown));
     startup_group.add(&startup_action_row);
 
+    // Show Welcome tab on startup switch (issue #232)
+    let show_welcome_switch = adw::SwitchRow::builder()
+        .title(i18n("Show Welcome tab"))
+        .subtitle(i18n("Display Welcome tab when no session opens at startup"))
+        .build();
+    startup_group.add(&show_welcome_switch);
+
     page.add(&startup_group);
 
     // === System Tray Group (collapsible) ===
@@ -360,6 +368,7 @@ pub fn create_ui_page() -> (
         compact_auto,
         terminal_passthrough_ctrl,
         window_title_shows_connection,
+        show_welcome_switch,
     )
 }
 
@@ -411,6 +420,7 @@ pub fn load_ui_settings(
     compact_auto: &adw::SwitchRow,
     terminal_passthrough_ctrl: &adw::SwitchRow,
     window_title_shows_connection: &adw::SwitchRow,
+    show_welcome_switch: &adw::SwitchRow,
     settings: &UiSettings,
     connections: &[&Connection],
 ) {
@@ -486,6 +496,8 @@ pub fn load_ui_settings(
 
     window_title_shows_connection.set_active(settings.window_title_shows_connection);
 
+    show_welcome_switch.set_active(settings.show_welcome_on_startup);
+
     // Populate startup action dropdown with connections
     let entries = build_startup_entries(connections);
     let mut labels: Vec<String> = vec![i18n("Do nothing"), i18n("Local Shell")];
@@ -533,6 +545,7 @@ pub fn collect_ui_settings(
     compact_auto: &adw::SwitchRow,
     terminal_passthrough_ctrl: &adw::SwitchRow,
     window_title_shows_connection: &adw::SwitchRow,
+    show_welcome_switch: &adw::SwitchRow,
     connections: &[&Connection],
 ) -> UiSettings {
     let mut selected_scheme = ColorScheme::System;
@@ -593,5 +606,6 @@ pub fn collect_ui_settings(
         compact_auto: compact_auto.is_active(),
         terminal_passthrough_ctrl: terminal_passthrough_ctrl.is_active(),
         window_title_shows_connection: window_title_shows_connection.is_active(),
+        show_welcome_on_startup: show_welcome_switch.is_active(),
     }
 }

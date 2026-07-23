@@ -216,7 +216,7 @@ pub enum Commands {
         ssh_verbose: bool,
 
         /// Enable Multipath TCP for SSH/RDP/VNC connections.
-        /// SSH: passes -o TCPMultipath=yes (requires OpenSSH 9.9+).
+        /// SSH: wraps command with mptcpize run (requires mptcpd).
         /// RDP/VNC embedded: uses MPTCP socket (requires Linux 5.6+ kernel).
         /// Falls back to regular TCP transparently when unavailable.
         #[arg(long)]
@@ -701,7 +701,7 @@ pub enum Commands {
         ssh_verbose: bool,
 
         /// Enable or disable Multipath TCP for SSH/RDP/VNC connections.
-        /// SSH: passes -o TCPMultipath=yes (requires OpenSSH 9.9+).
+        /// SSH: wraps command with mptcpize run (requires mptcpd).
         /// RDP/VNC embedded: uses MPTCP socket (requires Linux 5.6+ kernel).
         /// Falls back to regular TCP transparently when unavailable.
         /// Bare --mptcp enables; --mptcp false disables.

@@ -92,7 +92,16 @@ impl Protocol for SshProtocol {
     fn build_command(&self, connection: &Connection) -> Option<Vec<String>> {
         let ssh_config = Self::get_ssh_config(connection).ok()?;
 
-        let mut cmd = vec!["ssh".to_string()];
+        let mut cmd = Vec::new();
+
+        // Wrap with mptcpize if MPTCP is enabled — forces SSH sockets to use
+        // MPTCP protocol. Falls back to regular TCP if mptcpize is not installed.
+        if ssh_config.mptcp {
+            cmd.push("mptcpize".to_string());
+            cmd.push("run".to_string());
+        }
+
+        cmd.push("ssh".to_string());
 
         // Non-default port
         if connection.port != 22 {

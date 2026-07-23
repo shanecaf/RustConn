@@ -579,11 +579,15 @@ fn create_session_group() -> (
 
     // Multipath TCP switch
     let mptcp_subtitle = if rustconn_core::connection::mptcp::is_mptcp_available() {
-        i18n("Use multiple network paths for mobility and aggregation (-o TCPMultipath=yes)")
+        if rustconn_core::connection::mptcp::is_mptcpize_available() {
+            i18n("Use multiple network paths for mobility and aggregation (mptcpize run)")
+        } else {
+            i18n(
+                "Use multiple network paths for mobility and aggregation. Install mptcpize (mptcpd) to enable",
+            )
+        }
     } else {
-        i18n(
-            "Use multiple network paths (-o TCPMultipath=yes). Not available: kernel MPTCP is disabled",
-        )
+        i18n("Use multiple network paths (mptcpize run). Not available: kernel MPTCP is disabled")
     };
     let (mptcp_row, mptcp) = CheckboxRowBuilder::new(i18n("Multipath TCP"))
         .subtitle(mptcp_subtitle)

@@ -225,12 +225,19 @@ pub struct TerminalNotebook {
     /// Some terminal clients (e.g. telnet) do not exit on PTY close (SIGHUP),
     /// so an explicit kill is needed (#172).
     vte_child_pids: Rc<RefCell<HashMap<Uuid, i32>>>,
+    /// Whether to show the Welcome tab when no sessions are open (issue #232).
+    /// Shared with signal handlers via `Rc<Cell<bool>>`.
+    show_welcome: Rc<std::cell::Cell<bool>>,
 }
 
 impl TerminalNotebook {
     /// Creates a new terminal notebook using adw::TabView
+    ///
+    /// When `show_welcome` is `false`, the Welcome tab is not created at
+    /// startup — useful when a startup action will immediately open a session
+    /// (issue #232).
     #[must_use]
-    pub fn new() -> Self {
+    pub fn new(show_welcome: bool) -> Self {
         let container = GtkBox::new(Orientation::Vertical, 0);
 
         // Create TabView - content visibility controlled dynamically
@@ -270,12 +277,14 @@ impl TerminalNotebook {
         // TabView must be in widget tree for TabBar to work, but hidden
         container.append(&tab_view);
 
-        // Add a welcome page
-        let welcome = Self::create_welcome_tab();
-        let welcome_container = TabPageContainer::welcome(&welcome.upcast::<gtk4::Widget>());
-        let welcome_page = tab_view.append(welcome_container.widget());
-        welcome_page.set_title(&i18n("Welcome"));
-        welcome_page.set_icon(Some(&gio::ThemedIcon::new("go-home-symbolic")));
+        // Add a welcome page only if the setting allows it (issue #232)
+        if show_welcome {
+            let welcome = Self::create_welcome_tab();
+            let welcome_container = TabPageContainer::welcome(&welcome.upcast::<gtk4::Widget>());
+            let welcome_page = tab_view.append(welcome_container.widget());
+            welcome_page.set_title(&i18n("Welcome"));
+            welcome_page.set_icon(Some(&gio::ThemedIcon::new("go-home-symbolic")));
+        }
 
         let term_notebook = Self {
             container,
@@ -315,6 +324,7 @@ impl TerminalNotebook {
             parked_in_split: Rc::new(RefCell::new(HashSet::new())),
             snippet_menu_section: Rc::new(gio::Menu::new()),
             vte_child_pids: Rc::new(RefCell::new(HashMap::new())),
+            show_welcome: Rc::new(std::cell::Cell::new(show_welcome)),
         };
 
         term_notebook.setup_tab_view_signals();
@@ -342,6 +352,7 @@ impl TerminalNotebook {
         let tab_containers = self.tab_containers.clone();
         let parked_in_split = self.parked_in_split.clone();
         let vte_child_pids = self.vte_child_pids.clone();
+        let show_welcome_on_close = self.show_welcome.clone();
 
         // Handle create-window signal - we must connect this to prevent the default
         // behavior which causes CRITICAL warnings. Returning None cancels the tearoff.
@@ -513,8 +524,11 @@ impl TerminalNotebook {
             // Confirm close
             view.close_page_finish(page, true);
 
-            // If no more sessions, show welcome page
-            if sessions.borrow().is_empty() && tab_view.n_pages() == 0 {
+            // If no more sessions, show welcome page (respecting user preference #232)
+            if show_welcome_on_close.get()
+                && sessions.borrow().is_empty()
+                && tab_view.n_pages() == 0
+            {
                 let welcome = Self::create_welcome_tab();
                 let welcome_wrap = TabPageContainer::welcome(&welcome.upcast::<gtk4::Widget>());
                 let welcome_page = tab_view.append(welcome_wrap.widget());
@@ -1524,9 +1538,16 @@ impl TerminalNotebook {
         ssh_agent_socket: Option<&str>,
         startup_command: Option<&str>,
         extra_env: Option<&[&str]>,
+        use_mptcp: bool,
     ) -> bool {
         let mut argv = if use_waypipe {
-            vec!["waypipe", "ssh"]
+            if use_mptcp {
+                vec!["mptcpize", "run", "waypipe", "ssh"]
+            } else {
+                vec!["waypipe", "ssh"]
+            }
+        } else if use_mptcp {
+            vec!["mptcpize", "run", "ssh"]
         } else {
             vec!["ssh"]
         };
@@ -2168,6 +2189,11 @@ impl TerminalNotebook {
                 self.clear_protocol_color(session_id);
             }
         }
+    }
+
+    /// Updates whether the Welcome tab is shown when no sessions are open (issue #232)
+    pub fn set_show_welcome(&self, enabled: bool) {
+        self.show_welcome.set(enabled);
     }
 
     /// Applies protocol-based color indicator to a tab
@@ -3296,7 +3322,7 @@ impl TerminalNotebook {
 
 impl Default for TerminalNotebook {
     fn default() -> Self {
-        Self::new()
+        Self::new(true)
     }
 }
 

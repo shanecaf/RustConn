@@ -1728,6 +1728,18 @@ impl SplitViewBridge {
             .build();
         content.append(&hint);
 
+        // "Don't show at startup" check button — wired to win.show-welcome-on-startup
+        // action (issue #232). The action is a stateful boolean registered by the
+        // window; toggling the check flips the persisted setting.
+        let dont_show_check = gtk4::CheckButton::builder()
+            .label(i18n("Don\u{2019}t show this page at startup"))
+            .halign(gtk4::Align::Center)
+            .margin_top(12)
+            .action_name("win.show-welcome-on-startup")
+            .build();
+        dont_show_check.add_css_class("dim-label");
+        content.append(&dont_show_check);
+
         status_page.set_child(Some(&content));
         status_page
     }

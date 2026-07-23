@@ -127,6 +127,8 @@ pub struct SettingsDialog {
     terminal_passthrough_ctrl: adw::SwitchRow,
     // Show active connection name in the window title (issue #211)
     window_title_shows_connection: adw::SwitchRow,
+    // Show Welcome tab on startup (issue #232)
+    show_welcome_switch: adw::SwitchRow,
     // SSH Agent settings
     ssh_agent_status_label: Label,
     ssh_agent_socket_label: Label,
@@ -246,6 +248,7 @@ impl SettingsDialog {
             compact_auto,
             terminal_passthrough_ctrl,
             window_title_shows_connection,
+            show_welcome_switch,
         ) = create_ui_page();
         mark("ui_page");
 
@@ -668,6 +671,7 @@ impl SettingsDialog {
             compact_auto,
             terminal_passthrough_ctrl,
             window_title_shows_connection,
+            show_welcome_switch,
             ssh_agent_status_label,
             ssh_agent_socket_label,
             ssh_agent_start_button,
@@ -1014,6 +1018,7 @@ impl SettingsDialog {
             &self.compact_auto,
             &self.terminal_passthrough_ctrl,
             &self.window_title_shows_connection,
+            &self.show_welcome_switch,
             &settings.ui,
             &conn_refs,
         );
@@ -1154,6 +1159,7 @@ impl SettingsDialog {
         let compact_auto_clone = self.compact_auto.clone();
         let terminal_passthrough_ctrl_clone = self.terminal_passthrough_ctrl.clone();
         let window_title_shows_connection_clone = self.window_title_shows_connection.clone();
+        let show_welcome_switch_clone = self.show_welcome_switch.clone();
         let connections_clone = self.connections.clone();
         let keybindings_overrides_clone = self.keybindings_overrides.clone();
 
@@ -1301,6 +1307,7 @@ impl SettingsDialog {
                 &compact_auto_clone,
                 &terminal_passthrough_ctrl_clone,
                 &window_title_shows_connection_clone,
+                &show_welcome_switch_clone,
                 &conn_refs,
             );
             // Preserve smart folders visibility (managed by toolbar toggle, not settings dialog)

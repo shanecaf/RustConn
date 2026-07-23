@@ -353,9 +353,7 @@ impl SshConfigImporter {
                 .get("serveralivecountmax")
                 .and_then(|v| v.parse::<u32>().ok()),
             verbose: false,
-            mptcp: options
-                .get("tcpmultipath")
-                .is_some_and(|v| v.to_lowercase() == "yes"),
+            mptcp: false,
             remote_path: None,
         };
 

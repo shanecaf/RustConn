@@ -563,6 +563,14 @@ pub struct UiSettings {
     /// Action to perform on application startup
     #[serde(default)]
     pub startup_action: StartupAction,
+    /// Show Welcome tab when the application starts (and no startup action opens a session)
+    ///
+    /// Default `true`. When `false`, the Welcome tab is never shown — neither at
+    /// startup nor when all sessions are closed. Users can disable this via
+    /// Settings or the "Don't show again" toggle on the Welcome tab itself
+    /// (issue #232).
+    #[serde(default = "default_true")]
+    pub show_welcome_on_startup: bool,
     /// Color tab indicators by protocol type
     #[serde(default)]
     pub color_tabs_by_protocol: bool,
@@ -706,6 +714,7 @@ impl Default for UiSettings {
             session_restore: SessionRestoreSettings::default(),
             search_history: Vec::new(),
             startup_action: StartupAction::default(),
+            show_welcome_on_startup: true,
             color_tabs_by_protocol: false,
             show_protocol_filters: false,
             show_smart_folders: false,

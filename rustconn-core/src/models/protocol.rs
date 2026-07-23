@@ -845,9 +845,9 @@ pub struct SshConfig {
     /// Useful for diagnosing connection issues (e.g., reset by remote device).
     #[serde(default)]
     pub verbose: bool,
-    /// Enable Multipath TCP (`-o TCPMultipath=yes`).
+    /// Enable Multipath TCP via `mptcpize run` wrapper.
     /// Uses multiple network paths for seamless mobility and bandwidth aggregation.
-    /// Requires OpenSSH 9.9+ and kernel MPTCP support (Linux 5.6+).
+    /// Requires `mptcpize` (mptcpd) and kernel MPTCP support (Linux 5.6+).
     /// Falls back to regular TCP transparently when unavailable.
     #[serde(default)]
     pub mptcp: bool,
@@ -994,12 +994,10 @@ impl SshConfig {
             args.push("-C".to_string());
         }
 
-        // Add MPTCP (Multipath TCP) if enabled — requires OpenSSH 9.9+.
-        // Gracefully ignored by older OpenSSH versions (unknown option warning).
-        if self.mptcp {
-            args.push("-o".to_string());
-            args.push("TCPMultipath=yes".to_string());
-        }
+        // MPTCP (Multipath TCP) for SSH is handled at the command-launch level
+        // by prefixing with `mptcpize run` — not via an SSH option.
+        // See: protocol/ssh.rs build_command(), terminal/mod.rs spawn_ssh(),
+        // and tunnel_manager.rs start_tunnel().
 
         // Add keep-alive options if configured
         // ServerAliveInterval sends a keep-alive packet every N seconds

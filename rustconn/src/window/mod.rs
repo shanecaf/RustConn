@@ -317,7 +317,23 @@ impl MainWindow {
         split_container.set_hexpand(true);
 
         // Create terminal notebook for tab management (using adw::TabView)
-        let terminal_notebook = Rc::new(TerminalNotebook::new());
+        // Show Welcome tab only when the user hasn't disabled it AND no startup
+        // action will immediately open a session (issue #232).
+        let show_welcome = if crate::has_cli_startup_override() {
+            // CLI --shell / --connect will open a session immediately
+            false
+        } else {
+            state
+                .try_borrow()
+                .ok()
+                .map(|s| {
+                    let ui = &s.settings().ui;
+                    ui.show_welcome_on_startup
+                        && ui.startup_action == rustconn_core::config::StartupAction::None
+                })
+                .unwrap_or(true)
+        };
+        let terminal_notebook = Rc::new(TerminalNotebook::new(show_welcome));
 
         // Refresh VTE font state when fontconfig changes (#171).
         // VTE reads `gtk-fontconfig-timestamp` only when it creates its
