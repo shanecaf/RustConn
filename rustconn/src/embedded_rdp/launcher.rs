@@ -182,20 +182,18 @@ impl SafeFreeRdpLauncher {
         // Collect all plain-text connection arguments into a Vec<String>
         let plain_args = Self::build_connection_args(config);
 
-        let _args_guard = match super::ephemeral_args::EphemeralRdpArgs::write_all(
-            &plain_args,
-            &secret_args,
-        ) {
-            Ok(guard) => {
-                cmd.arg(format!("/args-from:file:{}", guard.path().display()));
-                guard
-            }
-            Err(e) => {
-                return Err(EmbeddedRdpError::FreeRdpInit(format!(
-                    "could not prepare RDP args file: {e}"
-                )));
-            }
-        };
+        let _args_guard =
+            match super::ephemeral_args::EphemeralRdpArgs::write_all(&plain_args, &secret_args) {
+                Ok(guard) => {
+                    cmd.arg(format!("/args-from:file:{}", guard.path().display()));
+                    guard
+                }
+                Err(e) => {
+                    return Err(EmbeddedRdpError::FreeRdpInit(format!(
+                        "could not prepare RDP args file: {e}"
+                    )));
+                }
+            };
 
         // Capture stderr instead of discarding it. The real FreeRDP failure
         // reason (authentication failure, rejected certificate, missing codec,

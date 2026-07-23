@@ -324,9 +324,8 @@ mod tests {
             "+clipboard".to_string(),
         ];
         let password = SecretString::from("s3cret".to_string());
-        let guard =
-            EphemeralRdpArgs::write_all_in_dir(dir.path(), &plain, &[("p", &password)])
-                .expect("write args file");
+        let guard = EphemeralRdpArgs::write_all_in_dir(dir.path(), &plain, &[("p", &password)])
+            .expect("write args file");
         let content = std::fs::read_to_string(guard.path()).expect("read args file");
         assert_eq!(
             content,
@@ -339,8 +338,7 @@ mod tests {
         let dir = TempRuntimeDir::new();
         let plain = vec!["/v:host".to_string(), "/cert:ignore".to_string()];
         let guard =
-            EphemeralRdpArgs::write_all_in_dir(dir.path(), &plain, &[])
-                .expect("write args file");
+            EphemeralRdpArgs::write_all_in_dir(dir.path(), &plain, &[]).expect("write args file");
         let content = std::fs::read_to_string(guard.path()).expect("read args file");
         assert_eq!(content, "/v:host\n/cert:ignore\n");
     }
