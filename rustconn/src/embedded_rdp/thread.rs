@@ -389,27 +389,22 @@ impl FreeRdpThread {
         cmd.env("QT_LOGGING_RULES", "qt.qpa.wayland=false;qt.qpa.*=false");
         // Do NOT set QT_QPA_PLATFORM — allow wlfreerdp to use native Wayland backend
 
-        // Build connection arguments
+        // Build connection arguments as a Vec<String> for the args file.
+        // FreeRDP 3.26+ requires `/args-from:file:` to be the ONLY CLI
+        // argument — it cannot be combined with other arguments.
+        let mut plain_args: Vec<String> = Vec::new();
+
         if let Some(ref domain) = config.domain
             && !domain.is_empty()
         {
-            cmd.arg(format!("/d:{domain}"));
+            plain_args.push(format!("/d:{domain}"));
         }
 
         if let Some(ref username) = config.username {
-            cmd.arg(format!("/u:{username}"));
+            plain_args.push(format!("/u:{username}"));
         }
 
-        // Session password is passed via a single-use args file in
-        // $XDG_RUNTIME_DIR (mode 0600) consumed by `/args-from:file:`.
-        //
-        // The previous `/from-stdin` approach broke on servers behind an RD
-        // Connection Broker: the broker issues a Server Redirection PDU,
-        // FreeRDP reconnects to the target host and needs the credentials
-        // again — but stdin is already consumed (issue #218). The args-file
-        // stores `/p:<password>` in a temp file that FreeRDP reads once into
-        // memory, surviving redirects without exposing the secret in
-        // `/proc/<pid>/cmdline`.
+        // Session password is passed as a secret arg via the ephemeral file.
         let session_password = config
             .password
             .as_ref()
@@ -420,44 +415,42 @@ impl FreeRdpThread {
             secret_args.push(("p", p));
         }
 
-        let _password_guard = if secret_args.is_empty() {
-            None
-        } else {
-            match super::ephemeral_args::EphemeralRdpArgs::write_args(&secret_args) {
-                Ok(guard) => {
-                    cmd.arg(format!("/args-from:file:{}", guard.path().display()));
-                    Some(guard)
-                }
-                Err(e) => {
-                    return Err(EmbeddedRdpError::FreeRdpInit(format!(
-                        "could not prepare RDP credentials file: {e}"
-                    )));
-                }
-            }
-        };
-
-        cmd.arg(format!("/w:{}", config.width));
-        cmd.arg(format!("/h:{}", config.height));
+        plain_args.push(format!("/w:{}", config.width));
+        plain_args.push(format!("/h:{}", config.height));
         if config.ignore_certificate {
-            cmd.arg("/cert:ignore");
+            plain_args.push("/cert:ignore".to_string());
         } else {
-            cmd.arg("/cert:tofu");
+            plain_args.push("/cert:tofu".to_string());
         }
-        cmd.arg("/dynamic-resolution");
+        plain_args.push("/dynamic-resolution".to_string());
 
         if config.clipboard_enabled {
-            cmd.arg("+clipboard");
+            plain_args.push("+clipboard".to_string());
         }
 
         for arg in &config.extra_args {
-            cmd.arg(arg);
+            plain_args.push(arg.clone());
         }
 
         if config.port == 3389 {
-            cmd.arg(format!("/v:{}", config.host));
+            plain_args.push(format!("/v:{}", config.host));
         } else {
-            cmd.arg(format!("/v:{}:{}", config.host, config.port));
+            plain_args.push(format!("/v:{}:{}", config.host, config.port));
         }
+
+        // Write all arguments (plain + secret) to the ephemeral args file
+        let _args_guard =
+            match super::ephemeral_args::EphemeralRdpArgs::write_all(&plain_args, &secret_args) {
+                Ok(guard) => {
+                    cmd.arg(format!("/args-from:file:{}", guard.path().display()));
+                    guard
+                }
+                Err(e) => {
+                    return Err(EmbeddedRdpError::FreeRdpInit(format!(
+                        "could not prepare RDP args file: {e}"
+                    )));
+                }
+            };
 
         // Redirect stderr to suppress Qt warnings
         cmd.stderr(Stdio::null());
@@ -465,7 +458,7 @@ impl FreeRdpThread {
         match cmd.spawn() {
             Ok(child) => {
                 lock_or_recover(shared).process = Some(child);
-                // _password_guard is dropped here after FreeRDP has consumed
+                // _args_guard is dropped here after FreeRDP has consumed
                 // the file during argument parsing (synchronous before fork).
                 Ok(())
             }

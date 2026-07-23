@@ -137,6 +137,36 @@ impl MainWindow {
         });
         window.add_action(&toggle_compact_action);
 
+        // Show-welcome-on-startup stateful action (issue #232).
+        // State `false` means "Don't show" (checkbox checked on the Welcome page).
+        // Toggling persists the preference and updates TerminalNotebook.
+        let initial_show_welcome = !state.borrow().settings().ui.show_welcome_on_startup;
+        let show_welcome_action = gio::SimpleAction::new_stateful(
+            "show-welcome-on-startup",
+            None,
+            &initial_show_welcome.to_variant(),
+        );
+        let state_for_welcome = state.clone();
+        let notebook_for_welcome = terminal_notebook.clone();
+        show_welcome_action.connect_activate(move |action, _| {
+            let new_dont_show = {
+                let current: bool = action.state().unwrap().get::<bool>().unwrap_or(false);
+                !current
+            };
+            action.set_state(&new_dont_show.to_variant());
+            // Persist: show_welcome_on_startup is the inverse of "don't show"
+            let show = !new_dont_show;
+            {
+                let mut st = state_for_welcome.borrow_mut();
+                st.settings_mut().ui.show_welcome_on_startup = show;
+            }
+            if let Err(e) = state_for_welcome.borrow().save_settings() {
+                tracing::warn!(error = %e, "Failed to persist show-welcome-on-startup toggle");
+            }
+            notebook_for_welcome.set_show_welcome(show);
+        });
+        window.add_action(&show_welcome_action);
+
         // Toggle keyboard passthrough mode (stateful)
         // When enabled, all keybindings except quit/fullscreen/passthrough-toggle
         // are disabled so keys pass through to VTE terminal or embedded viewer.

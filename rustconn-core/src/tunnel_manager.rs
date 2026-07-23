@@ -101,7 +101,14 @@ impl TunnelManager {
         };
 
         // Build SSH command: ssh -N [-L ...] [-R ...] [-D ...] [options] user@host
-        let mut cmd = Command::new("ssh");
+        // Wrap with mptcpize if MPTCP is enabled for this connection.
+        let mut cmd = if ssh_config.mptcp {
+            let mut c = Command::new("mptcpize");
+            c.args(["run", "ssh"]);
+            c
+        } else {
+            Command::new("ssh")
+        };
         cmd.arg("-N"); // No remote command — just forward
 
         // Add port forwarding rules

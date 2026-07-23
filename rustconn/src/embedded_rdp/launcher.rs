@@ -158,14 +158,11 @@ impl SafeFreeRdpLauncher {
         // Session password is always passed via a single-use args file in
         // $XDG_RUNTIME_DIR (mode 0600) consumed by `/args-from:file:`.
         //
-        // Previously, non-RemoteApp sessions used `/from-stdin` (piping
-        // domain\npassword\n). This broke on servers behind an RD Connection
-        // Broker: the broker issues a Server Redirection PDU, FreeRDP
-        // reconnects to the target host and prompts for credentials again —
-        // but stdin is already consumed (issue #218). The args-file approach
-        // stores `/p:<password>` in a temp file that FreeRDP reads once into
-        // memory, surviving redirects without exposing the secret in
-        // `/proc/<pid>/cmdline`.
+        // FreeRDP 3.26+ (PR #12697) requires `/args-from:file:` to be the
+        // ONLY argument on the command line — it cannot be combined with other
+        // CLI arguments. All connection parameters (including secrets) are
+        // therefore written into the file, one per line. This also improves
+        // security: nothing is visible in `/proc/<pid>/cmdline`.
         //
         // The RD Gateway no longer needs a separate secret here: FreeRDP
         // reuses the session credentials (`/u:`, `/d:` and the `/p:` from
@@ -182,24 +179,21 @@ impl SafeFreeRdpLauncher {
             secret_args.push(("p", p));
         }
 
-        let _password_guard = if secret_args.is_empty() {
-            None
-        } else {
-            match super::ephemeral_args::EphemeralRdpArgs::write_args(&secret_args) {
+        // Collect all plain-text connection arguments into a Vec<String>
+        let plain_args = Self::build_connection_args(config);
+
+        let _args_guard =
+            match super::ephemeral_args::EphemeralRdpArgs::write_all(&plain_args, &secret_args) {
                 Ok(guard) => {
                     cmd.arg(format!("/args-from:file:{}", guard.path().display()));
-                    Some(guard)
+                    guard
                 }
                 Err(e) => {
                     return Err(EmbeddedRdpError::FreeRdpInit(format!(
-                        "could not prepare RDP credentials file: {e}"
+                        "could not prepare RDP args file: {e}"
                     )));
                 }
-            }
-        };
-
-        // Build connection arguments
-        Self::add_connection_args(&mut cmd, config);
+            };
 
         // Capture stderr instead of discarding it. The real FreeRDP failure
         // reason (authentication failure, rejected certificate, missing codec,
@@ -246,7 +240,7 @@ impl SafeFreeRdpLauncher {
             });
         }
 
-        // _password_guard is dropped here, removing the temp args file.
+        // _args_guard is dropped here, removing the temp args file.
         // FreeRDP reads the file during argument parsing (a fraction of a
         // second after spawn), so removing it shortly after is safe.
         Ok((child, stderr_lines))
@@ -268,7 +262,125 @@ impl SafeFreeRdpLauncher {
         super::detect::detect_best_freerdp_for_remoteapp()
     }
 
+    /// Builds the full list of connection arguments as owned strings.
+    ///
+    /// FreeRDP 3.26+ requires all arguments to be in the `/args-from:file:`
+    /// file. This method collects them into a `Vec<String>` so they can be
+    /// written to the ephemeral args file by [`EphemeralRdpArgs::write_all`].
+    pub fn build_connection_args(config: &RdpConfig) -> Vec<String> {
+        let mut args: Vec<String> = Vec::new();
+
+        if let Some(ref domain) = config.domain
+            && !domain.is_empty()
+        {
+            args.push(format!("/d:{domain}"));
+        }
+
+        if let Some(ref username) = config.username {
+            args.push(format!("/u:{username}"));
+        }
+
+        // The password is passed as a secret arg via EphemeralRdpArgs — it
+        // never appears in this plain-text vector.
+
+        args.push(format!("/w:{}", config.width));
+        args.push(format!("/h:{}", config.height));
+        if config.ignore_certificate {
+            args.push("/cert:ignore".to_string());
+        } else {
+            args.push("/cert:tofu".to_string());
+        }
+        args.push("/dynamic-resolution".to_string());
+
+        // Add decorations flag for window controls
+        args.push("/decorations".to_string());
+
+        // Add window geometry if saved and remember_window_position is enabled
+        if config.remember_window_position
+            && let Some((x, y, _width, _height)) = config.window_geometry
+        {
+            args.push(format!("/x:{x}"));
+            args.push(format!("/y:{y}"));
+        }
+
+        if config.clipboard_enabled {
+            args.push("+clipboard".to_string());
+        }
+
+        // Add shared folders for drive redirection
+        for folder in &config.shared_folders {
+            let path = folder.local_path.display();
+            // FreeRDP `/drive:<name>,<path>` is comma-delimited; a comma in the
+            // share name would split the argument and corrupt the path.
+            let safe_name = folder.share_name.replace(',', "_");
+            args.push(format!("/drive:{safe_name},{path}"));
+        }
+
+        // Map the local default printer into the session via CUPS.
+        if config.printer_enabled {
+            args.push("/printer".to_string());
+        }
+
+        for arg in &config.extra_args {
+            args.push(arg.clone());
+        }
+
+        // Add gateway configuration for RD Gateway connections.
+        //
+        // FreeRDP 3.x removed the short `/g:` / `/gu:` / `/gp:` aliases in
+        // favour of the unified `/gateway:` option (see xfreerdp3(1)); the old
+        // aliases are rejected as "Unexpected keyword" and the client exits
+        // before connecting (issue #187). FreeRDP reuses the session
+        // credentials (`/u:`, `/d:` and the `/p:` from the args file) for the
+        // gateway, exactly like the working manual command
+        // `xfreerdp /gateway:g:HOST /u:NAME /d:DOMAIN`. We only add an explicit
+        // gateway user when it differs from the session user; a distinct
+        // gateway account would also need its own password, which RustConn does
+        // not store yet (future work).
+        if let Some(ref gw_host) = config.gateway_hostname
+            && !gw_host.is_empty()
+        {
+            let mut gateway = format!("g:{gw_host}:{}", config.gateway_port);
+            if let Some(ref gw_user) = config.gateway_username
+                && !gw_user.is_empty()
+                && config.username.as_deref() != Some(gw_user.as_str())
+            {
+                gateway.push_str(",u:");
+                gateway.push_str(gw_user);
+            }
+            args.push(format!("/gateway:{gateway}"));
+        }
+
+        // Add RemoteApp arguments for launching individual applications
+        for arg in config.remote_app_freerdp_args() {
+            args.push(arg);
+        }
+
+        // When RemoteApp is used with xfreerdp3, force NTLM authentication.
+        // xfreerdp3 on the host often lacks Kerberos realm configuration,
+        // causing NLA to fail even with correct credentials. NTLM works
+        // reliably for standalone (non-domain) Windows servers.
+        if config
+            .remote_app_program
+            .as_ref()
+            .is_some_and(|p| !p.is_empty())
+        {
+            args.push("/auth-pkg-list:ntlm".to_string());
+        }
+
+        if config.port == 3389 {
+            args.push(format!("/v:{}", config.host));
+        } else {
+            args.push(format!("/v:{}:{}", config.host, config.port));
+        }
+
+        args
+    }
+
     /// Adds connection arguments to the command
+    ///
+    /// Legacy wrapper around [`Self::build_connection_args`] for code that
+    /// still passes arguments directly on the command line (e.g. tests).
     pub fn add_connection_args(cmd: &mut Command, config: &RdpConfig) {
         if let Some(ref domain) = config.domain
             && !domain.is_empty()

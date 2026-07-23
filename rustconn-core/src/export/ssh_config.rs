@@ -132,10 +132,9 @@ impl SshConfigExporter {
                 let _ = writeln!(output, "    ServerAliveCountMax {count}");
             }
 
-            // Multipath TCP (requires OpenSSH 9.9+)
-            if ssh_config.mptcp {
-                let _ = writeln!(output, "    TCPMultipath yes");
-            }
+            // Multipath TCP — no ssh_config directive exists for MPTCP.
+            // MPTCP for SSH is handled via `mptcpize run` at launch time.
+            // The mptcp flag is persisted in RustConn's own JSON config only.
 
             // Custom options (filter dangerous directives that allow arbitrary command execution)
             for (key, value) in &ssh_config.custom_options {

@@ -486,7 +486,7 @@ fn start_embedded_rdp_session(
     let mut embedded_config = EmbeddedRdpConfig::new(host)
         .with_port(port)
         .with_resolution(1280, 720) // Placeholder, will be updated
-        .with_clipboard(true)
+        .with_clipboard(rdp_config.clipboard_enabled)
         .with_performance_mode(rdp_config.performance_mode);
 
     if !username.is_empty() {

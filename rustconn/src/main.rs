@@ -117,6 +117,11 @@ pub fn take_cli_startup_override() -> Option<rustconn_core::config::StartupActio
     CLI_STARTUP_OVERRIDE.with(|cell| cell.borrow_mut().take())
 }
 
+/// Returns `true` if a CLI startup override is pending (non-destructive peek).
+pub fn has_cli_startup_override() -> bool {
+    CLI_STARTUP_OVERRIDE.with(|cell| cell.borrow().is_some())
+}
+
 /// Parses CLI arguments for the GUI binary.
 ///
 /// Supported flags:

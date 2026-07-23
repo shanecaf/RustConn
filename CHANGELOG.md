@@ -5,11 +5,27 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.3] - 2026-07-23
+
+### Added
+
+- **Option to hide Welcome tab at startup (issue #232)** — the Welcome tab is no longer shown when a startup action (Local Shell or a saved connection) is configured, eliminating the brief flash of the Welcome page before it was replaced. A new "Show Welcome tab" switch in Settings → Startup gives explicit control. The Welcome tab itself now includes a "Don't show this page at startup" checkbox for quick in-place opt-out. The preference is also respected when all sessions are closed (the Welcome tab won't reappear if disabled).
+
+### Fixed
+
+- **FreeRDP fallback fails on FreeRDP 3.26+ due to `/args-from:file:` exclusivity** — FreeRDP 3.26 ([PR #12697](https://github.com/FreeRDP/FreeRDP/pull/12697)) enforces that `/args-from:file:` must be the sole CLI argument and cannot be combined with other arguments on the command line. The previous approach wrote only the password to the args file while passing all other connection parameters (`/v:`, `/u:`, `/w:`, `/h:`, etc.) directly on argv. Users who updated to FreeRDP 3.26+ (shipped in recent distro updates) got "can not be used in combination with other arguments" errors, breaking both the IronRDP→FreeRDP fallback path and direct FreeRDP launches. Now all connection arguments are written into the ephemeral args file in `$XDG_RUNTIME_DIR`, with only `/args-from:file:<path>` on the command line. This also improves security: no connection parameters (including hostname and username) are visible via `/proc/<pid>/cmdline`.
+- **RDP clipboard syncing even when disabled in connection settings (issue #233)** — the embedded RDP session builder hardcoded `.with_clipboard(true)` when constructing the `EmbeddedRdpConfig`, completely ignoring the saved `clipboard_enabled` setting from the connection profile. Users who disabled clipboard sharing in connection properties still had full clipboard sync between client and server. Now correctly reads `rdp_config.clipboard_enabled` from the persisted connection.
+- **SSH MPTCP used non-existent `-o TCPMultipath=yes` option (issue #231)** — OpenSSH has no `TCPMultipath` option; the previous implementation was based on a hallucinated SSH directive. SSH MPTCP now correctly wraps the command with `mptcpize run` (from the mptcpd package), which forces TCP sockets to use the MPTCP protocol. SSH config import/export no longer reads or writes the invalid `TCPMultipath` directive. Embedded RDP/VNC MPTCP (via `socket2` with `IPPROTO_MPTCP`) remains unchanged and valid.
+
+### Dependencies
+
+- **Updated**: rustls-pki-types 1.15.0 → 1.15.1
+
 ## [0.19.2] - 2026-07-23
 
 ### Added
 
-- **Multipath TCP (MPTCP) support (issue #231)** — enables using multiple network paths simultaneously for seamless mobility (switch between Wi-Fi and Ethernet without dropping connections) and bandwidth aggregation. MPTCP is available as a per-connection toggle for SSH, embedded RDP, and embedded VNC protocols. SSH connections pass `-o TCPMultipath=yes` (requires OpenSSH 9.9+). Embedded RDP and VNC clients use MPTCP sockets via the new `socket2`-based helper in `rustconn-core/src/connection/mptcp.rs`. Falls back to regular TCP transparently when the kernel does not support MPTCP (requires Linux 5.6+ with `CONFIG_MPTCP=y`). Imported SSH configs with `TCPMultipath yes` are recognized during import. Runtime MPTCP availability is detected via `/proc/sys/net/mptcp/enabled`.
+- **Multipath TCP (MPTCP) support (issue #231)** — enables using multiple network paths simultaneously for seamless mobility (switch between Wi-Fi and Ethernet without dropping connections) and bandwidth aggregation. MPTCP is available as a per-connection toggle for SSH, embedded RDP, and embedded VNC protocols. SSH connections use `mptcpize run` wrapper (requires mptcpd package). Embedded RDP and VNC clients use MPTCP sockets via the new `socket2`-based helper in `rustconn-core/src/connection/mptcp.rs`. Falls back to regular TCP transparently when the kernel does not support MPTCP (requires Linux 5.6+ with `CONFIG_MPTCP=y`). Runtime MPTCP availability is detected via `/proc/sys/net/mptcp/enabled`.
 
 ### Fixed
 
@@ -26,7 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CLI `show` displays MPTCP state** — `rustconn-cli show` now prints "MPTCP: enabled" in table output and `"mptcp": true` in JSON output for SSH, RDP, and VNC connections that have MPTCP enabled
 - **CLI `update --mptcp` accepts true/false** — bare `--mptcp` enables (unchanged); `--mptcp false` disables MPTCP on an existing connection without opening the GUI. Matches the `--javascript` pattern used by Web protocol flags
 - **Network monitor thread spawn failure logged** — if the background thread for SSH socket health-checking cannot be spawned (e.g., ulimit exhaustion), a `tracing::warn!` is now emitted instead of silently discarding the error via `.ok()`
-- **MPTCP property tests** — protocol test generators now randomize the `mptcp` field; 4 new property tests verify JSON serialization round-trip preservation for SSH/RDP/VNC configs and correct `TCPMultipath=yes` presence in SSH command args
+- **MPTCP property tests** — protocol test generators now randomize the `mptcp` field; 4 new property tests verify JSON serialization round-trip preservation for SSH/RDP/VNC configs and that `TCPMultipath=yes` is never emitted in SSH command args
 
 ### Documentation
 

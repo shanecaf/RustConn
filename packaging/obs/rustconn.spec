@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.19.2
+Version:        0.19.3
 Release:        0
 Summary:        Modern connection manager for Linux (SSH, RDP, VNC, SPICE, MOSH, Telnet, Serial, Kubernetes, Zero Trust)
 License:        GPL-3.0-or-later
@@ -278,6 +278,13 @@ done
 %{_datadir}/locale/*/LC_MESSAGES/rustconn.mo
 
 %changelog
+* Wed Jul 23 2026 Anton Isaiev <totoshko88@gmail.com> - 0.19.3-0
+- Version bump to 0.19.3
+- Added option to hide Welcome tab at startup (issue #232)
+- Fixed FreeRDP fallback fails on FreeRDP 3.26+ due to args-from exclusivity (issue #234)
+- Fixed RDP clipboard syncing even when disabled in connection settings (issue #233)
+- Fixed SSH MPTCP used non-existent TCPMultipath option (issue #231)
+
 * Thu Jul 23 2026 Anton Isaiev <totoshko88@gmail.com> - 0.19.2-0
 - Version bump to 0.19.2
 - Added Multipath TCP (MPTCP) support for SSH, RDP, and VNC connections

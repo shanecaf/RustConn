@@ -61,6 +61,22 @@ pub fn is_mptcp_available() -> bool {
         .unwrap_or(false)
 }
 
+/// Checks whether `mptcpize` is available on the system PATH.
+///
+/// `mptcpize run <cmd>` wraps a command so its TCP sockets use MPTCP.
+/// This is the recommended approach for SSH since OpenSSH has no native
+/// MPTCP option. Part of the `mptcpd` (or `mptcpize`) package on most
+/// Linux distributions.
+#[must_use]
+pub fn is_mptcpize_available() -> bool {
+    std::process::Command::new("mptcpize")
+        .arg("--version")
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .is_ok()
+}
+
 /// Creates a connected TCP socket using MPTCP protocol.
 ///
 /// Falls back to a regular TCP socket if MPTCP socket creation fails

@@ -937,6 +937,10 @@ fn start_ssh_connection_internal(
     let (identity_file, extra_args, use_waypipe, jump_host_chain, jump_host_passwords) =
         build_ssh_command_args(conn, connection_id, state, &groups);
 
+    // Extract MPTCP flag from SSH config
+    let use_mptcp =
+        matches!(&conn.protocol_config, rustconn_core::ProtocolConfig::Ssh(cfg) if cfg.mptcp);
+
     // The bastion is handled out-of-band exactly when SSH_ASKPASS helpers were
     // wired into ProxyCommand, i.e. `jump_host_passwords` is non-empty (#191/#203).
     // Capture as bool before passwords are consumed by the spawn env builder.
@@ -1036,6 +1040,7 @@ fn start_ssh_connection_internal(
             } else {
                 Some(extra_env_refs.as_slice())
             },
+            use_mptcp,
         );
     }
 
@@ -1414,6 +1419,10 @@ pub fn reconnect_ssh_in_place(
     let (identity_file, extra_args, use_waypipe, jump_host_chain, jump_host_passwords) =
         build_ssh_command_args(&conn, connection_id, state, &groups);
 
+    // Extract MPTCP flag from SSH config
+    let use_mptcp =
+        matches!(&conn.protocol_config, rustconn_core::ProtocolConfig::Ssh(cfg) if cfg.mptcp);
+
     // Bastion handled out-of-band when SSH_ASKPASS helpers were wired into
     // ProxyCommand (issue #191/#203). Capture before passwords are consumed.
     let bastion_handled_out_of_band = !jump_host_passwords.is_empty();
@@ -1498,6 +1507,7 @@ pub fn reconnect_ssh_in_place(
             } else {
                 Some(extra_env_refs.as_slice())
             },
+            use_mptcp,
         );
     }
 
