@@ -155,7 +155,7 @@ Options:
 | `--keep-alive-interval` | — | SSH keep-alive interval in seconds (`ServerAliveInterval`) |
 | `--keep-alive-count` | — | SSH keep-alive count max (`ServerAliveCountMax`) |
 | `--ssh-verbose` | — | Enable SSH verbose/debug output (`-v` flag) |
-| `--mptcp` | — | Enable Multipath TCP (SSH: `-o TCPMultipath=yes`; RDP/VNC embedded: MPTCP socket). Requires Linux 5.6+ kernel, OpenSSH 9.9+ for SSH. Falls back to regular TCP transparently |
+| `--mptcp` | — | Enable Multipath TCP (SSH: `mptcpize run` wrapper; RDP/VNC embedded: MPTCP socket via `socket2`). Requires Linux 5.6+ kernel and `mptcpize` (mptcpd package) for SSH. Falls back to regular TCP transparently |
 | `--ignore-certificate` | — | Accept any RDP server certificate (skip TOFU verification) |
 | `--tags` | — | Comma-separated tags (e.g. `"production,linux,critical"`) |
 | `--description` | — | Description text for the connection |
