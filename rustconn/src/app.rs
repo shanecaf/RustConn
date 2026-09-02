@@ -50,6 +50,20 @@ pub fn apply_color_scheme(scheme: ColorScheme) {
     }
 }
 
+/// Reports whether the application is currently rendering dark.
+///
+/// This is the *resolved* state, not the user's preference: with
+/// [`ColorScheme::System`] it follows the desktop (via the settings portal on
+/// Wayland/Flatpak), and with `Light`/`Dark` it follows the forced choice. That is
+/// the value `rustconn-core` needs to resolve
+/// [`FOLLOW_SYSTEM_THEME`][rustconn_core::terminal_themes::FOLLOW_SYSTEM_THEME],
+/// which is why this wrapper exists rather than each call site reaching for
+/// `StyleManager` — a headless crate cannot, and the GUI should ask in one place.
+#[must_use]
+pub fn system_is_dark() -> bool {
+    adw::StyleManager::default().is_dark()
+}
+
 thread_local! {
     /// Global compact preferences shared by all windows: `(manual, auto)`.
     ///
@@ -230,8 +244,15 @@ fn build_ui(app: &adw::Application, tray_manager: SharedTrayManager) {
         return;
     }
 
-    // Force Adwaita icon theme and suppress deprecated dark-theme property
-    // BEFORE loading CSS to prevent libadwaita warnings during theme parsing.
+    // Force the Adwaita icon theme before loading CSS, so every icon name the UI
+    // asks for resolves the same way regardless of the desktop's icon theme.
+    //
+    // `gtk-application-prefer-dark-theme` is deliberately NOT touched here. A
+    // "safety net" clear used to live in this block, on the theory that a settings
+    // daemon might have re-set the property between `run()` and activate. By this
+    // point `adw::init()` has run, so the thing that set it is `AdwStyleManager`
+    // reporting the resolved colour scheme — and clearing it forced the window
+    // light on a dark desktop. See the longer note in `run()`.
     if let Some(display) = gtk4::gdk::Display::default() {
         let settings = gtk4::Settings::for_display(&display);
         let current = settings.gtk_icon_theme_name().unwrap_or_default();
@@ -242,21 +263,14 @@ fn build_ui(app: &adw::Application, tray_manager: SharedTrayManager) {
                 "Forced Adwaita icon theme for consistent icon availability"
             );
         }
-
-        // Safety net: clear the deprecated property again in case it was
-        // re-set between run() and activate (e.g. by a settings daemon).
-        // Skipped on macOS — see the note in run(): the property mirrors the
-        // system appearance there and must not be cleared.
-        #[cfg(not(target_os = "macos"))]
-        if settings.is_gtk_application_prefer_dark_theme() {
-            settings.set_gtk_application_prefer_dark_theme(false);
-            tracing::debug!(
-                "Cleared deprecated gtk-application-prefer-dark-theme (using AdwStyleManager)"
-            );
-        }
     }
 
-    // Load CSS styles for split view panes (after dark-theme suppression)
+    // What libadwaita actually resolved, which is the only way a
+    // window-is-light-on-a-dark-desktop report can be diagnosed from a log: the
+    // preference alone does not say what came out of it.
+    tracing::debug!(dark = system_is_dark(), "resolved color scheme at startup");
+
+    // Load CSS styles for split view panes
     load_css_styles();
 
     // Create shared application state (fast — secret backends deferred)
@@ -1746,16 +1760,25 @@ pub fn run() -> glib::ExitCode {
         return glib::ExitCode::FAILURE;
     }
 
-    // Suppress the libadwaita warning about gtk-application-prefer-dark-theme.
-    // KDE/XFCE set this property globally via xsettings. We clear it before
-    // adw::init() so AdwStyleManager never sees it as true.
-    // We also connect a notify handler to catch the xsettings daemon re-setting
-    // the property after we clear it (race condition on KDE).
+    // Clear `gtk-application-prefer-dark-theme` once, before `adw::init()`.
     //
-    // macOS has no xsettings daemon: there the property is driven by the GTK
-    // Quartz backend to mirror the system NSAppearance, so clearing it would
-    // fight macOS' "follow system" dark mode (ColorScheme::System) and only
-    // produce misleading log spam. Skip the whole workaround there.
+    // KDE/XFCE set this legacy property globally via xsettings, and older
+    // libadwaita warned when it found it already true. Clearing it here is safe
+    // because libadwaita has no opinion yet: `adw::init()` runs immediately after
+    // and sets the property itself to whatever it resolves the colour scheme to.
+    //
+    // What used to follow this, and must not come back: a
+    // `notify::gtk-application-prefer-dark-theme` handler that cleared the property
+    // *again* every time it changed, plus a second clear in `build_ui()`. Both were
+    // written for an "xsettings race", but the thing re-setting the property is
+    // `AdwStyleManager` — that is how it tells GTK the resolved scheme is dark. So
+    // on any dark desktop the handler fought libadwaita and won, and the app
+    // rendered light with the system set to dark. `is_dark()` still reported dark,
+    // so "Follow System" terminal colours disagreed with the window around them.
+    //
+    // macOS never had either: there the property is driven by the GTK Quartz
+    // backend to mirror the system NSAppearance, so touching it fights macOS'
+    // own "follow system" dark mode. The cfg stays for the same reason.
     #[cfg(not(target_os = "macos"))]
     if let Some(display) = gtk4::gdk::Display::default() {
         let settings = gtk4::Settings::for_display(&display);
@@ -1765,17 +1788,6 @@ pub fn run() -> glib::ExitCode {
                 "Cleared deprecated gtk-application-prefer-dark-theme before adw::init()"
             );
         }
-
-        // Permanently suppress: if xsettings daemon re-sets the property,
-        // clear it again immediately before libadwaita can warn about it.
-        settings.connect_gtk_application_prefer_dark_theme_notify(|s| {
-            if s.is_gtk_application_prefer_dark_theme() {
-                s.set_gtk_application_prefer_dark_theme(false);
-                tracing::debug!(
-                    "Re-cleared deprecated gtk-application-prefer-dark-theme (xsettings race)"
-                );
-            }
-        });
     }
 
     // Now initialize libadwaita (gtk_init() is idempotent, safe to call again)

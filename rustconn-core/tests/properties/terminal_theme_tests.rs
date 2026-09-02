@@ -1,7 +1,7 @@
 //! Property tests for terminal themes
 
 use proptest::prelude::*;
-use rustconn_core::terminal_themes::{Color, TerminalTheme};
+use rustconn_core::terminal_themes::{Color, FOLLOW_SYSTEM_THEME, TerminalTheme};
 
 // ============================================================================
 // Color Tests
@@ -137,10 +137,17 @@ fn all_themes_have_16_color_palette() {
 }
 
 #[test]
-fn theme_names_matches_all_themes() {
+fn theme_names_is_all_themes_plus_the_follow_system_sentinel() {
+    // `theme_names()` is the picker's list, `all_themes()` is the set of things
+    // that actually carry colours. They differ by exactly one entry:
+    // FOLLOW_SYSTEM_THEME leads the picker but is resolved at use time rather than
+    // stored as a theme. Pinned as an off-by-one on purpose — every index the
+    // settings dialog computes is against `theme_names()`, so if these two lists
+    // ever differ by anything else the picker is pointing at the wrong theme.
     let themes = TerminalTheme::all_themes();
     let names = TerminalTheme::theme_names();
-    assert_eq!(themes.len(), names.len());
+    assert_eq!(names.len(), themes.len() + 1);
+    assert_eq!(names.first().map(String::as_str), Some(FOLLOW_SYSTEM_THEME));
 
     for theme in &themes {
         assert!(names.contains(&theme.name));
@@ -148,8 +155,18 @@ fn theme_names_matches_all_themes() {
 }
 
 #[test]
-fn by_name_finds_existing_themes() {
+fn by_name_finds_every_picker_entry_except_the_sentinel() {
     for name in TerminalTheme::theme_names() {
+        if name == FOLLOW_SYSTEM_THEME {
+            // Deliberately unresolvable: it names no colours, and code that wants
+            // colours must go through `resolve()` so the desktop preference is
+            // taken into account.
+            assert!(
+                TerminalTheme::by_name(&name).is_none(),
+                "the follow-system sentinel must not resolve as a theme"
+            );
+            continue;
+        }
         let theme = TerminalTheme::by_name(&name);
         assert!(theme.is_some(), "Theme '{}' should be found", name);
         assert_eq!(theme.unwrap().name, name);

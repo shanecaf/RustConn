@@ -85,6 +85,18 @@ pub struct TerminalTheme {
     pub is_custom: bool,
 }
 
+/// `color_theme` value meaning "match the desktop's light/dark preference".
+///
+/// Not a theme in its own right — it carries no colours and is never returned by
+/// [`TerminalTheme::all_themes`] or [`TerminalTheme::by_name`]. It appears in
+/// [`TerminalTheme::theme_names`] so the picker can offer it, and
+/// [`TerminalTheme::resolve`] turns it into [`TerminalTheme::light_theme`] or
+/// [`TerminalTheme::dark_theme`].
+///
+/// The string is stored verbatim in `settings.toml`, so it is part of the on-disk
+/// format: changing it would silently reset every user who selected it.
+pub const FOLLOW_SYSTEM_THEME: &str = "Follow System";
+
 /// Global store for custom themes (loaded once, mutated via add/remove).
 static CUSTOM_THEMES: Mutex<Option<Vec<TerminalTheme>>> = Mutex::new(None);
 
@@ -185,10 +197,39 @@ impl TerminalTheme {
         Self::all_themes().into_iter().find(|t| t.name == name)
     }
 
-    /// Gets all theme names (built-in + custom).
+    /// Resolves a stored `color_theme` value to concrete colours.
+    ///
+    /// `system_dark` is the desktop's resolved dark preference. This crate is
+    /// headless, so the caller supplies it as a plain bool — in the GUI that is
+    /// `AdwStyleManager::is_dark()`. It is only consulted for
+    /// [`FOLLOW_SYSTEM_THEME`]; a named theme resolves the same way regardless.
+    ///
+    /// An unknown name falls back to [`Self::dark_theme`], matching what every
+    /// call site did before this function existed. Deliberately *not* changed to
+    /// follow the system too: that would silently repaint terminals belonging to a
+    /// custom theme the user deleted, which is a separate decision from this one.
+    #[must_use]
+    pub fn resolve(name: &str, system_dark: bool) -> Self {
+        if name == FOLLOW_SYSTEM_THEME {
+            return if system_dark {
+                Self::dark_theme()
+            } else {
+                Self::light_theme()
+            };
+        }
+        Self::by_name(name).unwrap_or_else(Self::dark_theme)
+    }
+
+    /// Gets all selectable theme names, follow-system first, then built-in and custom.
+    ///
+    /// [`FOLLOW_SYSTEM_THEME`] leads the list because it is the recommended
+    /// default; every caller that maps a picker index back to a name goes through
+    /// this same function, so the extra entry shifts nothing.
     #[must_use]
     pub fn theme_names() -> Vec<String> {
-        Self::all_themes().into_iter().map(|t| t.name).collect()
+        let mut names = vec![FOLLOW_SYSTEM_THEME.to_string()];
+        names.extend(Self::all_themes().into_iter().map(|t| t.name));
+        names
     }
 
     /// Returns only custom theme names.
@@ -197,10 +238,14 @@ impl TerminalTheme {
         get_custom_themes().into_iter().map(|t| t.name).collect()
     }
 
-    /// Checks whether a theme name belongs to a built-in theme.
+    /// Checks whether a theme name is built-in, and so not editable or removable.
+    ///
+    /// [`FOLLOW_SYSTEM_THEME`] counts as built-in. It is not in
+    /// [`Self::builtin_themes`] because it has no colours, but callers use this
+    /// predicate to decide whether Edit and Delete apply — and they must not.
     #[must_use]
     pub fn is_builtin(name: &str) -> bool {
-        Self::builtin_themes().iter().any(|t| t.name == name)
+        name == FOLLOW_SYSTEM_THEME || Self::builtin_themes().iter().any(|t| t.name == name)
     }
 
     /// Adds or updates a custom theme and persists to disk.
@@ -437,5 +482,74 @@ impl TerminalTheme {
             ],
             is_custom: false,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{FOLLOW_SYSTEM_THEME, TerminalTheme};
+
+    #[test]
+    fn follow_system_resolves_to_dark_when_the_desktop_is_dark() {
+        let resolved = TerminalTheme::resolve(FOLLOW_SYSTEM_THEME, true);
+        assert_eq!(resolved.name, TerminalTheme::dark_theme().name);
+        assert_eq!(resolved.background, TerminalTheme::dark_theme().background);
+    }
+
+    #[test]
+    fn follow_system_resolves_to_light_when_the_desktop_is_light() {
+        let resolved = TerminalTheme::resolve(FOLLOW_SYSTEM_THEME, false);
+        assert_eq!(resolved.name, TerminalTheme::light_theme().name);
+        assert_eq!(resolved.background, TerminalTheme::light_theme().background);
+    }
+
+    #[test]
+    fn a_named_theme_ignores_the_desktop_preference() {
+        // The whole point of picking a theme by name is that it stays put.
+        let dark_desktop = TerminalTheme::resolve("Monokai", true);
+        let light_desktop = TerminalTheme::resolve("Monokai", false);
+        assert_eq!(dark_desktop.name, "Monokai");
+        assert_eq!(dark_desktop, light_desktop);
+    }
+
+    #[test]
+    fn an_unknown_name_falls_back_to_dark_regardless_of_the_desktop() {
+        // Pinned deliberately: a deleted custom theme must not start tracking the
+        // system, because that is a different feature from asking for it.
+        for system_dark in [true, false] {
+            let resolved = TerminalTheme::resolve("no such theme", system_dark);
+            assert_eq!(resolved.name, TerminalTheme::dark_theme().name);
+        }
+    }
+
+    #[test]
+    fn theme_names_offers_follow_system_first() {
+        let names = TerminalTheme::theme_names();
+        assert_eq!(names.first().map(String::as_str), Some(FOLLOW_SYSTEM_THEME));
+        assert!(names.iter().any(|n| n == "Dark"));
+        assert!(names.iter().any(|n| n == "Light"));
+    }
+
+    #[test]
+    fn follow_system_is_not_editable_or_removable() {
+        // The picker gates Edit/Delete on `is_builtin`, and the sentinel has no
+        // colours to edit and no file to remove.
+        assert!(TerminalTheme::is_builtin(FOLLOW_SYSTEM_THEME));
+    }
+
+    #[test]
+    fn follow_system_is_absent_from_the_real_theme_lists() {
+        // It is a marker, not a theme: anything iterating actual colours — the
+        // per-connection override picker, the custom-theme editor — must not see it.
+        assert!(
+            !TerminalTheme::all_themes()
+                .iter()
+                .any(|t| t.name == FOLLOW_SYSTEM_THEME)
+        );
+        assert!(
+            !TerminalTheme::builtin_themes()
+                .iter()
+                .any(|t| t.name == FOLLOW_SYSTEM_THEME)
+        );
     }
 }
