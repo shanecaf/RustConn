@@ -1779,7 +1779,14 @@ pub fn run() -> glib::ExitCode {
     // macOS never had either: there the property is driven by the GTK Quartz
     // backend to mirror the system NSAppearance, so touching it fights macOS'
     // own "follow system" dark mode. The cfg stays for the same reason.
-    #[cfg(not(target_os = "macos"))]
+    //
+    // Also skipped on a `gtk-4-20` build, where the two accessors below are
+    // deprecated. That is not lint-dodging: the workaround exists for a libadwaita
+    // that warned about the legacy property, and a build against GTK 4.20 is a build
+    // against libadwaita 1.8 or newer, which does not. So the version that makes the
+    // calls deprecated is the version that makes the clearing pointless, and the
+    // block is kept only for the older colour where it still does something.
+    #[cfg(all(not(target_os = "macos"), not(feature = "gtk-4-20")))]
     if let Some(display) = gtk4::gdk::Display::default() {
         let settings = gtk4::Settings::for_display(&display);
         if settings.is_gtk_application_prefer_dark_theme() {

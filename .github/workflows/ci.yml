@@ -200,6 +200,20 @@ jobs:
       - name: Check the launch paths resolve their bastion
         run: ./scripts/check-jump-host-wiring.sh
 
+      # Also not i18n, also the same shape. `install_glib_css_warning_filter` in
+      # main.rs drops every GLib message containing "Theme parser" or "gtk.css",
+      # which was added for a genuine flood from a libadwaita stylesheet newer than
+      # the GTK parser reading it — but the predicate matches wording, not origin, so
+      # it silenced our own stylesheet too. Four declarations in assets/style.css used
+      # `margin-start`/`margin-end`, which GTK's CSS does not have, so those margins
+      # had never applied and nothing said so. A runtime filter cannot be narrowed
+      # reliably; checking the file where no filter is in the way can. Needs no
+      # display, so it belongs in this job rather than the cargo matrix.
+      - name: Check the stylesheet parses
+        run: |
+          sudo apt-get update && sudo apt-get install -y python3-gi gir1.2-gtk-4.0
+          ./scripts/check-css.sh
+
       - name: Install gettext
         run: sudo apt-get update && sudo apt-get install -y gettext
 

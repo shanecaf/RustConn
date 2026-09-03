@@ -501,10 +501,15 @@ button.context-menu-destructive:hover {
 
 /* Monitoring bar — default height (previously hardcoded in Rust via
  * height_request; now CSS-driven so compact mode can override). */
+/* `margin-left`/`margin-right`, not `margin-start`/`margin-end`: GTK's CSS has no
+ * logical margin properties, so the start/end spelling parsed as an unknown
+ * property and these margins never applied. Invisible until now because the GLib
+ * log writer in main.rs dropped every "Theme parser" message, including this
+ * file's own. The rule ten lines below always used the physical spelling. */
 .monitoring-bar {
     min-height: 28px;
-    margin-start: 6px;
-    margin-end: 6px;
+    margin-left: 6px;
+    margin-right: 6px;
 }
 
 /* Stale monitoring indicator — collector stopped, metrics are outdated */
@@ -833,10 +838,11 @@ window.compact .embedded-toolbar separator {
 
 /* Monitoring bar — slimmer in compact mode (height controlled by CSS
  * since the Rust code no longer sets a fixed height_request) */
+/* Physical margin properties — see the note on `.monitoring-bar` above. */
 window.compact .monitoring-bar {
     min-height: 22px;
-    margin-start: 4px;
-    margin-end: 4px;
+    margin-left: 4px;
+    margin-right: 4px;
 }
 
 /* NOTE: Do NOT set `min-height` on `banner`. The two AdwBanners

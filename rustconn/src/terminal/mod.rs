@@ -1847,16 +1847,20 @@ impl TerminalNotebook {
             }
         }
 
-        let pixbuf = gtk4::gdk_pixbuf::Pixbuf::from_bytes(
+        // Straight from the bytes just written, with no `Pixbuf` in between.
+        //
+        // This used to build a `GdkPixbuf` and hand it to `Texture::for_pixbuf`,
+        // which GTK 4.20 deprecates — gdk-pixbuf is on its way out as GTK's image
+        // path (4.20 made glycin the preferred loader). `MemoryTexture` takes the
+        // same premultiplied-alpha RGBA buffer directly, so the conversion that was
+        // there to satisfy an API is simply gone.
+        let texture = gtk4::gdk::MemoryTexture::new(
+            size as i32,
+            size as i32,
+            gtk4::gdk::MemoryFormat::R8g8b8a8,
             &glib::Bytes::from(&rgba_data),
-            gtk4::gdk_pixbuf::Colorspace::Rgb,
-            true,
-            8,
-            size as i32,
-            size as i32,
-            (size * 4) as i32,
+            size as usize * 4,
         );
-        let texture = gtk4::gdk::Texture::for_pixbuf(&pixbuf);
         Some(texture.upcast::<gio::Icon>())
     }
 

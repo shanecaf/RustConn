@@ -733,7 +733,12 @@ fi
 # unit test can cover without a GTK window and a real bastion — and because the
 # defect it guards reached a release *with a changelog entry saying it was fixed*
 # (#301, 0.20.9).
-for i18n_check in check-potfiles.sh check-i18n-escapes.sh check-jump-host-wiring.sh; do
+# `check-css.sh` is here for the same reason as the jump-host check: not i18n, but a
+# defect class the test suite structurally cannot see. The app's own log filter hid
+# four broken declarations in assets/style.css, so nothing failed and nothing
+# reported. It skips itself when python3-gi is absent rather than failing, so a
+# release host without the bindings loses the check but not the release.
+for i18n_check in check-potfiles.sh check-i18n-escapes.sh check-jump-host-wiring.sh check-css.sh; do
     if [[ -x "scripts/$i18n_check" ]]; then
         if I18N_OUTPUT="$(./scripts/"$i18n_check" 2>&1)"; then
             ok "$i18n_check passed"
