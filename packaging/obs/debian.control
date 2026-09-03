@@ -7,32 +7,49 @@ Source: rustconn
 Section: net
 Priority: optional
 Maintainer: Anton Isaiev <totoshko88@gmail.com>
-# libwebkitgtk-6.0-dev is requested as an alternative, not a plain dependency.
+# libwebkitgtk-6.0-dev is a plain dependency, and getting here took three tries.
+#
 # One control file serves three OBS repositories — xUbuntu_24.04, xUbuntu_26.04
-# and Debian_13 — and Debian's control format has no conditionals, so naming a
-# package that only some of them ship makes the build unsatisfiable on the rest.
-# This file listed it plainly until 0.20.10 with no consequence only because it
-# was never copied to OBS; the first sync that carried it over failed all three
-# deb builds with `dpkg-checkbuilddeps: unmet build dependencies:
-# libwebkitgtk-6.0-dev`.
+# and Debian_13 — and Debian's control format has no conditionals, so a package
+# only some of them ship makes the build unsatisfiable on the rest. Listing it
+# plainly had no consequence until 0.20.10 only because the file was never copied
+# to OBS; the first sync that carried it over failed all three deb builds with
+# `dpkg-checkbuilddeps: unmet build dependencies: libwebkitgtk-6.0-dev`.
 #
-# It was then dropped altogether, which traded a failing build for a silent
-# one: debian.rules decides the feature for itself with
-# `pkg-config --exists webkitgtk-6.0`, that probe can only succeed if the dev
-# package is installed in the chroot, and nothing installed it — so every OBS
-# deb shipped without an embedded browser while the build reported success. The
-# UI is honest about it (a build without the feature offers only System and
-# Custom), so the symptom was the option quietly not existing rather than an
-# error, which is why it took until 0.21.0 for anyone to say so.
+# It was dropped, which traded a failing build for a silent one, and then restored
+# as `libwebkitgtk-6.0-dev | libglib2.0-dev` on this reasoning: apt installs the
+# first branch it can satisfy, so a repository with WebKitGTK 6.0 opts in and one
+# without falls back to libglib2.0-dev, which libgtk-4-dev already pulls in and is
+# therefore free.
 #
-# The alternative is the shape this needs: apt installs the first branch it can
-# satisfy, so a repository that ships WebKitGTK 6.0 opts in and one that does
-# not resolves to libglib2.0-dev, which is already pulled in by libgtk-4-dev and
-# is therefore free. All three current deb targets do ship it, so all three get
-# the embedded browser; the second branch exists so adding an older repository
-# later degrades instead of breaking. Runtime linkage needs no entry of its own —
-# `${shlibs:Depends}` derives libwebkitgtk-6.0-4 from the binary when, and only
-# when, the feature was compiled in.
+# **That reasoning was wrong, and the comment asserting it survived two releases.**
+# OBS does not resolve build dependencies with apt; its own scheduler picks a
+# branch, and it picks the one already in the closure because that costs nothing.
+# So it chose libglib2.0-dev every time. Measured in the 0.21.5 build logs for all
+# three targets: `libwebkitgtk-6.0-dev` appears zero times, `libglib2.0-dev`
+# twice, and debian.rules printed `web:` empty — every OBS deb shipped without an
+# embedded browser while the build reported success, for as long as the
+# alternative existed. The UI is honest about a build without the feature (it
+# offers only System and Custom browser modes), so the symptom was an option
+# quietly not existing rather than an error.
+#
+# Plain is therefore the only shape that actually installs it. What makes that
+# safe now and unsafe in 0.20.10 is the repository configuration, not this file:
+# `xUbuntu_24.04` gained an `Ubuntu:24.04/universe` path, which is where Ubuntu
+# keeps WebKitGTK. Verified before the change, since a wrong answer here turns
+# three succeeding builds unresolvable: 2.52.6 on Ubuntu 26.04 (locally,
+# `pkg-config --modversion webkitgtk-6.0`), 2.52.6-0ubuntu0.24.04.1 on noble amd64
+# (universe), 2.52.6-1~deb13u1 on trixie amd64 (main). All are above the 2.40
+# floor `webkit6-sys` 0.6 asks for.
+#
+# If a future repository lacks it, this build will say `unresolvable` and name it.
+# That is the intended outcome — do not restore the alternative to quiet it, or the
+# browser disappears again with nothing in the log to say so. Gate the feature per
+# repository in the OBS project config instead.
+#
+# Runtime linkage needs no entry of its own: `${shlibs:Depends}` derives
+# libwebkitgtk-6.0-4 from the binary when, and only when, the feature was compiled
+# in.
 #
 # Comments belong between fields, never inside one: a line starting with '#' in
 # the middle of a continuation block ends the field, and everything indented
@@ -41,7 +58,7 @@ Build-Depends: debhelper-compat (= 13),
                libgtk-4-dev (>= 4.14),
                libvte-2.91-gtk4-dev (>= 0.76),
                libadwaita-1-dev (>= 1.5),
-               libwebkitgtk-6.0-dev | libglib2.0-dev,
+               libwebkitgtk-6.0-dev,
                libdbus-1-dev,
                libssl-dev,
                libasound2-dev,

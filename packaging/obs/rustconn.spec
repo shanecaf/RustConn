@@ -374,6 +374,20 @@ done
   margin-start/margin-end, which GTK's CSS does not have. A new gate,
   scripts/check-css.sh, parses the sheet through the installed GTK
 - Fixed: the monitoring mode picker no longer needs editing when a mode is added
+- Fixed: no OBS Debian or Ubuntu package had ever contained the in-tab browser.
+  debian.control asked for libwebkitgtk-6.0-dev | libglib2.0-dev, on the reasoning
+  that apt installs the first branch it can satisfy — but OBS does not resolve build
+  dependencies with apt, and its own scheduler prefers the branch already in the
+  closure because that costs nothing, so it chose libglib2.0-dev every time.
+  debian.rules then decides the feature with pkg-config, which can only succeed if
+  the dev package is in the chroot, so the feature was compiled out while the build
+  reported success. Measured in the 0.21.5 logs for all three deb targets:
+  libwebkitgtk-6.0-dev appears zero times and the detection line printed an empty
+  web field. The dependency is now plain, so Debian 13, Ubuntu 24.04 and Ubuntu
+  26.04 get the embedded browser for the first time. Verified available on all three
+  before the change (2.52.6 everywhere, above the 2.40 floor the bindings need).
+  This spec was never affected — it has always required pkgconfig(webkitgtk-6.0)
+  outright
 - Fixed: the .deb and .rpm attached to a GitHub release named three fewer libraries
   than the binary loads, so the .deb failed in the dynamic linker before reaching
   main() with "error while loading shared libraries: libwebkitgtk-6.0.so.4", on a
