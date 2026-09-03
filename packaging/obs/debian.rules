@@ -41,10 +41,19 @@ override_dh_auto_build:
 	if pkg-config --exists webkitgtk-6.0 2>/dev/null; then \
 		WEB_FEATURES=",web-embedded"; \
 	fi; \
+	# Detect VTE and enable termprops (shell integration) from 0.78 up. Ubuntu
+	# 24.04 ships 0.76, where `system-deps` fails inside the build script rather
+	# than in the dependency solver — a much less obvious error than a resolver
+	# conflict, so the version is checked here instead of assumed.
+	VTE_VERSION=$$(pkg-config --modversion vte-2.91-gtk4 2>/dev/null | cut -d. -f1,2); \
+	VTE_FEATURES=""; \
+	case "$$VTE_VERSION" in \
+		0.7[89]*|0.8*|0.9*) VTE_FEATURES=",vte-0-78" ;; \
+	esac; \
 	BASE_FEATURES="tray,system-keyring,vnc-embedded,rdp-embedded,gfx-h264,rdp-audio,rd-gateway,wayland-native"; \
-	echo "=== libadwaita $$ADW_VERSION => features: $$ADW_FEATURES | web: $$WEB_FEATURES ==="; \
+	echo "=== libadwaita $$ADW_VERSION => features: $$ADW_FEATURES | web: $$WEB_FEATURES | vte $$VTE_VERSION =>$$VTE_FEATURES ==="; \
 	export PATH="$(CURDIR)/rust-toolchain/bin:$$PATH"; \
-	cargo build --release --offline -p rustconn --no-default-features --features $${BASE_FEATURES}$${WEB_FEATURES} $$ADW_FEATURES; \
+	cargo build --release --offline -p rustconn --no-default-features --features $${BASE_FEATURES}$${WEB_FEATURES}$${VTE_FEATURES} $$ADW_FEATURES; \
 	cargo build --release --offline -p rustconn-cli --features full
 
 override_dh_auto_install:

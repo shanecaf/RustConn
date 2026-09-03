@@ -401,6 +401,35 @@ impl MainWindow {
             }
         });
 
+        // Shell integration: the remote shell tells us a command returned, and with
+        // what status, via VTE's `vte.shell.postexec` termprop (OSC 133). Wired
+        // unconditionally like `contents_changed` above so the per-tab Monitor menu
+        // can cycle into Command mode on a live session without reconnecting (the
+        // same reason `activity.start` runs even for Off — issue #180); the mode
+        // check lives in `on_command_finished`.
+        //
+        // Two ways this stays quiet, both expected: a build without the `vte-0-78`
+        // feature connects nothing, and a remote host with no shell integration
+        // never sets the termprop.
+        let command_wired = notebook.get_terminal(session_id).is_some_and(|terminal| {
+            let activity_for_command = Rc::clone(activity);
+            let notebook_for_command = notebook.clone();
+            let sessions_for_command = notebook.sessions_map();
+            let conn_name_for_command = conn_name.clone();
+            crate::terminal::termprops::connect_command_finished(&terminal, move |exit_code| {
+                if let Some(ntype) = activity_for_command.on_command_finished(session_id, exit_code)
+                {
+                    Self::deliver_activity_notification(
+                        &notebook_for_command,
+                        &sessions_for_command,
+                        session_id,
+                        ntype,
+                        &conn_name_for_command,
+                    );
+                }
+            })
+        });
+
         // 4.7: On child exit, stop the coordinator to clean up timers
         let activity_for_exit = Rc::clone(activity);
         notebook.connect_child_exited(
@@ -417,6 +446,7 @@ impl MainWindow {
             ?mode,
             quiet_period = quiet,
             silence_timeout = silence,
+            shell_integration = command_wired,
             "Activity monitoring started"
         );
     }
@@ -442,11 +472,47 @@ impl MainWindow {
                 "dialog-warning-symbolic",
                 i18n_f("Silence detected: {}", &[session_name]),
             ),
+            // The exit code is the point of this one: "finished" and "failed with
+            // status 1" are different news, and the shell told us which.
+            NotificationType::CommandFinished { exit_code: Some(0) } => (
+                "emblem-ok-symbolic",
+                i18n_f("Command finished: {}", &[session_name]),
+            ),
+            NotificationType::CommandFinished {
+                exit_code: Some(code),
+            } => (
+                "dialog-error-symbolic",
+                i18n_f(
+                    "Command failed with status {}: {}",
+                    &[&code.to_string(), session_name],
+                ),
+            ),
+            NotificationType::CommandFinished { exit_code: None } => (
+                "emblem-ok-symbolic",
+                i18n_f("Command finished: {}", &[session_name]),
+            ),
         };
 
         // 4.3: Set tab indicator icon
         if let Some(page) = sessions.borrow().get(&session_id) {
             page.set_indicator_icon(Some(&gio::ThemedIcon::new(icon_name)));
+
+            // And `needs-attention`, which is what actually survives.
+            //
+            // `indicator-icon` above is one slot that five different meanings write
+            // to — split-pane colour, protocol colour, offline, pinned, and this —
+            // with a priority guard between only two of them. So a notification's
+            // icon can be overwritten by `apply_protocol_color` moments later and
+            // the user never learns anything happened. `needs-attention` is a
+            // separate property nothing else touches, and libadwaita surfaces it in
+            // all three places this UI has: a line under the tab in AdwTabBar (or a
+            // highlighted edge when the tab is scrolled out of view), a dot on the
+            // AdwTabOverview thumbnail, and a dot on the AdwTabButton.
+            //
+            // Cleared in the notebook's selected-page handler, not here: libadwaita
+            // does not clear it on selection, and the point is that it outlives the
+            // moment.
+            page.set_needs_attention(true);
         }
 
         // 4.4: Show toast via existing ToastOverlay — on the window the session
@@ -460,6 +526,14 @@ impl MainWindow {
             let toast_type = match ntype {
                 NotificationType::Activity => crate::toast::ToastType::Info,
                 NotificationType::Silence => crate::toast::ToastType::Warning,
+                // A remote command that failed is news about the far end, not an
+                // application error, so it stays a toast at Warning rather than
+                // escalating to Error — which `dialogs-guide.md` reserves for a
+                // failure that risks the user's data or an unfinished action.
+                NotificationType::CommandFinished {
+                    exit_code: Some(code),
+                } if code != 0 => crate::toast::ToastType::Warning,
+                NotificationType::CommandFinished { .. } => crate::toast::ToastType::Info,
             };
             crate::toast::show_toast_on_window(window, &toast_msg, toast_type);
 

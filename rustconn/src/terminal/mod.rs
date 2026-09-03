@@ -36,6 +36,7 @@ mod session_lifecycle;
 pub mod tab_container;
 mod tab_lifecycle;
 mod tab_menu;
+pub mod termprops;
 mod types;
 
 use std::cell::RefCell;

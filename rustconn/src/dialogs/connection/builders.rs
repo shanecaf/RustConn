@@ -737,10 +737,12 @@ impl ConnectionDialogData<'_> {
             reason = "value range fits the target type and is non-negative by construction in this code path"
         )]
         {
-            let mode = match self.activity_mode_combo.selected() {
-                1 => Some(MonitorMode::Activity),
-                2 => Some(MonitorMode::Silence),
-                _ => None, // Off or default
+            // `Off` becomes `None` rather than `Some(Off)`: this is a per-connection
+            // *override*, and "no override" is how the connection inherits the
+            // global default. Storing `Some(Off)` would pin it to Off instead.
+            let mode = match crate::monitor_mode::from_index(self.activity_mode_combo.selected()) {
+                MonitorMode::Off => None,
+                other => Some(other),
             };
             let quiet = self.activity_quiet_period_spin.value() as u32;
             let silence = self.activity_silence_timeout_spin.value() as u32;

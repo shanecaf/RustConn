@@ -16,7 +16,6 @@ use adw::prelude::*;
 use gtk4::prelude::*;
 use gtk4::{Box as GtkBox, Button, FileDialog, Label, ListBox, Orientation, StringList};
 use libadwaita as adw;
-use rustconn_core::activity_monitor::MonitorMode;
 use rustconn_core::automation::{ConnectionTask, ExpectRule};
 use rustconn_core::models::{
     Connection, CustomProperty, HighlightRule, PasswordSource, ProtocolConfig, RdpConfig,
@@ -357,12 +356,11 @@ impl ConnectionDialog {
 
         // Set activity monitor config
         if let Some(ref config) = conn.activity_monitor_config {
-            let mode_idx = match config.mode {
-                Some(MonitorMode::Activity) => 1,
-                Some(MonitorMode::Silence) => 2,
-                _ => 0,
-            };
-            self.activity_mode_combo.set_selected(mode_idx);
+            // No override stored means "inherit the global default", which the picker
+            // shows as Off — the inverse of the mapping in `builders.rs`.
+            self.activity_mode_combo.set_selected(
+                crate::monitor_mode::index_of(config.mode.unwrap_or_default()),
+            );
             if let Some(quiet) = config.quiet_period_secs {
                 self.activity_quiet_period_spin.set_value(f64::from(quiet));
             }

@@ -99,4 +99,21 @@ fn _never_called() {
     crate::i18n::i18n("Automatic");
     crate::i18n::i18n("Hardware (GPU)");
     crate::i18n::i18n("Software (Cairo)");
+
+    // === Activity monitor mode labels from `display_name()` ===
+    // Three widgets build their rows from `MonitorMode::all()` via
+    // `crate::monitor_mode::labels()`, and the per-tab Monitor menu names the current
+    // mode the same way — all of them `i18n(mode.display_name())`.
+    //
+    // The first three were literals in `advanced_tab.rs` and `monitoring_tab.rs`
+    // until those files stopped writing their own index maps; without markers here
+    // the translations already shipped for them would have been dropped from the POT
+    // and every locale would have gone back to English.
+    //
+    // Pinned by `every_mode_has_a_distinct_icon_and_name` in
+    // `rustconn-core/src/activity_monitor.rs` — change them there first.
+    crate::i18n::i18n("Off");
+    crate::i18n::i18n("Activity");
+    crate::i18n::i18n("Silence");
+    crate::i18n::i18n("Command finished");
 }

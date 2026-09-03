@@ -80,6 +80,7 @@ pub mod external_session;
 pub mod i18n;
 mod i18n_markers;
 pub mod icon_render;
+pub mod monitor_mode;
 pub mod monitoring;
 mod renderer;
 pub mod session;

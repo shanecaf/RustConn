@@ -148,6 +148,31 @@ adw-1-7 = ["adw-1-6", "libadwaita/v1_7"]
 # Requires libadwaita >= 1.8 at build time (GNOME 49+ Flatpak runtime or Fedora 42+)
 adw-1-8 = ["adw-1-7", "libadwaita/v1_8"]
 
+# VTE 0.78+ termprops: the `termprop-changed` signal and the scalar termprop
+# getters. Used for shell integration (OSC 133) — `vte.shell.postexec` carries the
+# exit code of the command that just finished, which drives the Command monitoring
+# mode. See `crate::terminal::termprops`.
+#
+# NOT in `default`, and the reason is a build requirement rather than taste: three
+# channels ship VTE 0.76 — Ubuntu 24.04 deb, the snap's core24 platform, and the
+# noble-based AppImage. `system-deps` fails inside the build script rather than in
+# the dependency solver when the installed VTE is older, which is a much less
+# obvious error than a resolver conflict, so keep this opt-in per channel exactly
+# as `adw-1-8` is. `debian.rules` detects the version with pkg-config.
+#
+# `MonitorMode::Command` exists in `rustconn-core` unconditionally, because that
+# crate has no VTE dependency and `settings.toml` has to stay loadable across
+# builds: a config written by the Flatpak must not break the snap. Without this
+# feature the mode is hidden from the picker and never fires.
+vte-0-78 = ["vte4/v0_78"]
+# 0.80 adds image termprops, which `vte4` 0.10 does not bind and VTE 0.84 never
+# populates ("this termprop is always unset"). Present for completeness only.
+vte-0-80 = ["vte-0-78", "vte4/v0_80"]
+# 0.82 lets the generic termprop OSC set the progress termprops; before it, only
+# OSC 9;4 (ConEmu) could. Not required for reading them.
+vte-0-82 = ["vte-0-80", "vte4/v0_82"]
+vte-0-84 = ["vte-0-82", "vte4/v0_84"]
+
 # Inherit workspace lints as base, then add GTK-specific suppressions.
 # Note: Cargo requires that workspace = true stands alone in [lints];
 # crate-specific overrides go into [lints.rust] / [lints.clippy] without

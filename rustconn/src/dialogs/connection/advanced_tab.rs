@@ -10,6 +10,7 @@ use gtk4::{
     ListBox, Orientation, ScrolledWindow, SpinButton, StringList,
 };
 use libadwaita as adw;
+use rustconn_core::activity_monitor::MonitorMode;
 use rustconn_core::wol::{DEFAULT_BROADCAST_ADDRESS, DEFAULT_WOL_PORT, DEFAULT_WOL_WAIT_SECONDS};
 
 use crate::i18n::i18n;
@@ -327,10 +328,11 @@ pub(super) fn create_advanced_tab() -> (
         .show_enable_switch(false)
         .build();
 
-    let mode_items = StringList::new(&[&i18n("Off"), &i18n("Activity"), &i18n("Silence")]);
+    let mode_labels = crate::monitor_mode::labels();
+    let mode_items = StringList::new(&mode_labels.iter().map(String::as_str).collect::<Vec<_>>());
     let activity_mode_combo = adw::ComboRow::builder()
         .title(i18n("Mode"))
-        .subtitle(i18n("Select monitoring mode for this connection"))
+        .subtitle(crate::monitor_mode::mode_row_subtitle())
         .model(&mode_items)
         .selected(0)
         .build();
@@ -359,19 +361,21 @@ pub(super) fn create_advanced_tab() -> (
         let quiet_spin = quiet_period_spin.clone();
         let silence_spin = silence_timeout_spin.clone();
         activity_mode_combo.connect_selected_notify(move |combo| {
-            match combo.selected() {
-                1 => {
-                    // Activity
+            // Driven by the mode rather than by a bare index, so a new variant added
+            // to `MonitorMode` cannot land in the `_` arm and silently hide both
+            // spin rows. `uses_timers()` is what actually decides whether either
+            // value is read.
+            match crate::monitor_mode::from_index(combo.selected()) {
+                MonitorMode::Activity => {
                     quiet_spin.set_visible(true);
                     silence_spin.set_visible(false);
                 }
-                2 => {
-                    // Silence
+                MonitorMode::Silence => {
                     quiet_spin.set_visible(false);
                     silence_spin.set_visible(true);
                 }
-                _ => {
-                    // Off
+                // Off and Command are event-driven or inert: neither reads a period.
+                MonitorMode::Off | MonitorMode::Command => {
                     quiet_spin.set_visible(false);
                     silence_spin.set_visible(false);
                 }

@@ -13,12 +13,12 @@ use rustconn_core::activity_monitor::{
 // ---------------------------------------------------------------------------
 
 /// Strategy that produces an arbitrary `MonitorMode` variant.
+///
+/// Driven by [`MonitorMode::all`] rather than a hand-written `prop_oneof!`: the list
+/// used to be spelled out here, so adding a variant left every property in this file
+/// silently untested against it while the suite still passed.
 fn arb_monitor_mode() -> impl Strategy<Value = MonitorMode> {
-    prop_oneof![
-        Just(MonitorMode::Off),
-        Just(MonitorMode::Activity),
-        Just(MonitorMode::Silence),
-    ]
+    prop::sample::select(MonitorMode::all())
 }
 
 /// Strategy that produces an arbitrary `ActivityMonitorDefaults`.
@@ -49,26 +49,59 @@ fn arb_config() -> impl Strategy<Value = ActivityMonitorConfig> {
 }
 
 // ---------------------------------------------------------------------------
-// Property 5: Mode cycling is a 3-cycle
-// Feature: terminal-activity-monitor, Property 5: Mode cycling is a 3-cycle
+// Property 5: Mode cycling visits every mode exactly once
+// Feature: terminal-activity-monitor, Property 5
 // **Validates: Requirements 1.10**
+//
+// Was "cycling is a 3-cycle", asserting `next()` three times is the identity. That
+// hard-coded the number of variants into the property, so adding `Command` failed
+// here rather than in the one place that decides the order. The property that
+// actually matters is that the cycle closes over *all* modes — that is what makes
+// every mode reachable from the per-tab Monitor menu.
 // ---------------------------------------------------------------------------
 
 proptest! {
     #[test]
-    fn mode_cycling_is_three_cycle(mode in arb_monitor_mode()) {
-        // Applying next() three times returns the original mode.
-        let cycled = mode.next().next().next();
+    fn cycling_returns_to_the_start_after_one_pass(mode in arb_monitor_mode()) {
+        let mut cycled = mode;
+        for _ in 0..MonitorMode::all().len() {
+            cycled = cycled.next();
+        }
         prop_assert_eq!(cycled, mode);
+    }
+
+    #[test]
+    fn cycling_never_stalls_on_the_same_mode(mode in arb_monitor_mode()) {
+        // A `next()` arm that returns `self` would make the menu look broken while
+        // every "cycle closes" assertion still held.
+        prop_assert_ne!(mode.next(), mode);
     }
 }
 
 #[test]
 fn mode_cycle_order() {
-    // The specific cycle order is Off → Activity → Silence → Off.
+    // The specific order is Off → Activity → Silence → Command → Off: the two timing
+    // modes first, then the event-driven one, then back to off.
     assert_eq!(MonitorMode::Off.next(), MonitorMode::Activity);
     assert_eq!(MonitorMode::Activity.next(), MonitorMode::Silence);
-    assert_eq!(MonitorMode::Silence.next(), MonitorMode::Off);
+    assert_eq!(MonitorMode::Silence.next(), MonitorMode::Command);
+    assert_eq!(MonitorMode::Command.next(), MonitorMode::Off);
+}
+
+#[test]
+fn cycling_reaches_every_mode() {
+    let mut seen = Vec::new();
+    let mut mode = MonitorMode::Off;
+    for _ in 0..MonitorMode::all().len() {
+        seen.push(mode);
+        mode = mode.next();
+    }
+    for candidate in MonitorMode::all() {
+        assert!(
+            seen.contains(candidate),
+            "{candidate:?} cannot be reached by cycling, so the menu cannot select it"
+        );
+    }
 }
 
 // ---------------------------------------------------------------------------

@@ -22,6 +22,16 @@ pub enum NotificationType {
     Activity,
     /// No output occurred for the configured silence timeout (silence mode).
     Silence,
+    /// The remote shell reported that a command finished (command mode).
+    ///
+    /// Carries the command's exit code, or `None` when the shell signalled the
+    /// event without one. Unlike the other two this is not a timing heuristic over
+    /// raw output — it comes from VTE's `vte.shell.postexec` termprop, so it fires
+    /// exactly once per command and knows whether the command succeeded.
+    CommandFinished {
+        /// Exit code reported by the shell, if it sent one.
+        exit_code: Option<u64>,
+    },
 }
 
 /// Per-session state for activity monitoring.
@@ -157,6 +167,14 @@ impl ActivityCoordinator {
                     }
                     // Drop the borrow before arming a new timer
                 }
+                MonitorMode::Command => {
+                    // Event-driven: the notification comes from
+                    // `on_command_finished`, not from bytes arriving. Tracking the
+                    // output time anyway keeps the state honest if the user cycles
+                    // into a timing mode on a live session.
+                    state.last_output_time = Instant::now();
+                    return None;
+                }
             }
         }
 
@@ -170,6 +188,31 @@ impl ActivityCoordinator {
         // Silence mode output resets the timer but never fires a notification directly
         let _ = quiet_period_secs; // used only in Activity branch above
         None
+    }
+
+    /// Called when the remote shell reports that a command has returned.
+    ///
+    /// Returns `Some` only in [`MonitorMode::Command`] for a tracked session, so the
+    /// caller can wire the termprop signal once per terminal and let the mode decide
+    /// whether anything is delivered — the same shape as [`Self::on_output`].
+    ///
+    /// Unlike the timing modes this does not consult `notification_active`: every
+    /// finished command is a distinct event, and suppressing the second one because
+    /// the first was never acknowledged would hide exactly the case the mode is for
+    /// (several commands completing while the user is on another tab).
+    pub fn on_command_finished(
+        &self,
+        session_id: Uuid,
+        exit_code: Option<u64>,
+    ) -> Option<NotificationType> {
+        let mut inner = self.inner.borrow_mut();
+        let state = inner.sessions.get_mut(&session_id)?;
+        if state.mode != MonitorMode::Command {
+            return None;
+        }
+        state.last_output_time = Instant::now();
+        state.notification_active = true;
+        Some(NotificationType::CommandFinished { exit_code })
     }
 
     /// Called when the user switches to this session's tab.
@@ -285,5 +328,118 @@ impl ActivityCoordinator {
 impl Default for ActivityCoordinator {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod command_mode_tests {
+    use rustconn_core::activity_monitor::MonitorMode;
+    use uuid::Uuid;
+
+    use super::{ActivityCoordinator, NotificationType};
+
+    /// Quiet period and silence timeout that Command mode must ignore.
+    const QUIET: u32 = 10;
+    const SILENCE: u32 = 30;
+
+    fn started(mode: MonitorMode) -> (ActivityCoordinator, Uuid) {
+        let coordinator = ActivityCoordinator::new();
+        let session_id = Uuid::new_v4();
+        coordinator.start(session_id, mode, QUIET, SILENCE);
+        (coordinator, session_id)
+    }
+
+    #[test]
+    fn a_finished_command_notifies_in_command_mode() {
+        let (coordinator, session_id) = started(MonitorMode::Command);
+        assert_eq!(
+            coordinator.on_command_finished(session_id, Some(0)),
+            Some(NotificationType::CommandFinished {
+                exit_code: Some(0)
+            })
+        );
+    }
+
+    #[test]
+    fn the_exit_code_reaches_the_notification_unchanged() {
+        // The whole reason this mode exists rather than reusing Activity: the caller
+        // needs to tell success from failure, so the code cannot be flattened.
+        let (coordinator, session_id) = started(MonitorMode::Command);
+        for code in [None, Some(0), Some(1), Some(127)] {
+            assert_eq!(
+                coordinator.on_command_finished(session_id, code),
+                Some(NotificationType::CommandFinished { exit_code: code })
+            );
+        }
+    }
+
+    #[test]
+    fn the_other_modes_ignore_a_finished_command() {
+        // The termprop handler is wired for every session regardless of mode, so the
+        // mode check has to happen here or Off would start notifying.
+        for mode in [
+            MonitorMode::Off,
+            MonitorMode::Activity,
+            MonitorMode::Silence,
+        ] {
+            let (coordinator, session_id) = started(mode);
+            assert_eq!(
+                coordinator.on_command_finished(session_id, Some(0)),
+                None,
+                "{mode:?} must not notify on a finished command"
+            );
+        }
+    }
+
+    #[test]
+    fn an_untracked_session_ignores_a_finished_command() {
+        // A terminal can outlive its coordinator entry: `stop` runs on child exit,
+        // and a late signal must not resurrect it.
+        let coordinator = ActivityCoordinator::new();
+        assert_eq!(
+            coordinator.on_command_finished(Uuid::new_v4(), Some(0)),
+            None
+        );
+    }
+
+    #[test]
+    fn command_mode_ignores_terminal_output() {
+        // Output is not the event. If this returned Some, every byte from a remote
+        // command would notify, which is what the timing modes are for.
+        let (coordinator, session_id) = started(MonitorMode::Command);
+        assert_eq!(coordinator.on_output(session_id), None);
+        assert_eq!(coordinator.on_output(session_id), None);
+    }
+
+    #[test]
+    fn consecutive_commands_each_notify() {
+        // Deliberately unlike the timing modes, which suppress a repeat until the
+        // user visits the tab: several commands finishing while the user is away is
+        // exactly the case this mode is for, so each one is news.
+        let (coordinator, session_id) = started(MonitorMode::Command);
+        assert!(coordinator.on_command_finished(session_id, Some(0)).is_some());
+        assert!(coordinator.on_command_finished(session_id, Some(1)).is_some());
+        assert!(coordinator.on_command_finished(session_id, Some(0)).is_some());
+    }
+
+    #[test]
+    fn cycling_a_live_session_into_command_mode_starts_notifying() {
+        // The per-tab Monitor menu cycles on a running session (issue #180), and the
+        // termprop handler is already wired, so the mode change alone must be enough.
+        let (coordinator, session_id) = started(MonitorMode::Off);
+        assert_eq!(coordinator.on_command_finished(session_id, Some(0)), None);
+
+        coordinator.set_mode(session_id, MonitorMode::Command);
+        assert_eq!(coordinator.get_mode(session_id), Some(MonitorMode::Command));
+        assert!(coordinator.on_command_finished(session_id, Some(0)).is_some());
+    }
+
+    #[test]
+    fn cycling_out_of_command_mode_stops_notifying() {
+        let (coordinator, session_id) = started(MonitorMode::Command);
+        assert!(coordinator.on_command_finished(session_id, Some(0)).is_some());
+
+        coordinator.set_mode(session_id, MonitorMode::Off);
+        assert_eq!(coordinator.on_command_finished(session_id, Some(0)), None);
     }
 }

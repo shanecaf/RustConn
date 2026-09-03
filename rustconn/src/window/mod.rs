@@ -1636,13 +1636,21 @@ impl MainWindow {
                     // Clear activity monitor indicator and reset notification state
                     // but preserve split color indicators
                     activity_for_tab.on_tab_switched(session_id);
-                    if !notebook_clone
-                        .split_colors()
-                        .borrow()
-                        .contains_key(&session_id)
-                        && let Some(page) = sessions_for_tab.borrow().get(&session_id)
-                    {
-                        page.set_indicator_icon(gio::Icon::NONE);
+                    if let Some(page) = sessions_for_tab.borrow().get(&session_id) {
+                        // libadwaita does not clear `needs-attention` on selection,
+                        // and looking at the tab is the acknowledgement — so it is
+                        // cleared here, unconditionally. Unlike `indicator-icon`
+                        // below there is nothing else competing for it, so there is
+                        // no state to preserve.
+                        page.set_needs_attention(false);
+
+                        if !notebook_clone
+                            .split_colors()
+                            .borrow()
+                            .contains_key(&session_id)
+                        {
+                            page.set_indicator_icon(gio::Icon::NONE);
+                        }
                     }
 
                     // If session has a split bridge, focus the correct pane
