@@ -27,12 +27,45 @@ class Rustconn < Formula
   depends_on "vte3"
 
   def install
+    # Detected, not written out by hand. Homebrew's gtk4, libadwaita and vte3 move
+    # independently of this formula: `adw-1-8` was hardcoded, and no GTK or VTE
+    # feature was selected at all, so the Command monitoring mode could not appear
+    # on macOS whatever VTE was installed.
+    #
+    # pkg-config is asked rather than Homebrew's formula metadata, so the answer
+    # comes from the same files the compiler will read, and `--atleast-version` is
+    # the comparator the OBS spec and debian.rules use too — a glob over
+    # `--modversion` misses libadwaita 1.10. Ruby hashes keep insertion order, so
+    # each ladder is walked newest-first and nothing is added when even the lowest
+    # rung is unmet. Names are package-qualified because two -p packages are
+    # selected below and a bare name would be ambiguous.
+    features = %w[
+      rustconn/tray-macos
+      rustconn/system-keyring
+      rustconn/vnc-embedded
+      rustconn/rdp-embedded
+      rustconn/gfx-h264
+      rustconn/rdp-audio
+      rustconn/rd-gateway
+    ]
+
+    {
+      "libadwaita-1" => { "1.8" => "adw-1-8", "1.7" => "adw-1-7", "1.6" => "adw-1-6" },
+      "gtk4" => { "4.22" => "gtk-4-22", "4.20" => "gtk-4-20", "4.18" => "gtk-4-18" },
+      "vte-2.91-gtk4" => { "0.78" => "vte-0-78" },
+    }.each do |pc_name, ladder|
+      rung = ladder.find { |minimum, _| quiet_system("pkg-config", "--atleast-version=#{minimum}", pc_name) }
+      features << "rustconn/#{rung.last}" if rung
+    end
+
+    ohai "RustConn feature set: #{features.join(",")}"
+
     # Build both binaries in a single cargo invocation to avoid
     # duplicate dependency resolution and share compilation artifacts.
     system "cargo", "build", "--release",
            "-p", "rustconn", "-p", "rustconn-cli",
            "--no-default-features",
-           "--features", "rustconn/tray-macos,rustconn/system-keyring,rustconn/vnc-embedded,rustconn/rdp-embedded,rustconn/gfx-h264,rustconn/rdp-audio,rustconn/rd-gateway,rustconn/adw-1-8"
+           "--features", features.join(",")
 
     bin.install "target/release/rustconn"
     bin.install "target/release/rustconn-cli"

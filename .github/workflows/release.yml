@@ -186,7 +186,43 @@ jobs:
       - name: Build release binary
         run: |
           source $HOME/.cargo/env
-          cargo build --release -p rustconn -p rustconn-cli --features full
+          # This container is Fedora 44, which carries GTK 4.20+ and libadwaita
+          # 1.9 — but the build passed no version feature at all, so the RPM on
+          # every GitHub release shipped the libadwaita 1.5 baseline and could
+          # not reach the Command monitoring mode. Detect instead of assuming: a
+          # Fedora release number is not a library version, and the container
+          # image moves without this file changing.
+          #
+          # Same ladders as packaging/obs/rustconn.spec, and `--atleast-version`
+          # for the same reason — a glob over `--modversion` misses libadwaita
+          # 1.10. Names are package-qualified because two -p packages are
+          # selected here and `full` belongs to rustconn-cli.
+          #
+          # Fails safe: if a pkg-config file is missing the ladder yields
+          # nothing and the build is exactly what it was before.
+          FEATURES="full"
+          if pkg-config --atleast-version=1.8 libadwaita-1 2>/dev/null; then
+            FEATURES="$FEATURES,rustconn/adw-1-8"
+          elif pkg-config --atleast-version=1.7 libadwaita-1 2>/dev/null; then
+            FEATURES="$FEATURES,rustconn/adw-1-7"
+          elif pkg-config --atleast-version=1.6 libadwaita-1 2>/dev/null; then
+            FEATURES="$FEATURES,rustconn/adw-1-6"
+          fi
+          if pkg-config --atleast-version=4.22 gtk4 2>/dev/null; then
+            FEATURES="$FEATURES,rustconn/gtk-4-22"
+          elif pkg-config --atleast-version=4.20 gtk4 2>/dev/null; then
+            FEATURES="$FEATURES,rustconn/gtk-4-20"
+          elif pkg-config --atleast-version=4.18 gtk4 2>/dev/null; then
+            FEATURES="$FEATURES,rustconn/gtk-4-18"
+          fi
+          if pkg-config --atleast-version=0.78 vte-2.91-gtk4 2>/dev/null; then
+            FEATURES="$FEATURES,rustconn/vte-0-78"
+          fi
+          echo "=== gtk4 $(pkg-config --modversion gtk4 2>/dev/null)" \
+               "| libadwaita $(pkg-config --modversion libadwaita-1 2>/dev/null)" \
+               "| vte $(pkg-config --modversion vte-2.91-gtk4 2>/dev/null)" \
+               "=> --features $FEATURES ==="
+          cargo build --release -p rustconn -p rustconn-cli --features "$FEATURES"
 
       - name: Create RPM package
         run: |

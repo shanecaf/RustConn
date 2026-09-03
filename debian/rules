@@ -5,6 +5,18 @@ export CARGO_HOME = $(CURDIR)/debian/cargo_home
 %:
 	dh $@
 
+# NOT the file that builds any released package. Checked in 0.21.5: no workflow
+# and no script invokes this — the release `.deb` is assembled by hand with
+# `dpkg-deb --build` in .github/workflows/release.yml, and OBS uses
+# packaging/obs/debian.rules. `vendor.tar.zst`, which the build below unpacks, is
+# not even in the repository, so this cannot run from a clean checkout.
+#
+# It is kept for a local `dpkg-buildpackage` against an OBS-style source tree, and
+# deliberately left without the pkg-config feature detection the live paths grew in
+# 0.21.5: adding it here would be untestable code in a dormant file. If this is ever
+# revived, copy the `override_dh_auto_build` recipe from packaging/obs/debian.rules
+# wholesale — including its warning about comments inside the continuation chain,
+# which silently emptied the feature variables there for several releases.
 override_dh_auto_build:
 	tar --zstd -xf vendor.tar.zst
 	mkdir -p .cargo
