@@ -1899,10 +1899,7 @@ impl SplitViewBridge {
                 "power-profile-performance-symbolic",
                 i18n("Remote host monitoring"),
             ),
-            (
-                "emblem-synchronizing-symbolic",
-                i18n("Cloud Sync across devices"),
-            ),
+            ("view-refresh-symbolic", i18n("Cloud Sync across devices")),
             ("system-run-symbolic", i18n("Expect automation & tasks")),
             ("folder-symbolic", i18n("Groups, tags, and templates")),
             ("network-workgroup-symbolic", i18n("Zero Trust tunnels")),

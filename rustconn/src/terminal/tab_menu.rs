@@ -628,7 +628,12 @@ impl TerminalNotebook {
         });
         action_group.add_action(&detach_monitor_action);
 
-        // "Cycle Monitor" action — cycles Off → Activity → Silence → Off
+        // "Cycle Monitor" action — one step per activation, through every mode in
+        // `MonitorMode::next()` order: Off → Activity → Silence → Command → Off.
+        // Command joined the cycle when the mode was added; this comment said the
+        // three-mode cycle for a while after that, which matters because reaching
+        // Command from Off takes three activations and a stale list makes that
+        // look like the menu is not working.
         let cycle_monitor_action = gio::SimpleAction::new("cycle-monitor", None);
         let context_page_monitor = context_page;
         let sessions_for_monitor = self.sessions.clone();

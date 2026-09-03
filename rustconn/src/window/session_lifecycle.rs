@@ -17,6 +17,59 @@ use super::*;
 /// [#247](https://github.com/totoshko88/RustConn/issues/247)).
 const PARTIAL_LINE_GRACE: std::time::Duration = std::time::Duration::from_millis(500);
 
+/// Layers a per-connection activity-monitor override over the global defaults.
+///
+/// `connection` is `None` for a session with nothing saved behind it — the local
+/// shell, and anything else opened without a connection record. That case takes
+/// the global defaults, which is what "default" means: the only thing such a
+/// session lacks is the per-connection override.
+///
+/// It used to abort resolution instead, and the caller treated that as "do not
+/// monitor this session at all". The cost was larger than a missing setting: the
+/// abort happened before `connect_command_finished` was wired, so a local shell
+/// had no `vte.shell.postexec` subscription and Command mode could never fire on
+/// it, no matter what the shell sent or what the picker was set to. Activity and
+/// Silence were equally absent, and because the whole setup returned early there
+/// was no `Activity monitoring started` line either — the one signal that would
+/// have shown it.
+///
+/// The name is returned empty rather than invented here, because this function has
+/// no session to ask; `setup_activity_monitoring` fills it from the tab.
+fn effective_activity_config(
+    defaults: &rustconn_core::activity_monitor::ActivityMonitorDefaults,
+    connection: Option<&rustconn_core::models::Connection>,
+) -> (
+    rustconn_core::activity_monitor::MonitorMode,
+    u32,
+    u32,
+    String,
+) {
+    let Some(conn) = connection else {
+        return (
+            defaults.mode,
+            defaults.effective_quiet_period(),
+            defaults.effective_silence_timeout(),
+            String::new(),
+        );
+    };
+    let name = conn.name.clone();
+    if let Some(ref config) = conn.activity_monitor_config {
+        (
+            config.effective_mode(defaults),
+            config.effective_quiet_period(defaults),
+            config.effective_silence_timeout(defaults),
+            name,
+        )
+    } else {
+        (
+            defaults.mode,
+            defaults.effective_quiet_period(),
+            defaults.effective_silence_timeout(),
+            name,
+        )
+    }
+}
+
 /// Writes a session's transcript from the bytes its child actually produced.
 ///
 /// This is fed by [`crate::terminal::pty_relay`] rather than read back from the
@@ -269,13 +322,15 @@ impl MainWindow {
         );
     }
 
-    /// Resolves the effective activity-monitor settings for a connection.
+    /// Resolves the effective activity-monitor settings for a session.
     ///
     /// Returns `(mode, quiet_period_secs, silence_timeout_secs, connection_name)`
-    /// from the per-connection override layered over the global defaults.
+    /// from the per-connection override layered over the global defaults. The name
+    /// is empty for a session with no connection behind it; the caller supplies the
+    /// tab's own name in that case.
     ///
-    /// Returns `None` if the application state is currently borrowed or the
-    /// connection no longer exists.
+    /// Returns `None` only if the application state is currently borrowed. A
+    /// missing connection is not a failure — see [`effective_activity_config`].
     fn resolve_activity_config(
         state: &SharedAppState,
         connection_id: Uuid,
@@ -286,24 +341,10 @@ impl MainWindow {
         String,
     )> {
         let state_ref = state.try_borrow().ok()?;
-        let defaults = &state_ref.settings().activity_monitor;
-        let conn = state_ref.get_connection(connection_id)?;
-        let name = conn.name.clone();
-        Some(if let Some(ref config) = conn.activity_monitor_config {
-            (
-                config.effective_mode(defaults),
-                config.effective_quiet_period(defaults),
-                config.effective_silence_timeout(defaults),
-                name,
-            )
-        } else {
-            (
-                defaults.mode,
-                defaults.effective_quiet_period(),
-                defaults.effective_silence_timeout(),
-                name,
-            )
-        })
+        Some(effective_activity_config(
+            &state_ref.settings().activity_monitor,
+            state_ref.get_connection(connection_id),
+        ))
     }
 
     /// Re-registers activity monitoring for a session after an in-place reconnect.
@@ -358,9 +399,21 @@ impl MainWindow {
             return;
         };
 
+        // A session with no connection record has no name to borrow, so take the
+        // tab's own — that is the string the user sees, and notifications name the
+        // session rather than the connection anyway.
+        let conn_name = if conn_name.is_empty() {
+            notebook
+                .get_session_info(session_id)
+                .map_or_else(String::new, |info| info.name)
+        } else {
+            conn_name
+        };
+
         // Always register the session with the coordinator, even when the mode
         // is Off. This lets the per-tab "Monitor" menu cycle the mode on a live
-        // session (Off → Activity → Silence) without reconnecting (issue #180).
+        // session (Off → Activity → Silence → Command → Off) without
+        // reconnecting (issue #180).
         // `start` only arms the silence timer for Silence mode, and `on_output`
         // is a no-op for Off, so Off mode carries no meaningful runtime cost.
         activity.start(session_id, mode, quiet, silence);
@@ -474,8 +527,15 @@ impl MainWindow {
             ),
             // The exit code is the point of this one: "finished" and "failed with
             // status 1" are different news, and the shell told us which.
+            //
+            // `object-select-symbolic` rather than `emblem-ok-symbolic`: the latter
+            // is gone from adwaita-icon-theme 50, and since the app forces the
+            // Adwaita theme for consistency there is no fallback behind it — the
+            // tab indicator rendered as a missing-image placeholder. Check a new
+            // icon name against the installed theme before using it; a name GTK
+            // cannot resolve fails silently at the point of drawing.
             NotificationType::CommandFinished { exit_code: Some(0) } => (
-                "emblem-ok-symbolic",
+                "object-select-symbolic",
                 i18n_f("Command finished: {}", &[session_name]),
             ),
             NotificationType::CommandFinished {
@@ -488,7 +548,7 @@ impl MainWindow {
                 ),
             ),
             NotificationType::CommandFinished { exit_code: None } => (
-                "emblem-ok-symbolic",
+                "object-select-symbolic",
                 i18n_f("Command finished: {}", &[session_name]),
             ),
         };
@@ -712,14 +772,24 @@ impl MainWindow {
             if let Ok(mut state_mut) = state_clone.try_borrow_mut()
                 && let Err(e) = state_mut.terminate_session(session_id)
             {
-                // At shutdown this handler races the exit it is reacting to:
-                // close_all_control_sockets() kills the SSH connections, the
-                // child is reaped, and the session is gone from the manager
-                // before we ask it to terminate. "Session not found" is then the
-                // expected outcome, not a problem, and warning about it only
-                // fills the log a user is about to attach to a bug report.
-                if crate::app::is_shutting_down() {
-                    tracing::debug!(?e, %session_id, "Session already gone at shutdown");
+                // "Session not found" here is the expected end of a race rather
+                // than a fault, and it arrives by two routes. At shutdown
+                // close_all_control_sockets() kills the connections and the child
+                // is reaped before we ask the manager to terminate. On tab close
+                // the widget side tears the session down first — that is the
+                // `Killed VTE child process group on tab close` line — and this
+                // handler, reacting to the exit that caused, arrives second. Only
+                // the first route was recognised, so an ordinary tab close logged
+                // a warning about an outcome the code had just arranged.
+                //
+                // Both are identified by the session already being absent, not by
+                // matching the error text: it crosses this boundary as a formatted
+                // String, and classifying by prose is how the KeePassXC locale bug
+                // happened. Anything else still warns.
+                let already_gone = crate::app::is_shutting_down()
+                    || notebook_clone.get_session_info(session_id).is_none();
+                if already_gone {
+                    tracing::debug!(?e, %session_id, "Session already gone; nothing to terminate");
                 } else {
                     tracing::warn!(?e, %session_id, "Failed to terminate session");
                 }
@@ -1434,5 +1504,102 @@ mod transcript_writer_tests {
             written.contains("[REDACTED]"),
             "the line must be marked, not silently dropped: {written}"
         );
+    }
+}
+
+#[cfg(test)]
+mod activity_config_tests {
+    use rustconn_core::activity_monitor::{
+        ActivityMonitorConfig, ActivityMonitorDefaults, MonitorMode,
+    };
+    use rustconn_core::models::Connection;
+
+    use super::effective_activity_config;
+
+    /// Global defaults with an explicit mode, so a test can tell "the default
+    /// applied" apart from "Off happened to be right".
+    fn defaults(mode: MonitorMode) -> ActivityMonitorDefaults {
+        ActivityMonitorDefaults {
+            mode,
+            quiet_period_secs: 10,
+            silence_timeout_secs: 30,
+        }
+    }
+
+    /// The regression. A session with no connection record — the local shell —
+    /// aborted resolution, and the caller read that as "do not monitor this
+    /// session", returning before `connect_command_finished` was wired. So Command
+    /// mode could never fire on a local shell whatever the shell emitted, Activity
+    /// and Silence were equally absent, and no `Activity monitoring started` line
+    /// was logged to show it.
+    #[test]
+    fn a_session_without_a_connection_takes_the_global_defaults() {
+        let (mode, quiet, silence, name) =
+            effective_activity_config(&defaults(MonitorMode::Command), None);
+
+        assert_eq!(
+            mode,
+            MonitorMode::Command,
+            "a session with no connection has no override, so the global default is \
+             the whole answer"
+        );
+        assert_eq!(quiet, 10);
+        assert_eq!(silence, 30);
+        assert!(
+            name.is_empty(),
+            "there is no connection to name here; the caller substitutes the tab's own"
+        );
+    }
+
+    /// SHALL CONTINUE TO: a saved connection with no override reads the globals and
+    /// reports its own name.
+    #[test]
+    fn a_connection_without_an_override_still_takes_the_globals() {
+        let conn = Connection::new_ssh("prod-db".to_string(), "10.0.0.1".to_string(), 22);
+
+        let (mode, quiet, silence, name) =
+            effective_activity_config(&defaults(MonitorMode::Silence), Some(&conn));
+
+        assert_eq!(mode, MonitorMode::Silence);
+        assert_eq!(quiet, 10);
+        assert_eq!(silence, 30);
+        assert_eq!(name, "prod-db", "notifications name the connection");
+    }
+
+    /// SHALL CONTINUE TO: a per-connection override beats the global default in
+    /// every field it sets.
+    #[test]
+    fn a_per_connection_override_wins_over_the_globals() {
+        let mut conn = Connection::new_ssh("build-host".to_string(), "10.0.0.2".to_string(), 22);
+        conn.activity_monitor_config = Some(ActivityMonitorConfig {
+            mode: Some(MonitorMode::Activity),
+            quiet_period_secs: Some(42),
+            silence_timeout_secs: Some(99),
+        });
+
+        let (mode, quiet, silence, name) =
+            effective_activity_config(&defaults(MonitorMode::Off), Some(&conn));
+
+        assert_eq!(mode, MonitorMode::Activity);
+        assert_eq!(quiet, 42);
+        assert_eq!(silence, 99);
+        assert_eq!(name, "build-host");
+    }
+
+    /// The connection-less branch has to go through the `effective_*` accessors
+    /// rather than reading the fields, or an out-of-range stored value would reach
+    /// a timer. Clamping is the observable difference between the two.
+    #[test]
+    fn a_connectionless_session_gets_its_periods_clamped() {
+        let out_of_range = ActivityMonitorDefaults {
+            mode: MonitorMode::Silence,
+            quiet_period_secs: 0,
+            silence_timeout_secs: 100_000,
+        };
+
+        let (_, quiet, silence, _) = effective_activity_config(&out_of_range, None);
+
+        assert_eq!(quiet, 1, "0 is below the 1-second floor");
+        assert_eq!(silence, 600, "100000 is above the 600-second ceiling");
     }
 }

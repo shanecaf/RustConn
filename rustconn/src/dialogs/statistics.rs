@@ -130,7 +130,9 @@ impl StatisticsDialog {
         // Empty state — no connections recorded yet
         if stats.total_connections == 0 {
             let status_page = adw::StatusPage::builder()
-                .icon_name("chart-line-symbolic")
+                // adwaita-icon-theme 50 ships no chart or graph glyph at all, so an
+                // ordered list stands in for the report this page will hold.
+                .icon_name("view-list-ordered-symbolic")
                 .title(i18n("No Statistics Yet"))
                 .description(i18n("Statistics will appear after your first connection."))
                 .vexpand(true)

@@ -602,7 +602,7 @@ pub fn bind_list_item(
             let sync_err = item.sync_error();
             if sync_err.is_empty() {
                 // No error — show synced indicator
-                sync_icon.set_icon_name(Some("emblem-synchronizing-symbolic"));
+                sync_icon.set_icon_name(Some("view-refresh-symbolic"));
                 sync_icon.remove_css_class("error");
                 sync_icon.add_css_class("dim-label");
 

@@ -900,6 +900,37 @@ struct TrayStateCache {
     connections_hash: i64,
 }
 
+/// Window actions the tray activates, named as the window's own action map
+/// spells them — **without** a `win.` prefix.
+///
+/// The distinction is what broke every session-opening tray item. There are two
+/// ways to activate a window action from code and they take different names:
+///
+/// - `ActionGroupExt::activate_action(&window, ..)` — the window *is* the
+///   `GActionGroup`, so the name is looked up verbatim in its action map and a
+///   prefix must not be present. This is what the rest of the codebase does
+///   (`window/mod.rs` for `connect-to` and the command palette).
+/// - `WidgetExt::activate_action(&widget, ..)` — goes through the widget action
+///   muxer, which splits the name on the first `.` to pick a group, so the
+///   prefix is *required* (`app.rs` uses `"win.settings"` this way).
+///
+/// The tray used the second function with the first function's names. Without a
+/// dot the muxer finds no group, returns `FALSE`, and the `let _ =` discarded it —
+/// so Local Shell, Quick Connect and every Recent Connections entry highlighted
+/// on click and then did nothing, on both the ksni and the macOS tray, which
+/// share this dispatch.
+const TRAY_QUICK_CONNECT_ACTION: &str = "quick-connect";
+/// See [`TRAY_QUICK_CONNECT_ACTION`] for why this carries no `win.` prefix.
+const TRAY_LOCAL_SHELL_ACTION: &str = "local-shell";
+/// The parameterised connect action, taking a connection id.
+///
+/// Not `connect`: that one is `SimpleAction::new("connect", None)` and acts on
+/// the *sidebar selection*, ignoring any parameter. So the tray's chosen
+/// connection had nowhere to arrive even once the prefix was right, and GTK
+/// would reject the activation anyway for passing a parameter to an action
+/// declared without one. See [`TRAY_QUICK_CONNECT_ACTION`] for the prefix.
+const TRAY_CONNECT_ACTION: &str = "connect-to";
+
 /// Sets up event-driven tray message handling and periodic state sync.
 ///
 /// Tray messages (user clicks) arrive over an `async_channel` and are
@@ -961,6 +992,12 @@ fn setup_tray_handling(
                 break;
             };
 
+            // This path had no logging at all, which is why a tray item that did
+            // nothing was indistinguishable from a click that never arrived: the
+            // absence of output proved neither. One line here answers that,
+            // because the message is logged before anything can silently fail.
+            tracing::debug!(?msg, "handling tray message");
+
             match msg {
                 TrayMessage::ShowWindow => {
                     if let Some(win) = window_for_msgs.upgrade() {
@@ -989,9 +1026,9 @@ fn setup_tray_handling(
                     if let Some(win) = window_for_msgs.upgrade() {
                         win.present();
                         tray.set_window_visible(true);
-                        let _ = gtk4::prelude::WidgetExt::activate_action(
+                        gio::prelude::ActionGroupExt::activate_action(
                             &win,
-                            "connect",
+                            TRAY_CONNECT_ACTION,
                             Some(&conn_id.to_string().to_variant()),
                         );
                     }
@@ -1000,16 +1037,22 @@ fn setup_tray_handling(
                     if let Some(win) = window_for_msgs.upgrade() {
                         win.present();
                         tray.set_window_visible(true);
-                        let _ =
-                            gtk4::prelude::WidgetExt::activate_action(&win, "quick-connect", None);
+                        gio::prelude::ActionGroupExt::activate_action(
+                            &win,
+                            TRAY_QUICK_CONNECT_ACTION,
+                            None,
+                        );
                     }
                 }
                 TrayMessage::LocalShell => {
                     if let Some(win) = window_for_msgs.upgrade() {
                         win.present();
                         tray.set_window_visible(true);
-                        let _ =
-                            gtk4::prelude::WidgetExt::activate_action(&win, "local-shell", None);
+                        gio::prelude::ActionGroupExt::activate_action(
+                            &win,
+                            TRAY_LOCAL_SHELL_ACTION,
+                            None,
+                        );
                     }
                 }
                 TrayMessage::About => {
@@ -1919,4 +1962,54 @@ pub fn install_layout_independent_accels(window: &adw::ApplicationWindow, app: &
     });
 
     window.add_controller(controller);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{TRAY_CONNECT_ACTION, TRAY_LOCAL_SHELL_ACTION, TRAY_QUICK_CONNECT_ACTION};
+
+    /// The tray activates these on the window's own `GActionGroup`, which resolves
+    /// a name verbatim against its action map and knows nothing about groups. A
+    /// `win.` prefix here matches nothing and fails silently, which is the bug
+    /// this guards: Local Shell, Quick Connect and Recent Connections all did
+    /// nothing when the tray passed muxer-style names to a plain action group.
+    ///
+    /// If a future change moves these back to `WidgetExt::activate_action`, the
+    /// prefix becomes mandatory and this test has to change with it — that is the
+    /// point, since the two functions cannot share one spelling.
+    #[test]
+    fn tray_window_actions_carry_no_group_prefix() {
+        for name in [
+            TRAY_CONNECT_ACTION,
+            TRAY_QUICK_CONNECT_ACTION,
+            TRAY_LOCAL_SHELL_ACTION,
+        ] {
+            assert!(
+                !name.contains('.'),
+                "{name}: activated on the window's action group, which does not \
+                 resolve a group prefix"
+            );
+            assert!(
+                !name.is_empty(),
+                "an empty action name activates nothing, silently"
+            );
+        }
+    }
+
+    /// Recent Connections was broken twice over, and the prefix was only half of
+    /// it. `connect` is declared with no parameter and connects whatever the
+    /// sidebar has selected, so the id the tray sends is discarded and GTK
+    /// rejects the activation for supplying a parameter at all. `connect-to`
+    /// is the action that takes a connection id.
+    #[test]
+    fn tray_connect_targets_the_parameterised_action() {
+        assert_eq!(
+            TRAY_CONNECT_ACTION, "connect-to",
+            "the tray sends a connection id, so it needs the action that accepts one"
+        );
+        assert_ne!(
+            TRAY_CONNECT_ACTION, "connect",
+            "`connect` acts on the sidebar selection and ignores the id"
+        );
+    }
 }
