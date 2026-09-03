@@ -177,8 +177,8 @@ impl TerminalNotebook {
 
         // Apply per-connection theme override (if present) on top of the global theme
         if let Some(override_colors) = theme_override {
-            let base_theme = TerminalTheme::by_name(&settings.color_theme)
-                .unwrap_or_else(TerminalTheme::dark_theme);
+            let base_theme =
+                TerminalTheme::resolve(&settings.color_theme, crate::app::system_is_dark());
             config::apply_theme_override_with_base(&terminal, override_colors, &base_theme);
         }
 

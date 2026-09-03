@@ -313,7 +313,10 @@ modules:
         chmod +x /app/bin/cc-wrap
       # Rename deprecated cargo/config to config.toml
       - if [ -f cargo/config ]; then mv cargo/config cargo/config.toml; fi
-      - CC=/app/bin/cc-wrap cargo build --release -p rustconn --features adw-1-8
+      # Keep in sync with the Flathub manifest, which carries the reasoning for
+      # each of the three: GTK 4.22.4 and libadwaita 1.9.3 come from the GNOME 50
+      # runtime, VTE 0.78+ from the bundled 0.80.5 module above.
+      - CC=/app/bin/cc-wrap cargo build --release -p rustconn --features 'adw-1-8,vte-0-78,gtk-4-22'
       - CC=/app/bin/cc-wrap cargo build --release -p rustconn-cli --features full
       - install -Dm755 target/release/rustconn /app/bin/rustconn
       - install -Dm755 target/release/rustconn-cli /app/bin/rustconn-cli

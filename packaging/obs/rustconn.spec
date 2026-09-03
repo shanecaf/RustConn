@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.21.4
+Version:        0.21.5
 Release:        0
 # rpmlint caps Summary at 79 characters (summary-too-long, badness 200); the
 # protocol list belongs in %description, which has room for all of it. Kept in
@@ -197,49 +197,73 @@ EOF
 export PATH="$PWD/rust-toolchain/bin:$PATH"
 %endif
 
-# Determine libadwaita feature flags based on distro version:
-#   adw-1-8: libadwaita >= 1.8 (Tumbleweed/Slowroll, Fedora 43+)
-#   adw-1-7: libadwaita >= 1.7 (Leap 16.0, Fedora 42)
-#   (none):  libadwaita 1.5 baseline (older distros)
+# Pick the version features the build host can actually back by asking
+# pkg-config, the way debian.rules already does, instead of mapping a distro
+# release number to a library version by hand.
 #
-# WebKitGTK 6.0 (web-embedded feature):
-#   Available on Tumbleweed/Slowroll, Fedora 43+, Fedora 44+
-#   NOT available on Leap 16.0, Fedora 42 (only webkit2gtk 4.1 for GTK3)
-#   Passed as a separate --features flag; cargo merges it with defaults.
-%if 0%{?suse_version} > 1600
-# Tumbleweed / Slowroll — libadwaita 1.8+ (1.9 with GNOME 50)
-%define adw_features --features adw-1-8
-%define web_features ,web-embedded
-%else
-%if 0%{?suse_version} == 1600
-# Leap 16.0 — GNOME 48, libadwaita 1.7 (no WebKitGTK 6.0)
-%define adw_features --features adw-1-7
-%define web_features %{nil}
-%endif
-%endif
+# The hand-written table this replaces needed an edit for every new distro
+# release, and it was wrong about the ones it already listed: Fedora 43/44,
+# Tumbleweed and Ubuntu 26.04 carry GTK 4.20 or 4.22, and the table said 4.18
+# everywhere. Nothing fails loudly when that goes stale — the build quietly
+# compiles a lower baseline and no one finds out.
+#
+# Every test is --atleast-version rather than a glob over --modversion, which is
+# what debian.rules used to do and which had a trap in it: a case pattern of
+# 1.8 or 1.9 does not match libadwaita 1.10, so the first distro to ship 1.10
+# would have dropped silently to the 1.5 baseline. --atleast-version also gets
+# GTK 4.24 and VTE 0.100 right for free.
+#
+# Highest match wins, so each ladder is ordered newest-first. Everything lands
+# in one comma-separated list and one --features argument; cargo unions repeated
+# flags anyway, but a single list is easier to read in a build log.
+GTK_VERSION=$(pkg-config --modversion gtk4 2>/dev/null)
+ADW_VERSION=$(pkg-config --modversion libadwaita-1 2>/dev/null)
+VTE_VERSION=$(pkg-config --modversion vte-2.91-gtk4 2>/dev/null)
 
-%if 0%{?fedora} >= 43
-# Fedora 43+ — GNOME 49+, libadwaita 1.8+, WebKitGTK 6.0
-%define adw_features --features adw-1-8
-%define web_features ,web-embedded
-%else
-%if 0%{?fedora} == 42
-# Fedora 42 — GNOME 48, libadwaita 1.7 (no WebKitGTK 6.0)
-%define adw_features --features adw-1-7
-%define web_features %{nil}
-%endif
-%endif
+# Everything from `default` except web-embedded, which is detected below.
+FEATURES="tray,system-keyring,vnc-embedded,rdp-embedded,gfx-h264,rdp-audio,rd-gateway,wayland-native"
 
-# Base features: everything from `default` except web-embedded (conditional above)
-%define base_features tray,system-keyring,vnc-embedded,rdp-embedded,gfx-h264,rdp-audio,rd-gateway,wayland-native
+if pkg-config --atleast-version=1.8 libadwaita-1 2>/dev/null; then
+    FEATURES="$FEATURES,adw-1-8"
+elif pkg-config --atleast-version=1.7 libadwaita-1 2>/dev/null; then
+    FEATURES="$FEATURES,adw-1-7"
+elif pkg-config --atleast-version=1.6 libadwaita-1 2>/dev/null; then
+    FEATURES="$FEATURES,adw-1-6"
+fi
+
+# GTK: a newer library's runtime behaviour arrives with the link and needs no
+# feature at all. What the feature buys is access to API added in that version,
+# and deprecation warnings for what it retired.
+if pkg-config --atleast-version=4.22 gtk4 2>/dev/null; then
+    FEATURES="$FEATURES,gtk-4-22"
+elif pkg-config --atleast-version=4.20 gtk4 2>/dev/null; then
+    FEATURES="$FEATURES,gtk-4-20"
+elif pkg-config --atleast-version=4.18 gtk4 2>/dev/null; then
+    FEATURES="$FEATURES,gtk-4-18"
+fi
+
+# VTE termprops, and with them the Command monitoring mode. Below 0.78
+# system-deps fails inside the build script rather than in the dependency
+# solver, which is a much less obvious error than a resolver conflict.
+if pkg-config --atleast-version=0.78 vte-2.91-gtk4 2>/dev/null; then
+    FEATURES="$FEATURES,vte-0-78"
+fi
+
+# WebKitGTK 6.0 is absent on Leap 16.0 and Fedora 42, which carry only the
+# GTK3-flavoured webkit2gtk 4.1.
+if pkg-config --exists webkitgtk-6.0 2>/dev/null; then
+    FEATURES="$FEATURES,web-embedded"
+fi
+
+echo "=== gtk4 $GTK_VERSION | libadwaita $ADW_VERSION | vte $VTE_VERSION => --features $FEATURES ==="
 
 %if 0%{?suse_version}
-%{cargo_build} -p rustconn --no-default-features --features %{base_features}%{?web_features} %{?adw_features}
+%{cargo_build} -p rustconn --no-default-features --features "$FEATURES"
 %{cargo_build} -p rustconn-cli --features full
 %else
 # --offline: belt-and-suspenders against accidental network access —
 # all crates come from the vendored sources configured in .cargo/config.toml
-cargo build --release --offline -p rustconn --no-default-features --features %{base_features}%{?web_features} %{?adw_features}
+cargo build --release --offline -p rustconn --no-default-features --features "$FEATURES"
 cargo build --release --offline -p rustconn-cli --features full
 %endif
 
@@ -321,6 +345,98 @@ done
 %{_datadir}/icons/hicolor/*/apps/io.github.totoshko88.RustConn.*
 
 %changelog
+* Thu Sep 03 2026 Anton Isaiev <totoshko88@gmail.com> - 0.21.5-0
+- Version bump to 0.21.5
+- Added: terminal colours can follow the desktop's light/dark preference — a new
+  Follow System entry in Preferences > Terminal > Theme. The System colour scheme
+  previously reached only the GTK chrome, so a light desktop could surround a dark
+  terminal. Terminals also repaint on a mid-session switch (#99), without undoing
+  a per-session Backspace/Delete choice (#271)
+- Added: a monitoring mode that fires when the remote shell reports a command
+  finished, read from VTE's vte.shell.postexec termprop (OSC 133), so it carries
+  the exit code and distinguishes success from failure (#236). Needs shell
+  integration on the remote host and VTE 0.78+
+- Added: monitoring notifications also set AdwTabPage:needs-attention, so the tab
+  keeps a mark until selected; this repairs a latent gap in Activity and Silence,
+  whose only signal was the single indicator-icon slot
+- Fixed: the window rendered light on a dark desktop when the theme was System — a
+  notify handler cleared the property AdwStyleManager uses to say it resolved dark
+- Fixed: every OBS Debian and Ubuntu package was built with no libadwaita feature
+  and no in-tab browser; debian.rules detected the versions and then lost them to a
+  comment inside a make continuation chain, which gives each chain its own shell
+- Fixed: this spec chose features from a hand-written distro table that had gone
+  stale and had no VTE branch at all. It now asks pkg-config --atleast-version for
+  libadwaita, GTK, VTE and WebKitGTK, which also closes a second trap: a glob over
+  --modversion does not match libadwaita 1.10
+- Fixed: the Flatpak, the release RPM and the Homebrew formula were in the same
+  position and now detect too
+- Fixed: four stylesheet declarations had never applied — .monitoring-bar used
+  margin-start/margin-end, which GTK's CSS does not have. A new gate,
+  scripts/check-css.sh, parses the sheet through the installed GTK
+- Fixed: the monitoring mode picker no longer needs editing when a mode is added
+- Fixed: the .deb and .rpm attached to a GitHub release named three fewer libraries
+  than the binary loads, so the .deb failed in the dynamic linker before reaching
+  main() with "error while loading shared libraries: libwebkitgtk-6.0.so.4", on a
+  package that had installed without complaint (#313, reported by Phil Clifford).
+  Both are assembled by hand in the release workflow — the .deb with an inline
+  control packed by dpkg-deb, the .rpm by fpm with an explicit --depends list — so
+  neither ran the dependency machinery a normal build provides, and both lists fell
+  behind the binary when web-embedded entered the crate's default features. Against
+  the recursive closure of the old Depends (266 packages) three were unreachable:
+  libwebkitgtk-6.0-4, libjavascriptcoregtk-6.0-1 and libasound2t64, the last from
+  the RDP audio feature. The lists are now derived instead of remembered —
+  dpkg-shlibdeps over the staged binaries for the .deb, --rpm-autoreqprov for the
+  .rpm, since fpm writes AutoReqProv: no unless told otherwise — and both steps
+  fail the build if WebKitGTK is absent from the result. openssh-client and the
+  gtk4 4.14 floor stay declared by hand, being a program and a version no
+  referenced symbol proves. The OBS packages were never affected: that Debian build
+  goes through dh, so dh_shlibdeps derives the list, and the RPM gets rpmbuild's
+  own generator
+- Fixed: every tray menu item that opens a session did nothing — Local Shell,
+  Quick Connect and all of Recent Connections, on KDE's StatusNotifier and on the
+  macOS tray alike, since both feed the same dispatch. They went through the
+  widget action muxer, which picks a group by splitting the name on the first dot,
+  carrying names spelled for the window's own action group; with no prefix there
+  was no group to find and the FALSE return was discarded. Recent Connections was
+  broken twice over: it named connect, which takes no parameter and acts on the
+  sidebar selection, so the connection picked in the tray had nowhere to arrive.
+  All three now activate on the window's own action group, and tray messages are
+  logged on arrival — this path had no logging at all
+- Fixed: local shell tabs never took part in activity monitoring, in any mode.
+  Resolving the configuration gave up when a session had no connection record and
+  the caller read that as "do not monitor", returning before the command-finished
+  subscription was wired, so the new Command mode could not fire on a local shell
+  whatever the shell emitted and there was no "Activity monitoring started" line
+  to show it. A connection-less session now takes the global defaults, which is
+  what they are for, and notifications use the tab's own name
+- Fixed: five icon names had been dropped by adwaita-icon-theme 50 and drew as
+  missing-image placeholders, one of them the success mark of the new Command
+  mode. The app forces the Adwaita theme at startup, so a name the theme no
+  longer carries resolves nowhere and GTK reports nothing — it surfaces only as a
+  broken glyph. All nine call sites now use names verified present: the success
+  mark, the four sync indicators, the Statistics empty state and two RDP quick
+  actions
+- Fixed: KeePassXC reported "Could not read the password" for a database that was
+  open and healthy, in every non-English interface language. keepassxc-cli exits 1
+  for "entry not found", "wrong database key" and "database unreadable" alike, so
+  they are told apart by matching its English prose — but it is a Qt program that
+  translates that prose, and RustConn exports LANGUAGE to honour its own language
+  setting. A merely missing entry was classified as an unreadable database, which
+  produced a misleading modal and also skipped "Also read from the encrypted
+  file", making a password in credentials.enc unreachable. The child now gets
+  LC_MESSAGES=C with LANGUAGE cleared, in the one place all six callers build
+  their command, so four other stderr matchers in that file are fixed by the same
+  two lines. The character encoding is left as the user had it, so a non-ASCII
+  group name or a database named Паролі.kdbx still works
+- Fixed: two strings added in 0.21.4 — the Login Timeout row and its subtitle —
+  shipped untranslated in all 17 languages, because the template was never
+  regenerated and the completeness check compared against that same incomplete
+  template. Both are now translated everywhere
+- Changed: new gtk-4-18/gtk-4-20/gtk-4-22 features; enabling 4.22 surfaced three
+  deprecations, all resolved
+- Changed: new installations default to the Follow System terminal theme
+- Dependencies: mio 1.2.2→1.2.3, open 5.4.2→5.4.3, toml 1.1.4→1.1.5
+
 * Wed Sep 02 2026 Anton Isaiev <totoshko88@gmail.com> - 0.21.4-0
 - Version bump to 0.21.4
 - Fixed: a SPICE connection with a stored password failed outright in Flatpak

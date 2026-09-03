@@ -17,7 +17,7 @@ name = "rustconn"
 path = "src/main.rs"
 
 [dependencies]
-rustconn-core = { path = "../rustconn-core", version = "0.21.4", default-features = false }
+rustconn-core = { path = "../rustconn-core", version = "0.21.5", default-features = false }
 tokio = { workspace = true }
 # Event-driven tray message delivery to the GTK main loop (no polling)
 async-channel = { workspace = true }
@@ -75,12 +75,12 @@ shell-words = "1"
 nix = { version = "0.31", features = ["signal", "process"] }
 # PTY creation, sizing and controlling-terminal setup for every session's
 # child. Lives in its own crate because `unsafe` is forbidden here.
-rustconn-pty-sys = { path = "../rustconn-pty-sys", version = "0.21.4" }
+rustconn-pty-sys = { path = "../rustconn-pty-sys", version = "0.21.5" }
 # The startup `setlocale` call, guarded so it can only run from the startup
 # thread, before this program has spawned any thread of its own, and before the
 # window is sealed. Same reason for the separate crate: `setlocale` is `unsafe`
 # in gettext-rs 0.8 and `unsafe` is forbidden here.
-rustconn-locale-sys = { path = "../rustconn-locale-sys", version = "0.21.4" }
+rustconn-locale-sys = { path = "../rustconn-locale-sys", version = "0.21.5" }
 # The startup `GSK_RENDERER` and `LANGUAGE` writes, guarded the same way.
 # Neither GTK nor gettext offers an API for these, so the environment is the only
 # interface, and `std::env::set_var` is `unsafe` in edition 2024 while `unsafe`
@@ -88,14 +88,14 @@ rustconn-locale-sys = { path = "../rustconn-locale-sys", version = "0.21.4" }
 # guest-VM (#274) and Flatpak language (#158) paths all go through it, and an
 # unconditional dependency is what gets the guard compiled and its contract
 # tests run on every job rather than on the one macOS job alone.
-rustconn-env-sys = { path = "../rustconn-env-sys", version = "0.21.4" }
+rustconn-env-sys = { path = "../rustconn-env-sys", version = "0.21.5" }
 # The macOS Dock tile image, for launches LaunchServices cannot find an icon for
 # (a bare binary from a shell, or an .app whose CFBundleExecutable execs a binary
 # outside the bundle). `-[NSApplication setApplicationIconImage:]` is the only
 # interface that works there, GDK exposes no Dock API, and `unsafe` is forbidden
 # here. Unconditional for the same reason as the three above; the AppKit bindings
 # it needs are target-gated inside that crate, since they build nowhere else.
-rustconn-dock-sys = { path = "../rustconn-dock-sys", version = "0.21.4" }
+rustconn-dock-sys = { path = "../rustconn-dock-sys", version = "0.21.5" }
 # WebKitGTK 6.0 bindings for embedded web browser (Linux only)
 webkit6 = { version = "0.6", optional = true }
 
@@ -147,6 +147,57 @@ adw-1-7 = ["adw-1-6", "libadwaita/v1_7"]
 # Enable libadwaita 1.8+ widgets (AdwShortcutsDialog, AdwShortcutLabel)
 # Requires libadwaita >= 1.8 at build time (GNOME 49+ Flatpak runtime or Fedora 42+)
 adw-1-8 = ["adw-1-7", "libadwaita/v1_8"]
+
+# GTK4 baselines above the `v4_14` floor the workspace pins.
+#
+# What these do and do not buy, because it is easy to expect too much: the runtime
+# behaviour of a newer GTK — portals for file dialogs by default (4.18), the
+# accessibility work on entries and file choosers (4.20), GtkSvg (4.22) — arrives
+# with the *linked* library and needs no feature at all. What the feature adds is
+# access to API introduced in that version, and deprecation warnings for what it
+# retired. The second half is the immediate value: it is what surfaced the three
+# deprecations fixed alongside this.
+#
+# GNOME 50 is the target platform, so 4.22 is included rather than left for later.
+# Every channel except the three on the `v4_14` floor — Ubuntu 24.04 deb, the snap's
+# core24 platform and the noble AppImage — already runs 4.18 or newer.
+gtk-4-18 = ["gtk4/v4_18"]
+gtk-4-20 = ["gtk-4-18", "gtk4/v4_20"]
+gtk-4-22 = ["gtk-4-20", "gtk4/v4_22"]
+
+# Deliberately absent: an `adw-1-9` feature. libadwaita 1.9 is what GNOME 50 ships
+# and RustConn already links against it there, but a cargo feature only widens the
+# *bindings*, and nothing in this crate calls 1.9 API. Its automatic gains — the
+# reduced-motion support and the accessibility fixes to badges and context menus —
+# come from the linked library and are already in effect. `AdwSidebar` is the one
+# widget worth the feature, and it does not fit: this sidebar is a `TreeListModel`
+# with drag-and-drop and multi-selection, `AdwSidebar` is a flat list with sections.
+# Add the feature when something needs it, not to record a version.
+
+# VTE 0.78+ termprops: the `termprop-changed` signal and the scalar termprop
+# getters. Used for shell integration (OSC 133) — `vte.shell.postexec` carries the
+# exit code of the command that just finished, which drives the Command monitoring
+# mode. See `crate::terminal::termprops`.
+#
+# NOT in `default`, and the reason is a build requirement rather than taste: three
+# channels ship VTE 0.76 — Ubuntu 24.04 deb, the snap's core24 platform, and the
+# noble-based AppImage. `system-deps` fails inside the build script rather than in
+# the dependency solver when the installed VTE is older, which is a much less
+# obvious error than a resolver conflict, so keep this opt-in per channel exactly
+# as `adw-1-8` is. `debian.rules` detects the version with pkg-config.
+#
+# `MonitorMode::Command` exists in `rustconn-core` unconditionally, because that
+# crate has no VTE dependency and `settings.toml` has to stay loadable across
+# builds: a config written by the Flatpak must not break the snap. Without this
+# feature the mode is hidden from the picker and never fires.
+vte-0-78 = ["vte4/v0_78"]
+# 0.80 adds image termprops, which `vte4` 0.10 does not bind and VTE 0.84 never
+# populates ("this termprop is always unset"). Present for completeness only.
+vte-0-80 = ["vte-0-78", "vte4/v0_80"]
+# 0.82 lets the generic termprop OSC set the progress termprops; before it, only
+# OSC 9;4 (ConEmu) could. Not required for reading them.
+vte-0-82 = ["vte-0-80", "vte4/v0_82"]
+vte-0-84 = ["vte-0-82", "vte4/v0_84"]
 
 # Inherit workspace lints as base, then add GTK-specific suppressions.
 # Note: Cargo requires that workspace = true stands alone in [lints];

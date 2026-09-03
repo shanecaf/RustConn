@@ -356,8 +356,8 @@ fn color_to_rgba(color: &Color) -> gdk::RGBA {
 }
 
 /// Sets up terminal colors with theme
-fn setup_colors_with_theme(terminal: &Terminal, theme_name: &str) {
-    let theme = TerminalTheme::by_name(theme_name).unwrap_or_else(TerminalTheme::dark_theme);
+pub(crate) fn setup_colors_with_theme(terminal: &Terminal, theme_name: &str) {
+    let theme = TerminalTheme::resolve(theme_name, crate::app::system_is_dark());
 
     let bg_color = color_to_rgba(&theme.background);
     let fg_color = color_to_rgba(&theme.foreground);

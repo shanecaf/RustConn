@@ -29,22 +29,72 @@ override_dh_auto_configure:
 	echo 'directory = "vendor"' >> .cargo/config.toml
 
 override_dh_auto_build:
-	# Detect libadwaita version and set feature flags accordingly
-	ADW_VERSION=$$(pkg-config --modversion libadwaita-1 2>/dev/null | cut -d. -f1,2); \
+	# NOTHING BUT BACKSLASH-CONTINUED LINES MAY GO BELOW THIS COMMENT BLOCK.
+	#
+	# A comment line inside the continuation chain ends it, and make hands each
+	# chain to its own shell, so every variable assigned before the comment is gone
+	# by the time the `cargo` line runs. This is not hypothetical: a comment sat in
+	# the middle of this recipe until 0.21.5, and running the recipe as committed
+	# printed `=== libadwaita  => features:  | web:  | vte 0.84 =>,vte-0-78 ===` on a
+	# host with libadwaita 1.9.1 and WebKitGTK 6.0 installed. Every OBS Debian and
+	# Ubuntu package was therefore built with no `adw-1-*` feature and no
+	# `web-embedded` — Debian 13 and Ubuntu 26.04 silently got the libadwaita 1.5
+	# baseline, and the in-tab browser was silently absent everywhere. Only VTE
+	# survived, because its detection happened to sit after the last comment and so
+	# shared a shell with the build line.
+	#
+	# What the ladders below decide:
+	#
+	#   libadwaita — 1.8/1.7/1.6 widget sets, each with a working 1.5 fallback.
+	#   GTK        — a newer library's runtime behaviour arrives with the link and
+	#                needs no feature at all; the feature buys API added in that
+	#                version and deprecation warnings for what it retired. Ubuntu
+	#                24.04 stays on the 4.14 floor the workspace pins.
+	#   VTE        — termprops, and with them the Command monitoring mode. Below
+	#                0.78 `system-deps` fails inside the build script rather than in
+	#                the dependency solver, which is a far less obvious error than a
+	#                resolver conflict, so the version is checked rather than assumed.
+	#   WebKitGTK  — the in-tab browser; absent on hosts carrying only the
+	#                GTK3-flavoured webkit2gtk 4.1.
+	#
+	# Every test is `pkg-config --atleast-version`, not a glob over `--modversion`.
+	# The glob had its own trap: `case $$V in 1.8*|1.9*)` does not match libadwaita
+	# `1.10`, so the first distro to ship 1.10 would have dropped to the 1.5 baseline
+	# for a second, unrelated reason. `--atleast-version` also gets GTK 4.24 and VTE
+	# 0.100 right for free, and is the comparison pkg-config exists to do.
+	#
+	# Highest match wins, so each ladder is ordered newest-first.
+	ADW_VERSION=$$(pkg-config --modversion libadwaita-1 2>/dev/null); \
 	ADW_FEATURES=""; \
-	case "$$ADW_VERSION" in \
-		1.8*|1.9*) ADW_FEATURES="--features adw-1-8" ;; \
-		1.7*)       ADW_FEATURES="--features adw-1-7" ;; \
-		1.6*)       ADW_FEATURES="--features adw-1-6" ;; \
-	esac; \
+	if pkg-config --atleast-version=1.8 libadwaita-1 2>/dev/null; then \
+		ADW_FEATURES="--features adw-1-8"; \
+	elif pkg-config --atleast-version=1.7 libadwaita-1 2>/dev/null; then \
+		ADW_FEATURES="--features adw-1-7"; \
+	elif pkg-config --atleast-version=1.6 libadwaita-1 2>/dev/null; then \
+		ADW_FEATURES="--features adw-1-6"; \
+	fi; \
 	WEB_FEATURES=""; \
 	if pkg-config --exists webkitgtk-6.0 2>/dev/null; then \
 		WEB_FEATURES=",web-embedded"; \
 	fi; \
+	VTE_VERSION=$$(pkg-config --modversion vte-2.91-gtk4 2>/dev/null); \
+	VTE_FEATURES=""; \
+	if pkg-config --atleast-version=0.78 vte-2.91-gtk4 2>/dev/null; then \
+		VTE_FEATURES=",vte-0-78"; \
+	fi; \
+	GTK_VERSION=$$(pkg-config --modversion gtk4 2>/dev/null); \
+	GTK_FEATURES=""; \
+	if pkg-config --atleast-version=4.22 gtk4 2>/dev/null; then \
+		GTK_FEATURES=",gtk-4-22"; \
+	elif pkg-config --atleast-version=4.20 gtk4 2>/dev/null; then \
+		GTK_FEATURES=",gtk-4-20"; \
+	elif pkg-config --atleast-version=4.18 gtk4 2>/dev/null; then \
+		GTK_FEATURES=",gtk-4-18"; \
+	fi; \
 	BASE_FEATURES="tray,system-keyring,vnc-embedded,rdp-embedded,gfx-h264,rdp-audio,rd-gateway,wayland-native"; \
-	echo "=== libadwaita $$ADW_VERSION => features: $$ADW_FEATURES | web: $$WEB_FEATURES ==="; \
+	echo "=== gtk4 $$GTK_VERSION =>$$GTK_FEATURES | libadwaita $$ADW_VERSION => $$ADW_FEATURES | vte $$VTE_VERSION =>$$VTE_FEATURES | web:$$WEB_FEATURES ==="; \
 	export PATH="$(CURDIR)/rust-toolchain/bin:$$PATH"; \
-	cargo build --release --offline -p rustconn --no-default-features --features $${BASE_FEATURES}$${WEB_FEATURES} $$ADW_FEATURES; \
+	cargo build --release --offline -p rustconn --no-default-features --features $${BASE_FEATURES}$${WEB_FEATURES}$${VTE_FEATURES}$${GTK_FEATURES} $$ADW_FEATURES; \
 	cargo build --release --offline -p rustconn-cli --features full
 
 override_dh_auto_install:

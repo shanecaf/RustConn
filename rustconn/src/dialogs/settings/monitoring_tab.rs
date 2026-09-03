@@ -4,7 +4,7 @@ use adw::prelude::*;
 use gtk4::StringList;
 use gtk4::prelude::*;
 use libadwaita as adw;
-use rustconn_core::activity_monitor::{ActivityMonitorDefaults, MonitorMode};
+use rustconn_core::activity_monitor::ActivityMonitorDefaults;
 use rustconn_core::monitoring::MonitoringSettings;
 
 use crate::i18n::i18n;
@@ -149,7 +149,9 @@ impl MonitoringPageWidgets {
             ))
             .build();
 
-        let mode_items = StringList::new(&[&i18n("Off"), &i18n("Activity"), &i18n("Silence")]);
+        let mode_labels = crate::monitor_mode::labels();
+        let mode_items =
+            StringList::new(&mode_labels.iter().map(String::as_str).collect::<Vec<_>>());
         let activity_mode_combo = adw::ComboRow::builder()
             .title(i18n("Default Mode"))
             .subtitle(i18n("Monitoring mode applied to new connections"))
@@ -237,12 +239,8 @@ impl MonitoringPageWidgets {
 
     /// Loads activity monitor defaults into UI controls
     pub fn load_activity_monitor(&self, defaults: &ActivityMonitorDefaults) {
-        let mode_idx = match defaults.mode {
-            MonitorMode::Off => 0,
-            MonitorMode::Activity => 1,
-            MonitorMode::Silence => 2,
-        };
-        self.activity_mode_combo.set_selected(mode_idx);
+        self.activity_mode_combo
+            .set_selected(crate::monitor_mode::index_of(defaults.mode));
         self.activity_quiet_period_spin
             .set_value(f64::from(defaults.effective_quiet_period()));
         self.activity_silence_timeout_spin
@@ -257,13 +255,8 @@ impl MonitoringPageWidgets {
     )]
     #[must_use]
     pub fn collect_activity_monitor(&self) -> ActivityMonitorDefaults {
-        let mode = match self.activity_mode_combo.selected() {
-            1 => MonitorMode::Activity,
-            2 => MonitorMode::Silence,
-            _ => MonitorMode::Off,
-        };
         ActivityMonitorDefaults {
-            mode,
+            mode: crate::monitor_mode::from_index(self.activity_mode_combo.selected()),
             quiet_period_secs: self.activity_quiet_period_spin.value() as u32,
             silence_timeout_secs: self.activity_silence_timeout_spin.value() as u32,
         }

@@ -325,7 +325,19 @@ modules:
         chmod +x /app/bin/cc-wrap
       # Rename deprecated cargo/config to config.toml
       - if [ -f cargo/config ]; then mv cargo/config cargo/config.toml; fi
-      - CC=/app/bin/cc-wrap cargo build --release -p rustconn --features adw-1-8
+      # Features the GNOME 50 runtime can actually back, verified with pkg-config
+      # inside org.gnome.Sdk//50: GTK 4.22.4, libadwaita 1.9.3. VTE comes from the
+      # bundled 0.80.5 module above, not the runtime, so `vte-0-78` is satisfied by
+      # this manifest rather than by GNOME.
+      #
+      # `vte-0-78` is what makes the Command monitor mode reachable — without it the
+      # mode is hidden from the picker and never fires, which is how it shipped when
+      # the feature was added and nothing here passed it.
+      #
+      # `vte-0-80` is deliberately not passed: by the feature ladder it implies
+      # `vte-0-78` and adds only the image termprops, which `vte4` 0.10 does not bind
+      # and VTE never populates. Naming it would claim a capability nothing reads.
+      - CC=/app/bin/cc-wrap cargo build --release -p rustconn --features 'adw-1-8,vte-0-78,gtk-4-22'
       - CC=/app/bin/cc-wrap cargo build --release -p rustconn-cli --features full
       - install -Dm755 target/release/rustconn /app/bin/rustconn
       - install -Dm755 target/release/rustconn-cli /app/bin/rustconn-cli
@@ -353,7 +365,7 @@ modules:
         # chicken-and-egg problem and any placeholder would be a fake pin.
         # The immutable commit is added once the tag exists — by hand or by the
         # Flathub bot — in the Flathub repository, not here.
-        tag: v0.21.4
+        tag: v0.21.5
         x-checker-data:
           type: git
           tag-pattern: ^v([\d.]+)$

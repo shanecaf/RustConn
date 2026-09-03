@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: rustconn 0.12.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-01 19:44+0300\n"
+"POT-Creation-Date: 2026-09-03 10:02+0300\n"
 "PO-Revision-Date: 2026-04-25 10:46+0000\n"
 "Last-Translator: RustConn Team\n"
 "Language-Team: Kazakh\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Generated-By: Babel 2.10.3\n"
 
 #: rustconn/src/alert.rs:15 rustconn/src/alert.rs:54 rustconn/src/alert.rs:64
-#: rustconn/src/app.rs:1687 rustconn/src/toast.rs:246
+#: rustconn/src/app.rs:1732 rustconn/src/toast.rs:246
 msgid "OK"
 msgstr "OK"
 
@@ -34,8 +34,8 @@ msgstr "OK"
 #: rustconn/src/dialogs/recording.rs:508 rustconn/src/dialogs/recording.rs:578
 #: rustconn/src/dialogs/settings/keybindings_tab.rs:173
 #: rustconn/src/dialogs/settings/mod.rs:550
-#: rustconn/src/dialogs/settings/terminal_tab.rs:763
-#: rustconn/src/dialogs/settings/terminal_tab.rs:813
+#: rustconn/src/dialogs/settings/terminal_tab.rs:788
+#: rustconn/src/dialogs/settings/terminal_tab.rs:838
 #: rustconn/src/dialogs/statistics.rs:85
 #: rustconn/src/dialogs/template_manager.rs:190
 #: rustconn/src/dialogs/tunnel.rs:517
@@ -44,17 +44,17 @@ msgstr "OK"
 #: rustconn/src/dialogs/workspace.rs:236 rustconn/src/dialogs/workspace.rs:290
 #: rustconn/src/embedded_rdp/autotype.rs:166
 #: rustconn/src/terminal/tab_menu.rs:203 rustconn/src/terminal/tab_menu.rs:406
-#: rustconn/src/vault_ops.rs:234 rustconn/src/window/batch_edit.rs:69
+#: rustconn/src/vault_ops.rs:315 rustconn/src/window/batch_edit.rs:69
 #: rustconn/src/window/connection_dialogs.rs:1078
-#: rustconn/src/window/edit_group.rs:1784
-#: rustconn/src/window/edit_group.rs:1832 rustconn/src/window/mod.rs:3521
+#: rustconn/src/window/edit_group.rs:1787
+#: rustconn/src/window/edit_group.rs:1835 rustconn/src/window/mod.rs:3572
 #: rustconn/src/window/operations.rs:82 rustconn/src/window/operations.rs:457
 #: rustconn/src/window/operations.rs:640 rustconn/src/window/sessions.rs:339
 #: rustconn/src/window/workspaces.rs:548
 msgid "Cancel"
 msgstr "Болдырмау"
 
-#: rustconn/src/alert.rs:72 rustconn/src/dialogs/connection/dialog/save.rs:691
+#: rustconn/src/alert.rs:72 rustconn/src/dialogs/connection/dialog/save.rs:694
 msgid "Validation Error"
 msgstr "Тексеру қатесі"
 
@@ -63,10 +63,10 @@ msgid "Don't Save"
 msgstr "Сақтамау"
 
 #: rustconn/src/alert.rs:95
-#: rustconn/src/dialogs/connection/dialog/populate.rs:90
-#: rustconn/src/dialogs/connection/dialog/populate.rs:92
+#: rustconn/src/dialogs/connection/dialog/populate.rs:89
+#: rustconn/src/dialogs/connection/dialog/populate.rs:91
 #: rustconn/src/dialogs/connection_wizard/auth_page.rs:177
-#: rustconn/src/dialogs/settings/terminal_tab.rs:814
+#: rustconn/src/dialogs/settings/terminal_tab.rs:839
 #: rustconn/src/dialogs/smart_folder.rs:82
 #: rustconn/src/dialogs/smart_folder.rs:83 rustconn/src/dialogs/snippet.rs:391
 #: rustconn/src/dialogs/template.rs:2783
@@ -77,23 +77,23 @@ msgstr "Сақтамау"
 msgid "Save"
 msgstr "Сақтау"
 
-#: rustconn/src/app.rs:267
+#: rustconn/src/app.rs:281
 msgid "Initialization Error"
 msgstr "Инициализация қатесі"
 
-#: rustconn/src/app.rs:669
+#: rustconn/src/app.rs:683
 msgid "KeePass password not loaded from keyring — re-enter it in Settings"
 msgstr ""
 "KeePass құпия сөзі кілттер тізбегінен жүктелмеді — оны Параметрлерде қайта "
 "енгізіңіз"
 
-#: rustconn/src/app.rs:674 rustconn/src/dialogs/shortcuts.rs:176
+#: rustconn/src/app.rs:688 rustconn/src/dialogs/shortcuts.rs:176
 #: rustconn/src/embedded_rdp/mod.rs:383 rustconn/src/split_view/bridge.rs:1980
 #: rustconn/src/window/ui.rs:111
 msgid "Settings"
 msgstr "Баптаулар"
 
-#: rustconn/src/app.rs:1282
+#: rustconn/src/app.rs:1329
 msgid ""
 "{} is selected, but the system keyring is not accessible. Run: sudo snap "
 "connect rustconn:password-manager-service — or open Settings, then Secrets, "
@@ -103,13 +103,15 @@ msgstr ""
 "connect rustconn:password-manager-service — немесе Баптаулар, содан кейін "
 "Құпиялар бөлімін ашып, басқа бэкендті таңдаңыз."
 
-#: rustconn/src/app.rs:1287
+#: rustconn/src/app.rs:1334
 msgid ""
 "{} is selected, but it cannot store passwords yet: {}. Open Settings, then "
 "Secrets."
-msgstr "{} таңдалды, бірақ ол әзірге құпия сөздерді сақтай алмайды: {}. Параметрлерді, содан кейін Құпияларды ашыңыз."
+msgstr ""
+"{} таңдалды, бірақ ол әзірге құпия сөздерді сақтай алмайды: {}. "
+"Параметрлерді, содан кейін Құпияларды ашыңыз."
 
-#: rustconn/src/app.rs:1583
+#: rustconn/src/app.rs:1628
 msgid ""
 "Modern connection manager for Linux with a GTK4/Wayland-native interface. "
 "Manage SSH, RDP, VNC, SPICE, Telnet, Serial, Kubernetes, and Zero Trust "
@@ -120,35 +122,35 @@ msgstr ""
 "қолданбадан басқарыңыз."
 
 #. Translators: Replace this with your name and language, e.g. "John Doe (German)"
-#: rustconn/src/app.rs:1619
+#: rustconn/src/app.rs:1664
 msgid "translator-credits"
 msgstr "RustConn командасы (Қазақша)"
 
-#: rustconn/src/app.rs:1626
+#: rustconn/src/app.rs:1671
 msgid "User Guide"
 msgstr "Пайдаланушы нұсқаулығы"
 
-#: rustconn/src/app.rs:1630
+#: rustconn/src/app.rs:1675
 msgid "Installation"
 msgstr "Орнату"
 
-#: rustconn/src/app.rs:1634
+#: rustconn/src/app.rs:1679
 msgid "Releases"
 msgstr "Шығарылымдар"
 
-#: rustconn/src/app.rs:1638
+#: rustconn/src/app.rs:1683
 msgid "Changelog"
 msgstr "Өзгерістер журналы"
 
-#: rustconn/src/app.rs:1648
+#: rustconn/src/app.rs:1693
 msgid "Special Thanks"
 msgstr "Ерекше алғыс"
 
-#: rustconn/src/app.rs:1663
+#: rustconn/src/app.rs:1708
 msgid "Made in Ukraine"
 msgstr "Украинада жасалған"
 
-#: rustconn/src/app.rs:1664
+#: rustconn/src/app.rs:1709
 msgid "All contributors and supporters"
 msgstr "Барлық қатысушылар мен қолдаушыларға"
 
@@ -177,14 +179,17 @@ msgid ""
 "This connection keeps its password in {}, which is not available right now — "
 "it may be locked, not logged in, or not set up on this computer. Open "
 "Settings, then Secrets, to check its status."
-msgstr "Бұл қосылым өз құпия сөзін {} ішінде сақтайды, ол қазір қолжетімді емес — ол құлыпталған, жүйеге кірмеген немесе осы компьютерде бапталмаған болуы мүмкін. Күйін тексеру үшін Параметрлерді, содан кейін Құпияларды ашыңыз."
+msgstr ""
+"Бұл қосылым өз құпия сөзін {} ішінде сақтайды, ол қазір қолжетімді емес — ол "
+"құлыпталған, жүйеге кірмеген немесе осы компьютерде бапталмаған болуы "
+"мүмкін. Күйін тексеру үшін Параметрлерді, содан кейін Құпияларды ашыңыз."
 
 #: rustconn/src/dialogs/backend_missing.rs:55
 msgid "Enter Password Manually"
 msgstr "Құпия сөзді қолмен енгізу"
 
 #: rustconn/src/dialogs/backend_missing.rs:56 rustconn/src/vault_ops.rs:66
-#: rustconn/src/vault_ops.rs:235 rustconn/src/window/mod.rs:699
+#: rustconn/src/vault_ops.rs:316 rustconn/src/window/mod.rs:742
 msgid "Open Settings"
 msgstr "Параметрлерді ашу"
 
@@ -196,7 +201,7 @@ msgstr "Жаңа кластер"
 #: rustconn/src/dialogs/cluster.rs:69 rustconn/src/dialogs/cluster.rs:70
 #: rustconn/src/dialogs/connection/dialog/construction.rs:139
 #: rustconn/src/dialogs/connection/dialog/construction.rs:140
-#: rustconn/src/dialogs/settings/terminal_tab.rs:764
+#: rustconn/src/dialogs/settings/terminal_tab.rs:789
 #: rustconn/src/dialogs/smart_folder.rs:87
 #: rustconn/src/dialogs/smart_folder.rs:88 rustconn/src/dialogs/snippet.rs:74
 #: rustconn/src/dialogs/snippet.rs:75 rustconn/src/dialogs/template.rs:143
@@ -213,7 +218,7 @@ msgid "Cluster Details"
 msgstr "Кластер мәліметтері"
 
 #: rustconn/src/dialogs/cluster.rs:106
-#: rustconn/src/dialogs/connection/advanced_tab.rs:845
+#: rustconn/src/dialogs/connection/advanced_tab.rs:849
 #: rustconn/src/dialogs/connection/general_tab.rs:92
 #: rustconn/src/dialogs/connection_wizard/connection_page.rs:101
 #: rustconn/src/dialogs/export.rs:374 rustconn/src/dialogs/settings/mod.rs:1806
@@ -331,211 +336,187 @@ msgstr "Іздеу нәтижелері"
 msgid "No results"
 msgstr "Нәтиже жоқ"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:80
+#: rustconn/src/dialogs/connection/advanced_tab.rs:81
 #: rustconn/src/dialogs/connection_wizard/auth_page.rs:144
 msgid "Terminal Theme"
 msgstr "Терминал тақырыбы"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:81
+#: rustconn/src/dialogs/connection/advanced_tab.rs:82
 msgid "Override terminal colors for this connection"
 msgstr "Осы қосылым үшін терминал түстерін қайта анықтау"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:87
+#: rustconn/src/dialogs/connection/advanced_tab.rs:88
 msgid "Custom"
 msgstr "Реттелетін"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:88
+#: rustconn/src/dialogs/connection/advanced_tab.rs:89
 msgid "DEV"
 msgstr "DEV"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:89
+#: rustconn/src/dialogs/connection/advanced_tab.rs:90
 msgid "QA"
 msgstr "QA"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:90
+#: rustconn/src/dialogs/connection/advanced_tab.rs:91
 msgid "STAGE"
 msgstr "STAGE"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:91
+#: rustconn/src/dialogs/connection/advanced_tab.rs:92
 msgid "PROD"
 msgstr "PROD"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:92
+#: rustconn/src/dialogs/connection/advanced_tab.rs:93
 msgid "DEMO"
 msgstr "DEMO"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:101
+#: rustconn/src/dialogs/connection/advanced_tab.rs:102
 msgid "Preset"
 msgstr "Алдын ала орнату"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:102
+#: rustconn/src/dialogs/connection/advanced_tab.rs:103
 msgid "Quick color presets for environment identification"
 msgstr "Ортаны анықтау үшін жылдам түс алдын ала орнатулары"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:117
-#: rustconn/src/dialogs/settings/terminal_tab.rs:837
+#: rustconn/src/dialogs/connection/advanced_tab.rs:118
+#: rustconn/src/dialogs/settings/terminal_tab.rs:862
 msgid "Background"
 msgstr "Фон"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:125
-#: rustconn/src/dialogs/settings/terminal_tab.rs:838
+#: rustconn/src/dialogs/connection/advanced_tab.rs:126
+#: rustconn/src/dialogs/settings/terminal_tab.rs:863
 msgid "Foreground"
 msgstr "Мәтін"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:134
+#: rustconn/src/dialogs/connection/advanced_tab.rs:135
 msgid "Cursor Color"
 msgstr "Курсор түсі"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:255
+#: rustconn/src/dialogs/connection/advanced_tab.rs:256
 msgid "Preview"
 msgstr "Алдын ала қарау"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:261
+#: rustconn/src/dialogs/connection/advanced_tab.rs:262
 msgid "Reset Theme"
 msgstr "Тақырыпты қалпына келтіру"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:282
+#: rustconn/src/dialogs/connection/advanced_tab.rs:283
 #: rustconn/src/dialogs/statistics.rs:86
 msgid "Reset"
 msgstr "Қалпына келтіру"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:283
+#: rustconn/src/dialogs/connection/advanced_tab.rs:284
 msgid "Clear color overrides"
 msgstr "Түс қайта анықтауларын тазалау"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:294
+#: rustconn/src/dialogs/connection/advanced_tab.rs:295
 msgid "Remote Monitoring"
 msgstr "Қашықтан бақылау"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:296
+#: rustconn/src/dialogs/connection/advanced_tab.rs:297
 msgid "Override global monitoring settings for this connection"
 msgstr "Осы қосылым үшін жаһандық бақылау параметрлерін қайта анықтау"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:301
+#: rustconn/src/dialogs/connection/advanced_tab.rs:302
 msgid "Enable Monitoring"
 msgstr "Бақылауды қосу"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:302
+#: rustconn/src/dialogs/connection/advanced_tab.rs:303
 msgid "Collect CPU, RAM, disk and network metrics via SSH"
 msgstr "SSH арқылы CPU, RAM, диск және желі метрикаларын жинау"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:311
+#: rustconn/src/dialogs/connection/advanced_tab.rs:312
 msgid "Session Recording"
 msgstr "Сеанс жазбасы"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:315
+#: rustconn/src/dialogs/connection/advanced_tab.rs:316
 msgid "Record Session"
 msgstr "Сеансты жазу"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:316
+#: rustconn/src/dialogs/connection/advanced_tab.rs:317
 msgid "Save terminal output to file"
 msgstr "Терминал шығысын файлға сақтау"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:325
+#: rustconn/src/dialogs/connection/advanced_tab.rs:326
 #: rustconn/src/dialogs/settings/monitoring_tab.rs:146
 msgid "Activity Monitor"
 msgstr "Белсенділік мониторы"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:326
+#: rustconn/src/dialogs/connection/advanced_tab.rs:327
 msgid "Detect terminal output activity or silence"
 msgstr "Терминал шығысының белсенділігін немесе тыныштығын анықтау"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:330
-#: rustconn/src/dialogs/connection/spice.rs:180
-#: rustconn/src/dialogs/settings/monitoring_tab.rs:152
-#: rustconn/src/dialogs/settings/terminal_tab.rs:277
-#: rustconn/src/dialogs/settings/terminal_tab.rs:310
-#: rustconn/src/dialogs/template.rs:1257
-msgid "Off"
-msgstr "Өшірулі"
-
-#: rustconn/src/dialogs/connection/advanced_tab.rs:330
-#: rustconn/src/dialogs/settings/logging_tab.rs:58
-#: rustconn/src/dialogs/settings/monitoring_tab.rs:152
-msgid "Activity"
-msgstr "Белсенділік"
-
-#: rustconn/src/dialogs/connection/advanced_tab.rs:330
-#: rustconn/src/dialogs/settings/monitoring_tab.rs:152
-msgid "Silence"
-msgstr "Тыныштық"
-
-#: rustconn/src/dialogs/connection/advanced_tab.rs:332
+#: rustconn/src/dialogs/connection/advanced_tab.rs:334
 #: rustconn/src/dialogs/connection/web.rs:170
 msgid "Mode"
 msgstr "Режим"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:333
-msgid "Select monitoring mode for this connection"
-msgstr "Осы қосылым үшін бақылау режимін таңдаңыз"
-
-#: rustconn/src/dialogs/connection/advanced_tab.rs:341
+#: rustconn/src/dialogs/connection/advanced_tab.rs:343
 msgid "Quiet Period"
 msgstr "Тыныш кезең"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:342
-#: rustconn/src/dialogs/settings/monitoring_tab.rs:164
+#: rustconn/src/dialogs/connection/advanced_tab.rs:344
+#: rustconn/src/dialogs/settings/monitoring_tab.rs:166
 msgid "Seconds of silence before activity notification"
 msgstr "Белсенділік хабарламасына дейінгі тыныштық секундтары"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:350
+#: rustconn/src/dialogs/connection/advanced_tab.rs:352
 msgid "Silence Timeout"
 msgstr "Тыныштық уақыт шегі"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:351
-#: rustconn/src/dialogs/settings/monitoring_tab.rs:172
+#: rustconn/src/dialogs/connection/advanced_tab.rs:353
+#: rustconn/src/dialogs/settings/monitoring_tab.rs:174
 msgid "Seconds of no output before silence notification"
 msgstr "Тыныштық хабарламасына дейінгі шығыссыз секундтар"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:388
+#: rustconn/src/dialogs/connection/advanced_tab.rs:392
 msgid "Automatic Reconnection"
 msgstr "Автоматты қайта қосылу"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:389
+#: rustconn/src/dialogs/connection/advanced_tab.rs:393
 msgid "Retry connection with exponential backoff on failure"
 msgstr "Сәтсіздік кезінде экспоненциалды кідіріспен қайта қосылу"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:394
+#: rustconn/src/dialogs/connection/advanced_tab.rs:398
 msgid "Enable auto-reconnect"
 msgstr "Автоматты қайта қосылуды қосу"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:395
+#: rustconn/src/dialogs/connection/advanced_tab.rs:399
 msgid "Automatically retry when connection drops"
 msgstr "Байланыс үзілгенде автоматты түрде қайталау"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:402
+#: rustconn/src/dialogs/connection/advanced_tab.rs:406
 msgid "Maximum attempts"
 msgstr "Ең көп әрекет саны"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:403
+#: rustconn/src/dialogs/connection/advanced_tab.rs:407
 msgid "Number of reconnection attempts before giving up"
 msgstr "Бас тартқанға дейінгі қайта қосылу әрекеттерінің саны"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:410
+#: rustconn/src/dialogs/connection/advanced_tab.rs:414
 msgid "Initial delay (ms)"
 msgstr "Бастапқы кідіріс (мс)"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:411
+#: rustconn/src/dialogs/connection/advanced_tab.rs:415
 msgid "Delay before first reconnection attempt"
 msgstr "Бірінші қайта қосылу әрекетіне дейінгі кідіріс"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:419
+#: rustconn/src/dialogs/connection/advanced_tab.rs:423
 msgid "Maximum delay (ms)"
 msgstr "Ең үлкен кідіріс (мс)"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:420
+#: rustconn/src/dialogs/connection/advanced_tab.rs:424
 msgid "Upper limit for backoff delay between attempts"
 msgstr "Әрекеттер арасындағы кідірістің жоғарғы шегі"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:455
+#: rustconn/src/dialogs/connection/advanced_tab.rs:459
 msgid "Connection Behavior"
 msgstr "Қосылым әрекеті"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:459
+#: rustconn/src/dialogs/connection/advanced_tab.rs:463
 msgid "Skip port check before connecting"
 msgstr "Қосылу алдында порт тексеруін өткізіп жіберу"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:461
+#: rustconn/src/dialogs/connection/advanced_tab.rs:465
 msgid ""
 "Bypass TCP probe of the host. Useful for low-bandwidth links or hosts only "
 "reachable via a gateway."
@@ -543,193 +524,193 @@ msgstr ""
 "Хосттың TCP тексеруін айналып өту. Төмен өткізу қабілеті бар байланыстар "
 "немесе тек шлюз арқылы қолжетімді хосттар үшін пайдалы."
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:471
+#: rustconn/src/dialogs/connection/advanced_tab.rs:475
 msgid "e.g., 7000 8000/tcp 9000/udp"
 msgstr "мысалы, 7000 8000/tcp 9000/udp"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:474
+#: rustconn/src/dialogs/connection/advanced_tab.rs:478
 msgid "Port Knock Sequence"
 msgstr "Port knock тізбегі"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:476
+#: rustconn/src/dialogs/connection/advanced_tab.rs:480
 msgid "Send TCP/UDP packets to open firewall before connecting"
 msgstr "Қосылмас бұрын брандмауэрді ашу үшін TCP/UDP пакеттерін жіберу"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:499
+#: rustconn/src/dialogs/connection/advanced_tab.rs:503
 msgid "Invalid format. Use: 7000 8000/tcp 9000/udp"
 msgstr "Жарамсыз пішім. Қолданыңыз: 7000 8000/tcp 9000/udp"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:509
+#: rustconn/src/dialogs/connection/advanced_tab.rs:513
 msgid "Single Packet Authorization (fwknop)"
 msgstr "Бір пакеттік авторизация (fwknop)"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:511
+#: rustconn/src/dialogs/connection/advanced_tab.rs:515
 msgid "Send encrypted UDP packet to open firewall before connecting"
 msgstr "Қосылмас бұрын брандмауэрді ашу үшін шифрланған UDP пакетін жіберу"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:517
+#: rustconn/src/dialogs/connection/advanced_tab.rs:521
 msgid "Enable SPA"
 msgstr "SPA қосу"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:518
+#: rustconn/src/dialogs/connection/advanced_tab.rs:522
 msgid "Send fwknop packet before connecting"
 msgstr "Қосылмас бұрын fwknop пакетін жіберу"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:524
+#: rustconn/src/dialogs/connection/advanced_tab.rs:528
 msgid "Rijndael Key"
 msgstr "Rijndael кілті"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:529
+#: rustconn/src/dialogs/connection/advanced_tab.rs:533
 msgid "HMAC Key"
 msgstr "HMAC кілті"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:534
+#: rustconn/src/dialogs/connection/advanced_tab.rs:538
 msgid "Access"
 msgstr "Қол жеткізу"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:541
+#: rustconn/src/dialogs/connection/advanced_tab.rs:545
 msgid "Destination Port"
 msgstr "Мақсатты порт"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:542
+#: rustconn/src/dialogs/connection/advanced_tab.rs:546
 msgid "UDP port for the SPA packet (default: 62201)"
 msgstr "SPA пакеті үшін UDP порты (әдепкі: 62201)"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:548
+#: rustconn/src/dialogs/connection/advanced_tab.rs:552
 msgid "Source IP"
 msgstr "Бастапқы IP"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:549
+#: rustconn/src/dialogs/connection/advanced_tab.rs:553
 msgid "Resolve Public"
 msgstr "Жалпы IP анықтау"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:550
+#: rustconn/src/dialogs/connection/advanced_tab.rs:554
 msgid "Explicit"
 msgstr "Айқын"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:553
+#: rustconn/src/dialogs/connection/advanced_tab.rs:557
 msgid "Allow IP"
 msgstr "IP рұқсат ету"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:554
+#: rustconn/src/dialogs/connection/advanced_tab.rs:558
 msgid "IP address to authorize in the SPA packet"
 msgstr "SPA пакетінде авторизациялайтын IP мекенжайы"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:589
+#: rustconn/src/dialogs/connection/advanced_tab.rs:593
 #: rustconn/src/dialogs/settings/mod.rs:348
 msgid "Highlight Rules"
 msgstr "Бөлектеу ережелері"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:590
+#: rustconn/src/dialogs/connection/advanced_tab.rs:594
 msgid "Regex-based text highlighting for this connection"
 msgstr "Осы қосылым үшін regex негізіндегі мәтінді бөлектеу"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:604
+#: rustconn/src/dialogs/connection/advanced_tab.rs:608
 #: rustconn/src/dialogs/settings/mod.rs:363
 msgid "No highlight rules"
 msgstr "Бөлектеу ережелері жоқ"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:616
-#: rustconn/src/dialogs/connection/automation_tab.rs:155
+#: rustconn/src/dialogs/connection/advanced_tab.rs:620
+#: rustconn/src/dialogs/connection/automation_tab.rs:157
 #: rustconn/src/dialogs/settings/mod.rs:353
-#: rustconn/src/window/edit_group.rs:1155
+#: rustconn/src/window/edit_group.rs:1158
 msgid "Add Rule"
 msgstr "Ереже қосу"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:631
+#: rustconn/src/dialogs/connection/advanced_tab.rs:635
 #: rustconn/src/dialogs/shortcuts.rs:159 rustconn/src/dialogs/wol.rs:37
 #: rustconn/src/sidebar_ui.rs:361 rustconn/src/smart_folder_ui.rs:557
 msgid "Wake On LAN"
 msgstr "Wake On LAN"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:632
-#: rustconn/src/dialogs/connection/advanced_tab.rs:640
+#: rustconn/src/dialogs/connection/advanced_tab.rs:636
+#: rustconn/src/dialogs/connection/advanced_tab.rs:644
 msgid "Send magic packet before connecting"
 msgstr "Қосылу алдында сиқырлы пакет жіберу"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:639
+#: rustconn/src/dialogs/connection/advanced_tab.rs:643
 msgid "Enable WOL"
 msgstr "WOL қосу"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:649
+#: rustconn/src/dialogs/connection/advanced_tab.rs:653
 msgid "AA:BB:CC:DD:EE:FF"
 msgstr "AA:BB:CC:DD:EE:FF"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:652
+#: rustconn/src/dialogs/connection/advanced_tab.rs:656
 #: rustconn/src/dialogs/wol.rs:82
 msgid "MAC Address"
 msgstr "MAC мекенжайы"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:677
+#: rustconn/src/dialogs/connection/advanced_tab.rs:681
 msgid "Format: AA:BB:CC:DD:EE:FF"
 msgstr "Формат: AA:BB:CC:DD:EE:FF"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:689
+#: rustconn/src/dialogs/connection/advanced_tab.rs:693
 #: rustconn/src/dialogs/wol.rs:87
 msgid "Broadcast Address"
 msgstr "Тарату мекенжайы"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:703
+#: rustconn/src/dialogs/connection/advanced_tab.rs:707
 msgid "UDP Port"
 msgstr "UDP порты"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:704
+#: rustconn/src/dialogs/connection/advanced_tab.rs:708
 msgid "Default: 9"
 msgstr "Әдепкі: 9"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:724
+#: rustconn/src/dialogs/connection/advanced_tab.rs:728
 msgid "Wait Time (sec)"
 msgstr "Күту уақыты (сек)"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:725
+#: rustconn/src/dialogs/connection/advanced_tab.rs:729
 msgid "Time to wait for boot"
 msgstr "Жүктелуді күту уақыты"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:847
+#: rustconn/src/dialogs/connection/advanced_tab.rs:851
 msgid "Rule name"
 msgstr "Ереже атауы"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:854
+#: rustconn/src/dialogs/connection/advanced_tab.rs:858
 #: rustconn/src/dialogs/settings/mod.rs:1826
 msgid "Pattern (regex)"
 msgstr "Үлгі (regex)"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:856
+#: rustconn/src/dialogs/connection/advanced_tab.rs:860
 msgid "Regex pattern to match"
 msgstr "Сәйкестік үшін regex үлгісі"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:864
+#: rustconn/src/dialogs/connection/advanced_tab.rs:868
 #: rustconn/src/dialogs/settings/mod.rs:1770
 #: rustconn/src/dialogs/settings/mod.rs:1772
 msgid "Enable rule"
 msgstr "Ережені қосу"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:871
+#: rustconn/src/dialogs/connection/advanced_tab.rs:875
 #: rustconn/src/dialogs/connection/dialog/rows.rs:285
 #: rustconn/src/dialogs/connection/dialog/rows.rs:287
 #: rustconn/src/dialogs/settings/mod.rs:1787
-#: rustconn/src/window/edit_group.rs:1950
-#: rustconn/src/window/edit_group.rs:1952
+#: rustconn/src/window/edit_group.rs:1953
+#: rustconn/src/window/edit_group.rs:1955
 msgid "Delete rule"
 msgstr "Ережені жою"
 
-#: rustconn/src/dialogs/connection/advanced_tab.rs:875
+#: rustconn/src/dialogs/connection/advanced_tab.rs:879
 #: rustconn/src/dialogs/settings/mod.rs:1791
 msgid "Delete highlight rule"
 msgstr "Бөлектеу ережесін жою"
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:84
-#: rustconn/src/window/edit_group.rs:1046
+#: rustconn/src/dialogs/connection/automation_tab.rs:86
+#: rustconn/src/window/edit_group.rs:1049
 msgid "Expect Rules"
 msgstr "Күту ережелері"
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:85
-#: rustconn/src/window/edit_group.rs:1047
+#: rustconn/src/dialogs/connection/automation_tab.rs:87
+#: rustconn/src/window/edit_group.rs:1050
 msgid "Auto-respond to terminal patterns (priority order)"
 msgstr "Терминал үлгілеріне автоматты жауап беру (басымдық реті)"
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:96
-#: rustconn/src/window/edit_group.rs:1056
+#: rustconn/src/dialogs/connection/automation_tab.rs:98
+#: rustconn/src/window/edit_group.rs:1059
 msgid ""
 "Responses support ${password}, ${username}, and ${VARIABLE_NAME} "
 "placeholders resolved at connection time"
@@ -737,63 +718,63 @@ msgstr ""
 "Жауаптар қосылу кезінде шешілетін ${password}, ${username} және $"
 "{VARIABLE_NAME} толтырғыштарын қолдайды"
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:109
-#: rustconn/src/window/edit_group.rs:1069
+#: rustconn/src/dialogs/connection/automation_tab.rs:111
+#: rustconn/src/window/edit_group.rs:1072
 msgid "No expect rules"
 msgstr "Expect ережелері жоқ"
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:120
-#: rustconn/src/window/edit_group.rs:1085
+#: rustconn/src/dialogs/connection/automation_tab.rs:122
+#: rustconn/src/window/edit_group.rs:1088
 msgid "From Template"
 msgstr "Үлгіден"
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:121
-#: rustconn/src/window/edit_group.rs:1086
+#: rustconn/src/dialogs/connection/automation_tab.rs:123
+#: rustconn/src/window/edit_group.rs:1089
 msgid "Add rules from a built-in template"
 msgstr "Кірістірілген үлгіден ережелер қосу"
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:167
-#: rustconn/src/window/edit_group.rs:1201
+#: rustconn/src/dialogs/connection/automation_tab.rs:169
+#: rustconn/src/window/edit_group.rs:1204
 msgid "Pattern Tester"
 msgstr "Үлгі тексергіш"
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:168
+#: rustconn/src/dialogs/connection/automation_tab.rs:170
 msgid "Test text against expect rule patterns"
 msgstr "Мәтінді expect ережелерінің үлгілеріне тексеру"
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:175
+#: rustconn/src/dialogs/connection/automation_tab.rs:177
 msgid "Test text against patterns"
 msgstr "Мәтінді үлгілерге тексеру"
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:178
-#: rustconn/src/window/edit_group.rs:1218
+#: rustconn/src/dialogs/connection/automation_tab.rs:180
+#: rustconn/src/window/edit_group.rs:1221
 msgid "Test Input"
 msgstr "Тест енгізу"
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:183
-#: rustconn/src/window/edit_group.rs:1212
-#: rustconn/src/window/edit_group.rs:1233
+#: rustconn/src/dialogs/connection/automation_tab.rs:185
+#: rustconn/src/window/edit_group.rs:1215
+#: rustconn/src/window/edit_group.rs:1236
 msgid "Enter text to test"
 msgstr "Тексеру үшін мәтін енгізіңіз"
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:189
-#: rustconn/src/window/edit_group.rs:1222
+#: rustconn/src/dialogs/connection/automation_tab.rs:191
+#: rustconn/src/window/edit_group.rs:1225
 msgid "Result"
 msgstr "Нәтиже"
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:204
+#: rustconn/src/dialogs/connection/automation_tab.rs:206
 msgid "Pre-Connect Task"
 msgstr "Қосылу алдындағы тапсырма"
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:215
+#: rustconn/src/dialogs/connection/automation_tab.rs:217
 msgid "Post-Disconnect Task"
 msgstr "Ажырату кейінгі тапсырма"
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:256
+#: rustconn/src/dialogs/connection/automation_tab.rs:261
 msgid "Automatic Login"
 msgstr "Автоматты кіру"
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:262
+#: rustconn/src/dialogs/connection/automation_tab.rs:267
 msgid ""
 "Telnet and serial sessions log in by typing at the device's own prompts. SSH "
 "types only the password."
@@ -801,110 +782,118 @@ msgstr ""
 "Telnet және сериялық сеанстар құрылғының өз сұрауларына теріп кіреді. SSH "
 "тек құпия сөзді тереді."
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:266
+#: rustconn/src/dialogs/connection/automation_tab.rs:271
 msgid "Username Prompt"
 msgstr "Пайдаланушы аты сұрауы"
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:268
+#: rustconn/src/dialogs/connection/automation_tab.rs:273
 msgid "Expected text; empty detects login:, Username: and >>User name:"
 msgstr "Күтілетін мәтін; бос login:, Username: және >>User name: анықтайды"
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:274
+#: rustconn/src/dialogs/connection/automation_tab.rs:279
 msgid "Password Prompt"
 msgstr "Құпия сөз сұрауы"
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:276
+#: rustconn/src/dialogs/connection/automation_tab.rs:281
 msgid "Expected text; empty detects Password: in every supported language"
 msgstr ""
 "Күтілетін мәтін; бос барлық қолдау көрсетілетін тілдерде Password: анықтайды"
 
+#: rustconn/src/dialogs/connection/automation_tab.rs:299
+msgid "Login Timeout (seconds)"
+msgstr "Кіру күту уақыты (секунд)"
+
 #: rustconn/src/dialogs/connection/automation_tab.rs:300
+msgid "How long to watch for the prompt; 0 = default (10 s)"
+msgstr "Сұрауды қанша уақыт күту керек; 0 = әдепкі (10 с)"
+
+#: rustconn/src/dialogs/connection/automation_tab.rs:323
 msgid "Run command before connecting"
 msgstr "Қосылу алдында пәрменді орындау"
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:302
+#: rustconn/src/dialogs/connection/automation_tab.rs:325
 msgid "Run command after disconnecting"
 msgstr "Ажыратқаннан кейін пәрменді орындау"
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:314
+#: rustconn/src/dialogs/connection/automation_tab.rs:337
 msgid "Enable Task"
 msgstr "Тапсырманы қосу"
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:323
+#: rustconn/src/dialogs/connection/automation_tab.rs:346
 msgid "e.g., /path/to/script.sh or vpn-connect ${host}"
 msgstr "мыс. /жол/скриптке.sh немесе vpn-connect ${host}"
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:328
+#: rustconn/src/dialogs/connection/automation_tab.rs:351
 #: rustconn/src/dialogs/connection/general_tab.rs:381
 #: rustconn/src/dialogs/connection_wizard/connection_page.rs:217
-#: rustconn/src/dialogs/settings/terminal_tab.rs:479
+#: rustconn/src/dialogs/settings/terminal_tab.rs:480
 #: rustconn/src/dialogs/snippet.rs:244 rustconn/src/dialogs/template.rs:1929
 msgid "Command"
 msgstr "Команда"
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:330
+#: rustconn/src/dialogs/connection/automation_tab.rs:353
 msgid "Shell command to execute (supports ${variable} syntax)"
 msgstr "Shell пәрмені (${variable} синтаксисін қолдайды)"
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:347
+#: rustconn/src/dialogs/connection/automation_tab.rs:370
 msgid "Timeout (ms)"
 msgstr "Уақыт шегі (мс)"
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:348
+#: rustconn/src/dialogs/connection/automation_tab.rs:371
 msgid "0 = no timeout"
 msgstr "0 = шексіз"
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:355
+#: rustconn/src/dialogs/connection/automation_tab.rs:378
 msgid "Abort on Failure"
 msgstr "Қате кезінде тоқтату"
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:356
+#: rustconn/src/dialogs/connection/automation_tab.rs:379
 msgid "Cancel connection if this task fails"
 msgstr "Тапсырма сәтсіз болса қосылуды болдырмау"
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:368
+#: rustconn/src/dialogs/connection/automation_tab.rs:391
 msgid "First Connection Only"
 msgstr "Тек бірінші қосылу"
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:369
+#: rustconn/src/dialogs/connection/automation_tab.rs:392
 msgid ""
 "Only run when opening the first connection in a folder (useful for VPN setup)"
 msgstr "Қалтадағы бірінші қосылуды ашқанда ғана орындау (VPN үшін пайдалы)"
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:373
+#: rustconn/src/dialogs/connection/automation_tab.rs:396
 msgid "Last Connection Only"
 msgstr "Тек соңғы қосылу"
 
-#: rustconn/src/dialogs/connection/automation_tab.rs:374
+#: rustconn/src/dialogs/connection/automation_tab.rs:397
 msgid ""
 "Only run when closing the last connection in a folder (useful for cleanup)"
 msgstr "Қалтадағы соңғы қосылуды жапқанда ғана орындау (тазалау үшін пайдалы)"
 
-#: rustconn/src/dialogs/connection/builders.rs:290
+#: rustconn/src/dialogs/connection/builders.rs:292
 msgid "Connection name is required"
 msgstr "Қосылым атауы қажет"
 
-#: rustconn/src/dialogs/connection/builders.rs:304
+#: rustconn/src/dialogs/connection/builders.rs:306
 msgid "Host is required"
 msgstr "Хост қажет"
 
-#: rustconn/src/dialogs/connection/builders.rs:309
+#: rustconn/src/dialogs/connection/builders.rs:311
 msgid "Host cannot contain spaces"
 msgstr "Хостта бос орындар болмауы керек"
 
-#: rustconn/src/dialogs/connection/builders.rs:319
+#: rustconn/src/dialogs/connection/builders.rs:321
 msgid "Port must be greater than 0"
 msgstr "Порт 0-ден үлкен болуы керек"
 
-#: rustconn/src/dialogs/connection/builders.rs:327
+#: rustconn/src/dialogs/connection/builders.rs:329
 msgid "Device path is required for serial connections"
 msgstr "Сериалдық қосылымдар үшін құрылғы жолы қажет"
 
-#: rustconn/src/dialogs/connection/builders.rs:346
+#: rustconn/src/dialogs/connection/builders.rs:348
 msgid "SSH key path is required for public key authentication"
 msgstr "Ашық кілт аутентификациясы үшін SSH кілт жолы міндетті"
 
-#: rustconn/src/dialogs/connection/builders.rs:358
+#: rustconn/src/dialogs/connection/builders.rs:360
 msgid ""
 "Password source is 'None' but auth method is Password. Set source to Prompt "
 "or Vault."
@@ -912,66 +901,66 @@ msgstr ""
 "Құпия сөз көзі 'None', бірақ аутентификация әдісі — Құпия сөз. Көзді Prompt "
 "немесе Vault етіп орнатыңыз."
 
-#: rustconn/src/dialogs/connection/builders.rs:368
+#: rustconn/src/dialogs/connection/builders.rs:370
 msgid "Pod name is required when Busybox mode is disabled"
 msgstr "Busybox режимі өшірілгенде Pod атауы міндетті"
 
-#: rustconn/src/dialogs/connection/builders.rs:377
+#: rustconn/src/dialogs/connection/builders.rs:379
 msgid "MAC address is required when WOL is enabled"
 msgstr "WOL қосылғанда MAC мекенжайы міндетті"
 
-#: rustconn/src/dialogs/connection/builders.rs:382
+#: rustconn/src/dialogs/connection/builders.rs:384
 msgid "Invalid MAC address format. Use AA:BB:CC:DD:EE:FF or AA-BB-CC-DD-EE-FF"
 msgstr ""
 "Жарамсыз MAC мекенжай форматы. AA:BB:CC:DD:EE:FF немесе AA-BB-CC-DD-EE-FF "
 "пайдаланыңыз"
 
-#: rustconn/src/dialogs/connection/builders.rs:400
+#: rustconn/src/dialogs/connection/builders.rs:402
 msgid "Browser command is required when Custom mode is selected"
 msgstr "Реттелген режим таңдалғанда браузер командасы қажет"
 
-#: rustconn/src/dialogs/connection/builders.rs:421
+#: rustconn/src/dialogs/connection/builders.rs:423
 msgid "AWS SSM target instance ID is required"
 msgstr "AWS SSM мақсатты инстанс ID-і міндетті"
 
-#: rustconn/src/dialogs/connection/builders.rs:426
+#: rustconn/src/dialogs/connection/builders.rs:428
 msgid "GCP instance name and zone are required"
 msgstr "GCP инстанс атауы мен аймағы міндетті"
 
-#: rustconn/src/dialogs/connection/builders.rs:435
+#: rustconn/src/dialogs/connection/builders.rs:437
 msgid ""
 "Azure Bastion resource ID, resource group, and bastion name are required"
 msgstr "Azure Bastion ресурс ID-і, ресурс тобы және бастион атауы міндетті"
 
-#: rustconn/src/dialogs/connection/builders.rs:441
+#: rustconn/src/dialogs/connection/builders.rs:443
 msgid "Azure VM name and resource group are required"
 msgstr "Azure VM атауы мен ресурс тобы міндетті"
 
-#: rustconn/src/dialogs/connection/builders.rs:450
+#: rustconn/src/dialogs/connection/builders.rs:452
 msgid "OCI bastion OCID, target OCID, and target private IP are required"
 msgstr "OCI бастион OCID, мақсат OCID және мақсаттың жеке IP-і міндетті"
 
-#: rustconn/src/dialogs/connection/builders.rs:456
+#: rustconn/src/dialogs/connection/builders.rs:458
 msgid "Cloudflare Access hostname is required"
 msgstr "Cloudflare Access хост атауы міндетті"
 
-#: rustconn/src/dialogs/connection/builders.rs:461
+#: rustconn/src/dialogs/connection/builders.rs:463
 msgid "Teleport host is required"
 msgstr "Teleport хосты міндетті"
 
-#: rustconn/src/dialogs/connection/builders.rs:466
+#: rustconn/src/dialogs/connection/builders.rs:468
 msgid "Tailscale host is required"
 msgstr "Tailscale хосты міндетті"
 
-#: rustconn/src/dialogs/connection/builders.rs:471
+#: rustconn/src/dialogs/connection/builders.rs:473
 msgid "Boundary target is required"
 msgstr "Boundary мақсаты міндетті"
 
-#: rustconn/src/dialogs/connection/builders.rs:476
+#: rustconn/src/dialogs/connection/builders.rs:478
 msgid "Hoop.dev connection name is required"
 msgstr "Hoop.dev қосылу атауы міндетті"
 
-#: rustconn/src/dialogs/connection/builders.rs:482
+#: rustconn/src/dialogs/connection/builders.rs:484
 msgid "Command template is required for the Generic provider"
 msgstr "Команда шаблоны жалпы провайдер үшін міндетті"
 
@@ -1046,7 +1035,7 @@ msgstr "Журналдау"
 
 #: rustconn/src/dialogs/connection/dialog/build.rs:375
 #: rustconn/src/i18n_markers.rs:33 rustconn/src/window/edit_group.rs:980
-#: rustconn/src/window/edit_group.rs:1416
+#: rustconn/src/window/edit_group.rs:1419
 msgid "Automation"
 msgstr "Автоматтандыру"
 
@@ -1060,50 +1049,50 @@ msgstr "Автоматтандыру"
 msgid "Advanced"
 msgstr "Қосымша"
 
-#: rustconn/src/dialogs/connection/dialog/build.rs:725
-#: rustconn/src/dialogs/connection/dialog/populate.rs:1105
+#: rustconn/src/dialogs/connection/dialog/build.rs:726
+#: rustconn/src/dialogs/connection/dialog/populate.rs:1106
 #: rustconn/src/dialogs/connection/ssh.rs:507
 #: rustconn/src/dialogs/template.rs:698
 msgid "Jump host for tunneling (-J)"
 msgstr "Туннельдеу үшін аралық хост (-J)"
 
-#: rustconn/src/dialogs/connection/dialog/build.rs:1023
+#: rustconn/src/dialogs/connection/dialog/build.rs:1025
 msgid "Username Loaded"
 msgstr "Пайдаланушы аты жүктелді"
 
-#: rustconn/src/dialogs/connection/dialog/build.rs:1024
+#: rustconn/src/dialogs/connection/dialog/build.rs:1026
 msgid "Username loaded from group"
 msgstr "Пайдаланушы аты топтан жүктелді"
 
-#: rustconn/src/dialogs/connection/dialog/build.rs:1030
+#: rustconn/src/dialogs/connection/dialog/build.rs:1032
 msgid "No Username"
 msgstr "Пайдаланушы аты жоқ"
 
-#: rustconn/src/dialogs/connection/dialog/build.rs:1031
+#: rustconn/src/dialogs/connection/dialog/build.rs:1033
 msgid "Group has no username defined"
 msgstr "Топта пайдаланушы аты анықталмаған"
 
-#: rustconn/src/dialogs/connection/dialog/build.rs:1057
+#: rustconn/src/dialogs/connection/dialog/build.rs:1059
 msgid "Domain Loaded"
 msgstr "Домен жүктелді"
 
-#: rustconn/src/dialogs/connection/dialog/build.rs:1058
+#: rustconn/src/dialogs/connection/dialog/build.rs:1060
 msgid "Domain loaded from group"
 msgstr "Домен топтан жүктелді"
 
-#: rustconn/src/dialogs/connection/dialog/build.rs:1064
+#: rustconn/src/dialogs/connection/dialog/build.rs:1066
 msgid "No Domain"
 msgstr "Домен жоқ"
 
-#: rustconn/src/dialogs/connection/dialog/build.rs:1065
+#: rustconn/src/dialogs/connection/dialog/build.rs:1067
 msgid "Group has no domain defined"
 msgstr "Топта домен анықталмаған"
 
-#: rustconn/src/dialogs/connection/dialog/build.rs:1093
+#: rustconn/src/dialogs/connection/dialog/build.rs:1095
 msgid "Zero Trust Connection Test"
 msgstr "Zero Trust қосылым тесті"
 
-#: rustconn/src/dialogs/connection/dialog/build.rs:1094
+#: rustconn/src/dialogs/connection/dialog/build.rs:1096
 msgid ""
 "Zero Trust connections require provider-specific authentication.\n"
 "\n"
@@ -1119,34 +1108,34 @@ msgstr ""
 "2. Қосылу батырмасын пайдаланыңыз\n"
 "3. Провайдер CLI аутентификацияны өңдейді"
 
-#: rustconn/src/dialogs/connection/dialog/build.rs:1102
-#: rustconn/src/dialogs/connection/dialog/build.rs:1264
-#: rustconn/src/dialogs/connection/dialog/build.rs:1269
+#: rustconn/src/dialogs/connection/dialog/build.rs:1104
+#: rustconn/src/dialogs/connection/dialog/build.rs:1266
+#: rustconn/src/dialogs/connection/dialog/build.rs:1271
 msgid "Connection Test Failed"
 msgstr "Қосылым тесті сәтсіз"
 
-#: rustconn/src/dialogs/connection/dialog/build.rs:1103
+#: rustconn/src/dialogs/connection/dialog/build.rs:1105
 msgid "Fill in the required fields (name and host)"
 msgstr "Міндетті өрістерді толтырыңыз (атауы және хост)"
 
-#: rustconn/src/dialogs/connection/dialog/build.rs:1145
+#: rustconn/src/dialogs/connection/dialog/build.rs:1147
 msgid "Testing..."
 msgstr "Тексерілуде..."
 
-#: rustconn/src/dialogs/connection/dialog/build.rs:1244
+#: rustconn/src/dialogs/connection/dialog/build.rs:1246
 #: rustconn/src/dialogs/connection/general_tab.rs:377
 msgid "Test"
 msgstr "Тест"
 
-#: rustconn/src/dialogs/connection/dialog/build.rs:1251
+#: rustconn/src/dialogs/connection/dialog/build.rs:1253
 msgid "Connection Test Successful"
 msgstr "Қосылым тесті сәтті"
 
-#: rustconn/src/dialogs/connection/dialog/build.rs:1253
+#: rustconn/src/dialogs/connection/dialog/build.rs:1255
 msgid "Connection successful. Latency: {} ms"
 msgstr "Қосылым сәтті өтті. Кідіріс: {} мс"
 
-#: rustconn/src/dialogs/connection/dialog/build.rs:1262
+#: rustconn/src/dialogs/connection/dialog/build.rs:1264
 msgid ""
 "The test failed without a specific error. Check the host address and port, "
 "then try again."
@@ -1154,56 +1143,56 @@ msgstr ""
 "Сынақ нақты қатесіз сәтсіз аяқталды. Хост мекенжайы мен портты тексеріп, "
 "қайта көріңіз."
 
-#: rustconn/src/dialogs/connection/dialog/build.rs:1270
+#: rustconn/src/dialogs/connection/dialog/build.rs:1272
 msgid "Test timed out"
 msgstr "Тест уақыты аяқталды"
 
-#: rustconn/src/dialogs/connection/dialog/build.rs:1288
-#: rustconn/src/dialogs/connection/dialog/build.rs:1298
-#: rustconn/src/dialogs/connection/dialog/build.rs:1307
-#: rustconn/src/dialogs/connection/dialog/build.rs:1368
-#: rustconn/src/dialogs/connection/dialog/build.rs:1373
+#: rustconn/src/dialogs/connection/dialog/build.rs:1290
+#: rustconn/src/dialogs/connection/dialog/build.rs:1300
+#: rustconn/src/dialogs/connection/dialog/build.rs:1309
+#: rustconn/src/dialogs/connection/dialog/build.rs:1370
+#: rustconn/src/dialogs/connection/dialog/build.rs:1375
 msgid "Script Test Failed"
 msgstr "Скрипт тесті сәтсіз"
 
-#: rustconn/src/dialogs/connection/dialog/build.rs:1289
+#: rustconn/src/dialogs/connection/dialog/build.rs:1291
 msgid "Script command is empty"
 msgstr "Скрипт командасы бос"
 
-#: rustconn/src/dialogs/connection/dialog/build.rs:1299
+#: rustconn/src/dialogs/connection/dialog/build.rs:1301
 msgid "Script command is empty after parsing"
 msgstr "Скрипт командасы талдаудан кейін бос"
 
-#: rustconn/src/dialogs/connection/dialog/build.rs:1308
+#: rustconn/src/dialogs/connection/dialog/build.rs:1310
 msgid "Failed to parse command"
 msgstr "Команданы талдау сәтсіз"
 
-#: rustconn/src/dialogs/connection/dialog/build.rs:1315
+#: rustconn/src/dialogs/connection/dialog/build.rs:1317
 msgid "Testing…"
 msgstr "Тексерілуде…"
 
-#: rustconn/src/dialogs/connection/dialog/build.rs:1338
+#: rustconn/src/dialogs/connection/dialog/build.rs:1340
 msgid "Test Script"
 msgstr "Скриптті тексеру"
 
-#: rustconn/src/dialogs/connection/dialog/build.rs:1345
+#: rustconn/src/dialogs/connection/dialog/build.rs:1347
 msgid "(empty output)"
 msgstr "(бос шығыс)"
 
-#: rustconn/src/dialogs/connection/dialog/build.rs:1351
+#: rustconn/src/dialogs/connection/dialog/build.rs:1353
 msgid "Script Test Successful"
 msgstr "Скрипт тесті сәтті"
 
-#: rustconn/src/dialogs/connection/dialog/build.rs:1352
+#: rustconn/src/dialogs/connection/dialog/build.rs:1354
 #: rustconn/src/dialogs/export.rs:316
 msgid "Output"
 msgstr "Шығыс"
 
-#: rustconn/src/dialogs/connection/dialog/build.rs:1359
+#: rustconn/src/dialogs/connection/dialog/build.rs:1361
 msgid "Command failed"
 msgstr "Команда сәтсіз"
 
-#: rustconn/src/dialogs/connection/dialog/build.rs:1374
+#: rustconn/src/dialogs/connection/dialog/build.rs:1376
 msgid "Script timed out after 30 seconds"
 msgstr "Скрипт уақыт шегінен асты (30 секунд)"
 
@@ -1382,40 +1371,40 @@ msgstr ""
 "Бэкенд қатесі. Қойма конфигурациясын тексеріңіз.\n"
 "Іздеу кілті: {}"
 
-#: rustconn/src/dialogs/connection/dialog/populate.rs:45
+#: rustconn/src/dialogs/connection/dialog/populate.rs:44
 #: rustconn/src/window/edit_group.rs:658
 msgid "Select SSH Key"
 msgstr "SSH кілтін таңдау"
 
-#: rustconn/src/dialogs/connection/dialog/populate.rs:86
+#: rustconn/src/dialogs/connection/dialog/populate.rs:85
 msgid "Edit Connection"
 msgstr "Қосылымды өңдеу"
 
-#: rustconn/src/dialogs/connection/dialog/populate.rs:422
+#: rustconn/src/dialogs/connection/dialog/populate.rs:423
 #: rustconn/src/dialogs/connection/general_tab.rs:412
 #: rustconn/src/dialogs/widgets.rs:45
 msgid "(Root)"
 msgstr "(Түбір)"
 
-#: rustconn/src/dialogs/connection/dialog/populate.rs:1066
-#: rustconn/src/dialogs/connection/dialog/populate.rs:1137
+#: rustconn/src/dialogs/connection/dialog/populate.rs:1067
+#: rustconn/src/dialogs/connection/dialog/populate.rs:1138
 msgid "Inherited: {}"
 msgstr "Мұраланған: {}"
 
-#: rustconn/src/dialogs/connection/dialog/populate.rs:1070
-#: rustconn/src/dialogs/connection/dialog/populate.rs:1074
+#: rustconn/src/dialogs/connection/dialog/populate.rs:1071
+#: rustconn/src/dialogs/connection/dialog/populate.rs:1075
 msgid "Inherited from parent group"
 msgstr "Ата-аналық топтан мұраланған"
 
-#: rustconn/src/dialogs/connection/dialog/populate.rs:1079
+#: rustconn/src/dialogs/connection/dialog/populate.rs:1080
 #: rustconn/src/dialogs/connection/ssh.rs:258
 msgid "Default tries ~/.ssh/id_rsa, id_ed25519, id_ecdsa automatically"
 msgstr ""
 "Әдепкі бойынша ~/.ssh/id_rsa, id_ed25519, id_ecdsa автоматты тексередіӘдепкі "
 "бойынша ~/.ssh/id_rsa, id_ed25519, id_ecdsa автоматты түрде сынайды"
 
-#: rustconn/src/dialogs/connection/dialog/populate.rs:1145
-#: rustconn/src/dialogs/connection/dialog/populate.rs:1162
+#: rustconn/src/dialogs/connection/dialog/populate.rs:1146
+#: rustconn/src/dialogs/connection/dialog/populate.rs:1163
 msgid "Direct — an inherited jump host is ignored"
 msgstr "Тікелей — мұраланған аралық хост еленбейді"
 
@@ -1471,54 +1460,54 @@ msgid "Protected value (masked)"
 msgstr "Қорғалған мән (маскаланған)"
 
 #: rustconn/src/dialogs/connection/dialog/rows.rs:272
-#: rustconn/src/window/edit_group.rs:1938
+#: rustconn/src/window/edit_group.rs:1941
 msgid "Move up (higher priority)"
 msgstr "Жоғары жылжыту (жоғары басымдық)"
 
 #: rustconn/src/dialogs/connection/dialog/rows.rs:274
-#: rustconn/src/window/edit_group.rs:1940
+#: rustconn/src/window/edit_group.rs:1943
 msgid "Move rule up"
 msgstr "Ережені жоғары жылжыту"
 
 #: rustconn/src/dialogs/connection/dialog/rows.rs:278
-#: rustconn/src/window/edit_group.rs:1944
+#: rustconn/src/window/edit_group.rs:1947
 msgid "Move down (lower priority)"
 msgstr "Төмен жылжыту (төмен басымдық)"
 
 #: rustconn/src/dialogs/connection/dialog/rows.rs:281
-#: rustconn/src/window/edit_group.rs:1946
+#: rustconn/src/window/edit_group.rs:1949
 msgid "Move rule down"
 msgstr "Ережені төмен жылжыту"
 
 #: rustconn/src/dialogs/connection/dialog/rows.rs:296
-#: rustconn/src/window/edit_group.rs:1961
+#: rustconn/src/window/edit_group.rs:1964
 msgid "Pattern:"
 msgstr "Үлгі:"
 
 #: rustconn/src/dialogs/connection/dialog/rows.rs:302
-#: rustconn/src/window/edit_group.rs:1967
+#: rustconn/src/window/edit_group.rs:1970
 msgid "Regex pattern (e.g., password:\\s*$)"
 msgstr "Regex үлгісі (мыс. password:\\s*$)"
 
 #: rustconn/src/dialogs/connection/dialog/rows.rs:303
-#: rustconn/src/window/edit_group.rs:1968
+#: rustconn/src/window/edit_group.rs:1971
 msgid "Regular expression to match against terminal output"
 msgstr "Терминал шығысымен салыстыру үшін тұрақты өрнек"
 
 #: rustconn/src/dialogs/connection/dialog/rows.rs:312
-#: rustconn/src/window/edit_group.rs:1977
+#: rustconn/src/window/edit_group.rs:1980
 msgid "Response:"
 msgstr "Жауап:"
 
 #: rustconn/src/dialogs/connection/dialog/rows.rs:318
-#: rustconn/src/window/edit_group.rs:1983
+#: rustconn/src/window/edit_group.rs:1986
 msgid "Text to send (e.g., ${password}\\n)"
 msgstr ""
 "Жіберілетін мәтін (мыс., ${password}\n"
 ")"
 
 #: rustconn/src/dialogs/connection/dialog/rows.rs:320
-#: rustconn/src/window/edit_group.rs:1985
+#: rustconn/src/window/edit_group.rs:1988
 msgid ""
 "Response to send when pattern matches. Use ${password}, ${username}, or $"
 "{VAR_NAME} for variables."
@@ -1527,84 +1516,84 @@ msgstr ""
 "{username} немесе ${VAR_NAME} пайдаланыңыз."
 
 #: rustconn/src/dialogs/connection/dialog/rows.rs:328
-#: rustconn/src/window/edit_group.rs:1993
+#: rustconn/src/window/edit_group.rs:1996
 msgid "Insert a variable placeholder"
 msgstr "Айнымалы толтырғышын кірістіру"
 
 #: rustconn/src/dialogs/connection/dialog/rows.rs:331
-#: rustconn/src/window/edit_group.rs:1995
+#: rustconn/src/window/edit_group.rs:1998
 msgid "Insert variable"
 msgstr "Айнымалыны кірістіру"
 
 #: rustconn/src/dialogs/connection/dialog/rows.rs:342
-#: rustconn/src/window/edit_group.rs:2007
+#: rustconn/src/window/edit_group.rs:2010
 msgid "Built-in"
 msgstr "Кірістірілген"
 
 #: rustconn/src/dialogs/connection/dialog/rows.rs:349
-#: rustconn/src/window/edit_group.rs:2014
+#: rustconn/src/window/edit_group.rs:2017
 msgid "Connection password"
 msgstr "Қосылым құпия сөзі"
 
 #: rustconn/src/dialogs/connection/dialog/rows.rs:350
-#: rustconn/src/window/edit_group.rs:2015
+#: rustconn/src/window/edit_group.rs:2018
 msgid "Connection username"
 msgstr "Қосылым пайдаланушы аты"
 
 #: rustconn/src/dialogs/connection/dialog/rows.rs:351
-#: rustconn/src/window/edit_group.rs:2016
+#: rustconn/src/window/edit_group.rs:2019
 msgid "Connection host"
 msgstr "Қосылым хосты"
 
 #: rustconn/src/dialogs/connection/dialog/rows.rs:352
-#: rustconn/src/window/edit_group.rs:2017
+#: rustconn/src/window/edit_group.rs:2020
 msgid "Connection port"
 msgstr "Қосылым порты"
 
 #: rustconn/src/dialogs/connection/dialog/rows.rs:380
 #: rustconn/src/dialogs/password_generator.rs:224
-#: rustconn/src/window/edit_group.rs:2047
+#: rustconn/src/window/edit_group.rs:2050
 msgid "Special"
 msgstr "Арнайы таңбалар"
 
 #: rustconn/src/dialogs/connection/dialog/rows.rs:390
-#: rustconn/src/window/edit_group.rs:2057
+#: rustconn/src/window/edit_group.rs:2060
 msgid "Newline (Enter key)"
 msgstr "Жаңа жол (Enter пернесі)"
 
 #: rustconn/src/dialogs/connection/dialog/rows.rs:421
-#: rustconn/src/window/edit_group.rs:2088
+#: rustconn/src/window/edit_group.rs:2091
 msgid "Priority:"
 msgstr "Басымдық:"
 
 #: rustconn/src/dialogs/connection/dialog/rows.rs:430
-#: rustconn/src/window/edit_group.rs:2097
+#: rustconn/src/window/edit_group.rs:2100
 msgid "Higher priority rules are checked first"
 msgstr "Жоғары басымдықты ережелер бірінші тексеріледі"
 
 #: rustconn/src/dialogs/connection/dialog/rows.rs:434
-#: rustconn/src/window/edit_group.rs:2101
+#: rustconn/src/window/edit_group.rs:2104
 msgid "Timeout:"
 msgstr "Уақыт шегі:"
 
 #: rustconn/src/dialogs/connection/dialog/rows.rs:443
-#: rustconn/src/window/edit_group.rs:2110
+#: rustconn/src/window/edit_group.rs:2113
 msgid "Timeout in milliseconds (0 = no timeout)"
 msgstr "Уақыт шегі миллисекундпен (0 = шексіз)"
 
 #: rustconn/src/dialogs/connection/dialog/rows.rs:447
 #: rustconn/src/dialogs/settings/ui_tab.rs:409
-#: rustconn/src/window/edit_group.rs:2114
+#: rustconn/src/window/edit_group.rs:2117
 msgid "Enabled"
 msgstr "Қосылған"
 
 #: rustconn/src/dialogs/connection/dialog/rows.rs:452
-#: rustconn/src/window/edit_group.rs:2118
+#: rustconn/src/window/edit_group.rs:2121
 msgid "One-shot"
 msgstr "Бір рет"
 
 #: rustconn/src/dialogs/connection/dialog/rows.rs:454
-#: rustconn/src/window/edit_group.rs:2120
+#: rustconn/src/window/edit_group.rs:2123
 msgid "Fire only once, then remove the rule"
 msgstr "Тек бір рет іске қосу, содан кейін ережені жою"
 
@@ -1663,7 +1652,7 @@ msgid "(Inherited from global - override value below)"
 msgstr "(Жаһандыдан мұраланған — мәнді төменде қайта анықтаңыз)"
 
 #: rustconn/src/dialogs/connection/general_tab.rs:83
-#: rustconn/src/window/edit_group.rs:1372
+#: rustconn/src/window/edit_group.rs:1375
 msgid "Identity"
 msgstr "Сәйкестік"
 
@@ -1941,7 +1930,7 @@ msgstr "Топ"
 #: rustconn/src/dialogs/export.rs:416 rustconn/src/dialogs/snippet.rs:182
 #: rustconn/src/dialogs/template.rs:515
 #: rustconn/src/window/connection_dialogs.rs:849
-#: rustconn/src/window/edit_group.rs:1339
+#: rustconn/src/window/edit_group.rs:1342
 msgid "Description"
 msgstr "Сипаттама"
 
@@ -1954,7 +1943,7 @@ msgid "Registered"
 msgstr "Тіркелген"
 
 #: rustconn/src/dialogs/connection/general_tab.rs:542
-#: rustconn/src/window/edit_group.rs:1407
+#: rustconn/src/window/edit_group.rs:1410
 msgid "Dynamic"
 msgstr "Динамикалық"
 
@@ -2914,6 +2903,13 @@ msgstr "USB құрылғыларды қашықтағыға бағыттау"
 #: rustconn/src/embedded_rdp/mod.rs:392
 msgid "Auto"
 msgstr "Auto"
+
+#: rustconn/src/dialogs/connection/spice.rs:180
+#: rustconn/src/dialogs/settings/terminal_tab.rs:278
+#: rustconn/src/dialogs/settings/terminal_tab.rs:311
+#: rustconn/src/dialogs/template.rs:1257 rustconn/src/i18n_markers.rs:115
+msgid "Off"
+msgstr "Өшірулі"
 
 #: rustconn/src/dialogs/connection/spice.rs:192
 #: rustconn/src/dialogs/template.rs:1269
@@ -4150,7 +4146,7 @@ msgstr "Көшіру тоқтатылды"
 #: rustconn/src/dialogs/settings/cloud_sync_tab.rs:238
 #: rustconn/src/dialogs/tunnel_builder/mod.rs:618
 #: rustconn/src/dialogs/widgets.rs:460 rustconn/src/terminal/tab_menu.rs:407
-#: rustconn/src/vault_ops.rs:65 rustconn/src/window/mod.rs:3522
+#: rustconn/src/vault_ops.rs:65 rustconn/src/window/mod.rs:3573
 msgid "Close"
 msgstr "Жабу"
 
@@ -4991,7 +4987,7 @@ msgid "RDP File"
 msgstr "RDP File"
 
 #: rustconn/src/dialogs/import/sources.rs:255
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:663
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:697
 msgid "Unknown"
 msgstr "Белгісіз"
 
@@ -5026,7 +5022,7 @@ msgstr "RustConn файлын таңдау"
 #: rustconn/src/dialogs/import/sources.rs:664
 #: rustconn/src/dialogs/settings/cloud_sync_tab.rs:38
 #: rustconn/src/window/edit_group.rs:807 rustconn/src/window/edit_group.rs:858
-#: rustconn/src/window/edit_group.rs:1391
+#: rustconn/src/window/edit_group.rs:1394
 msgid "Cloud Sync"
 msgstr "Бұлттық синхрондау"
 
@@ -5709,7 +5705,7 @@ msgstr "Импорт сәтсіз"
 #: rustconn/src/window/connection_dialogs.rs:1024
 #: rustconn/src/window/edit_dialogs.rs:381
 #: rustconn/src/window/edit_dialogs.rs:485
-#: rustconn/src/window/edit_group.rs:1711
+#: rustconn/src/window/edit_group.rs:1714
 msgid "Error"
 msgstr "Қате"
 
@@ -5769,7 +5765,7 @@ msgid "Choose sync directory"
 msgstr "Синхрондау каталогын таңдау"
 
 #: rustconn/src/dialogs/settings/cloud_sync_tab.rs:69
-#: rustconn/src/window/edit_group.rs:1851
+#: rustconn/src/window/edit_group.rs:1854
 msgid "Select Sync Directory"
 msgstr "Синхрондау каталогын таңдау"
 
@@ -5921,6 +5917,11 @@ msgstr "Сеанс журналдарын дискіге сақтау"
 #: rustconn/src/dialogs/settings/logging_tab.rs:40
 msgid "Relative to config dir or absolute path"
 msgstr "Конфигурация каталогына қатысты немесе абсолютті жол"
+
+#: rustconn/src/dialogs/settings/logging_tab.rs:58
+#: rustconn/src/i18n_markers.rs:116
+msgid "Activity"
+msgstr "Белсенділік"
 
 #: rustconn/src/dialogs/settings/logging_tab.rs:59
 msgid "Connection events and change counts"
@@ -6165,19 +6166,19 @@ msgstr "Дистрибутив, ядро нұсқасы, жұмыс уақыты
 msgid "Default settings for terminal activity and silence detection"
 msgstr "Терминал белсенділігі мен тыныштықты анықтаудың әдепкі параметрлері"
 
-#: rustconn/src/dialogs/settings/monitoring_tab.rs:154
+#: rustconn/src/dialogs/settings/monitoring_tab.rs:156
 msgid "Default Mode"
 msgstr "Әдепкі режим"
 
-#: rustconn/src/dialogs/settings/monitoring_tab.rs:155
+#: rustconn/src/dialogs/settings/monitoring_tab.rs:157
 msgid "Monitoring mode applied to new connections"
 msgstr "Жаңа қосылымдарға қолданылатын бақылау режимі"
 
-#: rustconn/src/dialogs/settings/monitoring_tab.rs:163
+#: rustconn/src/dialogs/settings/monitoring_tab.rs:165
 msgid "Default Quiet Period"
 msgstr "Әдепкі тыныш кезең"
 
-#: rustconn/src/dialogs/settings/monitoring_tab.rs:171
+#: rustconn/src/dialogs/settings/monitoring_tab.rs:173
 msgid "Default Silence Timeout"
 msgstr "Әдепкі тыныштық уақыт шегі"
 
@@ -6229,90 +6230,90 @@ msgstr "Дайын"
 msgid "Not installed"
 msgstr "Орнатылмаған"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:180
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:188
 msgid "No keyring service responding"
 msgstr "Кілттер қоймасы қызметі жауап бермейді"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:194
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:205
 msgid "Turn on KeePass integration below"
 msgstr "Төменде KeePass интеграциясын қосыңыз"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:197
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:208
 msgid "Choose a database file below"
 msgstr "Төменде дерекқор файлын таңдаңыз"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:199
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:210
 msgid "Database file not found: {}"
 msgstr "Дерекқор файлы табылмады: {}"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:216
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:227
 msgid "Enter the file's passphrase below"
 msgstr "Төменде файлдың құпия фразасын енгізіңіз"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:561
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:595
 msgid "Initialized at {}"
 msgstr "{} ішінде баптандырылған"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:566
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:600
 msgid "Not initialized (run 'pass init &lt;gpg-id&gt;')"
 msgstr "Инициализацияланбаған ('pass init &lt;gpg-id&gt;' іске қосыңыз)"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:571
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:605
 msgid "Cannot determine store directory"
 msgstr "Қойма каталогын анықтау мүмкін емес"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:657
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:691
 #: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1284
 msgid "Unlocked"
 msgstr "Ашылды"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:658
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:692
 msgid "Locked"
 msgstr "Құлыпталған"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:659
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:693
 #: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1297
 msgid "Not logged in"
 msgstr "Кірмеген"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:660
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:694
 msgid "Status: {}"
 msgstr "Күй: {}"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:665
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:696
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:719
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:699
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:730
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:753
 msgid "Error checking status"
 msgstr "Күйді тексеру қатесі"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:682
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:716
 msgid "Signed in: {}"
 msgstr "Кірген: {}"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:684
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:718
 msgid "Signed in"
 msgstr "Кірген"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:689
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:693
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:723
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:727
 msgid "Not signed in"
 msgstr "Кірмеген"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:691
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:725
 msgid "Session expired"
 msgstr "Сеанс мерзімі аяқталды"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:708
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:742
 #: rustconn/src/dialogs/settings/secrets_tab/mod.rs:3166
 msgid "Configured"
 msgstr "Конфигурацияланған"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:712
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:716
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:746
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:750
 msgid "Not configured"
 msgstr "Конфигурацияланбаған"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:714
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:748
 msgid "Authentication failed"
 msgstr "Аутентификация сәтсіз"
 
@@ -6459,7 +6460,9 @@ msgstr "Шифрланған файлдан да оқу"
 msgid ""
 "Look for passwords in this computer's encrypted file too, so ones saved "
 "before you switched backend still resolve"
-msgstr "Құпия сөздерді осы компьютердің шифрланған файлынан да іздеңіз, сонда бэкендті ауыстырмас бұрын сақталғандар әлі де табылады"
+msgstr ""
+"Құпия сөздерді осы компьютердің шифрланған файлынан да іздеңіз, сонда "
+"бэкендті ауыстырмас бұрын сақталғандар әлі де табылады"
 
 #: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1019
 msgid "Copy Passwords…"
@@ -7125,189 +7128,189 @@ msgid "Size"
 msgstr "Өлшем"
 
 #: rustconn/src/dialogs/settings/terminal_tab.rs:76
-#: rustconn/src/dialogs/settings/terminal_tab.rs:842
+#: rustconn/src/dialogs/settings/terminal_tab.rs:867
 msgid "Colors"
 msgstr "Түстер"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:86
+#: rustconn/src/dialogs/settings/terminal_tab.rs:87
 #: rustconn/src/dialogs/settings/ui_tab.rs:93
 #: rustconn/src/dialogs/settings/ui_tab.rs:148
 msgid "Theme"
 msgstr "Тақырып"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:100
-#: rustconn/src/dialogs/settings/terminal_tab.rs:103
+#: rustconn/src/dialogs/settings/terminal_tab.rs:101
+#: rustconn/src/dialogs/settings/terminal_tab.rs:104
 msgid "New custom theme"
 msgstr "Жаңа реттелетін тақырып"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:107
-#: rustconn/src/dialogs/settings/terminal_tab.rs:112
+#: rustconn/src/dialogs/settings/terminal_tab.rs:108
+#: rustconn/src/dialogs/settings/terminal_tab.rs:113
 msgid "Edit custom theme"
 msgstr "Реттелетін тақырыпты өңдеу"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:117
-#: rustconn/src/dialogs/settings/terminal_tab.rs:122
+#: rustconn/src/dialogs/settings/terminal_tab.rs:118
+#: rustconn/src/dialogs/settings/terminal_tab.rs:123
 msgid "Delete custom theme"
 msgstr "Реттелетін тақырыпты жою"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:130
+#: rustconn/src/dialogs/settings/terminal_tab.rs:131
 msgid "Custom themes"
 msgstr "Реттелетін тақырыптар"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:210
-#: rustconn/src/dialogs/settings/terminal_tab.rs:839
+#: rustconn/src/dialogs/settings/terminal_tab.rs:211
+#: rustconn/src/dialogs/settings/terminal_tab.rs:864
 msgid "Cursor"
 msgstr "Меңзер"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:217
-#: rustconn/src/dialogs/settings/terminal_tab.rs:246
+#: rustconn/src/dialogs/settings/terminal_tab.rs:218
+#: rustconn/src/dialogs/settings/terminal_tab.rs:247
 msgid "Block"
 msgstr "Блок"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:218
-#: rustconn/src/dialogs/settings/terminal_tab.rs:251
+#: rustconn/src/dialogs/settings/terminal_tab.rs:219
+#: rustconn/src/dialogs/settings/terminal_tab.rs:252
 msgid "IBeam"
 msgstr "I-сәуле"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:219
-#: rustconn/src/dialogs/settings/terminal_tab.rs:256
+#: rustconn/src/dialogs/settings/terminal_tab.rs:220
+#: rustconn/src/dialogs/settings/terminal_tab.rs:257
 msgid "Underline"
 msgstr "Асты сызылған"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:228
-#: rustconn/src/dialogs/settings/terminal_tab.rs:265
+#: rustconn/src/dialogs/settings/terminal_tab.rs:229
+#: rustconn/src/dialogs/settings/terminal_tab.rs:266
 msgid "Shape"
 msgstr "Пішін"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:276
-#: rustconn/src/dialogs/settings/terminal_tab.rs:305
+#: rustconn/src/dialogs/settings/terminal_tab.rs:277
+#: rustconn/src/dialogs/settings/terminal_tab.rs:306
 msgid "On"
 msgstr "Қосулы"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:278
-#: rustconn/src/dialogs/settings/terminal_tab.rs:315
+#: rustconn/src/dialogs/settings/terminal_tab.rs:279
+#: rustconn/src/dialogs/settings/terminal_tab.rs:316
 #: rustconn/src/dialogs/settings/ui_tab.rs:69
 #: rustconn/src/dialogs/settings/ui_tab.rs:110
 msgid "System"
 msgstr "Жүйе"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:287
-#: rustconn/src/dialogs/settings/terminal_tab.rs:324
+#: rustconn/src/dialogs/settings/terminal_tab.rs:288
+#: rustconn/src/dialogs/settings/terminal_tab.rs:325
 msgid "Blink"
 msgstr "Жыпылықтау"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:335
+#: rustconn/src/dialogs/settings/terminal_tab.rs:336
 msgid "Scrolling"
 msgstr "Айналдыру"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:347
+#: rustconn/src/dialogs/settings/terminal_tab.rs:348
 msgid "History"
 msgstr "Тарих"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:348
+#: rustconn/src/dialogs/settings/terminal_tab.rs:349
 msgid "Number of lines to keep in scrollback"
 msgstr "Айналдыру буферінде сақталатын жолдар саны"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:356
+#: rustconn/src/dialogs/settings/terminal_tab.rs:357
 msgid "Keep on reconnect"
 msgstr "Қайта қосылғанда сақтау"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:357
+#: rustconn/src/dialogs/settings/terminal_tab.rs:358
 msgid "Preserve terminal output when a session reconnects"
 msgstr "Қайта қосылғанда терминал шығысын сақтау"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:363
+#: rustconn/src/dialogs/settings/terminal_tab.rs:364
 msgid "On output"
 msgstr "Шығыс кезінде"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:364
+#: rustconn/src/dialogs/settings/terminal_tab.rs:365
 msgid "Scroll to bottom when new output appears"
 msgstr "Жаңа шығыс пайда болғанда төменге айналдыру"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:370
+#: rustconn/src/dialogs/settings/terminal_tab.rs:371
 msgid "On keystroke"
 msgstr "Перне басылғанда"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:371
+#: rustconn/src/dialogs/settings/terminal_tab.rs:372
 msgid "Scroll to bottom when typing"
 msgstr "Теру кезінде төменге айналдыру"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:378
+#: rustconn/src/dialogs/settings/terminal_tab.rs:379
 msgid "Scrollbar"
 msgstr "Айналдыру жолағы"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:379
+#: rustconn/src/dialogs/settings/terminal_tab.rs:380
 msgid "Show a scrollbar next to the terminal"
 msgstr "Терминалдың жанында айналдыру жолағын көрсету"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:388
+#: rustconn/src/dialogs/settings/terminal_tab.rs:389
 msgid "Behavior"
 msgstr "Мінез-құлық"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:393
+#: rustconn/src/dialogs/settings/terminal_tab.rs:394
 msgid "Hyperlinks"
 msgstr "Гиперсілтемелер"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:394
+#: rustconn/src/dialogs/settings/terminal_tab.rs:395
 msgid "Allow clickable URLs in terminal"
 msgstr "Терминалда басылатын URL мекенжайларына рұқсат беру"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:401
+#: rustconn/src/dialogs/settings/terminal_tab.rs:402
 msgid "Hide pointer"
 msgstr "Меңзерді жасыру"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:402
+#: rustconn/src/dialogs/settings/terminal_tab.rs:403
 msgid "Hide mouse cursor when typing"
 msgstr "Теру кезінде тінтуір меңзерін жасыру"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:409
+#: rustconn/src/dialogs/settings/terminal_tab.rs:410
 msgid "Bell"
 msgstr "Қоңырау"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:410
+#: rustconn/src/dialogs/settings/terminal_tab.rs:411
 msgid "Play sound on terminal bell"
 msgstr "Терминал қоңырауында дыбыс ойнату"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:416
+#: rustconn/src/dialogs/settings/terminal_tab.rs:417
 msgid "SFTP via mc"
 msgstr "mc арқылы SFTP"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:417
-#: rustconn/src/dialogs/settings/terminal_tab.rs:426
+#: rustconn/src/dialogs/settings/terminal_tab.rs:418
+#: rustconn/src/dialogs/settings/terminal_tab.rs:427
 msgid "Open SFTP in Midnight Commander (local shell tab)"
 msgstr "SFTP-ні Midnight Commander арқылы ашу (жергілікті shell қойындысы)"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:429
+#: rustconn/src/dialogs/settings/terminal_tab.rs:430
 msgid "⚠ External file managers cannot access SSH agent in Flatpak sandbox"
 msgstr ""
 "⚠ Сыртқы файл менеджерлері Flatpak құмсалғышындағы SSH агентіне қол жеткізе "
 "алмайды"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:439
+#: rustconn/src/dialogs/settings/terminal_tab.rs:440
 msgid "Copy on select"
 msgstr "Таңдау кезінде көшіру"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:440
+#: rustconn/src/dialogs/settings/terminal_tab.rs:441
 msgid "Automatically copy selected text to clipboard"
 msgstr "Таңдалған мәтінді алмасу буферіне автоматты түрде көшіру"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:446
+#: rustconn/src/dialogs/settings/terminal_tab.rs:447
 msgid "Close tab on clean exit"
 msgstr "Таза шыққан кезде қойындыны жабу"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:448
+#: rustconn/src/dialogs/settings/terminal_tab.rs:449
 msgid "Automatically close the tab when the session exits normally"
 msgstr "Сеанс қалыпты аяқталғанда қойынды автоматты түрде жабылады"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:455
+#: rustconn/src/dialogs/settings/terminal_tab.rs:456
 msgid "Option as Meta key"
 msgstr "Option — Meta пернесі ретінде"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:457
+#: rustconn/src/dialogs/settings/terminal_tab.rs:458
 msgid "Send Escape prefix instead of composed characters (for vim/emacs)"
 msgstr "Құрама таңбалардың орнына Escape префиксін жіберу (vim/emacs үшін)"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:469
+#: rustconn/src/dialogs/settings/terminal_tab.rs:470
 #: rustconn/src/dialogs/settings/ui_tab.rs:347
 #: rustconn/src/dialogs/settings/ui_tab.rs:619
 #: rustconn/src/dialogs/shortcuts.rs:168
@@ -7316,99 +7319,103 @@ msgstr "Құрама таңбалардың орнына Escape префиксі
 msgid "Local Shell"
 msgstr "Жергілікті қабықша"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:470
+#: rustconn/src/dialogs/settings/terminal_tab.rs:471
 msgid "Custom command for the local shell tab"
 msgstr "Жергілікті қабықша қойындысы үшін теңшелетін пәрмен"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:474
+#: rustconn/src/dialogs/settings/terminal_tab.rs:475
 msgid "Default system shell"
 msgstr "Әдепкі жүйелік қабықша"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:480
+#: rustconn/src/dialogs/settings/terminal_tab.rs:481
 msgid "e.g. fish, bash --norc, neofetch &amp;&amp; bash"
 msgstr "мыс. fish, bash --norc, neofetch &amp;&amp; bash"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:757
+#: rustconn/src/dialogs/settings/terminal_tab.rs:758
+msgid "Follow System"
+msgstr "Жүйе бойынша"
+
+#: rustconn/src/dialogs/settings/terminal_tab.rs:782
 msgid "New Custom Theme"
 msgstr "Жаңа реттелетін тақырып"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:758
+#: rustconn/src/dialogs/settings/terminal_tab.rs:783
 msgid "Enter a name for the new theme"
 msgstr "Жаңа тақырып үшін атау енгізіңіз"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:768
+#: rustconn/src/dialogs/settings/terminal_tab.rs:793
 msgid "Theme name"
 msgstr "Тақырып атауы"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:808
+#: rustconn/src/dialogs/settings/terminal_tab.rs:833
 msgid "{} — Theme Editor"
 msgstr "{} — Тақырып редакторы"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:850
+#: rustconn/src/dialogs/settings/terminal_tab.rs:875
 msgid "Palette"
 msgstr "Палитра"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:854
+#: rustconn/src/dialogs/settings/terminal_tab.rs:879
 msgid "Black"
 msgstr "Қара"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:855
+#: rustconn/src/dialogs/settings/terminal_tab.rs:880
 msgid "Red"
 msgstr "Қызыл"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:856
+#: rustconn/src/dialogs/settings/terminal_tab.rs:881
 msgid "Green"
 msgstr "Жасыл"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:857
+#: rustconn/src/dialogs/settings/terminal_tab.rs:882
 msgid "Yellow"
 msgstr "Сары"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:858
+#: rustconn/src/dialogs/settings/terminal_tab.rs:883
 msgid "Blue"
 msgstr "Көк"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:859
+#: rustconn/src/dialogs/settings/terminal_tab.rs:884
 msgid "Magenta"
 msgstr "Қызыл күлгін"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:860
+#: rustconn/src/dialogs/settings/terminal_tab.rs:885
 msgid "Cyan"
 msgstr "Көгілдір"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:861
+#: rustconn/src/dialogs/settings/terminal_tab.rs:886
 msgid "White"
 msgstr "Ақ"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:862
+#: rustconn/src/dialogs/settings/terminal_tab.rs:887
 msgid "Bright Black"
 msgstr "Ашық қара"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:863
+#: rustconn/src/dialogs/settings/terminal_tab.rs:888
 msgid "Bright Red"
 msgstr "Ашық қызыл"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:864
+#: rustconn/src/dialogs/settings/terminal_tab.rs:889
 msgid "Bright Green"
 msgstr "Ашық жасыл"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:865
+#: rustconn/src/dialogs/settings/terminal_tab.rs:890
 msgid "Bright Yellow"
 msgstr "Ашық сары"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:866
+#: rustconn/src/dialogs/settings/terminal_tab.rs:891
 msgid "Bright Blue"
 msgstr "Ашық көк"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:867
+#: rustconn/src/dialogs/settings/terminal_tab.rs:892
 msgid "Bright Magenta"
 msgstr "Ашық қызыл күлгін"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:868
+#: rustconn/src/dialogs/settings/terminal_tab.rs:893
 msgid "Bright Cyan"
 msgstr "Ашық көгілдір"
 
-#: rustconn/src/dialogs/settings/terminal_tab.rs:869
+#: rustconn/src/dialogs/settings/terminal_tab.rs:894
 msgid "Bright White"
 msgstr "Ашық ақ"
 
@@ -7778,7 +7785,7 @@ msgstr "Келесі қойынды"
 msgid "Previous Tab"
 msgstr "Алдыңғы қойынды"
 
-#: rustconn/src/dialogs/shortcuts.rs:184 rustconn/src/terminal/mod.rs:453
+#: rustconn/src/dialogs/shortcuts.rs:184 rustconn/src/terminal/mod.rs:454
 msgid "Tab Overview"
 msgstr "Қойындылар шолуы"
 
@@ -8325,7 +8332,7 @@ msgid "All"
 msgstr "Барлығы"
 
 #: rustconn/src/dialogs/template_manager.rs:69
-#: rustconn/src/window/edit_group.rs:1383
+#: rustconn/src/window/edit_group.rs:1386
 msgid "SSH"
 msgstr "SSH"
 
@@ -9319,13 +9326,13 @@ msgid "Save files from remote clipboard"
 msgstr "Қашықтағы алмасу буферінен файлдарды сақтау"
 
 #: rustconn/src/embedded_rdp/mod.rs:749 rustconn/src/embedded_trait.rs:236
-#: rustconn/src/embedded_vnc/ui.rs:135 rustconn/src/terminal/mod.rs:1213
+#: rustconn/src/embedded_vnc/ui.rs:135 rustconn/src/terminal/mod.rs:1214
 #: rustconn/src/terminal/session_lifecycle.rs:350
 msgid "Reconnect"
 msgstr "Қайта қосылу"
 
 #: rustconn/src/embedded_rdp/mod.rs:751 rustconn/src/embedded_vnc/ui.rs:137
-#: rustconn/src/terminal/mod.rs:1215
+#: rustconn/src/terminal/mod.rs:1216
 #: rustconn/src/terminal/session_lifecycle.rs:352
 msgid "Reconnect to this session"
 msgstr "Бұл сеансқа қайта қосылу"
@@ -9746,6 +9753,18 @@ msgstr "Аппараттық (GPU)"
 #: rustconn/src/i18n_markers.rs:101
 msgid "Software (Cairo)"
 msgstr "Бағдарламалық (Cairo)"
+
+#: rustconn/src/i18n_markers.rs:117
+msgid "Silence"
+msgstr "Тыныштық"
+
+#: rustconn/src/i18n_markers.rs:118
+msgid "Command finished"
+msgstr "Команда аяқталды"
+
+#: rustconn/src/monitor_mode.rs:59
+msgid "Command finished needs shell integration on the remote host"
+msgstr "«Команда аяқталды» қашықтағы хостта shell интеграциясын талап етеді"
 
 #: rustconn/src/monitoring.rs:84
 msgid "CPU"
@@ -10234,28 +10253,28 @@ msgstr "Көрсету үшін қойындыны таңдаңыз"
 msgid "Execute Snippet…"
 msgstr "Үзіндіні орындау…"
 
-#: rustconn/src/terminal/mod.rs:449
+#: rustconn/src/terminal/mod.rs:450
 msgid "Tab Overview (Ctrl+Shift+O)"
 msgstr "Қойындылар шолуы (Ctrl+Shift+O)"
 
-#: rustconn/src/terminal/mod.rs:466 rustconn/src/terminal/tab_lifecycle.rs:35
-#: rustconn/src/terminal/tab_lifecycle.rs:50 rustconn/src/window/mod.rs:3110
+#: rustconn/src/terminal/mod.rs:467 rustconn/src/terminal/tab_lifecycle.rs:35
+#: rustconn/src/terminal/tab_lifecycle.rs:50 rustconn/src/window/mod.rs:3161
 msgid "Welcome"
 msgstr "Қош келдіңіз"
 
-#: rustconn/src/terminal/mod.rs:1207
+#: rustconn/src/terminal/mod.rs:1208
 msgid "Command not found: {}"
 msgstr "Команда табылмады: {}"
 
-#: rustconn/src/terminal/mod.rs:1209
+#: rustconn/src/terminal/mod.rs:1210
 msgid "Failed to start '{}'"
 msgstr "«{}» іске қосу мүмкін болмады"
 
-#: rustconn/src/terminal/mod.rs:1231
+#: rustconn/src/terminal/mod.rs:1232
 msgid "'{}' is not installed"
 msgstr "«{}» орнатылмаған"
 
-#: rustconn/src/terminal/mod.rs:1234
+#: rustconn/src/terminal/mod.rs:1235
 msgid "Failed to start '{}': {}"
 msgstr "«{}» іске қосу мүмкін болмады: {}"
 
@@ -10450,7 +10469,7 @@ msgstr "{} белсенді сеанс"
 msgid "About RustConn"
 msgstr "RustConn туралы"
 
-#: rustconn/src/vault_ops.rs:50 rustconn/src/window/mod.rs:4393
+#: rustconn/src/vault_ops.rs:50 rustconn/src/window/mod.rs:4444
 msgid "Passphrase Does Not Open the Portable File"
 msgstr "Құпия фраза тасымалды файлды ашпайды"
 
@@ -10482,11 +10501,11 @@ msgstr ""
 msgid "Password saved to {}."
 msgstr "Құпия сөз {} ішіне сақталды."
 
-#: rustconn/src/vault_ops.rs:192
+#: rustconn/src/vault_ops.rs:273
 msgid "{} did not accept this password"
 msgstr "{} бұл құпия сөзді қабылдамады"
 
-#: rustconn/src/vault_ops.rs:204
+#: rustconn/src/vault_ops.rs:285
 msgid ""
 "The system keyring is not accessible. Run: sudo snap connect "
 "rustconn:password-manager-service — or open Settings, then Secrets, and "
@@ -10496,7 +10515,7 @@ msgstr ""
 "rustconn:password-manager-service — немесе Баптаулар, содан кейін Құпиялар "
 "бөлімін ашып, басқа бэкендті таңдаңыз."
 
-#: rustconn/src/vault_ops.rs:208
+#: rustconn/src/vault_ops.rs:289
 msgid ""
 "No system keyring is responding. Open Settings, then Secrets, and choose "
 "another backend such as Encrypted file or KeePassXC."
@@ -10505,19 +10524,23 @@ msgstr ""
 "Құпиялар бөлімін ашып, басқа бэкендті таңдаңыз, мысалы «Шифрланған файл» "
 "немесе KeePassXC."
 
-#: rustconn/src/vault_ops.rs:213
+#: rustconn/src/vault_ops.rs:294
 msgid ""
 "Fix {} and save again, or choose a different backend in Settings, then "
 "Secrets."
-msgstr "{} түзетіп, қайта сақтаңыз немесе Параметрлерде, содан кейін Құпияларда басқа бэкенд таңдаңыз."
+msgstr ""
+"{} түзетіп, қайта сақтаңыз немесе Параметрлерде, содан кейін Құпияларда "
+"басқа бэкенд таңдаңыз."
 
-#: rustconn/src/vault_ops.rs:220
+#: rustconn/src/vault_ops.rs:301
 msgid ""
 "You can also save it to this computer's encrypted file instead — it will "
 "still be found when you connect."
-msgstr "Оны осы компьютердің шифрланған файлына да сақтауыңызға болады — қосылған кезде ол әлі де табылады."
+msgstr ""
+"Оны осы компьютердің шифрланған файлына да сақтауыңызға болады — қосылған "
+"кезде ол әлі де табылады."
 
-#: rustconn/src/vault_ops.rs:223
+#: rustconn/src/vault_ops.rs:304
 msgid ""
 "{}\n"
 "\n"
@@ -10531,7 +10554,7 @@ msgstr ""
 "\n"
 "{}"
 
-#: rustconn/src/vault_ops.rs:228
+#: rustconn/src/vault_ops.rs:309
 msgid ""
 "{}\n"
 "\n"
@@ -10541,7 +10564,7 @@ msgstr ""
 "\n"
 "Құпия сөз сақталмады. {}"
 
-#: rustconn/src/vault_ops.rs:237
+#: rustconn/src/vault_ops.rs:318
 msgid "Save to This Computer"
 msgstr "Осы компьютерге сақтау"
 
@@ -10736,12 +10759,12 @@ msgid "Select Vault to load password"
 msgstr "Құпия сөзді жүктеу үшін қойманы таңдаңыз"
 
 #: rustconn/src/window/connection_dialogs.rs:850
-#: rustconn/src/window/edit_group.rs:1340
+#: rustconn/src/window/edit_group.rs:1343
 msgid "Notes, contacts, project info"
 msgstr "Жазбалар, байланыстар, жоба ақпараты"
 
 #: rustconn/src/window/connection_dialogs.rs:890
-#: rustconn/src/window/edit_group.rs:1456
+#: rustconn/src/window/edit_group.rs:1459
 msgid "Group name cannot be empty"
 msgstr "Топ атауы бос болмауы керек"
 
@@ -10982,7 +11005,7 @@ msgid "Name cannot be empty"
 msgstr "Атауы бос болмауы керек"
 
 #: rustconn/src/window/edit_dialogs.rs:360
-#: rustconn/src/window/edit_group.rs:1515
+#: rustconn/src/window/edit_group.rs:1518
 msgid "Group with name '{}' already exists"
 msgstr "'{}' атауымен топ бұрыннан бар"
 
@@ -11121,55 +11144,55 @@ msgstr ""
 "Өшіру осы топтың барлық күту ережелері мен кіру кейінгі скрипттерін "
 "тазалайды. Бұл әрекетті қайтару мүмкін емес."
 
-#: rustconn/src/window/edit_group.rs:1167
+#: rustconn/src/window/edit_group.rs:1170
 msgid "Clear All"
 msgstr "Барлығын тазалау"
 
-#: rustconn/src/window/edit_group.rs:1169
+#: rustconn/src/window/edit_group.rs:1172
 msgid "Remove all expect rules"
 msgstr "Барлық күту ережелерін жою"
 
-#: rustconn/src/window/edit_group.rs:1202
+#: rustconn/src/window/edit_group.rs:1205
 msgid "Test text against your expect rules"
 msgstr "Мәтінді күту ережелеріңізге тексеру"
 
-#: rustconn/src/window/edit_group.rs:1209
+#: rustconn/src/window/edit_group.rs:1212
 msgid "Enter text to test against patterns"
 msgstr "Үлгілерге тексеру үшін мәтін енгізіңіз"
 
-#: rustconn/src/window/edit_group.rs:1246
+#: rustconn/src/window/edit_group.rs:1249
 msgid "Match: pattern '{}' → response '{}'"
 msgstr "Сәйкестік: үлгі '{}' → жауап '{}'"
 
-#: rustconn/src/window/edit_group.rs:1258
+#: rustconn/src/window/edit_group.rs:1261
 msgid "No match"
 msgstr "Сәйкестік жоқ"
 
-#: rustconn/src/window/edit_group.rs:1273
+#: rustconn/src/window/edit_group.rs:1276
 msgid "Post-login Scripts"
 msgstr "Кіру кейінгі скрипттер"
 
-#: rustconn/src/window/edit_group.rs:1275
+#: rustconn/src/window/edit_group.rs:1278
 msgid "Commands executed after login (inherited by connections)"
 msgstr "Кіргеннен кейін орындалатын командалар (қосылымдар мұралайды)"
 
-#: rustconn/src/window/edit_group.rs:1283
+#: rustconn/src/window/edit_group.rs:1286
 msgid "No post-login scripts"
 msgstr "Кіру кейінгі скрипттер жоқ"
 
-#: rustconn/src/window/edit_group.rs:1292
+#: rustconn/src/window/edit_group.rs:1295
 msgid "Add Script"
 msgstr "Скрипт қосу"
 
-#: rustconn/src/window/edit_group.rs:1489
+#: rustconn/src/window/edit_group.rs:1492
 msgid "Select a variable"
 msgstr "Айнымалыны таңдаңыз"
 
-#: rustconn/src/window/edit_group.rs:1638
+#: rustconn/src/window/edit_group.rs:1641
 msgid "Dynamic Folder script cannot be empty"
 msgstr "Динамикалық бума скрипті бос болмауы керек"
 
-#: rustconn/src/window/edit_group.rs:1779
+#: rustconn/src/window/edit_group.rs:1782
 msgid ""
 "This group will be exported to {}. Other team members with read access can "
 "import it."
@@ -11177,23 +11200,23 @@ msgstr ""
 "Бұл топ {} ішіне экспортталады. Оқу рұқсаты бар басқа топ мүшелері оны "
 "импорттай алады."
 
-#: rustconn/src/window/edit_group.rs:1783
+#: rustconn/src/window/edit_group.rs:1786
 msgid "Enable Cloud Sync?"
 msgstr "Бұлттық синхрондауды қосу?"
 
-#: rustconn/src/window/edit_group.rs:1785
+#: rustconn/src/window/edit_group.rs:1788
 msgid "Enable"
 msgstr "Қосу"
 
-#: rustconn/src/window/edit_group.rs:1816
+#: rustconn/src/window/edit_group.rs:1819
 msgid "Choose Directory"
 msgstr "Каталогты таңдау"
 
-#: rustconn/src/window/edit_group.rs:1823
+#: rustconn/src/window/edit_group.rs:1826
 msgid "Set Up Cloud Sync"
 msgstr "Бұлттық синхрондауды орнату"
 
-#: rustconn/src/window/edit_group.rs:1825
+#: rustconn/src/window/edit_group.rs:1828
 msgid ""
 "Choose a directory synced with your cloud service (Google Drive, Nextcloud, "
 "Syncthing, etc.)"
@@ -11201,16 +11224,16 @@ msgstr ""
 "Бұлттық қызметіңізбен синхрондалған каталогты таңдаңыз (Google Drive, "
 "Nextcloud, Syncthing, т.б.)"
 
-#: rustconn/src/window/edit_group.rs:2340
+#: rustconn/src/window/edit_group.rs:2343
 msgid "Shell command (e.g., export TERM=xterm-256color)"
 msgstr "Shell командасы (мыс., export TERM=xterm-256color)"
 
-#: rustconn/src/window/edit_group.rs:2341
+#: rustconn/src/window/edit_group.rs:2344
 msgid "Command to execute after login"
 msgstr "Кіргеннен кейін орындалатын команда"
 
-#: rustconn/src/window/edit_group.rs:2351
 #: rustconn/src/window/edit_group.rs:2354
+#: rustconn/src/window/edit_group.rs:2357
 msgid "Delete script"
 msgstr "Скриптті жою"
 
@@ -11253,47 +11276,47 @@ msgstr ""
 "Құпияны қоймаға сақтау мүмкін болмады. Параметрлердегі құпиялар бэкендін "
 "тексеріңіз."
 
-#: rustconn/src/window/mod.rs:686
+#: rustconn/src/window/mod.rs:729
 msgid "Dismiss"
 msgstr "Елемеу"
 
-#: rustconn/src/window/mod.rs:2063
+#: rustconn/src/window/mod.rs:2114
 msgid "Already running in an external window"
 msgstr "Сыртқы терезеде әлдеқашан жұмыс істеп тұр"
 
-#: rustconn/src/window/mod.rs:2214
+#: rustconn/src/window/mod.rs:2265
 msgid "Connection to ‘{}’ failed"
 msgstr "‘{}’ қосылу сәтсіз аяқталды"
 
-#: rustconn/src/window/mod.rs:2440 rustconn/src/window/mod.rs:2454
+#: rustconn/src/window/mod.rs:2491 rustconn/src/window/mod.rs:2505
 msgid "Pre-connect task failed: {}"
 msgstr "Қосылым алдындағы тапсырма сәтсіз: {}"
 
-#: rustconn/src/window/mod.rs:2488
+#: rustconn/src/window/mod.rs:2539
 msgid "Port knock failed: {}"
 msgstr "Port knock сәтсіз аяқталды: {}"
 
-#: rustconn/src/window/mod.rs:2537
+#: rustconn/src/window/mod.rs:2588
 msgid "SPA failed: {}"
 msgstr "SPA сәтсіз аяқталды: {}"
 
-#: rustconn/src/window/mod.rs:2736 rustconn/src/window/mod.rs:2911
+#: rustconn/src/window/mod.rs:2787 rustconn/src/window/mod.rs:2962
 msgid "Connection “{}” created"
 msgstr "“{}” қосылымы жасалды"
 
-#: rustconn/src/window/mod.rs:3115
+#: rustconn/src/window/mod.rs:3166
 msgid "RustConn - {}"
 msgstr "RustConn — {}"
 
-#: rustconn/src/window/mod.rs:3248
+#: rustconn/src/window/mod.rs:3299
 msgid "Settings saved"
 msgstr "Баптаулар сақталды"
 
-#: rustconn/src/window/mod.rs:3285
+#: rustconn/src/window/mod.rs:3336
 msgid "Passphrase Not Saved on This Computer"
 msgstr "Құпия фраза осы компьютерде сақталмады"
 
-#: rustconn/src/window/mod.rs:3287
+#: rustconn/src/window/mod.rs:3338
 msgid ""
 "The passphrase could not be encrypted for local storage, so it is kept for "
 "this session only and you will be asked for it again after a restart. Choose "
@@ -11305,11 +11328,11 @@ msgstr ""
 "сұралады. Оның орнына «Жүйелік кілттер сақтағышын» таңдаңыз немесе RustConn "
 "өз деректер каталогына жаза алатынын тексеріңіз."
 
-#: rustconn/src/window/mod.rs:3333
+#: rustconn/src/window/mod.rs:3384
 msgid "Credentials Not Saved to Keyring"
 msgstr "Тіркелгі деректері кілттер қоймасына сақталмады"
 
-#: rustconn/src/window/mod.rs:3335
+#: rustconn/src/window/mod.rs:3386
 msgid ""
 "The system keyring did not accept the credentials, so they are kept for this "
 "session only and will be gone after a restart. Check that your keyring "
@@ -11320,35 +11343,35 @@ msgstr ""
 "қоймасы қызметінің іске қосылғанын және құлпы ашылғанын тексеріп, "
 "баптауларды қайта сақтаңыз."
 
-#: rustconn/src/window/mod.rs:3515
+#: rustconn/src/window/mod.rs:3566
 msgid "Close RustConn?"
 msgstr "RustConn жабылсын ба?"
 
-#: rustconn/src/window/mod.rs:3517
+#: rustconn/src/window/mod.rs:3568
 msgid "{} session tab(s) are open. Active connections will be disconnected."
 msgstr "{} сессия қойындысы ашық. Белсенді қосылымдар ажыратылады."
 
-#: rustconn/src/window/mod.rs:3552
+#: rustconn/src/window/mod.rs:3603
 msgid "Cloud sync failed for '{}': {}"
 msgstr "«{}» үшін бұлтпен синхрондау сәтсіз аяқталды: {}"
 
-#: rustconn/src/window/mod.rs:3733
+#: rustconn/src/window/mod.rs:3784
 msgid "Startup connection not found"
 msgstr "Іске қосу қосылымы табылмады"
 
-#: rustconn/src/window/mod.rs:3769
+#: rustconn/src/window/mod.rs:3820
 msgid "Failed to open .rdp file"
 msgstr ".rdp файлын ашу сәтсіз"
 
-#: rustconn/src/window/mod.rs:3805
+#: rustconn/src/window/mod.rs:3856
 msgid "Failed to open .vv file"
 msgstr ".vv файлын ашу сәтсіз"
 
-#: rustconn/src/window/mod.rs:4309
+#: rustconn/src/window/mod.rs:4360
 msgid "Successfully exported {} connection(s). {} skipped."
 msgstr "{} қосылым сәтті экспортталды. {} өткізіп жіберілді."
 
-#: rustconn/src/window/mod.rs:4395
+#: rustconn/src/window/mod.rs:4446
 msgid ""
 "The passphrase you saved does not decrypt the portable credential file, so "
 "none of the passwords in it can be read. Open Settings ▸ Secrets and enter "
@@ -11554,27 +11577,27 @@ msgstr "VNC көрушісі табылмады. TigerVNC немесе Remmina �
 msgid "No SPICE viewer found. Install virt-viewer."
 msgstr "SPICE көрушісі табылмады. virt-viewer орнатыңыз."
 
-#: rustconn/src/window/protocols.rs:1530 rustconn/src/window/protocols.rs:2034
+#: rustconn/src/window/protocols.rs:1555 rustconn/src/window/protocols.rs:2059
 msgid "Invalid variable: {}"
 msgstr "Жарамсыз айнымалы: {}"
 
-#: rustconn/src/window/protocols.rs:1951
+#: rustconn/src/window/protocols.rs:1976
 msgid "Invalid config: {}"
 msgstr "Жарамсыз конфигурация: {}"
 
-#: rustconn/src/window/protocols.rs:2131
+#: rustconn/src/window/protocols.rs:2156
 msgid "Install picocom for Serial connections"
 msgstr "Serial қосылымдары үшін picocom орнатыңыз"
 
-#: rustconn/src/window/protocols.rs:2312
+#: rustconn/src/window/protocols.rs:2337
 msgid "Install kubectl for Kubernetes connections"
 msgstr "Kubernetes қосылымдары үшін kubectl орнатыңыз"
 
-#: rustconn/src/window/protocols.rs:2330
+#: rustconn/src/window/protocols.rs:2355
 msgid "Configure pod and container for Kubernetes"
 msgstr "Kubernetes үшін pod пен контейнерді баптаңыз"
 
-#: rustconn/src/window/protocols.rs:2575
+#: rustconn/src/window/protocols.rs:2600
 msgid "Install mosh for MOSH connections"
 msgstr "MOSH қосылымдары үшін mosh орнатыңыз"
 
@@ -11619,13 +11642,22 @@ msgstr "Ұйқыдан кейін сеанстар қайта қосылуда"
 msgid "Session log could not be created: {}"
 msgstr "Сеанс журналын жасау мүмкін болмады: {}"
 
-#: rustconn/src/window/session_lifecycle.rs:439
+#: rustconn/src/window/session_lifecycle.rs:469
 msgid "Activity detected: {}"
 msgstr "Белсенділік анықталды: {}"
 
-#: rustconn/src/window/session_lifecycle.rs:443
+#: rustconn/src/window/session_lifecycle.rs:473
 msgid "Silence detected: {}"
 msgstr "Тыныштық анықталды: {}"
+
+#: rustconn/src/window/session_lifecycle.rs:479
+#: rustconn/src/window/session_lifecycle.rs:492
+msgid "Command finished: {}"
+msgstr "Команда аяқталды: {}"
+
+#: rustconn/src/window/session_lifecycle.rs:486
+msgid "Command failed with status {}: {}"
+msgstr "Команда сәтсіз, күй {}: {}"
 
 #: rustconn/src/window/session_restore.rs:179
 msgid "Restore previous session?"
@@ -12049,6 +12081,9 @@ msgstr "RustConn"
 #: rustconn/assets/io.github.totoshko88.RustConn.desktop:15
 msgid "ssh;rdp;vnc;spice;mosh;telnet;zerotrust;connection;terminal;remote;kubernetes;k8s;serial;sftp;"
 msgstr "ssh;rdp;vnc;spice;mosh;telnet;zerotrust;connection;terminal;remote;kubernetes;k8s;serial;sftp;"
+
+#~ msgid "Select monitoring mode for this connection"
+#~ msgstr "Осы қосылым үшін бақылау режимін таңдаңыз"
 
 #~ msgid "{} backend unavailable. Using fallback."
 #~ msgstr "{} бэкенді қолжетімсіз. Қосалқы пайдаланылуда."

@@ -186,8 +186,13 @@ const fn default_scrollback() -> u32 {
     10000
 }
 
+/// Default terminal theme: follow the desktop's light/dark preference.
+///
+/// Only reached when `color_theme` is absent from `settings.toml` — a fresh
+/// install, or a config written before the field existed. Anyone who has ever
+/// saved Preferences has an explicit value stored and keeps it.
 fn default_color_theme() -> String {
-    "Dark".to_string()
+    crate::terminal_themes::FOLLOW_SYSTEM_THEME.to_string()
 }
 
 fn default_cursor_shape() -> String {

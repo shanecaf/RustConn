@@ -5,11 +5,21 @@
 
 use serde::{Deserialize, Serialize};
 
-/// Three-state monitoring mode for terminal activity detection.
+/// Monitoring mode for terminal output detection.
 ///
 /// - `Off`: No monitoring (default)
 /// - `Activity`: Notify when new output appears after a quiet period
 /// - `Silence`: Notify when no output occurs for a configurable duration
+/// - `Command`: Notify when the remote shell reports a command finished
+///
+/// The first three are timing heuristics over raw output. `Command` is the only
+/// one driven by an actual event: VTE's `vte.shell.postexec` termprop, which the
+/// remote shell sets through OSC 133 and which carries the exit code. It therefore
+/// needs two things the others do not — VTE 0.78 or newer on the build host (the
+/// GUI's `vte-0-78` feature) and shell integration sourced on the *remote* side.
+/// This enum is data in a headless crate and carries no feature gate, so that a
+/// `settings.toml` written by a build that has the feature still loads in one that
+/// does not; there the mode simply never fires.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum MonitorMode {
@@ -20,17 +30,36 @@ pub enum MonitorMode {
     Activity,
     /// Notify on absence of output after timeout
     Silence,
+    /// Notify when the remote shell reports a finished command (OSC 133)
+    Command,
 }
 
 impl MonitorMode {
-    /// Cycles to the next mode: Off → Activity → Silence → Off
+    /// Cycles to the next mode: Off → Activity → Silence → Command → Off
     #[must_use]
     pub const fn next(self) -> Self {
         match self {
             Self::Off => Self::Activity,
             Self::Activity => Self::Silence,
-            Self::Silence => Self::Off,
+            Self::Silence => Self::Command,
+            Self::Command => Self::Off,
         }
+    }
+
+    /// Returns every mode in picker order, so no call site writes its own list.
+    #[must_use]
+    pub const fn all() -> &'static [Self] {
+        &[Self::Off, Self::Activity, Self::Silence, Self::Command]
+    }
+
+    /// Reports whether this mode fires from timing rather than from an event.
+    ///
+    /// `Activity` and `Silence` need the quiet-period and silence-timeout values;
+    /// `Off` and `Command` ignore them, so a picker can hide those controls and the
+    /// coordinator can skip arming a timer.
+    #[must_use]
+    pub const fn uses_timers(self) -> bool {
+        matches!(self, Self::Activity | Self::Silence)
     }
 
     /// Returns the GTK icon name for this mode.
@@ -40,16 +69,20 @@ impl MonitorMode {
             Self::Off => "action-unavailable-symbolic",
             Self::Activity => "dialog-information-symbolic",
             Self::Silence => "dialog-warning-symbolic",
+            Self::Command => "process-stop-symbolic",
         }
     }
 
     /// Returns the human-readable display name for this mode.
+    ///
+    /// Untranslated by convention — callers in the GUI wrap it in `i18n()`.
     #[must_use]
     pub const fn display_name(self) -> &'static str {
         match self {
             Self::Off => "Off",
             Self::Activity => "Activity",
             Self::Silence => "Silence",
+            Self::Command => "Command finished",
         }
     }
 }
@@ -187,7 +220,62 @@ mod tests {
     fn test_mode_cycling() {
         assert_eq!(MonitorMode::Off.next(), MonitorMode::Activity);
         assert_eq!(MonitorMode::Activity.next(), MonitorMode::Silence);
-        assert_eq!(MonitorMode::Silence.next(), MonitorMode::Off);
+        assert_eq!(MonitorMode::Silence.next(), MonitorMode::Command);
+        assert_eq!(MonitorMode::Command.next(), MonitorMode::Off);
+    }
+
+    #[test]
+    fn cycling_visits_every_mode_and_returns_to_the_start() {
+        // The per-tab Monitor menu cycles with `next()`, so a mode missing from the
+        // cycle would be unreachable from the UI even though it exists in settings.
+        let mut seen = Vec::new();
+        let mut mode = MonitorMode::Off;
+        for _ in 0..MonitorMode::all().len() {
+            seen.push(mode);
+            mode = mode.next();
+        }
+        assert_eq!(mode, MonitorMode::Off, "cycle must close");
+        assert_eq!(seen.len(), MonitorMode::all().len());
+        for candidate in MonitorMode::all() {
+            assert!(seen.contains(candidate), "{candidate:?} is unreachable");
+        }
+    }
+
+    #[test]
+    fn only_the_timing_modes_report_using_timers() {
+        assert!(!MonitorMode::Off.uses_timers());
+        assert!(MonitorMode::Activity.uses_timers());
+        assert!(MonitorMode::Silence.uses_timers());
+        // Command is event-driven: it must not arm a silence timer.
+        assert!(!MonitorMode::Command.uses_timers());
+    }
+
+    #[test]
+    fn every_mode_has_a_distinct_icon_and_name() {
+        let mut names: Vec<&str> = MonitorMode::all()
+            .iter()
+            .map(|m| m.display_name())
+            .collect();
+        let before = names.len();
+        names.sort_unstable();
+        names.dedup();
+        assert_eq!(names.len(), before, "display names must be distinct");
+
+        let mut icons: Vec<&str> = MonitorMode::all().iter().map(|m| m.icon_name()).collect();
+        let before = icons.len();
+        icons.sort_unstable();
+        icons.dedup();
+        assert_eq!(icons.len(), before, "icon names must be distinct");
+    }
+
+    #[test]
+    fn command_mode_survives_a_serde_round_trip() {
+        // Written by a build that has the vte-0-78 feature, read by one that does
+        // not: the value must still parse rather than reset the whole settings file.
+        let json = serde_json::to_string(&MonitorMode::Command).expect("serialize");
+        assert_eq!(json, "\"command\"");
+        let back: MonitorMode = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(back, MonitorMode::Command);
     }
 
     #[test]

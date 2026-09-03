@@ -103,9 +103,12 @@ modules:
         # commit message, said what the design was. An assertion repeated until it
         # looks settled is not a reason, so here is the evidence instead:
         #
-        #   * `vte4` is at 0.10 and RustConn selects its `v0_76` feature, so the
-        #     API surface in use is VTE 0.76's. VTE keeps that ABI within the
-        #     2.91 series, and 0.84 still provides it.
+        #   * `vte4` is at 0.10 and this manifest selects its `v0_78` feature, so
+        #     the API surface in use is VTE 0.78's — comfortably under the 0.80.5
+        #     bundled here. VTE keeps that ABI within the 2.91 series, and 0.84
+        #     still provides it. (Until 0.21.5 the build passed no VTE feature at
+        #     all and this bullet said `v0_76`; the ceiling is unchanged, the floor
+        #     moved.)
         #   * The maintainer's macOS build runs against Homebrew's VTE 0.84.1
         #     daily, which is the only empirical datum either way and points at
         #     the ceiling being unnecessary.
@@ -356,7 +359,19 @@ modules:
         chmod +x /app/bin/cc-wrap
       # Rename deprecated cargo/config to config.toml
       - if [ -f cargo/config ]; then mv cargo/config cargo/config.toml; fi
-      - CC=/app/bin/cc-wrap cargo build --release -p rustconn --features adw-1-8
+      # Features the GNOME 50 runtime can actually back, verified with pkg-config
+      # inside org.gnome.Sdk//50: GTK 4.22.4, libadwaita 1.9.3. VTE comes from the
+      # bundled 0.80.5 module above, not the runtime, so `vte-0-78` is satisfied by
+      # this manifest rather than by GNOME.
+      #
+      # `vte-0-78` is what makes the Command monitor mode reachable — without it the
+      # mode is hidden from the picker and never fires, which is how it shipped when
+      # the feature was added and nothing here passed it.
+      #
+      # `vte-0-80` is deliberately not passed: by the feature ladder it implies
+      # `vte-0-78` and adds only the image termprops, which `vte4` 0.10 does not bind
+      # and VTE never populates. Naming it would claim a capability nothing reads.
+      - CC=/app/bin/cc-wrap cargo build --release -p rustconn --features 'adw-1-8,vte-0-78,gtk-4-22'
       - CC=/app/bin/cc-wrap cargo build --release -p rustconn-cli --features full
       - install -Dm755 target/release/rustconn /app/bin/rustconn
       - install -Dm755 target/release/rustconn-cli /app/bin/rustconn-cli
@@ -379,5 +394,5 @@ modules:
     sources:
       - type: git
         url: https://github.com/totoshko88/RustConn.git
-        tag: v0.21.4
+        tag: v0.21.5
       - cargo-sources.json

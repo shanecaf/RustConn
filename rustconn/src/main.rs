@@ -80,6 +80,7 @@ pub mod external_session;
 pub mod i18n;
 mod i18n_markers;
 pub mod icon_render;
+pub mod monitor_mode;
 pub mod monitoring;
 mod renderer;
 pub mod session;
@@ -430,12 +431,24 @@ pub fn configure_gsettings_schemas() {
 /// theme-parser warnings (libadwaita ≥1.9 stylesheet vs GTK4's CSS parser)
 /// while forwarding every other GLib/GTK message to the default writer.
 ///
+/// Set `RUSTCONN_CSS_WARNINGS=1` to keep them. That escape hatch is not a
+/// convenience: this filter matched on the words "Theme parser" alone, so it also
+/// silenced complaints about `assets/style.css`, and four real errors in it lived
+/// there unseen — `margin-start`/`margin-end`, which GTK's CSS does not have, so
+/// those margins never applied. Anyone editing the stylesheet should run with the
+/// variable set, and `scripts/check-css.py` does the same thing without a display.
+///
 /// # Panics
 ///
 /// Panics if a writer function was already installed; this is called exactly
 /// once from `main`, so that cannot happen in practice.
 fn install_glib_css_warning_filter() {
     use gtk4::glib;
+
+    if std::env::var_os("RUSTCONN_CSS_WARNINGS").is_some() {
+        tracing::info!("RUSTCONN_CSS_WARNINGS set; not filtering CSS parser messages");
+        return;
+    }
 
     glib::log_set_writer_func(|level, fields| {
         let is_css_noise = fields.iter().any(|field| {

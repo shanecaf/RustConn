@@ -50,6 +50,20 @@ pub fn apply_color_scheme(scheme: ColorScheme) {
     }
 }
 
+/// Reports whether the application is currently rendering dark.
+///
+/// This is the *resolved* state, not the user's preference: with
+/// [`ColorScheme::System`] it follows the desktop (via the settings portal on
+/// Wayland/Flatpak), and with `Light`/`Dark` it follows the forced choice. That is
+/// the value `rustconn-core` needs to resolve
+/// [`FOLLOW_SYSTEM_THEME`][rustconn_core::terminal_themes::FOLLOW_SYSTEM_THEME],
+/// which is why this wrapper exists rather than each call site reaching for
+/// `StyleManager` — a headless crate cannot, and the GUI should ask in one place.
+#[must_use]
+pub fn system_is_dark() -> bool {
+    adw::StyleManager::default().is_dark()
+}
+
 thread_local! {
     /// Global compact preferences shared by all windows: `(manual, auto)`.
     ///
@@ -230,8 +244,15 @@ fn build_ui(app: &adw::Application, tray_manager: SharedTrayManager) {
         return;
     }
 
-    // Force Adwaita icon theme and suppress deprecated dark-theme property
-    // BEFORE loading CSS to prevent libadwaita warnings during theme parsing.
+    // Force the Adwaita icon theme before loading CSS, so every icon name the UI
+    // asks for resolves the same way regardless of the desktop's icon theme.
+    //
+    // `gtk-application-prefer-dark-theme` is deliberately NOT touched here. A
+    // "safety net" clear used to live in this block, on the theory that a settings
+    // daemon might have re-set the property between `run()` and activate. By this
+    // point `adw::init()` has run, so the thing that set it is `AdwStyleManager`
+    // reporting the resolved colour scheme — and clearing it forced the window
+    // light on a dark desktop. See the longer note in `run()`.
     if let Some(display) = gtk4::gdk::Display::default() {
         let settings = gtk4::Settings::for_display(&display);
         let current = settings.gtk_icon_theme_name().unwrap_or_default();
@@ -242,21 +263,14 @@ fn build_ui(app: &adw::Application, tray_manager: SharedTrayManager) {
                 "Forced Adwaita icon theme for consistent icon availability"
             );
         }
-
-        // Safety net: clear the deprecated property again in case it was
-        // re-set between run() and activate (e.g. by a settings daemon).
-        // Skipped on macOS — see the note in run(): the property mirrors the
-        // system appearance there and must not be cleared.
-        #[cfg(not(target_os = "macos"))]
-        if settings.is_gtk_application_prefer_dark_theme() {
-            settings.set_gtk_application_prefer_dark_theme(false);
-            tracing::debug!(
-                "Cleared deprecated gtk-application-prefer-dark-theme (using AdwStyleManager)"
-            );
-        }
     }
 
-    // Load CSS styles for split view panes (after dark-theme suppression)
+    // What libadwaita actually resolved, which is the only way a
+    // window-is-light-on-a-dark-desktop report can be diagnosed from a log: the
+    // preference alone does not say what came out of it.
+    tracing::debug!(dark = system_is_dark(), "resolved color scheme at startup");
+
+    // Load CSS styles for split view panes
     load_css_styles();
 
     // Create shared application state (fast — secret backends deferred)
@@ -886,6 +900,37 @@ struct TrayStateCache {
     connections_hash: i64,
 }
 
+/// Window actions the tray activates, named as the window's own action map
+/// spells them — **without** a `win.` prefix.
+///
+/// The distinction is what broke every session-opening tray item. There are two
+/// ways to activate a window action from code and they take different names:
+///
+/// - `ActionGroupExt::activate_action(&window, ..)` — the window *is* the
+///   `GActionGroup`, so the name is looked up verbatim in its action map and a
+///   prefix must not be present. This is what the rest of the codebase does
+///   (`window/mod.rs` for `connect-to` and the command palette).
+/// - `WidgetExt::activate_action(&widget, ..)` — goes through the widget action
+///   muxer, which splits the name on the first `.` to pick a group, so the
+///   prefix is *required* (`app.rs` uses `"win.settings"` this way).
+///
+/// The tray used the second function with the first function's names. Without a
+/// dot the muxer finds no group, returns `FALSE`, and the `let _ =` discarded it —
+/// so Local Shell, Quick Connect and every Recent Connections entry highlighted
+/// on click and then did nothing, on both the ksni and the macOS tray, which
+/// share this dispatch.
+const TRAY_QUICK_CONNECT_ACTION: &str = "quick-connect";
+/// See [`TRAY_QUICK_CONNECT_ACTION`] for why this carries no `win.` prefix.
+const TRAY_LOCAL_SHELL_ACTION: &str = "local-shell";
+/// The parameterised connect action, taking a connection id.
+///
+/// Not `connect`: that one is `SimpleAction::new("connect", None)` and acts on
+/// the *sidebar selection*, ignoring any parameter. So the tray's chosen
+/// connection had nowhere to arrive even once the prefix was right, and GTK
+/// would reject the activation anyway for passing a parameter to an action
+/// declared without one. See [`TRAY_QUICK_CONNECT_ACTION`] for the prefix.
+const TRAY_CONNECT_ACTION: &str = "connect-to";
+
 /// Sets up event-driven tray message handling and periodic state sync.
 ///
 /// Tray messages (user clicks) arrive over an `async_channel` and are
@@ -947,6 +992,12 @@ fn setup_tray_handling(
                 break;
             };
 
+            // This path had no logging at all, which is why a tray item that did
+            // nothing was indistinguishable from a click that never arrived: the
+            // absence of output proved neither. One line here answers that,
+            // because the message is logged before anything can silently fail.
+            tracing::debug!(?msg, "handling tray message");
+
             match msg {
                 TrayMessage::ShowWindow => {
                     if let Some(win) = window_for_msgs.upgrade() {
@@ -975,9 +1026,9 @@ fn setup_tray_handling(
                     if let Some(win) = window_for_msgs.upgrade() {
                         win.present();
                         tray.set_window_visible(true);
-                        let _ = gtk4::prelude::WidgetExt::activate_action(
+                        gio::prelude::ActionGroupExt::activate_action(
                             &win,
-                            "connect",
+                            TRAY_CONNECT_ACTION,
                             Some(&conn_id.to_string().to_variant()),
                         );
                     }
@@ -986,16 +1037,22 @@ fn setup_tray_handling(
                     if let Some(win) = window_for_msgs.upgrade() {
                         win.present();
                         tray.set_window_visible(true);
-                        let _ =
-                            gtk4::prelude::WidgetExt::activate_action(&win, "quick-connect", None);
+                        gio::prelude::ActionGroupExt::activate_action(
+                            &win,
+                            TRAY_QUICK_CONNECT_ACTION,
+                            None,
+                        );
                     }
                 }
                 TrayMessage::LocalShell => {
                     if let Some(win) = window_for_msgs.upgrade() {
                         win.present();
                         tray.set_window_visible(true);
-                        let _ =
-                            gtk4::prelude::WidgetExt::activate_action(&win, "local-shell", None);
+                        gio::prelude::ActionGroupExt::activate_action(
+                            &win,
+                            TRAY_LOCAL_SHELL_ACTION,
+                            None,
+                        );
                     }
                 }
                 TrayMessage::About => {
@@ -1746,36 +1803,62 @@ pub fn run() -> glib::ExitCode {
         return glib::ExitCode::FAILURE;
     }
 
-    // Suppress the libadwaita warning about gtk-application-prefer-dark-theme.
-    // KDE/XFCE set this property globally via xsettings. We clear it before
-    // adw::init() so AdwStyleManager never sees it as true.
-    // We also connect a notify handler to catch the xsettings daemon re-setting
-    // the property after we clear it (race condition on KDE).
+    // Clear `gtk-application-prefer-dark-theme` once, before `adw::init()`.
     //
-    // macOS has no xsettings daemon: there the property is driven by the GTK
-    // Quartz backend to mirror the system NSAppearance, so clearing it would
-    // fight macOS' "follow system" dark mode (ColorScheme::System) and only
-    // produce misleading log spam. Skip the whole workaround there.
+    // KDE/XFCE set this legacy property globally via xsettings, and older
+    // libadwaita warned when it found it already true. Clearing it here is safe
+    // because libadwaita has no opinion yet: `adw::init()` runs immediately after
+    // and sets the property itself to whatever it resolves the colour scheme to.
+    //
+    // What used to follow this, and must not come back: a
+    // `notify::gtk-application-prefer-dark-theme` handler that cleared the property
+    // *again* every time it changed, plus a second clear in `build_ui()`. Both were
+    // written for an "xsettings race", but the thing re-setting the property is
+    // `AdwStyleManager` — that is how it tells GTK the resolved scheme is dark. So
+    // on any dark desktop the handler fought libadwaita and won, and the app
+    // rendered light with the system set to dark. `is_dark()` still reported dark,
+    // so "Follow System" terminal colours disagreed with the window around them.
+    //
+    // macOS never had either: there the property is driven by the GTK Quartz
+    // backend to mirror the system NSAppearance, so touching it fights macOS'
+    // own "follow system" dark mode. The cfg stays for the same reason.
+    //
+    // The `if` below is the whole guard, and it is the condition the workaround was
+    // written for rather than a proxy for it. Only a desktop that set the legacy
+    // property *itself* — KDE and XFCE, through xsettings or `gtk-4.0/settings.ini`
+    // — has it true this early; GNOME expresses the preference through
+    // `org.gnome.desktop.interface color-scheme` and leaves this one alone, so the
+    // branch is a no-op there and the clear cannot affect what libadwaita resolves.
+    //
+    // This used to also carry `not(feature = "gtk-4-20")`, on the reasoning that a
+    // build against GTK 4.20 is a build against libadwaita 1.8+, which no longer
+    // warns about the legacy property — so the version that deprecates the accessors
+    // is the version that makes the clearing pointless. The reasoning holds for the
+    // *warning* and not for the *behaviour*: what the clear actually buys on KDE is
+    // that libadwaita starts from a property it did not set, and that is true of
+    // every libadwaita. Tying it to a GTK feature meant the Flatpak silently lost
+    // the workaround the moment it was built against 4.22, on a desktop nobody in
+    // this project tests. So the deprecation is suppressed instead of the block being
+    // removed, and only in the colour where the lint actually fires — a bare
+    // `expect` would trip `unfulfilled_lint_expectations` on a baseline build.
     #[cfg(not(target_os = "macos"))]
+    #[cfg_attr(
+        feature = "gtk-4-20",
+        expect(
+            deprecated,
+            reason = "clearing a legacy property a legacy settings daemon set is only \
+                      expressible through the legacy accessors"
+        )
+    )]
     if let Some(display) = gtk4::gdk::Display::default() {
         let settings = gtk4::Settings::for_display(&display);
         if settings.is_gtk_application_prefer_dark_theme() {
             settings.set_gtk_application_prefer_dark_theme(false);
             tracing::debug!(
-                "Cleared deprecated gtk-application-prefer-dark-theme before adw::init()"
+                "Cleared deprecated gtk-application-prefer-dark-theme before adw::init() \
+                 (desktop had set it; GNOME does not)"
             );
         }
-
-        // Permanently suppress: if xsettings daemon re-sets the property,
-        // clear it again immediately before libadwaita can warn about it.
-        settings.connect_gtk_application_prefer_dark_theme_notify(|s| {
-            if s.is_gtk_application_prefer_dark_theme() {
-                s.set_gtk_application_prefer_dark_theme(false);
-                tracing::debug!(
-                    "Re-cleared deprecated gtk-application-prefer-dark-theme (xsettings race)"
-                );
-            }
-        });
     }
 
     // Now initialize libadwaita (gtk_init() is idempotent, safe to call again)
@@ -1879,4 +1962,54 @@ pub fn install_layout_independent_accels(window: &adw::ApplicationWindow, app: &
     });
 
     window.add_controller(controller);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{TRAY_CONNECT_ACTION, TRAY_LOCAL_SHELL_ACTION, TRAY_QUICK_CONNECT_ACTION};
+
+    /// The tray activates these on the window's own `GActionGroup`, which resolves
+    /// a name verbatim against its action map and knows nothing about groups. A
+    /// `win.` prefix here matches nothing and fails silently, which is the bug
+    /// this guards: Local Shell, Quick Connect and Recent Connections all did
+    /// nothing when the tray passed muxer-style names to a plain action group.
+    ///
+    /// If a future change moves these back to `WidgetExt::activate_action`, the
+    /// prefix becomes mandatory and this test has to change with it — that is the
+    /// point, since the two functions cannot share one spelling.
+    #[test]
+    fn tray_window_actions_carry_no_group_prefix() {
+        for name in [
+            TRAY_CONNECT_ACTION,
+            TRAY_QUICK_CONNECT_ACTION,
+            TRAY_LOCAL_SHELL_ACTION,
+        ] {
+            assert!(
+                !name.contains('.'),
+                "{name}: activated on the window's action group, which does not \
+                 resolve a group prefix"
+            );
+            assert!(
+                !name.is_empty(),
+                "an empty action name activates nothing, silently"
+            );
+        }
+    }
+
+    /// Recent Connections was broken twice over, and the prefix was only half of
+    /// it. `connect` is declared with no parameter and connects whatever the
+    /// sidebar has selected, so the id the tray sends is discarded and GTK
+    /// rejects the activation for supplying a parameter at all. `connect-to`
+    /// is the action that takes a connection id.
+    #[test]
+    fn tray_connect_targets_the_parameterised_action() {
+        assert_eq!(
+            TRAY_CONNECT_ACTION, "connect-to",
+            "the tray sends a connection id, so it needs the action that accepts one"
+        );
+        assert_ne!(
+            TRAY_CONNECT_ACTION, "connect",
+            "`connect` acts on the sidebar selection and ignores the id"
+        );
+    }
 }

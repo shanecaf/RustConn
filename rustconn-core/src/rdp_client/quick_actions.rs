@@ -61,7 +61,7 @@ pub static QUICK_ACTIONS: &[QuickAction] = &[
         id: "task-manager",
         label: "Task Manager",
         tooltip: "Open Windows Task Manager (Ctrl+Shift+Esc)",
-        icon: "utilities-system-monitor-symbolic",
+        icon: "view-list-symbolic",
         group: 0,
     },
     // Group 1: Admin consoles (alphabetical)
@@ -76,7 +76,7 @@ pub static QUICK_ACTIONS: &[QuickAction] = &[
         id: "device-manager",
         label: "Device Manager",
         tooltip: "Open Windows Device Manager",
-        icon: "preferences-desktop-peripherals-symbolic",
+        icon: "input-mouse-symbolic",
         group: 1,
     },
     QuickAction {

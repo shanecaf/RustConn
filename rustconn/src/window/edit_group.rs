@@ -1392,7 +1392,7 @@ pub fn show_edit_group_dialog(
         &sync_scrolled,
         Some("sync"),
         &i18n("Cloud Sync"),
-        "emblem-synchronizing-symbolic",
+        "view-refresh-symbolic",
     );
     sync_page.set_visible(is_root_group);
 

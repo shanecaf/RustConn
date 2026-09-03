@@ -36,6 +36,7 @@ mod session_lifecycle;
 pub mod tab_container;
 mod tab_lifecycle;
 mod tab_menu;
+pub mod termprops;
 mod types;
 
 use std::cell::RefCell;
@@ -1846,16 +1847,20 @@ impl TerminalNotebook {
             }
         }
 
-        let pixbuf = gtk4::gdk_pixbuf::Pixbuf::from_bytes(
+        // Straight from the bytes just written, with no `Pixbuf` in between.
+        //
+        // This used to build a `GdkPixbuf` and hand it to `Texture::for_pixbuf`,
+        // which GTK 4.20 deprecates — gdk-pixbuf is on its way out as GTK's image
+        // path (4.20 made glycin the preferred loader). `MemoryTexture` takes the
+        // same premultiplied-alpha RGBA buffer directly, so the conversion that was
+        // there to satisfy an API is simply gone.
+        let texture = gtk4::gdk::MemoryTexture::new(
+            size as i32,
+            size as i32,
+            gtk4::gdk::MemoryFormat::R8g8b8a8,
             &glib::Bytes::from(&rgba_data),
-            gtk4::gdk_pixbuf::Colorspace::Rgb,
-            true,
-            8,
-            size as i32,
-            size as i32,
-            (size * 4) as i32,
+            size as usize * 4,
         );
-        let texture = gtk4::gdk::Texture::for_pixbuf(&pixbuf);
         Some(texture.upcast::<gio::Icon>())
     }
 
@@ -2438,11 +2443,39 @@ impl TerminalNotebook {
     where
         F: Fn(Uuid) -> Option<rustconn_core::models::ConnectionThemeOverride>,
     {
-        let base_theme =
-            TerminalTheme::by_name(theme_name).unwrap_or_else(TerminalTheme::dark_theme);
+        let base_theme = TerminalTheme::resolve(theme_name, crate::app::system_is_dark());
         let terminals = self.terminals.borrow();
         let session_info = self.session_info.borrow();
         for (session_id, terminal) in terminals.iter() {
+            if let Some(info) = session_info.get(session_id)
+                && let Some(theme_override) = get_theme_override(info.connection_id)
+            {
+                config::apply_theme_override_with_base(terminal, &theme_override, &base_theme);
+            }
+        }
+    }
+
+    /// Repaints every live terminal with the current colour theme.
+    ///
+    /// For the case no setting changed: `color_theme` is
+    /// [`FOLLOW_SYSTEM_THEME`][rustconn_core::terminal_themes::FOLLOW_SYSTEM_THEME]
+    /// and the desktop flipped light/dark, so the *resolved* palette is different
+    /// while `settings.toml` is untouched. Nothing else on that path repaints.
+    ///
+    /// Colours only — unlike [`Self::apply_settings`] this leaves font, scrollback
+    /// and erase bindings alone, so it needs no `reapply_erase_modes` chaser and
+    /// cannot undo a per-session Backspace choice (issue #271).
+    /// Per-connection overrides are layered back on for the same reason
+    /// [`Self::reapply_theme_overrides`] exists (issue #99).
+    pub fn reapply_colors<F>(&self, theme_name: &str, get_theme_override: F)
+    where
+        F: Fn(Uuid) -> Option<rustconn_core::models::ConnectionThemeOverride>,
+    {
+        let base_theme = TerminalTheme::resolve(theme_name, crate::app::system_is_dark());
+        let terminals = self.terminals.borrow();
+        let session_info = self.session_info.borrow();
+        for (session_id, terminal) in terminals.iter() {
+            config::setup_colors_with_theme(terminal, theme_name);
             if let Some(info) = session_info.get(session_id)
                 && let Some(theme_override) = get_theme_override(info.connection_id)
             {

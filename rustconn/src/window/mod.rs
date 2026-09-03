@@ -428,6 +428,49 @@ impl MainWindow {
             });
         }
 
+        // Repaint terminals when the desktop flips light/dark.
+        //
+        // `AdwStyleManager` already drives the GTK chrome; what it does not touch is
+        // VTE's palette, which RustConn sets by name. With the "Follow System" theme
+        // the resolved palette changes while `settings.toml` does not, so no other
+        // path repaints — the chrome went light and the terminal stayed dark.
+        //
+        // Weak on both handles, mirroring the fontconfig handler above: this lives on
+        // the process-wide StyleManager, which outlives every window, so a strong
+        // reference here would leak the window and its sessions.
+        {
+            let notebook_weak = Rc::downgrade(&terminal_notebook);
+            let state_weak = Rc::downgrade(&state);
+            adw::StyleManager::default().connect_dark_notify(move |style_manager| {
+                let Some(notebook) = notebook_weak.upgrade() else {
+                    return;
+                };
+                let Some(state) = state_weak.upgrade() else {
+                    return;
+                };
+                // try_borrow, not borrow: this fires from a settings-portal signal
+                // that can land while another handler already holds the state.
+                let Ok(state_ref) = state.try_borrow() else {
+                    tracing::debug!("state busy on color-scheme change; skipping repaint");
+                    return;
+                };
+                let theme_name = state_ref.settings().terminal.color_theme.clone();
+                if theme_name != rustconn_core::terminal_themes::FOLLOW_SYSTEM_THEME {
+                    // A theme chosen by name is meant to stay put.
+                    return;
+                }
+                tracing::debug!(
+                    dark = style_manager.is_dark(),
+                    "desktop color scheme changed; repainting terminals"
+                );
+                notebook.reapply_colors(&theme_name, |connection_id| {
+                    state_ref
+                        .get_connection(connection_id)
+                        .and_then(|c| c.theme_override.clone())
+                });
+            });
+        }
+
         // Apply initial protocol tab coloring setting
         if let Ok(state_ref) = state.try_borrow() {
             terminal_notebook
@@ -1593,13 +1636,21 @@ impl MainWindow {
                     // Clear activity monitor indicator and reset notification state
                     // but preserve split color indicators
                     activity_for_tab.on_tab_switched(session_id);
-                    if !notebook_clone
-                        .split_colors()
-                        .borrow()
-                        .contains_key(&session_id)
-                        && let Some(page) = sessions_for_tab.borrow().get(&session_id)
-                    {
-                        page.set_indicator_icon(gio::Icon::NONE);
+                    if let Some(page) = sessions_for_tab.borrow().get(&session_id) {
+                        // libadwaita does not clear `needs-attention` on selection,
+                        // and looking at the tab is the acknowledgement — so it is
+                        // cleared here, unconditionally. Unlike `indicator-icon`
+                        // below there is nothing else competing for it, so there is
+                        // no state to preserve.
+                        page.set_needs_attention(false);
+
+                        if !notebook_clone
+                            .split_colors()
+                            .borrow()
+                            .contains_key(&session_id)
+                        {
+                            page.set_indicator_icon(gio::Icon::NONE);
+                        }
                     }
 
                     // If session has a split bridge, focus the correct pane

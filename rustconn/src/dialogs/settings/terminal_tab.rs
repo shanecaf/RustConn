@@ -77,7 +77,8 @@ pub fn create_terminal_page() -> (
         .build();
 
     let theme_names = TerminalTheme::theme_names();
-    let theme_list = StringList::new(&theme_names.iter().map(String::as_str).collect::<Vec<_>>());
+    let theme_labels = theme_labels(&theme_names);
+    let theme_list = StringList::new(&theme_labels.iter().map(String::as_str).collect::<Vec<_>>());
     let color_theme_dropdown = DropDown::builder()
         .model(&theme_list)
         .selected(0)
@@ -692,7 +693,7 @@ pub fn collect_terminal_settings(
     let color_theme = theme_names
         .get(color_theme_dropdown.selected() as usize)
         .cloned()
-        .unwrap_or_else(|| "Dark".to_string());
+        .unwrap_or_else(|| rustconn_core::terminal_themes::FOLLOW_SYSTEM_THEME.to_string());
 
     let cursor_shapes = ["Block", "IBeam", "Underline"];
     let cursor_shape = cursor_shapes
@@ -739,10 +740,34 @@ pub fn collect_terminal_settings(
 // Custom theme helpers
 // ========================================================================
 
+/// Builds picker labels for [`TerminalTheme::theme_names`], in the same order.
+///
+/// Only the follow-system sentinel is translated. Every other entry is either a
+/// brand name (Monokai, Dracula) or a name the user typed, and all of them are the
+/// exact string written to `settings.toml` — translating those would make the
+/// picker disagree with the file and break the round trip through
+/// `theme_names().position(...)`.
+///
+/// Same length and order as `names`, so every index the load/save/edit/delete paths
+/// compute against `theme_names()` still points at the same entry.
+fn theme_labels(names: &[String]) -> Vec<String> {
+    names
+        .iter()
+        .map(|name| {
+            if name == rustconn_core::terminal_themes::FOLLOW_SYSTEM_THEME {
+                i18n("Follow System")
+            } else {
+                name.clone()
+            }
+        })
+        .collect()
+}
+
 /// Refreshes the theme dropdown model and selects the given theme name.
 fn refresh_theme_dropdown(dropdown: &DropDown, select_name: &str) {
     let names = TerminalTheme::theme_names();
-    let list = StringList::new(&names.iter().map(String::as_str).collect::<Vec<_>>());
+    let labels = theme_labels(&names);
+    let list = StringList::new(&labels.iter().map(String::as_str).collect::<Vec<_>>());
     dropdown.set_model(Some(&list));
     let idx = names.iter().position(|n| n == select_name).unwrap_or(0);
     dropdown.set_selected(idx as u32);

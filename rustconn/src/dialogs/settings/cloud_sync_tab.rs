@@ -36,7 +36,7 @@ pub struct CloudSyncPageWidgets {
 pub fn create_cloud_sync_page() -> CloudSyncPageWidgets {
     let page = adw::PreferencesPage::builder()
         .title(i18n("Cloud Sync"))
-        .icon_name("emblem-synchronizing-symbolic")
+        .icon_name("view-refresh-symbolic")
         .build();
 
     // --- Setup group ---
