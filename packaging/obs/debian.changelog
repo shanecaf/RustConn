@@ -41,6 +41,19 @@ rustconn (0.21.5-1) unstable; urgency=medium
     through the installed GTK and fails on any complaint.
   * Fixed: the monitoring mode picker no longer needs editing when a mode is
     added; seven hand-written index maps across four files are now one helper.
+  * Fixed: openSUSE Slowroll had no package at all, because it was being handed a
+    Rust built for a newer base than its own — "unresolvable: nothing provides
+    libm.so.6(GLIBC_2.44)(64bit) needed by rust1.98". Slowroll and Tumbleweed take
+    Rust from the same devel:languages:rust/openSUSE_Tumbleweed repository, but
+    Tumbleweed sits on Factory with glibc 2.44 while Slowroll is a delayed Factory
+    snapshot on 2.43, so the newest visible Rust is one it cannot install. Slowroll's
+    own repository has rust1.97.1, above the 1.95 MSRV, but the path could not be
+    dropped because cargo-packaging exists only in devel:languages:rust. Slowroll now
+    builds with the bundled toolchain, as Fedora, Debian and Ubuntu already did, which
+    removes the need for rust, cargo and cargo-packaging there. The four sites that
+    must agree are driven by a single bundled_rust flag rather than a distro test
+    repeated four times. Verified by parsing the spec in three colours before
+    uploading: Tumbleweed unchanged, Slowroll switched, Fedora unchanged.
   * Fixed: no OBS Debian or Ubuntu package had ever contained the in-tab browser,
     because one build-dependency list was checked against another that did not have
     it. OBS assembles the chroot from the Build-Depends in debian.dsc, and

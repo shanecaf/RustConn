@@ -18,14 +18,44 @@ Source0:        %{name}-%{version}.tar.xz
 Source1:        vendor.tar.zst
 Source2:        rust-toolchain.tar.zst
 
+# Which targets build with the bundled toolchain (Source2) rather than the
+# distribution's Rust. One flag instead of repeating a distro test at four sites,
+# because the sites have to agree and a mismatch between them is silent.
+#
+# Fedora and RHEL: their system Rust has been below the MSRV.
+#
+# openSUSE Slowroll: this one is not about the Rust version but about which glibc
+# it was linked against. Slowroll and Tumbleweed take Rust from the same place,
+# `devel:languages:rust/openSUSE_Tumbleweed`, but their bases differ — Tumbleweed
+# sits on openSUSE:Factory (glibc 2.44) while Slowroll is a delayed Factory
+# snapshot (glibc 2.43). So the resolver picks `rust1.98`, built against Factory,
+# and Slowroll cannot satisfy `libm.so.6(GLIBC_2.44)`: unresolvable, every time
+# Factory bumps a glibc symbol version. Slowroll's own repository has rust1.97.1,
+# which is above the 1.95 MSRV and needs only GLIBC_2.4 — but `cargo-packaging`,
+# which provides %%{cargo_build}, exists only in devel:languages:rust, so the
+# repository path cannot simply be dropped. Using the bundled toolchain removes
+# the need for all three of `rust`, `cargo` and `cargo-packaging` there, which
+# takes Slowroll out of that coupling for good rather than until the next bump.
+#
+# `%%_repository` is an OBS macro naming the repository being built for, and it is
+# exported into the build root, so the spec can test it.
+%if 0%{?fedora} || 0%{?rhel}
+%global bundled_rust 1
+%endif
+%if "%{?_repository}" == "openSUSE_Slowroll"
+%global bundled_rust 1
+%endif
+
 # Rust 1.95+ required (MSRV)
 # openSUSE: use devel:languages:rust repo for Rust 1.95+
 # Fedora 42+: system Rust 1.93 is sufficient
 # Fedora <42/RHEL: use rustup fallback since system Rust < 1.95
 %if 0%{?suse_version}
+%if !0%{?bundled_rust}
 BuildRequires:  cargo >= 1.95
 BuildRequires:  rust >= 1.95
 BuildRequires:  cargo-packaging
+%endif
 BuildRequires:  alsa-devel
 %endif
 
@@ -153,8 +183,9 @@ Productivity:
 %prep
 %autosetup -a1 -n %{name}-%{version}
 
-# Unpack standalone Rust toolchain for Fedora/RHEL (OBS has no internet for rustup)
-%if 0%{?fedora} || 0%{?rhel}
+# Unpack the standalone Rust toolchain where it is used (OBS has no internet for
+# rustup). See the bundled_rust definition near the top for which targets and why.
+%if 0%{?bundled_rust}
 tar --zstd -xf %{SOURCE2}
 export PATH="$PWD/rust-toolchain/bin:$PATH"
 rustc --version
@@ -192,8 +223,9 @@ EOF
 %endif
 
 %build
-# Use bundled Rust toolchain for Fedora/RHEL
-%if 0%{?fedora} || 0%{?rhel}
+# The bundled toolchain again: %prep and %build are separate shell invocations, so
+# the PATH set there does not survive to here.
+%if 0%{?bundled_rust}
 export PATH="$PWD/rust-toolchain/bin:$PATH"
 %endif
 
@@ -257,7 +289,10 @@ fi
 
 echo "=== gtk4 $GTK_VERSION | libadwaita $ADW_VERSION | vte $VTE_VERSION => --features $FEATURES ==="
 
-%if 0%{?suse_version}
+# %{cargo_build} comes from cargo-packaging, which is only build-required when the
+# distribution's Rust is used. A bundled-toolchain target has neither the macro nor
+# a reason to want it, so it takes the plain invocation even on openSUSE.
+%if 0%{?suse_version} && !0%{?bundled_rust}
 %{cargo_build} -p rustconn --no-default-features --features "$FEATURES"
 %{cargo_build} -p rustconn-cli --features full
 %else
@@ -374,6 +409,24 @@ done
   margin-start/margin-end, which GTK's CSS does not have. A new gate,
   scripts/check-css.sh, parses the sheet through the installed GTK
 - Fixed: the monitoring mode picker no longer needs editing when a mode is added
+- Fixed: openSUSE Slowroll had no package at all, because it was being handed a Rust
+  built for a newer base than its own — "unresolvable: nothing provides
+  libm.so.6(GLIBC_2.44)(64bit) needed by rust1.98". Slowroll and Tumbleweed take Rust
+  from the same devel:languages:rust/openSUSE_Tumbleweed repository, but Tumbleweed
+  sits on Factory with glibc 2.44 while Slowroll is a delayed Factory snapshot on
+  2.43, so the newest visible Rust is one it cannot install, and this recurs whenever
+  Factory bumps glibc. Slowroll's own repository has rust1.97.1, above the 1.95 MSRV
+  and needing only GLIBC_2.4, but the repository path could not simply be dropped
+  because cargo-packaging — which provides the %cargo_build macro this spec uses on
+  openSUSE — exists only in devel:languages:rust. Slowroll now builds with the bundled
+  toolchain, the same way Fedora, Debian and Ubuntu already did, which removes the
+  need for rust, cargo and cargo-packaging there. The four sites that must agree —
+  build requirements, the toolchain unpack in %prep, the PATH export in %build and the
+  choice of build invocation — are driven by a single bundled_rust flag rather than a
+  distro test repeated four times, because a mismatch between them would be silent.
+  Verified by parsing the spec in three colours before uploading: Tumbleweed still
+  takes %cargo_build and still requires cargo-packaging, Slowroll takes plain cargo
+  and drops both, Fedora unchanged
 - Fixed: no OBS Debian or Ubuntu package had ever contained the in-tab browser,
   because one build-dependency list was checked against another that did not have it.
   OBS assembles the chroot from the Build-Depends in debian.dsc, and
