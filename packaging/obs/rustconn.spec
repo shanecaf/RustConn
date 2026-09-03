@@ -197,49 +197,73 @@ EOF
 export PATH="$PWD/rust-toolchain/bin:$PATH"
 %endif
 
-# Determine libadwaita feature flags based on distro version:
-#   adw-1-8: libadwaita >= 1.8 (Tumbleweed/Slowroll, Fedora 43+)
-#   adw-1-7: libadwaita >= 1.7 (Leap 16.0, Fedora 42)
-#   (none):  libadwaita 1.5 baseline (older distros)
+# Pick the version features the build host can actually back by asking
+# pkg-config, the way debian.rules already does, instead of mapping a distro
+# release number to a library version by hand.
 #
-# WebKitGTK 6.0 (web-embedded feature):
-#   Available on Tumbleweed/Slowroll, Fedora 43+, Fedora 44+
-#   NOT available on Leap 16.0, Fedora 42 (only webkit2gtk 4.1 for GTK3)
-#   Passed as a separate --features flag; cargo merges it with defaults.
-%if 0%{?suse_version} > 1600
-# Tumbleweed / Slowroll — libadwaita 1.8+ (1.9 with GNOME 50)
-%define adw_features --features adw-1-8
-%define web_features ,web-embedded
-%else
-%if 0%{?suse_version} == 1600
-# Leap 16.0 — GNOME 48, libadwaita 1.7 (no WebKitGTK 6.0)
-%define adw_features --features adw-1-7
-%define web_features %{nil}
-%endif
-%endif
+# The hand-written table this replaces needed an edit for every new distro
+# release, and it was wrong about the ones it already listed: Fedora 43/44,
+# Tumbleweed and Ubuntu 26.04 carry GTK 4.20 or 4.22, and the table said 4.18
+# everywhere. Nothing fails loudly when that goes stale — the build quietly
+# compiles a lower baseline and no one finds out.
+#
+# Every test is --atleast-version rather than a glob over --modversion, which is
+# what debian.rules used to do and which had a trap in it: a case pattern of
+# 1.8 or 1.9 does not match libadwaita 1.10, so the first distro to ship 1.10
+# would have dropped silently to the 1.5 baseline. --atleast-version also gets
+# GTK 4.24 and VTE 0.100 right for free.
+#
+# Highest match wins, so each ladder is ordered newest-first. Everything lands
+# in one comma-separated list and one --features argument; cargo unions repeated
+# flags anyway, but a single list is easier to read in a build log.
+GTK_VERSION=$(pkg-config --modversion gtk4 2>/dev/null)
+ADW_VERSION=$(pkg-config --modversion libadwaita-1 2>/dev/null)
+VTE_VERSION=$(pkg-config --modversion vte-2.91-gtk4 2>/dev/null)
 
-%if 0%{?fedora} >= 43
-# Fedora 43+ — GNOME 49+, libadwaita 1.8+, WebKitGTK 6.0
-%define adw_features --features adw-1-8
-%define web_features ,web-embedded
-%else
-%if 0%{?fedora} == 42
-# Fedora 42 — GNOME 48, libadwaita 1.7 (no WebKitGTK 6.0)
-%define adw_features --features adw-1-7
-%define web_features %{nil}
-%endif
-%endif
+# Everything from `default` except web-embedded, which is detected below.
+FEATURES="tray,system-keyring,vnc-embedded,rdp-embedded,gfx-h264,rdp-audio,rd-gateway,wayland-native"
 
-# Base features: everything from `default` except web-embedded (conditional above)
-%define base_features tray,system-keyring,vnc-embedded,rdp-embedded,gfx-h264,rdp-audio,rd-gateway,wayland-native
+if pkg-config --atleast-version=1.8 libadwaita-1 2>/dev/null; then
+    FEATURES="$FEATURES,adw-1-8"
+elif pkg-config --atleast-version=1.7 libadwaita-1 2>/dev/null; then
+    FEATURES="$FEATURES,adw-1-7"
+elif pkg-config --atleast-version=1.6 libadwaita-1 2>/dev/null; then
+    FEATURES="$FEATURES,adw-1-6"
+fi
+
+# GTK: a newer library's runtime behaviour arrives with the link and needs no
+# feature at all. What the feature buys is access to API added in that version,
+# and deprecation warnings for what it retired.
+if pkg-config --atleast-version=4.22 gtk4 2>/dev/null; then
+    FEATURES="$FEATURES,gtk-4-22"
+elif pkg-config --atleast-version=4.20 gtk4 2>/dev/null; then
+    FEATURES="$FEATURES,gtk-4-20"
+elif pkg-config --atleast-version=4.18 gtk4 2>/dev/null; then
+    FEATURES="$FEATURES,gtk-4-18"
+fi
+
+# VTE termprops, and with them the Command monitoring mode. Below 0.78
+# system-deps fails inside the build script rather than in the dependency
+# solver, which is a much less obvious error than a resolver conflict.
+if pkg-config --atleast-version=0.78 vte-2.91-gtk4 2>/dev/null; then
+    FEATURES="$FEATURES,vte-0-78"
+fi
+
+# WebKitGTK 6.0 is absent on Leap 16.0 and Fedora 42, which carry only the
+# GTK3-flavoured webkit2gtk 4.1.
+if pkg-config --exists webkitgtk-6.0 2>/dev/null; then
+    FEATURES="$FEATURES,web-embedded"
+fi
+
+echo "=== gtk4 $GTK_VERSION | libadwaita $ADW_VERSION | vte $VTE_VERSION => --features $FEATURES ==="
 
 %if 0%{?suse_version}
-%{cargo_build} -p rustconn --no-default-features --features %{base_features}%{?web_features} %{?adw_features}
+%{cargo_build} -p rustconn --no-default-features --features "$FEATURES"
 %{cargo_build} -p rustconn-cli --features full
 %else
 # --offline: belt-and-suspenders against accidental network access —
 # all crates come from the vendored sources configured in .cargo/config.toml
-cargo build --release --offline -p rustconn --no-default-features --features %{base_features}%{?web_features} %{?adw_features}
+cargo build --release --offline -p rustconn --no-default-features --features "$FEATURES"
 cargo build --release --offline -p rustconn-cli --features full
 %endif
 

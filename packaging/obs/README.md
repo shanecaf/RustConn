@@ -4,16 +4,24 @@ Build files for the [Open Build Service](https://build.opensuse.org/package/show
 
 ## Supported Distributions
 
-| Distribution | Version | GTK4 | libadwaita | Feature Flag | Rust Source |
-|-------------|---------|------|------------|-------------|-------------|
-| openSUSE Tumbleweed | Rolling | 4.18 | 1.9 | `adw-1-8` | System (devel:languages:rust) |
-| openSUSE Slowroll | Rolling | 4.18 | 1.9 | `adw-1-8` | System (devel:languages:rust) |
-| openSUSE Leap | 16.0 | 4.16 | 1.7 | `adw-1-7` | devel:languages:rust |
-| Fedora | 44 | 4.18 | 1.9 | `adw-1-8` | System |
-| Fedora | 43 | 4.18 | 1.8 | `adw-1-8` | System |
-| Debian | 13 (Trixie) | 4.18 | 1.7 | `adw-1-7` | Bundled toolchain |
-| Ubuntu | 26.04 LTS | 4.18 | 1.9 | `adw-1-8` | Bundled toolchain |
-| Ubuntu | 24.04 LTS | 4.14 | 1.5 | (baseline) | Bundled toolchain |
+| Distribution | Version | Rust Source |
+|-------------|---------|-------------|
+| openSUSE Tumbleweed | Rolling | System (devel:languages:rust) |
+| openSUSE Slowroll | Rolling | System (devel:languages:rust) |
+| openSUSE Leap | 16.0 | devel:languages:rust |
+| Fedora | 44 | System |
+| Fedora | 43 | System |
+| Debian | 13 (Trixie) | Bundled toolchain |
+| Ubuntu | 26.04 LTS | Bundled toolchain |
+| Ubuntu | 24.04 LTS | Bundled toolchain |
+
+This table used to carry GTK4 and libadwaita version columns per distro. They are
+gone on purpose. Nothing read them, they needed an edit every time any of these
+eight distros moved, and they were wrong: they claimed GTK 4.18 for Fedora 43/44,
+Tumbleweed and Ubuntu 26.04, all of which carry 4.20 or 4.22 — Ubuntu 26.04 was
+measured at GTK 4.22.4 with libadwaita 1.9.1 on 2026-09-03. A version number
+written down here is a number nobody re-checks, so the build no longer depends on
+one: `rustconn.spec` and `debian.rules` ask `pkg-config` at build time.
 
 **MSRV:** 1.95 (Minimum Supported Rust Version)
 
@@ -25,13 +33,35 @@ Build files for the [Open Build Service](https://build.opensuse.org/package/show
 
 ### Feature Flags
 
-The spec file automatically selects libadwaita feature flags based on the distro:
+`rustconn.spec` and `debian.rules` both pick the version features at build time
+with `pkg-config --atleast-version`, highest match first. There is no distro table
+to keep in step, and a distro that moves up gets the newer features on its next
+rebuild without a commit here.
 
-| Flag | Requires | Distros |
-|------|----------|---------|
-| `adw-1-8` | libadwaita ≥ 1.8 | Tumbleweed, Slowroll, Fedora 43+, Ubuntu 26.04 |
-| `adw-1-7` | libadwaita ≥ 1.7 | Leap 16.0, Debian 13 |
-| (none) | libadwaita ≥ 1.5 | Ubuntu 24.04 |
+| Flag | Enabled when |
+|------|--------------|
+| `adw-1-8` / `adw-1-7` / `adw-1-6` | `libadwaita-1` ≥ 1.8 / 1.7 / 1.6 |
+| `gtk-4-22` / `gtk-4-20` / `gtk-4-18` | `gtk4` ≥ 4.22 / 4.20 / 4.18 |
+| `vte-0-78` | `vte-2.91-gtk4` ≥ 0.78 |
+| `web-embedded` | `webkitgtk-6.0` present |
+| (none of the above) | the workspace floor: GTK 4.14, libadwaita 1.5, VTE 0.76 |
+
+Two traps this arrangement exists to avoid, both of which had already fired:
+
+- **`--atleast-version`, never a glob over `--modversion`.** A `case` pattern of
+  `1.8*|1.9*` does not match libadwaita `1.10`, so the first distro to ship 1.10
+  would have dropped silently to the 1.5 baseline.
+- **In `debian.rules`, nothing but backslash-continued lines may follow the
+  comment block in `override_dh_auto_build`.** A comment inside the continuation
+  chain ends it, and make gives each chain its own shell, so variables assigned
+  before the comment are empty by the time `cargo` runs. That is what happened
+  before 0.21.5: every OBS Debian and Ubuntu package was built with no `adw-1-*`
+  feature and no `web-embedded`, because one comment sat in the middle of the
+  recipe. Only VTE survived, having been detected after the last comment.
+
+To see what a build actually chose, look for the `=== gtk4 … | libadwaita … ===`
+line in the OBS build log. It prints every detected version next to the flag it
+selected, which is the check that would have caught both traps.
 
 ## File Structure
 
