@@ -289,9 +289,16 @@ fi
 
 echo "=== gtk4 $GTK_VERSION | libadwaita $ADW_VERSION | vte $VTE_VERSION => --features $FEATURES ==="
 
-# %{cargo_build} comes from cargo-packaging, which is only build-required when the
-# distribution's Rust is used. A bundled-toolchain target has neither the macro nor
-# a reason to want it, so it takes the plain invocation even on openSUSE.
+# The cargo_build macro comes from cargo-packaging, which is only build-required
+# when the distribution's Rust is used. A bundled-toolchain target has neither the
+# macro nor a reason to want it, so it takes the plain invocation even on openSUSE.
+#
+# Do not write that macro's name with a single percent sign anywhere in this
+# section, comment or not. RPM expands macros in %%build before the shell ever sees
+# the text, and cargo_build expands to several lines: the '#' hides only the first,
+# and the rest become live commands. Doing exactly that here broke Tumbleweed and
+# Leap for one cycle with `error: unexpected argument 'comes' found`, the tail of
+# this very sentence having been appended to a real cargo invocation.
 %if 0%{?suse_version} && !0%{?bundled_rust}
 %{cargo_build} -p rustconn --no-default-features --features "$FEATURES"
 %{cargo_build} -p rustconn-cli --features full
@@ -417,7 +424,7 @@ done
   2.43, so the newest visible Rust is one it cannot install, and this recurs whenever
   Factory bumps glibc. Slowroll's own repository has rust1.97.1, above the 1.95 MSRV
   and needing only GLIBC_2.4, but the repository path could not simply be dropped
-  because cargo-packaging — which provides the %cargo_build macro this spec uses on
+  because cargo-packaging — which provides the cargo_build macro this spec uses on
   openSUSE — exists only in devel:languages:rust. Slowroll now builds with the bundled
   toolchain, the same way Fedora, Debian and Ubuntu already did, which removes the
   need for rust, cargo and cargo-packaging there. The four sites that must agree —
@@ -425,7 +432,7 @@ done
   choice of build invocation — are driven by a single bundled_rust flag rather than a
   distro test repeated four times, because a mismatch between them would be silent.
   Verified by parsing the spec in three colours before uploading: Tumbleweed still
-  takes %cargo_build and still requires cargo-packaging, Slowroll takes plain cargo
+  takes the cargo_build macro and still requires cargo-packaging, Slowroll takes plain cargo
   and drops both, Fedora unchanged
 - Fixed: no OBS Debian or Ubuntu package had ever contained the in-tab browser,
   because one build-dependency list was checked against another that did not have it.
