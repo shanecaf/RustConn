@@ -1780,19 +1780,40 @@ pub fn run() -> glib::ExitCode {
     // backend to mirror the system NSAppearance, so touching it fights macOS'
     // own "follow system" dark mode. The cfg stays for the same reason.
     //
-    // Also skipped on a `gtk-4-20` build, where the two accessors below are
-    // deprecated. That is not lint-dodging: the workaround exists for a libadwaita
-    // that warned about the legacy property, and a build against GTK 4.20 is a build
-    // against libadwaita 1.8 or newer, which does not. So the version that makes the
-    // calls deprecated is the version that makes the clearing pointless, and the
-    // block is kept only for the older colour where it still does something.
-    #[cfg(all(not(target_os = "macos"), not(feature = "gtk-4-20")))]
+    // The `if` below is the whole guard, and it is the condition the workaround was
+    // written for rather than a proxy for it. Only a desktop that set the legacy
+    // property *itself* — KDE and XFCE, through xsettings or `gtk-4.0/settings.ini`
+    // — has it true this early; GNOME expresses the preference through
+    // `org.gnome.desktop.interface color-scheme` and leaves this one alone, so the
+    // branch is a no-op there and the clear cannot affect what libadwaita resolves.
+    //
+    // This used to also carry `not(feature = "gtk-4-20")`, on the reasoning that a
+    // build against GTK 4.20 is a build against libadwaita 1.8+, which no longer
+    // warns about the legacy property — so the version that deprecates the accessors
+    // is the version that makes the clearing pointless. The reasoning holds for the
+    // *warning* and not for the *behaviour*: what the clear actually buys on KDE is
+    // that libadwaita starts from a property it did not set, and that is true of
+    // every libadwaita. Tying it to a GTK feature meant the Flatpak silently lost
+    // the workaround the moment it was built against 4.22, on a desktop nobody in
+    // this project tests. So the deprecation is suppressed instead of the block being
+    // removed, and only in the colour where the lint actually fires — a bare
+    // `expect` would trip `unfulfilled_lint_expectations` on a baseline build.
+    #[cfg(not(target_os = "macos"))]
+    #[cfg_attr(
+        feature = "gtk-4-20",
+        expect(
+            deprecated,
+            reason = "clearing a legacy property a legacy settings daemon set is only \
+                      expressible through the legacy accessors"
+        )
+    )]
     if let Some(display) = gtk4::gdk::Display::default() {
         let settings = gtk4::Settings::for_display(&display);
         if settings.is_gtk_application_prefer_dark_theme() {
             settings.set_gtk_application_prefer_dark_theme(false);
             tracing::debug!(
-                "Cleared deprecated gtk-application-prefer-dark-theme before adw::init()"
+                "Cleared deprecated gtk-application-prefer-dark-theme before adw::init() \
+                 (desktop had set it; GNOME does not)"
             );
         }
     }
