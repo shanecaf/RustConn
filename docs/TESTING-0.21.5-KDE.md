@@ -69,7 +69,7 @@ The one test this whole file is for.
 ```bash
 grep "Cleared deprecated gtk-application-prefer-dark-theme" /tmp/rc-kde-dark.log
 grep "resolved color scheme at startup" /tmp/rc-kde-dark.log
-grep -i -E "prefer-dark|Adw.*deprecat|legacy" /tmp/rc-kde-dark.log
+grep -i -E "prefer-dark|Adw.*deprecated|legacy" /tmp/rc-kde-dark.log
 ```
 
 Expected:
