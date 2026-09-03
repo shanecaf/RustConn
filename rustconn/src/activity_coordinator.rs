@@ -354,9 +354,7 @@ mod command_mode_tests {
         let (coordinator, session_id) = started(MonitorMode::Command);
         assert_eq!(
             coordinator.on_command_finished(session_id, Some(0)),
-            Some(NotificationType::CommandFinished {
-                exit_code: Some(0)
-            })
+            Some(NotificationType::CommandFinished { exit_code: Some(0) })
         );
     }
 
@@ -417,9 +415,21 @@ mod command_mode_tests {
         // user visits the tab: several commands finishing while the user is away is
         // exactly the case this mode is for, so each one is news.
         let (coordinator, session_id) = started(MonitorMode::Command);
-        assert!(coordinator.on_command_finished(session_id, Some(0)).is_some());
-        assert!(coordinator.on_command_finished(session_id, Some(1)).is_some());
-        assert!(coordinator.on_command_finished(session_id, Some(0)).is_some());
+        assert!(
+            coordinator
+                .on_command_finished(session_id, Some(0))
+                .is_some()
+        );
+        assert!(
+            coordinator
+                .on_command_finished(session_id, Some(1))
+                .is_some()
+        );
+        assert!(
+            coordinator
+                .on_command_finished(session_id, Some(0))
+                .is_some()
+        );
     }
 
     #[test]
@@ -431,13 +441,21 @@ mod command_mode_tests {
 
         coordinator.set_mode(session_id, MonitorMode::Command);
         assert_eq!(coordinator.get_mode(session_id), Some(MonitorMode::Command));
-        assert!(coordinator.on_command_finished(session_id, Some(0)).is_some());
+        assert!(
+            coordinator
+                .on_command_finished(session_id, Some(0))
+                .is_some()
+        );
     }
 
     #[test]
     fn cycling_out_of_command_mode_stops_notifying() {
         let (coordinator, session_id) = started(MonitorMode::Command);
-        assert!(coordinator.on_command_finished(session_id, Some(0)).is_some());
+        assert!(
+            coordinator
+                .on_command_finished(session_id, Some(0))
+                .is_some()
+        );
 
         coordinator.set_mode(session_id, MonitorMode::Off);
         assert_eq!(coordinator.on_command_finished(session_id, Some(0)), None);

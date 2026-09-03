@@ -358,9 +358,10 @@ impl ConnectionDialog {
         if let Some(ref config) = conn.activity_monitor_config {
             // No override stored means "inherit the global default", which the picker
             // shows as Off — the inverse of the mapping in `builders.rs`.
-            self.activity_mode_combo.set_selected(
-                crate::monitor_mode::index_of(config.mode.unwrap_or_default()),
-            );
+            self.activity_mode_combo
+                .set_selected(crate::monitor_mode::index_of(
+                    config.mode.unwrap_or_default(),
+                ));
             if let Some(quiet) = config.quiet_period_secs {
                 self.activity_quiet_period_spin.set_value(f64::from(quiet));
             }

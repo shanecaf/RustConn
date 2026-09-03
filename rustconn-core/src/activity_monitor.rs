@@ -252,7 +252,10 @@ mod tests {
 
     #[test]
     fn every_mode_has_a_distinct_icon_and_name() {
-        let mut names: Vec<&str> = MonitorMode::all().iter().map(|m| m.display_name()).collect();
+        let mut names: Vec<&str> = MonitorMode::all()
+            .iter()
+            .map(|m| m.display_name())
+            .collect();
         let before = names.len();
         names.sort_unstable();
         names.dedup();
