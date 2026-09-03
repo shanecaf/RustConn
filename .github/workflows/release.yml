@@ -50,6 +50,7 @@ jobs:
             pkg-config \
             debhelper \
             devscripts \
+            dpkg-dev \
             gettext
 
       - name: Build release binary
@@ -97,6 +98,47 @@ jobs:
             msgfmt -o "${PKG_DIR}/usr/share/locale/${lang}/LC_MESSAGES/rustconn.mo" "$po_file"
           done
           
+          # Derive the library dependencies from the binaries instead of listing
+          # them by hand (issue #313, reported by @philclifford).
+          #
+          # This package is assembled here and packed with `dpkg-deb --build`, so
+          # nothing runs the machinery a normal Debian build would: every runtime
+          # library had to be named in the line below, and the list fell behind the
+          # binary. `web-embedded` is in the crate's `default` features, so the
+          # binary links libwebkitgtk-6.0.so.4 and libjavascriptcoregtk-6.0.so.1,
+          # and neither was declared — the package installed and then died in the
+          # dynamic linker before main(). Checked against the recursive closure of
+          # the old list (266 packages): libasound2t64 was missing too, from the
+          # RDP audio feature, and had simply not bitten anyone yet because ALSA is
+          # usually already installed.
+          #
+          # `dpkg-shlibdeps` reads the ELF headers of the staged binaries, maps each
+          # soname to the package that ships it, and derives a minimum version from
+          # the symbols actually referenced. It must run from the source root, since
+          # it reads debian/control — and that file earns its keep here: a version in
+          # its Build-Depends raises the derived floor, so `libgtk-4-dev (>= 4.14)`
+          # produces `libgtk-4-1 (>= 4.14)` where the symbols alone would only prove
+          # 4.12. Verified locally both ways.
+          #
+          # Two things it cannot know, so they stay declared by hand: openssh-client
+          # is a program rather than a library, and Recommends are optional helpers
+          # nothing links against. The Recommends list is copied from debian/control,
+          # which had five entries where this one had three — the released package
+          # was not recommending picocom, the helper serial connections need.
+          SHLIB_DEPS="$(dpkg-shlibdeps -O \
+              "${PKG_DIR}/usr/bin/rustconn" \
+              "${PKG_DIR}/usr/bin/rustconn-cli" \
+              | sed 's/^shlibs:Depends=//')"
+          if [ -z "${SHLIB_DEPS}" ]; then
+            echo "::error::dpkg-shlibdeps produced no dependencies — refusing to ship a package that declares none"
+            exit 1
+          fi
+          case "${SHLIB_DEPS}" in
+            *libwebkitgtk*) ;;
+            *) echo "::error::libwebkitgtk missing from derived dependencies; issue #313 would recur"; exit 1 ;;
+          esac
+          echo "Derived Depends: ${SHLIB_DEPS}"
+
           # Control file
           cat > "${PKG_DIR}/DEBIAN/control" << EOF
           Package: rustconn
@@ -104,8 +146,8 @@ jobs:
           Section: net
           Priority: optional
           Architecture: amd64
-          Depends: libgtk-4-1 (>= 4.14), libvte-2.91-gtk4-0, libadwaita-1-0, openssh-client
-          Recommends: freerdp2-x11, tigervnc-viewer, virt-viewer
+          Depends: ${SHLIB_DEPS}, openssh-client
+          Recommends: freerdp2-x11 | freerdp3-x11 | freerdp3-wayland, tigervnc-viewer, virt-viewer, picocom, libopenh264-8 | libopenh264-7
           Maintainer: Anton Isaiev <totoshko88@gmail.com>
           Homepage: https://github.com/totoshko88/RustConn
           Description: Modern connection manager for Linux
@@ -271,6 +313,7 @@ jobs:
             --maintainer "Anton Isaiev <totoshko88@gmail.com>" \
             --url "https://github.com/totoshko88/RustConn" \
             --description "Modern connection manager for Linux (SSH, RDP, VNC, SPICE)" \
+            --rpm-autoreqprov \
             --depends "gtk4 >= 4.14" \
             --depends "libadwaita" \
             --depends "vte291-gtk4" \
@@ -284,6 +327,23 @@ jobs:
           
           echo "=== Built RPM packages ==="
           ls -la dist/
+          
+          # The .deb's defect (issue #313) in the other packaging tool. fpm writes
+          # `AutoReqProv: no` unless told otherwise, so rpmbuild's dependency
+          # generator never ran and the four --depends above were the whole of
+          # Requires: the published 0.21.4 RPM carried zero soname requires and so
+          # never named libwebkitgtk-6.0.so.4 or libasound.so.2, both of which the
+          # binary links. `--rpm-autoreqprov` turns the generator back on.
+          #
+          # The explicit --depends stay: a soname cannot express "gtk4 at least
+          # 4.14", the floor the v4_14 bindings assert but no referenced symbol
+          # proves, and openssh-clients is a program rather than a library.
+          echo "=== Requires ==="
+          rpm -qp --requires dist/*.rpm | sort
+          if ! rpm -qp --requires dist/*.rpm | grep -q 'libwebkitgtk'; then
+            echo "::error::libwebkitgtk absent from RPM Requires — issue #313 would recur"
+            exit 1
+          fi
 
       - name: Upload RPM artifact
         uses: actions/upload-artifact@v7

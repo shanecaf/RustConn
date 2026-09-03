@@ -41,6 +41,23 @@ rustconn (0.21.5-1) unstable; urgency=medium
     through the installed GTK and fails on any complaint.
   * Fixed: the monitoring mode picker no longer needs editing when a mode is
     added; seven hand-written index maps across four files are now one helper.
+  * Fixed: the .deb and .rpm attached to a GitHub release named three fewer
+    libraries than the binary loads, so the .deb failed in the dynamic linker
+    before reaching main() with "error while loading shared libraries:
+    libwebkitgtk-6.0.so.4" — on a package that had installed without complaint
+    (#313, reported by Phil Clifford). Both artifacts are assembled by hand in the
+    release workflow, the .deb with an inline control packed by dpkg-deb and the
+    .rpm by fpm with an explicit --depends list, so neither ran the dependency
+    machinery a normal build provides, and both lists fell behind the binary when
+    web-embedded entered the crate's default features. Against the recursive
+    closure of the old Depends (266 packages) three were unreachable:
+    libwebkitgtk-6.0-4, libjavascriptcoregtk-6.0-1 and libasound2t64, the last
+    from the RDP audio feature. The lists are now derived instead of remembered —
+    dpkg-shlibdeps over the staged binaries for the .deb, --rpm-autoreqprov for
+    the .rpm — and both steps fail the build if WebKitGTK is absent from the
+    result. openssh-client and the gtk4 4.14 floor stay declared by hand, being a
+    program and a version no referenced symbol proves. The .deb also regains the
+    two Recommends its inline list had dropped, picocom among them.
   * Fixed: every tray menu item that opens a session did nothing — Local Shell,
     Quick Connect and all of Recent Connections, on KDE's StatusNotifier and on
     the macOS tray alike, since both feed the same dispatch. They went through
