@@ -504,6 +504,60 @@ fi
 ok "debian, OBS, spec and metainfo changelogs all lead with $VERSION"
 
 # ──────────────────────────────────────────────────────────────────────────────
+# 5b-bis. The propagated changelogs are not merely present — they are current
+#
+# The gate above proves each file *leads with* the release version. It cannot
+# notice that CHANGELOG.md has since grown four more entries than the five
+# formats derived from it, because the header is identical either way.
+#
+# That is not hypothetical. In 0.21.5 two fixes landed after the release-prep
+# commit — a tray dispatch that opened no session, and KeePassXC misread in every
+# non-English locale — and both updated CHANGELOG.md alone. Every gate stayed
+# green while five user-facing fixes were missing from every distro changelog and
+# from the AppStream description shown in GNOME Software.
+#
+# Compare commits rather than content: matching prose across five formats means
+# guessing at wording, and a fuzzy match that can be argued with is a gate nobody
+# trusts. If the last commit touching a derived file is an ancestor of the last
+# commit touching CHANGELOG.md, that file was written from an older CHANGELOG.
+# Equal commits mean they moved together, which is the intended shape. A derived
+# file touched *later* is not flagged — fixing a typo in debian/changelog alone is
+# legitimate.
+#
+# The escape, when a CHANGELOG.md edit genuinely needs no propagation: put it in
+# the same commit as the derived files, or touch them alongside it. There is no
+# flag to skip this, deliberately — the whole failure was a silent omission.
+# ──────────────────────────────────────────────────────────────────────────────
+DERIVED_CHANGELOGS=(
+    "debian/changelog"
+    "packaging/obs/debian.changelog"
+    "packaging/obs/rustconn.changes"
+    "packaging/obs/rustconn.spec"
+    "$METAINFO"
+)
+CHANGELOG_COMMIT="$(git log -1 --format=%H -- CHANGELOG.md 2>/dev/null || true)"
+STALE_DERIVED=()
+if [[ -n "$CHANGELOG_COMMIT" ]]; then
+    for f in "${DERIVED_CHANGELOGS[@]}"; do
+        [[ -f "$f" ]] || continue
+        derived_commit="$(git log -1 --format=%H -- "$f" 2>/dev/null || true)"
+        [[ -n "$derived_commit" ]] || continue
+        [[ "$derived_commit" == "$CHANGELOG_COMMIT" ]] && continue
+        if git merge-base --is-ancestor "$derived_commit" "$CHANGELOG_COMMIT" 2>/dev/null; then
+            STALE_DERIVED+=("$f")
+        fi
+    done
+fi
+if (( ${#STALE_DERIVED[@]} > 0 )); then
+    warn "CHANGELOG.md was last written in $(git log -1 --format=%h -- CHANGELOG.md);"
+    for f in "${STALE_DERIVED[@]}"; do
+        warn "  behind it: $f (last written in $(git log -1 --format=%h -- "$f"))"
+    done
+    fail "${#STALE_DERIVED[@]} derived changelog(s) predate the last CHANGELOG.md edit — propagate, then commit them together"
+fi
+ok "Derived changelogs are as new as CHANGELOG.md"
+
+# ──────────────────────────────────────────────────────────────────────────────
 # 5c. No packaging file still carries the PREVIOUS release version
 #
 # The sync gate proves the new version is present; it cannot notice a second,

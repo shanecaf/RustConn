@@ -149,6 +149,10 @@
           <li>Every monitoring notification now leaves a mark on the tab until you look at it, visible in the tab bar and on the Tab Overview thumbnail</li>
           <li>Fixed: the window rendered light on a dark desktop whenever the theme was set to System</li>
           <li>Fixed: the Flatpak could not reach the new command notification at all, and the packages built for Debian, Ubuntu, Fedora, openSUSE and macOS were quietly built against an older libadwaita than the one installed — in the Debian and Ubuntu case also without the in-tab browser. Every channel now asks what the system actually provides</li>
+          <li>Fixed: every tray menu item that opens a session did nothing — Local Shell, Quick Connect and all of Recent Connections. The item highlighted on click and then nothing happened, on the KDE tray and on macOS alike</li>
+          <li>Fixed: five icons drew as broken placeholders, because the icon theme had dropped the names they asked for. One of them was the mark shown when a command finishes, on the very notification the new mode exists to deliver</li>
+          <li>Fixed: with the interface in any language other than English, KeePassXC was reported as unreadable when the database was open and healthy, and a password stored in the encrypted file became unreachable as a result</li>
+          <li>Fixed: local shell tabs were never monitored, in any mode, so the new command notification could not fire on one</li>
           <li>Fixed: the monitoring bar's margins had never been applied, because they were spelled with property names GTK's CSS does not have</li>
         </ul>
       </description>

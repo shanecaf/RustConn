@@ -374,6 +374,46 @@ done
   margin-start/margin-end, which GTK's CSS does not have. A new gate,
   scripts/check-css.sh, parses the sheet through the installed GTK
 - Fixed: the monitoring mode picker no longer needs editing when a mode is added
+- Fixed: every tray menu item that opens a session did nothing — Local Shell,
+  Quick Connect and all of Recent Connections, on KDE's StatusNotifier and on the
+  macOS tray alike, since both feed the same dispatch. They went through the
+  widget action muxer, which picks a group by splitting the name on the first dot,
+  carrying names spelled for the window's own action group; with no prefix there
+  was no group to find and the FALSE return was discarded. Recent Connections was
+  broken twice over: it named connect, which takes no parameter and acts on the
+  sidebar selection, so the connection picked in the tray had nowhere to arrive.
+  All three now activate on the window's own action group, and tray messages are
+  logged on arrival — this path had no logging at all
+- Fixed: local shell tabs never took part in activity monitoring, in any mode.
+  Resolving the configuration gave up when a session had no connection record and
+  the caller read that as "do not monitor", returning before the command-finished
+  subscription was wired, so the new Command mode could not fire on a local shell
+  whatever the shell emitted and there was no "Activity monitoring started" line
+  to show it. A connection-less session now takes the global defaults, which is
+  what they are for, and notifications use the tab's own name
+- Fixed: five icon names had been dropped by adwaita-icon-theme 50 and drew as
+  missing-image placeholders, one of them the success mark of the new Command
+  mode. The app forces the Adwaita theme at startup, so a name the theme no
+  longer carries resolves nowhere and GTK reports nothing — it surfaces only as a
+  broken glyph. All nine call sites now use names verified present: the success
+  mark, the four sync indicators, the Statistics empty state and two RDP quick
+  actions
+- Fixed: KeePassXC reported "Could not read the password" for a database that was
+  open and healthy, in every non-English interface language. keepassxc-cli exits 1
+  for "entry not found", "wrong database key" and "database unreadable" alike, so
+  they are told apart by matching its English prose — but it is a Qt program that
+  translates that prose, and RustConn exports LANGUAGE to honour its own language
+  setting. A merely missing entry was classified as an unreadable database, which
+  produced a misleading modal and also skipped "Also read from the encrypted
+  file", making a password in credentials.enc unreachable. The child now gets
+  LC_MESSAGES=C with LANGUAGE cleared, in the one place all six callers build
+  their command, so four other stderr matchers in that file are fixed by the same
+  two lines. The character encoding is left as the user had it, so a non-ASCII
+  group name or a database named Паролі.kdbx still works
+- Fixed: two strings added in 0.21.4 — the Login Timeout row and its subtitle —
+  shipped untranslated in all 17 languages, because the template was never
+  regenerated and the completeness check compared against that same incomplete
+  template. Both are now translated everywhere
 - Changed: new gtk-4-18/gtk-4-20/gtk-4-22 features; enabling 4.22 surfaced three
   deprecations, all resolved
 - Changed: new installations default to the Follow System terminal theme
