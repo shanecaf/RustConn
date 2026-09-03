@@ -5,7 +5,23 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.21.5] - 2026-09-03
+
+Two features and an audit that turned into the larger half of the release.
+
+The features: terminal colours can now follow the desktop's light/dark preference,
+and a monitoring mode that fires on an actual shell event — the command finished,
+with its exit code — rather than on a timing heuristic over raw output.
+
+The audit began as a question about raising the GTK, libadwaita and VTE baselines
+for 0.22.0 and produced an uncomfortable answer: the version features this project
+already had were reaching almost nobody. The Flatpak passed one of them, the OBS
+Debian rules computed three and then discarded two through a `make` quirk, the RPM
+spec chose from a hand-written distro table that had gone stale, the release RPM and
+the Homebrew formula passed none or one, and the three `gtk-4-*` features had zero
+consumers the day they landed. Every channel now asks `pkg-config` what it can
+actually back. Nothing here raises a baseline; it makes the existing tiers work,
+which is what the 0.22.0 question was really waiting on.
 
 ### Added
 
@@ -46,6 +62,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 - **`packaging/obs/README.md` no longer keeps a table of other projects' version numbers** — it listed a GTK4 and a libadwaita version for each of eight distros, needed an edit whenever any of them moved, and was wrong about half of them: it claimed GTK 4.18 for Fedora 43/44, Tumbleweed and Ubuntu 26.04, which carry 4.20 or 4.22. Both columns are gone. In their place the feature-flag table states the `pkg-config` condition that actually selects each flag, since that is now what the spec and the rules file do, and the two traps that had already fired in this area — the glob that misses libadwaita 1.10, and the comment that breaks a `make` continuation chain — are written down next to the flags rather than left to be rediscovered.
+
+### Dependencies
+
+- **Updated**: mio 1.2.2 → 1.2.3, open 5.4.2 → 5.4.3, toml 1.1.4 → 1.1.5. Patch
+  releases behind existing requirements, taken with `cargo update`; 13 further
+  dependencies are behind their latest but held by a semver requirement and were
+  left alone. The GTK stack is already at the newest published bindings — gtk4
+  0.11.4, libadwaita 0.9.2, vte4 0.10.0, webkit6 0.6.1 — and their version features
+  are what this release finally routes to the channels that can use them.
 
 ## [0.21.4] - 2026-09-02
 

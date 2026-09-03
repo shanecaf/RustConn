@@ -140,6 +140,19 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.21.5" date="2026-09-03">
+      <description>
+        <p>Version 0.21.5 - terminals that follow the desktop's appearance, a notification for a finished command, and packages that finally build what they can:</p>
+        <ul>
+          <li>Terminal colours can now follow the desktop's light or dark preference, through a new Follow System theme. Until now the System colour scheme reached only the window, so a light desktop could surround a dark terminal with no setting that paired them — and they now stay paired when the desktop switches while sessions are open</li>
+          <li>A new monitoring mode notifies you when a command finishes on the remote host, with its exit code, so "finished" and "failed with status 1" are different messages. The existing modes guess from output timing; this one reads an event the shell reports. It needs shell integration on the remote host</li>
+          <li>Every monitoring notification now leaves a mark on the tab until you look at it, visible in the tab bar and on the Tab Overview thumbnail</li>
+          <li>Fixed: the window rendered light on a dark desktop whenever the theme was set to System</li>
+          <li>Fixed: the Flatpak could not reach the new command notification at all, and the packages built for Debian, Ubuntu, Fedora, openSUSE and macOS were quietly built against an older libadwaita than the one installed — in the Debian and Ubuntu case also without the in-tab browser. Every channel now asks what the system actually provides</li>
+          <li>Fixed: the monitoring bar's margins had never been applied, because they were spelled with property names GTK's CSS does not have</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.21.4" date="2026-09-02">
       <description>
         <p>Version 0.21.4 - a SPICE-in-Flatpak fix, stricter CLI flags, and a documentation audit:</p>

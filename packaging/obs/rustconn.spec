@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.21.4
+Version:        0.21.5
 Release:        0
 # rpmlint caps Summary at 79 characters (summary-too-long, badness 200); the
 # protocol list belongs in %description, which has room for all of it. Kept in
@@ -345,6 +345,40 @@ done
 %{_datadir}/icons/hicolor/*/apps/io.github.totoshko88.RustConn.*
 
 %changelog
+* Thu Sep 03 2026 Anton Isaiev <totoshko88@gmail.com> - 0.21.5-0
+- Version bump to 0.21.5
+- Added: terminal colours can follow the desktop's light/dark preference — a new
+  Follow System entry in Preferences > Terminal > Theme. The System colour scheme
+  previously reached only the GTK chrome, so a light desktop could surround a dark
+  terminal. Terminals also repaint on a mid-session switch (#99), without undoing
+  a per-session Backspace/Delete choice (#271)
+- Added: a monitoring mode that fires when the remote shell reports a command
+  finished, read from VTE's vte.shell.postexec termprop (OSC 133), so it carries
+  the exit code and distinguishes success from failure (#236). Needs shell
+  integration on the remote host and VTE 0.78+
+- Added: monitoring notifications also set AdwTabPage:needs-attention, so the tab
+  keeps a mark until selected; this repairs a latent gap in Activity and Silence,
+  whose only signal was the single indicator-icon slot
+- Fixed: the window rendered light on a dark desktop when the theme was System — a
+  notify handler cleared the property AdwStyleManager uses to say it resolved dark
+- Fixed: every OBS Debian and Ubuntu package was built with no libadwaita feature
+  and no in-tab browser; debian.rules detected the versions and then lost them to a
+  comment inside a make continuation chain, which gives each chain its own shell
+- Fixed: this spec chose features from a hand-written distro table that had gone
+  stale and had no VTE branch at all. It now asks pkg-config --atleast-version for
+  libadwaita, GTK, VTE and WebKitGTK, which also closes a second trap: a glob over
+  --modversion does not match libadwaita 1.10
+- Fixed: the Flatpak, the release RPM and the Homebrew formula were in the same
+  position and now detect too
+- Fixed: four stylesheet declarations had never applied — .monitoring-bar used
+  margin-start/margin-end, which GTK's CSS does not have. A new gate,
+  scripts/check-css.sh, parses the sheet through the installed GTK
+- Fixed: the monitoring mode picker no longer needs editing when a mode is added
+- Changed: new gtk-4-18/gtk-4-20/gtk-4-22 features; enabling 4.22 surfaced three
+  deprecations, all resolved
+- Changed: new installations default to the Follow System terminal theme
+- Dependencies: mio 1.2.2→1.2.3, open 5.4.2→5.4.3, toml 1.1.4→1.1.5
+
 * Wed Sep 02 2026 Anton Isaiev <totoshko88@gmail.com> - 0.21.4-0
 - Version bump to 0.21.4
 - Fixed: a SPICE connection with a stored password failed outright in Flatpak
