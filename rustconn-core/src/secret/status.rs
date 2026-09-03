@@ -290,14 +290,54 @@ impl KeePassStatus {
     /// Otherwise the binary is run directly with the extended PATH injected so
     /// that child processes (e.g. GPG invoked by keepassxc-cli) can also be
     /// found on macOS where GUI apps have minimal PATH.
+    ///
+    /// The child also gets a neutralised *message* locale, which
+    /// [`classify_show_failure`] depends on. `keepassxc-cli` is a Qt program and
+    /// translates its diagnostics, while this process exports `LANGUAGE` at
+    /// startup to honour the application's own language setting (see
+    /// `rustconn::i18n`). So with a non-English UI the CLI answered in that
+    /// language, none of the English needles matched, and a missing entry was
+    /// classified as an unreadable database: the user saw "Could not read the
+    /// password from KeePassXC — it may be locked, not logged in, or not set up on
+    /// this computer" about a database that was open and healthy, and because that
+    /// path returns `Err`, the **Also read from the encrypted file** fallback was
+    /// skipped as well. The wording of the CLI's prose was already documented as a
+    /// dependency; what was missed is that we localise it ourselves.
+    ///
+    /// `C` is forced for messages only, and the character encoding is deliberately
+    /// left as the user had it: entry paths and the database path are passed as
+    /// arguments, and a Qt 5 build derives its argv codec from the locale's
+    /// charset, so forcing the C locale wholesale would mangle a non-ASCII group
+    /// name or database path — trading this bug for a worse one. `LC_ALL` outranks
+    /// `LC_MESSAGES` in POSIX, so it cannot simply be left in place; when it is set
+    /// its value is copied to `LC_CTYPE` first, which preserves exactly the
+    /// encoding it was providing, and only then is `LC_ALL` dropped. That copy is
+    /// the one write to `LC_CTYPE` here, and it changes no behaviour by itself.
     fn keepassxc_command(cli_path: &Path) -> Command {
         if crate::flatpak::is_flatpak() {
             let mut cmd = Command::new("flatpak-spawn");
-            cmd.arg("--host").arg(cli_path);
+            // Forwarded explicitly: the host process does not take these from the
+            // sandbox. Blanked rather than unset because `--unset-env` is newer
+            // than the oldest flatpak this runs under, and an empty value is what
+            // gettext and Qt both read as "no preference". A host that exports
+            // `LC_ALL` still outranks this; that is left alone rather than
+            // guessed at, since the sandbox cannot see the host's encoding.
+            cmd.arg("--host")
+                .arg("--env=LC_MESSAGES=C")
+                .arg("--env=LANGUAGE=")
+                .arg(cli_path);
             return cmd;
         }
         let mut cmd = Command::new(cli_path);
         cmd.env("PATH", crate::cli_download::get_extended_path());
+        cmd.env("LC_MESSAGES", "C");
+        cmd.env_remove("LANGUAGE");
+        if let Ok(lc_all) = std::env::var("LC_ALL") {
+            if !lc_all.is_empty() {
+                cmd.env("LC_CTYPE", lc_all);
+            }
+            cmd.env_remove("LC_ALL");
+        }
         cmd
     }
 
@@ -1767,5 +1807,98 @@ mod tests {
         assert!(!status.kdbx_configured);
         assert!(!status.kdbx_accessible);
         assert!(!status.integration_active);
+    }
+
+    /// The three outcomes the readers branch on, in the CLI's own English.
+    ///
+    /// `keepassxc-cli` exits 1 for all of them, so this prose is the only signal
+    /// there is — which is why [`KeePassStatus::keepassxc_command`] has to keep it
+    /// in English. These are the wordings from 2.7.x.
+    #[test]
+    fn classify_show_failure_reads_english_diagnostics() {
+        assert!(matches!(
+            classify_show_failure("Could not find entry with path RustConn/example (ssh)."),
+            ShowFailure::EntryMissing
+        ));
+        assert!(matches!(
+            classify_show_failure("Invalid credentials were provided, please try again."),
+            ShowFailure::BadCredentials
+        ));
+        // Anything unrecognised stays Unusable: the database was not opened, so
+        // "the entry is not there" is not a conclusion available to us.
+        assert!(matches!(
+            classify_show_failure("Error while reading the database: Not a KeePass database."),
+            ShowFailure::Unusable
+        ));
+    }
+
+    /// Why the message locale is pinned, stated as a test.
+    ///
+    /// This is the stderr from the bug report — `keepassxc-cli` 2.7.12 answering a
+    /// missing entry in Ukrainian, because RustConn had exported `LANGUAGE=uk` for
+    /// its own UI. The classifier cannot read it, and the resulting
+    /// [`ShowFailure::Unusable`] became "Could not read the password from
+    /// KeePassXC" for a healthy database. The fix is upstream of this function: the
+    /// child never gets a translated locale in the first place.
+    #[test]
+    fn classify_show_failure_cannot_read_a_translated_diagnostic() {
+        let translated = "Неможливо знайти запис із шляхом RustConn/kiro-cli (zerotrust).";
+        assert!(
+            matches!(classify_show_failure(translated), ShowFailure::Unusable),
+            "if this ever classifies correctly, the locale pinning is no longer \
+             load-bearing and this test should say so"
+        );
+    }
+
+    /// The fix: diagnostics must arrive untranslated, and the encoding must not be
+    /// collateral damage.
+    #[test]
+    fn keepassxc_command_pins_the_message_locale_only() {
+        if crate::flatpak::is_flatpak() {
+            // The sandbox branch forwards `--env=` arguments to flatpak-spawn
+            // instead, so `get_envs` would report nothing either way.
+            return;
+        }
+
+        let cmd = KeePassStatus::keepassxc_command(std::path::Path::new("/usr/bin/keepassxc-cli"));
+        let envs: Vec<(String, Option<String>)> = cmd
+            .get_envs()
+            .map(|(key, value)| {
+                (
+                    key.to_string_lossy().into_owned(),
+                    value.map(|v| v.to_string_lossy().into_owned()),
+                )
+            })
+            .collect();
+        let lookup = |name: &str| envs.iter().find(|(k, _)| k == name).map(|(_, v)| v.clone());
+
+        assert_eq!(
+            lookup("LC_MESSAGES"),
+            Some(Some("C".to_string())),
+            "messages must be pinned to C or classify_show_failure cannot read them"
+        );
+        assert_eq!(
+            lookup("LANGUAGE"),
+            Some(None),
+            "LANGUAGE must be cleared for the child: this process exports it, and \
+             it outranks LC_MESSAGES"
+        );
+        assert!(
+            lookup("LC_ALL").is_none_or(|value| value.is_none()),
+            "LC_ALL must never be handed to the child set: it outranks LC_MESSAGES"
+        );
+        // Encoding is deliberately not forced — entry paths and the database path
+        // travel as argv, and a Qt 5 build takes its codec from the locale charset.
+        assert_ne!(
+            lookup("LC_CTYPE"),
+            Some(Some("C".to_string())),
+            "forcing a C charset would mangle non-ASCII entry paths"
+        );
+        // Unchanged behaviour: macOS GUI launches still need the extended PATH so
+        // keepassxc-cli can find its own children (e.g. GPG).
+        assert!(
+            matches!(lookup("PATH"), Some(Some(_))),
+            "the extended PATH must still be injected"
+        );
     }
 }
