@@ -555,6 +555,18 @@ fn add_key_with_passphrase_dialog(
     dialog.present(Some(parent_window));
 }
 
+thread_local! {
+    /// The SSH key file chooser request currently in flight, if any.
+    ///
+    /// Held so a second **Add Key** click can cancel the first request instead of
+    /// stacking a second chooser or requiring the button to be disabled. A
+    /// `thread_local` because everything here is GTK — main thread only by
+    /// construction, so there is nothing to synchronise — and because the chooser
+    /// is opened by a free function that keeps no state of its own.
+    static IN_FLIGHT_KEY_CHOOSER: RefCell<Option<gtk4::gio::Cancellable>> =
+        const { RefCell::new(None) };
+}
+
 /// Shows a file chooser dialog to add a key from any location
 pub fn show_add_key_file_chooser(
     button: &Button,
@@ -566,6 +578,11 @@ pub fn show_add_key_file_chooser(
     // Both of these are programming-error paths rather than anything a user can
     // cause, but they are also two more ways this button can appear to do
     // nothing, so they say which one happened.
+    //
+    // Neither returns early past a disabled button, which used to matter: the
+    // button was made insensitive before these checks in an earlier draft, so a
+    // failure here left it dead. It stays live throughout now — see the
+    // superseding comment below.
     let Some(root) = button.root() else {
         tracing::error!("Add Key: button has no root, cannot parent the file chooser");
         return;
@@ -612,15 +629,47 @@ pub fn show_add_key_file_chooser(
     let button_clone = button.clone();
     let window_clone = window.clone();
 
-    // One chooser at a time: nothing stopped a second click from starting a
-    // second one, and clicking again is the natural response to a chooser that is
-    // slow to appear.
-    button.set_sensitive(false);
+    // One chooser at a time, by superseding rather than by disabling the button.
+    //
+    // Nothing used to stop a second click stacking a second chooser, and clicking
+    // again is the natural response to a chooser that is slow to appear. The first
+    // attempt at that was `button.set_sensitive(false)` with the button re-enabled
+    // in the callback — which is wrong twice over. The callback fires when the user
+    // picks a file or closes the chooser, so it can legitimately be minutes away
+    // while they browse, and there is no signal for "the chooser appeared" to time
+    // out against instead. Worse, `shell-environment.md` documents an environment
+    // where the callback never fires at all: there the button would have stayed
+    // dead for the rest of the session, with no message — a worse version of the
+    // "Add Key does nothing" report this whole path exists to fix.
+    //
+    // So the button stays live and a new click cancels the request in flight. A
+    // cancelled request arrives at the callback below and is recognised there.
+    let cancellable = gtk4::gio::Cancellable::new();
+    IN_FLIGHT_KEY_CHOOSER.with(|slot| {
+        if let Some(previous) = slot.borrow_mut().replace(cancellable.clone()) {
+            tracing::debug!("Superseding an SSH key file chooser that was still open");
+            previous.cancel();
+        }
+    });
 
     tracing::debug!("Opening the SSH key file chooser");
 
-    file_dialog.open(Some(window), gtk4::gio::Cancellable::NONE, move |result| {
-        button_clone.set_sensitive(true);
+    file_dialog.open(Some(window), Some(&cancellable), move |result| {
+        // Cancellation means a later click took over, so the slot now holds that
+        // request and must not be cleared. Every other outcome is terminal for
+        // this one.
+        let superseded = result
+            .as_ref()
+            .err()
+            .is_some_and(|e| e.matches(gtk4::gio::IOErrorEnum::Cancelled));
+        if superseded {
+            tracing::debug!("Key file chooser was superseded by a later Add Key click");
+            return;
+        }
+        IN_FLIGHT_KEY_CHOOSER.with(|slot| {
+            slot.borrow_mut().take();
+        });
+
         match result {
             Ok(file) => {
                 let Some(path) = file.path() else {
