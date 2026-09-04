@@ -438,11 +438,16 @@ fn add_key_with_passphrase_dialog(
         .unwrap_or("key")
         .to_string();
 
-    // Create passphrase dialog using adw::Dialog
+    // Create passphrase dialog using adw::Dialog.
+    //
+    // Width only, no content_height: the body is a label and one entry, so the
+    // natural height is the right one and pinning it just adds dead space. The
+    // 180 that used to be here was sized for a body that also held the action
+    // button, which now lives in the header. `password.rs` does the same for the
+    // same reason.
     let dialog = adw::Dialog::builder()
         .title(i18n_f("Add Key: {}", &[&key_name]))
         .content_width(400)
-        .content_height(180)
         .build();
 
     let toolbar_view = adw::ToolbarView::new();
