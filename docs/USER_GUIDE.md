@@ -3529,6 +3529,8 @@ RUST_LOG=rustconn_core::connection=debug rustconn
 RUST_LOG=rustconn_core::secret=debug rustconn
 ```
 
+**Before attaching a log to a bug report, skim it.** RustConn does not log passwords, and the one dependency that did — `sspi`, which printed the encoded CredSSP request containing the RDP password in clear — is filtered out and cannot be re-enabled through `RUST_LOG`. A debug log still describes your setup in detail, though: hostnames and ports, usernames, key file paths, vault entry names, and share paths. Prefer the narrowest filter that shows the problem, which is what the module-specific forms above are for.
+
 ### Serial Device Access
 
 1. Add user to `dialout` group: `sudo usermod -aG dialout $USER`
