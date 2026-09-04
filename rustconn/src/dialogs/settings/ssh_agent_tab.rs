@@ -583,14 +583,30 @@ pub fn show_add_key_file_chooser(
         .modal(true)
         .build();
 
-    // Set initial folder to ~/.ssh if it exists
-    if let Some(home) = dirs::home_dir() {
-        let ssh_dir = home.join(".ssh");
-        if ssh_dir.exists() {
-            let file = gtk4::gio::File::for_path(&ssh_dir);
-            file_dialog.set_initial_folder(Some(&file));
-        }
+    // Filters, matching the KeePass choosers on this same page. Private keys have
+    // no reliable extension, so the pattern list is a convenience and "All Files"
+    // has to stay reachable.
+    let key_filter = gtk4::FileFilter::new();
+    key_filter.set_name(Some(&i18n("SSH Keys")));
+    for pattern in ["*.pem", "*.key", "id_*", "*_rsa", "*_ed25519", "*_ecdsa"] {
+        key_filter.add_pattern(pattern);
     }
+    let all_filter = gtk4::FileFilter::new();
+    all_filter.set_name(Some(&i18n("All Files")));
+    all_filter.add_pattern("*");
+    let filters = gtk4::gio::ListStore::new::<gtk4::FileFilter>();
+    filters.append(&key_filter);
+    filters.append(&all_filter);
+    file_dialog.set_filters(Some(&filters));
+    file_dialog.set_default_filter(Some(&key_filter));
+
+    // No `set_initial_folder`. It used to point at ~/.ssh, and it was the only
+    // thing separating this call from the KeePass database and key-file choosers
+    // a few groups above, which are raised from this same dialog and do open. It
+    // is also the least useful part: keys inside ~/.ssh are already listed under
+    // Available Key Files and can be added from there, so the chooser exists
+    // precisely for keys kept somewhere else — which is where defaulting to
+    // ~/.ssh actively gets in the way.
 
     let manager_clone = ssh_agent_manager.clone();
     let keys_list_clone = ssh_agent_keys_list.clone();

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: rustconn 0.12.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-04 19:49+0300\n"
+"POT-Creation-Date: 2026-09-04 22:15+0300\n"
 "PO-Revision-Date: 2026-04-25 10:46+0000\n"
 "Last-Translator: p-bo <https://github.com/p-bo>\n"
 "Language-Team: Czech\n"
@@ -6940,6 +6940,7 @@ msgid "Key Files (*.keyx, *.key)"
 msgstr "Soubory klíčů (*.keyx, *.key)"
 
 #: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2595
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:595
 msgid "All Files"
 msgstr "Všechny soubory"
 
@@ -7093,32 +7094,42 @@ msgstr "Heslo (volitelné)"
 msgid "Failed to add key: {}"
 msgstr "Nepodařilo se přidat klíč: {}"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:613
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:590
+msgid "SSH Keys"
+msgstr "Klíče SSH"
+
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:639
 msgid "Cannot Use That File"
 msgstr "Tento soubor nelze použít"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:615
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:641
 msgid ""
 "That location has no local file path. Copy the key to a local folder first."
-msgstr "Toto umístění nemá místní cestu k souboru. Zkopírujte klíč nejprve do místní složky."
+msgstr ""
+"Toto umístění nemá místní cestu k souboru. Zkopírujte klíč nejprve do místní "
+"složky."
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:643
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:669
 msgid "Could Not Open the File Chooser"
 msgstr "Nepodařilo se otevřít výběr souborů"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:645
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:671
 msgid ""
 "{}\n"
 "\n"
 "Keys already in ~/.ssh are listed under Available Key Files, and can be "
 "added from there without the file chooser."
-msgstr "{}\n\nKlíče, které už jsou v ~/.ssh, jsou uvedeny v části Dostupné soubory klíčů a lze je přidat odtud bez výběru souborů."
+msgstr ""
+"{}\n"
+"\n"
+"Klíče, které už jsou v ~/.ssh, jsou uvedeny v části Dostupné soubory klíčů a "
+"lze je přidat odtud bez výběru souborů."
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:676
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:702
 msgid "Remove from agent"
 msgstr "Odebrat z agenta"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:680
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:706
 msgid "Remove key from SSH agent"
 msgstr "Odebrat klíč z SSH agenta"
 

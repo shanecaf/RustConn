@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: rustconn 0.12.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-04 19:49+0300\n"
+"POT-Creation-Date: 2026-09-04 22:15+0300\n"
 "PO-Revision-Date: 2026-04-30 14:42+0800\n"
 "Last-Translator: GaaChun <zeonsinsang@163.com>\n"
 "Language-Team: Chinese(Simplified)\n"
@@ -6810,6 +6810,7 @@ msgid "Key Files (*.keyx, *.key)"
 msgstr "密钥文件 (*.keyx, *.key)"
 
 #: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2595
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:595
 msgid "All Files"
 msgstr "所有文件"
 
@@ -6963,32 +6964,39 @@ msgstr "密码短语（可选）"
 msgid "Failed to add key: {}"
 msgstr "添加密钥失败：{}"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:613
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:590
+msgid "SSH Keys"
+msgstr "SSH 密钥"
+
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:639
 msgid "Cannot Use That File"
 msgstr "无法使用该文件"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:615
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:641
 msgid ""
 "That location has no local file path. Copy the key to a local folder first."
 msgstr "该位置没有本地文件路径。请先将密钥复制到本地文件夹。"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:643
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:669
 msgid "Could Not Open the File Chooser"
 msgstr "无法打开文件选择器"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:645
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:671
 msgid ""
 "{}\n"
 "\n"
 "Keys already in ~/.ssh are listed under Available Key Files, and can be "
 "added from there without the file chooser."
-msgstr "{}\n\n已在 ~/.ssh 中的密钥列在“可用密钥文件”下，可以从那里添加，无需文件选择器。"
+msgstr ""
+"{}\n"
+"\n"
+"已在 ~/.ssh 中的密钥列在“可用密钥文件”下，可以从那里添加，无需文件选择器。"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:676
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:702
 msgid "Remove from agent"
 msgstr "从代理中移除"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:680
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:706
 msgid "Remove key from SSH agent"
 msgstr "从 SSH 代理中移除密钥"
 
