@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: rustconn 0.20.2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-04 19:20+0300\n"
+"POT-Creation-Date: 2026-09-04 19:29+0300\n"
 "PO-Revision-Date: 2026-08-19 09:53+0200\n"
 "Last-Translator: Ekaterine Papava <papava.e@gtu.ge>\n"
 "Language-Team: Georgian <(nothing)>\n"
@@ -34,6 +34,7 @@ msgstr "დიახ"
 #: rustconn/src/dialogs/recording.rs:508 rustconn/src/dialogs/recording.rs:578
 #: rustconn/src/dialogs/settings/keybindings_tab.rs:173
 #: rustconn/src/dialogs/settings/mod.rs:550
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:455
 #: rustconn/src/dialogs/settings/terminal_tab.rs:788
 #: rustconn/src/dialogs/settings/terminal_tab.rs:838
 #: rustconn/src/dialogs/statistics.rs:85
@@ -3877,7 +3878,7 @@ msgid "Finish"
 msgstr "დასრულება"
 
 #: rustconn/src/dialogs/connection_wizard/auth_page.rs:247
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:566
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:583
 msgid "Select SSH Key File"
 msgstr "აირჩიეთ SSH გასაღების ფაილი"
 
@@ -7026,7 +7027,7 @@ msgid "Keys currently loaded in the SSH agent"
 msgstr "SSH აგენტში ამჟამად ჩატვირთული გასაღებები"
 
 #: rustconn/src/dialogs/settings/ssh_agent_tab.rs:152
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:484
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:486
 msgid "Add Key"
 msgstr "გასაღების დამატება"
 
@@ -7105,25 +7106,25 @@ msgstr "საქაღალდის ~/.ssh/ სკანირება ჩ�
 msgid "Add Key: {}"
 msgstr "გასაღების დამატება: {}"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:465
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:473
 msgid "Enter passphrase (leave empty if key has no passphrase)"
 msgstr ""
 "შეიყვანეთ საკვანძო ფრაზა (დატოვეთ ცარიელი, თუ გასაღებს საკვანძო ფრაზა არ "
 "აქვს)"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:472
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:480
 msgid "Passphrase (optional)"
 msgstr "საკვანძო ფრაზა (არასავალდებულო)"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:537
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:554
 msgid "Failed to add key: {}"
 msgstr "გასაღების დამატების შეცდომა: {}"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:623
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:640
 msgid "Remove from agent"
 msgstr "აგენტიდან წაშლა"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:627
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:644
 msgid "Remove key from SSH agent"
 msgstr "გასაღების წაშლა SSH აგენტიდან"
 
@@ -11378,7 +11379,9 @@ msgstr "ცვლადები არ შეინახა"
 msgid ""
 "Your changes could not be written to disk and will be lost when RustConn "
 "closes: {}"
-msgstr "თქვენი ცვლილებები დისკზე ჩაწერა ვერ მოხერხდა და RustConn-ის დახურვისას დაიკარგება: {}"
+msgstr ""
+"თქვენი ცვლილებები დისკზე ჩაწერა ვერ მოხერხდა და RustConn-ის დახურვისას "
+"დაიკარგება: {}"
 
 #: rustconn/src/window/history_actions.rs:170
 msgid "Global variables could not be saved to disk."

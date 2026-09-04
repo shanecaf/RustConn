@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: rustconn 0.12.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-04 19:20+0300\n"
+"POT-Creation-Date: 2026-09-04 19:29+0300\n"
 "PO-Revision-Date: 2026-04-25 10:46+0000\n"
 "Last-Translator: RustConn Team\n"
 "Language-Team: Slovak\n"
@@ -34,6 +34,7 @@ msgstr "OK"
 #: rustconn/src/dialogs/recording.rs:508 rustconn/src/dialogs/recording.rs:578
 #: rustconn/src/dialogs/settings/keybindings_tab.rs:173
 #: rustconn/src/dialogs/settings/mod.rs:550
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:455
 #: rustconn/src/dialogs/settings/terminal_tab.rs:788
 #: rustconn/src/dialogs/settings/terminal_tab.rs:838
 #: rustconn/src/dialogs/statistics.rs:85
@@ -3872,7 +3873,7 @@ msgid "Finish"
 msgstr "Dokončiť"
 
 #: rustconn/src/dialogs/connection_wizard/auth_page.rs:247
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:566
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:583
 msgid "Select SSH Key File"
 msgstr "Vybrať súbor kľúča SSH"
 
@@ -7015,7 +7016,7 @@ msgid "Keys currently loaded in the SSH agent"
 msgstr "Kľúče aktuálne načítané v SSH agentovi"
 
 #: rustconn/src/dialogs/settings/ssh_agent_tab.rs:152
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:484
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:486
 msgid "Add Key"
 msgstr "Pridať kľúč"
 
@@ -7094,23 +7095,23 @@ msgstr "Nepodarilo sa prehľadať adresár ~/.ssh/"
 msgid "Add Key: {}"
 msgstr "Pridať kľúč: {}"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:465
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:473
 msgid "Enter passphrase (leave empty if key has no passphrase)"
 msgstr "Zadajte prístupovú frázu (nechajte prázdne, ak kľúč nemá frázu)"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:472
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:480
 msgid "Passphrase (optional)"
 msgstr "Heslo (voliteľné)"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:537
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:554
 msgid "Failed to add key: {}"
 msgstr "Nepodarilo sa pridať kľúč: {}"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:623
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:640
 msgid "Remove from agent"
 msgstr "Odstrániť z agenta"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:627
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:644
 msgid "Remove key from SSH agent"
 msgstr "Odstrániť kľúč z SSH agenta"
 
@@ -11364,7 +11365,9 @@ msgstr "Premenné neboli uložené"
 msgid ""
 "Your changes could not be written to disk and will be lost when RustConn "
 "closes: {}"
-msgstr "Vaše zmeny sa nepodarilo zapísať na disk a pri zatvorení RustConn sa stratia: {}"
+msgstr ""
+"Vaše zmeny sa nepodarilo zapísať na disk a pri zatvorení RustConn sa "
+"stratia: {}"
 
 #: rustconn/src/window/history_actions.rs:170
 msgid "Global variables could not be saved to disk."

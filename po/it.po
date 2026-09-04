@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: rustconn 0.12.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-04 19:20+0300\n"
+"POT-Creation-Date: 2026-09-04 19:29+0300\n"
 "PO-Revision-Date: 2026-06-14 09:46+0000\n"
 "Last-Translator: Albano Battistella\n"
 "Language-Team: Italian\n"
@@ -34,6 +34,7 @@ msgstr "OK"
 #: rustconn/src/dialogs/recording.rs:508 rustconn/src/dialogs/recording.rs:578
 #: rustconn/src/dialogs/settings/keybindings_tab.rs:173
 #: rustconn/src/dialogs/settings/mod.rs:550
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:455
 #: rustconn/src/dialogs/settings/terminal_tab.rs:788
 #: rustconn/src/dialogs/settings/terminal_tab.rs:838
 #: rustconn/src/dialogs/statistics.rs:85
@@ -3880,7 +3881,7 @@ msgid "Finish"
 msgstr "Fine"
 
 #: rustconn/src/dialogs/connection_wizard/auth_page.rs:247
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:566
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:583
 msgid "Select SSH Key File"
 msgstr "Seleziona file chiave SSH"
 
@@ -7036,7 +7037,7 @@ msgid "Keys currently loaded in the SSH agent"
 msgstr "Chiavi attualmente caricate nell'agente SSH"
 
 #: rustconn/src/dialogs/settings/ssh_agent_tab.rs:152
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:484
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:486
 msgid "Add Key"
 msgstr "Aggiungi chiave"
 
@@ -7115,23 +7116,23 @@ msgstr "Scansione della directory ~/.ssh/ fallita"
 msgid "Add Key: {}"
 msgstr "Aggiungi chiave: {}"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:465
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:473
 msgid "Enter passphrase (leave empty if key has no passphrase)"
 msgstr "Inserisci la passphrase (lascia vuoto se la chiave non ne ha una)"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:472
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:480
 msgid "Passphrase (optional)"
 msgstr "Passphrase (opzionale)"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:537
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:554
 msgid "Failed to add key: {}"
 msgstr "Impossibile aggiungere la chiave: {}"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:623
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:640
 msgid "Remove from agent"
 msgstr "Rimuovi dall'agente"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:627
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:644
 msgid "Remove key from SSH agent"
 msgstr "Rimuovi chiave dall'agente SSH"
 
@@ -11403,7 +11404,9 @@ msgstr "Variabili non salvate"
 msgid ""
 "Your changes could not be written to disk and will be lost when RustConn "
 "closes: {}"
-msgstr "Non è stato possibile scrivere le modifiche su disco e andranno perse alla chiusura di RustConn: {}"
+msgstr ""
+"Non è stato possibile scrivere le modifiche su disco e andranno perse alla "
+"chiusura di RustConn: {}"
 
 #: rustconn/src/window/history_actions.rs:170
 msgid "Global variables could not be saved to disk."

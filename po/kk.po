@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: rustconn 0.12.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-04 19:20+0300\n"
+"POT-Creation-Date: 2026-09-04 19:29+0300\n"
 "PO-Revision-Date: 2026-04-25 10:46+0000\n"
 "Last-Translator: RustConn Team\n"
 "Language-Team: Kazakh\n"
@@ -34,6 +34,7 @@ msgstr "OK"
 #: rustconn/src/dialogs/recording.rs:508 rustconn/src/dialogs/recording.rs:578
 #: rustconn/src/dialogs/settings/keybindings_tab.rs:173
 #: rustconn/src/dialogs/settings/mod.rs:550
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:455
 #: rustconn/src/dialogs/settings/terminal_tab.rs:788
 #: rustconn/src/dialogs/settings/terminal_tab.rs:838
 #: rustconn/src/dialogs/statistics.rs:85
@@ -3870,7 +3871,7 @@ msgid "Finish"
 msgstr "Аяқтау"
 
 #: rustconn/src/dialogs/connection_wizard/auth_page.rs:247
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:566
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:583
 msgid "Select SSH Key File"
 msgstr "SSH кілт файлын таңдау"
 
@@ -7012,7 +7013,7 @@ msgid "Keys currently loaded in the SSH agent"
 msgstr "SSH агентіне қазір жүктелген кілттер"
 
 #: rustconn/src/dialogs/settings/ssh_agent_tab.rs:152
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:484
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:486
 msgid "Add Key"
 msgstr "Кілт қосу"
 
@@ -7091,23 +7092,23 @@ msgstr "~/.ssh/ каталогын сканерлеу сәтсіз аяқтал�
 msgid "Add Key: {}"
 msgstr "Кілт қосу: {}"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:465
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:473
 msgid "Enter passphrase (leave empty if key has no passphrase)"
 msgstr "Құпия фразаны енгізіңіз (кілтте құпия фраза болмаса, бос қалдырыңыз)"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:472
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:480
 msgid "Passphrase (optional)"
 msgstr "Құпия фраза (міндетті емес)"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:537
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:554
 msgid "Failed to add key: {}"
 msgstr "Кілтті қосу сәтсіз: {}"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:623
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:640
 msgid "Remove from agent"
 msgstr "Агенттен жою"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:627
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:644
 msgid "Remove key from SSH agent"
 msgstr "SSH агенттен кілтті жою"
 
@@ -11354,7 +11355,9 @@ msgstr "Айнымалылар сақталмады"
 msgid ""
 "Your changes could not be written to disk and will be lost when RustConn "
 "closes: {}"
-msgstr "Өзгерістеріңізді дискіге жазу мүмкін болмады, олар RustConn жабылғанда жоғалады: {}"
+msgstr ""
+"Өзгерістеріңізді дискіге жазу мүмкін болмады, олар RustConn жабылғанда "
+"жоғалады: {}"
 
 #: rustconn/src/window/history_actions.rs:170
 msgid "Global variables could not be saved to disk."
