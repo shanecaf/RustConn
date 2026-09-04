@@ -82,6 +82,22 @@ static BW_LAST_VERIFIED: RwLock<Option<std::time::Instant>> = RwLock::new(None);
 /// vault locks within a reasonable window.
 const UNLOCK_VERIFY_TTL_SECS: u64 = 120;
 
+/// Ceiling on a single `bw` invocation.
+///
+/// One number for "one child process", so the guarantee is the same wherever a
+/// `bw` is spawned. [`BitwardenBackend::run_command`] had it as a literal 30 and
+/// was the only place that honoured it; [`unlock_vault_sync`] spawns up to three
+/// children and bounded none of them, which is what let an unlock sit
+/// indefinitely on a stalled network sync while the GUI's status row waited for
+/// an answer that was never coming. A `gio::spawn_blocking` worker is cheap but
+/// not free, and there are only a handful of them.
+///
+/// Thirty seconds is generous for a call that normally costs a few — measured at
+/// about 4.5 s for a real unlock in issue
+/// [#312](https://github.com/totoshko88/RustConn/issues/312) — and the point is
+/// to bound a hang, not to race a slow vault server.
+pub(crate) const BW_INVOCATION_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+
 /// Records that the vault was just verified as unlocked.
 fn mark_verified() {
     if let Ok(mut guard) = BW_LAST_VERIFIED.write() {
@@ -407,19 +423,16 @@ impl BitwardenBackend {
 
         // Timeout prevents hanging when Bitwarden CLI stalls on network
         // requests (e.g. expired session triggers a sync attempt that blocks).
-        let output = tokio::time::timeout(
-            std::time::Duration::from_secs(30),
-            self.build_command(args).output(),
-        )
-        .await
-        .map_err(|_| {
-            tracing::warn!(%verb, "Bitwarden run_command: timed out after 30s");
-            // The argv is not in this message for the same reason it is not in the
-            // log line above: it carries the credential, and this error is shown to
-            // the user and logged by `vault_ops`.
-            SecretError::ConnectionFailed("bw command timed out after 30s".to_string())
-        })?
-        .map_err(|e| SecretError::ConnectionFailed(format!("Failed to run bw: {e}")))?;
+        let output = tokio::time::timeout(BW_INVOCATION_TIMEOUT, self.build_command(args).output())
+            .await
+            .map_err(|_| {
+                tracing::warn!(%verb, "Bitwarden run_command: timed out after 30s");
+                // The argv is not in this message for the same reason it is not in the
+                // log line above: it carries the credential, and this error is shown to
+                // the user and logged by `vault_ops`.
+                SecretError::ConnectionFailed("bw command timed out after 30s".to_string())
+            })?
+            .map_err(|e| SecretError::ConnectionFailed(format!("Failed to run bw: {e}")))?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
@@ -885,29 +898,126 @@ pub async fn unlock_vault(password: &SecretString) -> SecretResult<SecretString>
         .map_err(|e| SecretError::ConnectionFailed(format!("Unlock task panicked: {e}")))?
 }
 
+/// Unlocks the Bitwarden vault from a thread that is already blocking.
+///
+/// Same three strategies and the same [`BW_INVOCATION_TIMEOUT`] as
+/// [`unlock_vault`], without the `spawn_blocking` hop — for callers that are
+/// themselves inside a blocking worker and would otherwise have to nest a
+/// runtime. The GUI's Secrets page has four such call sites, each of which used
+/// to build its own `bw unlock`: none passed the extended `PATH` a sandboxed `bw`
+/// needs, none passed `--nointeraction`, none had a deadline, and only two of the
+/// four implemented the verbose fallback (issue
+/// [#312](https://github.com/totoshko88/RustConn/issues/312)).
+///
+/// # Errors
+/// Returns `SecretError::ConnectionFailed` if every strategy fails, the password
+/// is wrong, or an invocation exceeded its budget.
+pub fn unlock_vault_blocking(password: &SecretString) -> SecretResult<SecretString> {
+    // Zeroizing, not a bare String: this is the master password in the clear and
+    // it must not be left in freed heap when the call returns.
+    let pw = zeroize::Zeroizing::new(password.expose_secret().to_string());
+    unlock_vault_sync(&pw)
+}
+
+/// Strips anything that looks like a session key out of `bw`'s stderr.
+///
+/// Unlock stderr is logged at debug level and is also formatted into the
+/// `SecretError` that the Secrets page renders, so it reaches two places a
+/// credential must not. The session key is the vault's bearer token — it is what
+/// [`get_session_key`] hands to every later `bw` call — and nothing here can
+/// promise a given `bw` build keeps its `export BW_SESSION="…"` banner on stdout,
+/// where [`extract_session_key`] expects it. A build that writes it to stderr
+/// instead would leak the key through the diagnostic path on the one code path
+/// that never parses it.
+///
+/// Redacts by line rather than dropping the whole message, because the useful
+/// part of unlock stderr is the reason — "Invalid master password", "not logged
+/// in" — and both callers match on it.
+fn redact_session_keys(stderr: &str) -> String {
+    stderr
+        .lines()
+        .map(|line| {
+            if line.contains("BW_SESSION=") {
+                "[redacted: line contained a session key]"
+            } else {
+                line
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// Runs one bounded `bw unlock` attempt, with the master password in the child's
+/// environment.
+///
+/// The password travels as `BW_PASSWORD` and is named to `bw` with
+/// `--passwordenv`, never as an argument: argv is world-readable through
+/// `/proc/PID/cmdline`.
+///
+/// `--nointeraction` is passed here but deliberately *not* by the stdin strategy
+/// in [`unlock_vault_sync`], which needs `bw` to read the interactive password
+/// prompt it would otherwise suppress.
+///
+/// # Errors
+/// Returns `SecretError::ConnectionFailed` if the child cannot be spawned or
+/// waited on, or if it exceeded [`BW_INVOCATION_TIMEOUT`].
+fn unlock_attempt(bw_cmd: &str, password: &str, raw: bool) -> SecretResult<std::process::Output> {
+    let mut cmd = std::process::Command::new(bw_cmd);
+    cmd.env("PATH", crate::cli_download::get_extended_path());
+    cmd.arg("--nointeraction");
+    cmd.args(["unlock", "--passwordenv", "BW_PASSWORD"]);
+    if raw {
+        cmd.arg("--raw");
+    }
+    cmd.env("BW_PASSWORD", password)
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+
+    let child = cmd
+        .spawn()
+        .map_err(|e| SecretError::ConnectionFailed(format!("Failed to run bw unlock: {e}")))?;
+
+    // "bw unlock" and not the argv: `what` is logged on timeout, and while this
+    // particular argv holds only a variable *name*, keeping the habit is what
+    // stops the next caller interpolating a value.
+    crate::proc::wait_bounded(child, BW_INVOCATION_TIMEOUT, "bw unlock")
+        .map_err(|e| SecretError::ConnectionFailed(format!("Failed to wait for bw unlock: {e}")))?
+        .output()
+        .ok_or_else(|| {
+            SecretError::ConnectionFailed(format!(
+                "bw unlock timed out after {}s",
+                BW_INVOCATION_TIMEOUT.as_secs()
+            ))
+        })
+}
+
 /// Synchronous implementation of vault unlock.
 ///
 /// Uses `std::process::Command` which is compatible with all Bitwarden CLI versions
 /// including the new Rust-based CLI (v2026+).
+///
+/// Every child is bounded by [`BW_INVOCATION_TIMEOUT`]. None of them were: an
+/// unlock that stalled on a network sync blocked its caller forever, and both
+/// callers are worker threads with a status row waiting on them
+/// (issue [#312](https://github.com/totoshko88/RustConn/issues/312)).
 fn unlock_vault_sync(password: &str) -> SecretResult<SecretString> {
+    // Presence, not length. A master password's length is bruteforce metadata,
+    // and the GUI's unlock handler already declined to log it for that reason —
+    // then sent all four of its call sites through here, where it was being
+    // logged anyway.
     tracing::debug!(
-        password_len = password.len(),
+        has_password = !password.is_empty(),
         "Bitwarden: unlock_vault_sync called"
     );
 
     let bw_cmd = get_bw_cmd();
 
     // Strategy 1: --passwordenv with --raw (returns session key directly)
-    let output = std::process::Command::new(&bw_cmd)
-        .env("PATH", crate::cli_download::get_extended_path())
-        .args(["unlock", "--passwordenv", "BW_PASSWORD", "--raw"])
-        .env("BW_PASSWORD", password)
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .output()
-        .map_err(|e| SecretError::ConnectionFailed(format!("Failed to run bw unlock: {e}")))?;
+    let output = unlock_attempt(&bw_cmd, password, true)?;
 
-    if output.status.success() {
+    let raw_succeeded = output.status.success();
+    if raw_succeeded {
         let session_key = String::from_utf8_lossy(&output.stdout).trim().to_string();
         if !session_key.is_empty() {
             tracing::debug!("Bitwarden: unlocked with --passwordenv --raw");
@@ -915,18 +1025,24 @@ fn unlock_vault_sync(password: &str) -> SecretResult<SecretString> {
         }
     }
 
-    let stderr_raw = String::from_utf8_lossy(&output.stderr).to_string();
-    tracing::debug!("Bitwarden: --raw unlock failed, trying verbose: {stderr_raw}");
+    // `--raw` prints the key bare, with no `BW_SESSION=` in front of it, so
+    // `redact_session_keys` has no marker to find here. That is why the content is
+    // logged only when the command actually *failed*: exit 0 with empty stdout is
+    // the one shape where the key could plausibly have gone to stderr instead, and
+    // it is precisely the shape where redaction cannot recognise it. Kept as a
+    // value regardless, because the `provided key` check below matches on it — a
+    // `contains` yields a bool and cannot leak.
+    let stderr_raw = redact_session_keys(&String::from_utf8_lossy(&output.stderr));
+    if raw_succeeded {
+        tracing::debug!(
+            "Bitwarden: --raw unlock reported success but printed no key; trying verbose"
+        );
+    } else {
+        tracing::debug!("Bitwarden: --raw unlock failed, trying verbose: {stderr_raw}");
+    }
 
     // Strategy 2: --passwordenv without --raw (parse session key from verbose output)
-    let output = std::process::Command::new(&bw_cmd)
-        .env("PATH", crate::cli_download::get_extended_path())
-        .args(["unlock", "--passwordenv", "BW_PASSWORD"])
-        .env("BW_PASSWORD", password)
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .output()
-        .map_err(|e| SecretError::ConnectionFailed(format!("Failed to run bw unlock: {e}")))?;
+    let output = unlock_attempt(&bw_cmd, password, false)?;
 
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -937,10 +1053,14 @@ fn unlock_vault_sync(password: &str) -> SecretResult<SecretString> {
         tracing::debug!("Bitwarden: verbose unlock succeeded but no session key in output");
     }
 
-    let stderr_verbose = String::from_utf8_lossy(&output.stderr);
+    let stderr_verbose = redact_session_keys(&String::from_utf8_lossy(&output.stderr));
     tracing::debug!("Bitwarden: verbose unlock failed: {stderr_verbose}");
 
-    // Strategy 3: stdin pipe without --raw (for maximum compatibility)
+    // Strategy 3: stdin pipe without --raw (for maximum compatibility).
+    //
+    // No `--nointeraction` here, unlike the two attempts above: this strategy
+    // exists for older CLI builds that have no `--passwordenv`, and it works by
+    // answering the interactive prompt that `--nointeraction` suppresses.
     let mut child = std::process::Command::new(&bw_cmd)
         .env("PATH", crate::cli_download::get_extended_path())
         .arg("unlock")
@@ -957,9 +1077,17 @@ fn unlock_vault_sync(password: &str) -> SecretResult<SecretString> {
         drop(stdin);
     }
 
-    let output = child
-        .wait_with_output()
-        .map_err(|e| SecretError::ConnectionFailed(format!("Failed to wait for bw: {e}")))?;
+    // Bounded like the other two. The stdin write above is what unblocks a
+    // healthy child; a child that never reads it used to park here forever.
+    let output = crate::proc::wait_bounded(child, BW_INVOCATION_TIMEOUT, "bw unlock")
+        .map_err(|e| SecretError::ConnectionFailed(format!("Failed to wait for bw: {e}")))?
+        .output()
+        .ok_or_else(|| {
+            SecretError::ConnectionFailed(format!(
+                "bw unlock timed out after {}s",
+                BW_INVOCATION_TIMEOUT.as_secs()
+            ))
+        })?;
 
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -969,7 +1097,9 @@ fn unlock_vault_sync(password: &str) -> SecretResult<SecretString> {
         }
     }
 
-    let stderr = String::from_utf8_lossy(&output.stderr);
+    // Redacted before it is formatted into the error below, which the Secrets
+    // page renders and `vault_ops` logs.
+    let stderr = redact_session_keys(&String::from_utf8_lossy(&output.stderr));
 
     // Check if this is the "provided key" error — indicates corrupted vault data
     if stderr_raw.contains("provided key is not the expected type")
@@ -1362,9 +1492,11 @@ pub async fn auto_unlock(
         && is_recently_verified()
     {
         tracing::debug!("Bitwarden: using cached session key (recently verified)");
-        return Ok(BitwardenBackend::with_session(SecretString::from(
-            session.expose_secret().to_owned(),
-        )));
+        // Third site of the same round trip as the two below: going through
+        // `expose_secret().to_owned()` puts the key in a bare `String` that drops
+        // unwiped. `clone` and not a move because `stored_session` is borrowed and
+        // is read again further down.
+        return Ok(BitwardenBackend::with_session(session.clone()));
     }
 
     // 1. Check in-process session store, then fall back to BW_SESSION env var
@@ -1418,7 +1550,10 @@ pub async fn auto_unlock(
         tracing::debug!("Bitwarden: attempting unlock with keyring password");
         match unlock_vault(&password).await {
             Ok(session_key) => {
-                set_session_key(SecretString::from(session_key.expose_secret().to_owned()));
+                // `clone`, not `SecretString::from(expose_secret().to_owned())`:
+                // the round trip put the key in a bare `String` that dropped
+                // unwiped. Same defect the Secrets page had at four call sites.
+                set_session_key(session_key.clone());
                 mark_verified();
                 let backend = BitwardenBackend::with_session(session_key);
                 let _ = backend.sync().await;
@@ -1451,7 +1586,10 @@ pub async fn auto_unlock(
             tracing::debug!("Bitwarden: attempting unlock with saved password");
             match unlock_vault(password).await {
                 Ok(session_key) => {
-                    set_session_key(SecretString::from(session_key.expose_secret().to_owned()));
+                    // See the sibling arm above: `clone` keeps the key inside
+                    // `SecretString` instead of round-tripping it through a bare
+                    // `String` that drops unwiped.
+                    set_session_key(session_key.clone());
                     mark_verified();
                     let backend = BitwardenBackend::with_session(session_key);
                     let _ = backend.sync().await;
@@ -1515,5 +1653,62 @@ mod debug_tests {
         );
         assert!(rendered.contains("BitwardenBackend"));
         assert!(rendered.contains("session_present"));
+    }
+}
+
+#[cfg(test)]
+mod unlock_tests {
+    use super::{BW_INVOCATION_TIMEOUT, redact_session_keys};
+
+    /// Unlock stderr reaches a debug log *and* the error string the Secrets page
+    /// renders. `extract_session_key` looks for the export banner on stdout, so a
+    /// `bw` build that writes it to stderr instead would leak the vault's bearer
+    /// token down the diagnostic path — the one path that never parses it.
+    #[test]
+    fn a_session_key_on_stderr_does_not_survive_into_a_message() {
+        let stderr = "\
+Something went wrong
+export BW_SESSION=\"hunter2-session-key\"
+Invalid master password.";
+
+        let redacted = redact_session_keys(stderr);
+
+        assert!(
+            !redacted.contains("hunter2-session-key"),
+            "session key survived redaction: {redacted}"
+        );
+        // The reason is what both callers match on, so it has to stay.
+        assert!(redacted.contains("Invalid master password."));
+        assert!(redacted.contains("Something went wrong"));
+        // Redacted by line, so the shape of the output is preserved.
+        assert_eq!(redacted.lines().count(), 3);
+    }
+
+    #[test]
+    fn the_unquoted_form_is_redacted_too() {
+        let redacted = redact_session_keys("BW_SESSION=bare-key-no-quotes");
+        assert!(!redacted.contains("bare-key-no-quotes"));
+    }
+
+    /// Ordinary stderr must pass through untouched, or the callers that match on
+    /// "not logged in" and "provided key is not the expected type" would stop
+    /// recognising it.
+    #[test]
+    fn stderr_without_a_session_key_is_left_alone() {
+        for message in [
+            "You are not logged in.",
+            "Invalid master password.",
+            "provided key is not the expected type",
+            "",
+        ] {
+            assert_eq!(redact_session_keys(message), message);
+        }
+    }
+
+    /// The budget has to clear a real unlock, measured at about 4.5 s in issue
+    /// #312, by enough margin that a slow vault server is not mistaken for a hang.
+    #[test]
+    fn the_invocation_budget_clears_a_real_unlock() {
+        assert!(BW_INVOCATION_TIMEOUT >= std::time::Duration::from_secs(15));
     }
 }
