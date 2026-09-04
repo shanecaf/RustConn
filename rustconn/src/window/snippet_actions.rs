@@ -43,9 +43,16 @@ impl MainWindow {
         // class of accident issue #315 exists to reduce.
         //
         // The reachable routes are all ones where the target is chosen in the same
-        // gesture: the terminal's own right-click menu (`run-snippet-direct`), the
-        // connection context menu (`run-snippet-for-connection`), and the snippets
-        // manager, which checks for an active terminal first.
+        // gesture. This action itself is reached from the terminal's own
+        // right-click menu, as the "Execute Snippet…" entry that replaces the
+        // inline list once there are more than five snippets — see
+        // `terminal/config.rs`. Alongside it: `run-snippet-direct` for the inline
+        // entries, `run-snippet-for-connection` from the connection context menu,
+        // and the snippets manager, which checks for an active terminal first.
+        //
+        // Not the command palette, which is worth stating because the palette
+        // hangs off the main window the same way the app menu does and would carry
+        // the same ambiguity.
         let execute_snippet_action = gio::SimpleAction::new("execute-snippet", None);
         let window_weak = window.downgrade();
         let state_clone = state.clone();

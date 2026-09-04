@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: rustconn 0.12.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-04 22:15+0300\n"
+"POT-Creation-Date: 2026-09-05 00:23+0300\n"
 "PO-Revision-Date: 2026-04-25 10:46+0000\n"
 "Last-Translator: RustConn Team\n"
 "Language-Team: Dutch\n"
@@ -39,7 +39,7 @@ msgstr "OK"
 #: rustconn/src/dialogs/settings/terminal_tab.rs:838
 #: rustconn/src/dialogs/statistics.rs:85
 #: rustconn/src/dialogs/template_manager.rs:190
-#: rustconn/src/dialogs/tunnel.rs:598
+#: rustconn/src/dialogs/tunnel.rs:722
 #: rustconn/src/dialogs/tunnel_builder/mod.rs:559
 #: rustconn/src/dialogs/variable_setup.rs:85
 #: rustconn/src/dialogs/workspace.rs:236 rustconn/src/dialogs/workspace.rs:290
@@ -48,7 +48,7 @@ msgstr "OK"
 #: rustconn/src/vault_ops.rs:315 rustconn/src/window/batch_edit.rs:69
 #: rustconn/src/window/connection_dialogs.rs:1078
 #: rustconn/src/window/edit_group.rs:1787
-#: rustconn/src/window/edit_group.rs:1835 rustconn/src/window/mod.rs:3572
+#: rustconn/src/window/edit_group.rs:1835 rustconn/src/window/mod.rs:3574
 #: rustconn/src/window/operations.rs:82 rustconn/src/window/operations.rs:457
 #: rustconn/src/window/operations.rs:640 rustconn/src/window/sessions.rs:339
 #: rustconn/src/window/workspaces.rs:548
@@ -160,7 +160,7 @@ msgid "{} — RustConn"
 msgstr "{} — RustConn"
 
 #: rustconn/src/detached_window.rs:140 rustconn/src/embedded_rdp/mod.rs:746
-#: rustconn/src/embedded_rdp/mod.rs:1936
+#: rustconn/src/embedded_rdp/mod.rs:1944
 #: rustconn/src/embedded_rdp/polling_handlers.rs:62
 #: rustconn/src/embedded_vnc/ui.rs:132
 #: rustconn/src/terminal/session_lifecycle.rs:337
@@ -191,7 +191,7 @@ msgid "Enter Password Manually"
 msgstr "Wachtwoord handmatig invoeren"
 
 #: rustconn/src/dialogs/backend_missing.rs:56 rustconn/src/vault_ops.rs:66
-#: rustconn/src/vault_ops.rs:316 rustconn/src/window/mod.rs:742
+#: rustconn/src/vault_ops.rs:316 rustconn/src/window/mod.rs:744
 msgid "Open Settings"
 msgstr "Instellingen openen"
 
@@ -314,11 +314,11 @@ msgstr "Dit cluster wordt permanent verwijderd."
 #: rustconn/src/dialogs/cluster.rs:624 rustconn/src/dialogs/recording.rs:579
 #: rustconn/src/dialogs/template_manager.rs:113
 #: rustconn/src/dialogs/template_manager.rs:191
-#: rustconn/src/dialogs/tunnel.rs:599 rustconn/src/dialogs/workspace.rs:118
+#: rustconn/src/dialogs/tunnel.rs:723 rustconn/src/dialogs/workspace.rs:118
 #: rustconn/src/dialogs/workspace.rs:291 rustconn/src/sidebar_ui.rs:406
 #: rustconn/src/smart_folder_ui.rs:404 rustconn/src/smart_folder_ui.rs:596
 #: rustconn/src/window/clusters.rs:435 rustconn/src/window/operations.rs:137
-#: rustconn/src/window/snippets.rs:357 rustconn/src/window/snippets.rs:447
+#: rustconn/src/window/snippets.rs:413 rustconn/src/window/snippets.rs:503
 #: rustconn/src/window/templates.rs:151
 msgid "Delete"
 msgstr "Verwijderen"
@@ -1747,7 +1747,7 @@ msgstr ""
 #: rustconn/src/dialogs/connection/vnc.rs:284
 #: rustconn/src/dialogs/connection_wizard/auth_page.rs:85
 #: rustconn/src/dialogs/connection_wizard/auth_page.rs:388
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2188
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2163
 #: rustconn/src/dialogs/template.rs:625
 msgid "Authentication"
 msgstr "Authenticatie"
@@ -3048,7 +3048,7 @@ msgid "Default"
 msgstr "Standaard"
 
 #: rustconn/src/dialogs/connection/ssh.rs:246
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:736
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:735
 #: rustconn/src/dialogs/template.rs:652
 msgid "File"
 msgstr "Bestand"
@@ -3073,8 +3073,8 @@ msgid "Path to SSH key"
 msgstr "Pad naar SSH-sleutel"
 
 #: rustconn/src/dialogs/connection/ssh.rs:272
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2254
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2257
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2229
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2232
 msgid "Browse for key file"
 msgstr "Bladeren naar sleutelbestand"
 
@@ -3085,7 +3085,7 @@ msgstr "Bladeren naar SSH-sleutelbestand"
 #: rustconn/src/dialogs/connection/ssh.rs:280
 #: rustconn/src/dialogs/connection_wizard/auth_page.rs:124
 #: rustconn/src/dialogs/connection_wizard/auth_page.rs:336
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2267
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2242
 #: rustconn/src/dialogs/template.rs:676
 msgid "Key File"
 msgstr "Sleutelbestand"
@@ -3872,7 +3872,7 @@ msgid "Finish"
 msgstr "Voltooien"
 
 #: rustconn/src/dialogs/connection_wizard/auth_page.rs:247
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:582
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:599
 msgid "Select SSH Key File"
 msgstr "SSH-sleutelbestand selecteren"
 
@@ -4116,7 +4116,7 @@ msgstr ""
 "het bestand is gemaakt."
 
 #: rustconn/src/dialogs/credential_transfer.rs:607
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2103
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2078
 msgid "Cannot open the portable file: {}"
 msgstr "Kan het portable bestand niet openen: {}"
 
@@ -4150,7 +4150,7 @@ msgstr "Kopiëren gestopt"
 #: rustconn/src/dialogs/settings/cloud_sync_tab.rs:238
 #: rustconn/src/dialogs/tunnel_builder/mod.rs:618
 #: rustconn/src/dialogs/widgets.rs:460 rustconn/src/terminal/tab_menu.rs:407
-#: rustconn/src/vault_ops.rs:65 rustconn/src/window/mod.rs:3573
+#: rustconn/src/vault_ops.rs:65 rustconn/src/window/mod.rs:3575
 msgid "Close"
 msgstr "Sluiten"
 
@@ -5158,7 +5158,7 @@ msgstr ""
 "Het wachtwoord blijft alleen tijdens deze sessie in het geheugen."
 
 #: rustconn/src/dialogs/kdbx_unlock.rs:77
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2207
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2182
 msgid "Database password"
 msgstr "Databasewachtwoord"
 
@@ -5173,7 +5173,7 @@ msgstr "Verifiëren…"
 
 #: rustconn/src/dialogs/kdbx_unlock.rs:168
 #: rustconn/src/dialogs/portable_unlock.rs:166
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2685
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2663
 msgid "Verification failed"
 msgstr "Verificatie mislukt"
 
@@ -5437,7 +5437,7 @@ msgstr ""
 "gedachten verandert."
 
 #: rustconn/src/dialogs/portable_migration.rs:59
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2007
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1982
 msgid "Copy Credentials"
 msgstr "Inloggegevens kopiëren"
 
@@ -5531,7 +5531,7 @@ msgid "Could not change the passphrase. The file was not modified."
 msgstr "Kon de wachtwoordzin niet wijzigen. Het bestand is niet gewijzigd."
 
 #: rustconn/src/dialogs/portable_passphrase_change.rs:284
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:908
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:907
 msgid ""
 "A passphrase this short can be guessed quickly. This file is meant to be "
 "copied to your other computers, so the passphrase is the only thing "
@@ -5542,7 +5542,7 @@ msgstr ""
 "beschermt."
 
 #: rustconn/src/dialogs/portable_passphrase_change.rs:288
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:912
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:911
 msgid ""
 "This passphrase would not take long to guess. Several unrelated words make a "
 "much stronger one, and are easier to remember than symbols."
@@ -5591,8 +5591,8 @@ msgstr ""
 "De wachtwoordzin blijft alleen tijdens deze sessie in het geheugen."
 
 #: rustconn/src/dialogs/portable_unlock.rs:75
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1736
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1996
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1711
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1971
 msgid "Passphrase"
 msgstr "Wachtwoordzin"
 
@@ -5748,9 +5748,9 @@ msgstr "Kubernetes CLI-hulpmiddelen"
 
 #: rustconn/src/dialogs/settings/clients_tab.rs:154
 #: rustconn/src/dialogs/settings/secrets_tab/detection.rs:77
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:732
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:976
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2661
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:731
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:975
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2639
 #: rustconn/src/dialogs/settings/ssh_agent_tab.rs:41
 #: rustconn/src/dialogs/settings/ssh_agent_tab.rs:191
 msgid "Checking..."
@@ -6236,12 +6236,12 @@ msgid "Ready"
 msgstr "Gereed"
 
 #: rustconn/src/dialogs/settings/secrets_tab/detection.rs:76
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2404
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2832
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2841
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2849
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2866
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2873
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2379
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2810
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2819
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2827
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2844
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2851
 msgid "Not installed"
 msgstr "Niet geïnstalleerd"
 
@@ -6278,7 +6278,7 @@ msgid "Cannot determine store directory"
 msgstr "Kan opslagmap niet bepalen"
 
 #: rustconn/src/dialogs/settings/secrets_tab/detection.rs:711
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1285
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1260
 msgid "Unlocked"
 msgstr "Ontgrendeld"
 
@@ -6287,7 +6287,7 @@ msgid "Locked"
 msgstr "Vergrendeld"
 
 #: rustconn/src/dialogs/settings/secrets_tab/detection.rs:713
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1298
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1273
 msgid "Not logged in"
 msgstr "Niet ingelogd"
 
@@ -6296,109 +6296,109 @@ msgid "Status: {}"
 msgstr "Status: {}"
 
 #: rustconn/src/dialogs/settings/secrets_tab/detection.rs:716
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:808
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:831
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:822
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:845
 msgid "Error checking status"
 msgstr "Fout bij statuscontrole"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:794
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:808
 msgid "Signed in: {}"
 msgstr "Ingelogd: {}"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:796
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:810
 msgid "Signed in"
 msgstr "Ingelogd"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:801
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:805
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:815
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:819
 msgid "Not signed in"
 msgstr "Niet ingelogd"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:803
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:817
 msgid "Session expired"
 msgstr "Sessie verlopen"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:820
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:3166
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:834
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:3144
 msgid "Configured"
 msgstr "Geconfigureerd"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:824
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:828
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:838
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:842
 msgid "Not configured"
 msgstr "Niet geconfigureerd"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:826
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:840
 msgid "Authentication failed"
 msgstr "Authenticatie mislukt"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:299
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:298
 msgid "Don't save"
 msgstr "Niet opslaan"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:300
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:299
 msgid "Encrypted file (machine-specific)"
 msgstr "Versleuteld bestand (machine-specifiek)"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:301
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:300
 msgid "System keyring (recommended)"
 msgstr "Systeem-sleutelhanger (aanbevolen)"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:305
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:304
 msgid "How to persist the credential between sessions"
 msgstr "Hoe de inloggegevens tussen sessies bewaard worden"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:326
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:372
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:325
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:371
 msgid "System keyring unavailable — install libsecret (secret-tool)"
 msgstr ""
 "Systeemsleutelbos niet beschikbaar — installeer libsecret (secret-tool)"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:446
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:445
 msgid "This Mac's login keychain, unlocked with your session"
 msgstr "De inlogsleutelhanger van deze Mac, ontgrendeld met je sessie"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:452
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:451
 msgid "This computer's login keyring, unlocked with your session"
 msgstr "De inlogsleutelbos van deze computer, ontgrendeld met je sessie"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:459
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:458
 msgid "A KeePass database, through the KeePassXC application"
 msgstr "Een KeePass-database, via de toepassing KeePassXC"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:465
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:464
 msgid "Your Bitwarden vault, through the bw command line tool"
 msgstr "Je Bitwarden-kluis, via het opdrachtregelprogramma bw"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:470
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:469
 msgid "Your 1Password vault, through the op command line tool"
 msgstr "Je 1Password-kluis, via het opdrachtregelprogramma op"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:475
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:474
 msgid "Your Passbolt server, through the passbolt command line tool"
 msgstr "Je Passbolt-server, via het opdrachtregelprogramma passbolt"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:480
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:479
 msgid "The pass password store, encrypted with your GPG key"
 msgstr "De wachtwoordopslag pass, versleuteld met je GPG-sleutel"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:494
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:493
 #: rustconn/src/window/credentials.rs:366
 msgid "Encrypted file"
 msgstr "Versleuteld bestand"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:495
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:494
 msgid "A file on this computer, encrypted with a key tied to this machine"
 msgstr ""
 "Een bestand op deze computer, versleuteld met een aan deze machine gebonden "
 "sleutel"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:499
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:498
 #: rustconn/src/window/credentials.rs:370
 msgid "Portable encrypted file"
 msgstr "Portable versleuteld bestand"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:501
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:500
 msgid ""
 "A file encrypted with a passphrase you choose, so it opens on your other "
 "computers"
@@ -6406,37 +6406,37 @@ msgstr ""
 "Een bestand versleuteld met een wachtwoordzin naar keuze, zodat het ook op "
 "je andere computers opengaat"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:667
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:666
 msgid "Not created yet"
 msgstr "Nog niet aangemaakt"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:668
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:667
 msgid "Ready, no passwords yet"
 msgstr "Klaar, nog geen wachtwoorden"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:674
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:673
 msgid "Passwords stored: {}"
 msgstr "Opgeslagen wachtwoorden: {}"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:677
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:676
 msgid "Cannot read the file: {}"
 msgstr "Kan het bestand niet lezen: {}"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:678
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:677
 msgid "Could not check the file"
 msgstr "Kon het bestand niet controleren"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:705
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:704
 msgid "Enter the passphrase that will protect the portable file"
 msgstr "Voer de wachtwoordzin in die het portable bestand gaat beveiligen"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:709
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1829
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:708
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1804
 msgid "The two passphrases do not match"
 msgstr "De twee wachtwoordzinnen komen niet overeen"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:713
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1844
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:712
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1819
 msgid ""
 "Repeat the passphrase to confirm it. A new file cannot be recovered if the "
 "passphrase is wrong."
@@ -6444,36 +6444,36 @@ msgstr ""
 "Herhaal de wachtwoordzin om deze te bevestigen. Een nieuw bestand kan niet "
 "worden hersteld als de wachtwoordzin verkeerd is."
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:920
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:919
 msgid "Secrets"
 msgstr "Geheimen"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:926
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:925
 msgid "Secret Backend"
 msgstr "Geheimbackend"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:927
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:926
 msgid "Choose how passwords are stored"
 msgstr "Kies hoe wachtwoorden worden opgeslagen"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:941
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:940
 msgid "Backend"
 msgstr "Backend"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:957
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:956
 msgid "Version"
 msgstr "Versie"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:982
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:981
 #: rustconn/src/dialogs/settings/ssh_agent_tab.rs:45
 msgid "Status"
 msgstr "Status"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1003
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1002
 msgid "Also read from the encrypted file"
 msgstr "Ook uit het versleutelde bestand lezen"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1005
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1004
 msgid ""
 "Look for passwords in this computer's encrypted file too, so ones saved "
 "before you switched backend still resolve"
@@ -6482,15 +6482,15 @@ msgstr ""
 "zodat wachtwoorden die vóór het wisselen van backend zijn opgeslagen nog "
 "steeds worden gevonden"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1020
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1019
 msgid "Copy Passwords…"
 msgstr "Wachtwoorden kopiëren…"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1024
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1023
 msgid "Move between stores"
 msgstr "Verplaatsen tussen opslagen"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1026
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1025
 msgid ""
 "Copy the passwords you already have from one store into another, for example "
 "into the portable file"
@@ -6498,40 +6498,40 @@ msgstr ""
 "Kopieer de wachtwoorden die je al hebt van de ene opslag naar de andere, "
 "bijvoorbeeld naar het portable bestand"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1068
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1087
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1329
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1441
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1548
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2407
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1067
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1086
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1304
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1416
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1523
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2382
 msgid "Detecting..."
 msgstr "Detecteren..."
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1073
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1072
 msgid "Bitwarden"
 msgstr "Bitwarden"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1074
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1073
 msgid "Configure Bitwarden CLI integration"
 msgstr "Bitwarden CLI-integratie configureren"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1080
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1079
 msgid "Master Password"
 msgstr "Hoofdwachtwoord"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1081
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1080
 msgid "Required to unlock vault"
 msgstr "Vereist om de kluis te ontgrendelen"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1097
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1096
 msgid "Save master password"
 msgstr "Hoofdwachtwoord opslaan"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1106
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1105
 msgid "Use API key authentication"
 msgstr "API-sleutelauthenticatie gebruiken"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1108
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1107
 msgid "For automation or 2FA methods not supported by CLI (FIDO2, Duo)"
 msgstr ""
 "Voor automatisering of 2FA-methoden die niet door CLI worden ondersteund "
@@ -6539,92 +6539,92 @@ msgstr ""
 "(FIDO2, Duo)Voor automatisering of 2FA-methoden die niet door CLI worden "
 "ondersteund (FIDO2, Duo)"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1117
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1116
 msgid "client_id"
 msgstr "client_id"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1122
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1121
 msgid "Client ID"
 msgstr "Client-ID"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1124
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1123
 msgid "From Bitwarden web vault → Settings → Security → Keys"
 msgstr "Vanuit Bitwarden-webkluis → Instellingen → Beveiliging → Sleutels"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1133
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1132
 msgid "Client Secret"
 msgstr "Clientgeheim"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1134
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1133
 msgid "Keep this secret safe"
 msgstr "Bewaar dit geheim veilig"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1152
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1151
 msgid "Unlock"
 msgstr "Ontgrendelen"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1155
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1154
 msgid "Unlock Bitwarden vault"
 msgstr "Bitwarden-kluis ontgrendelen"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1167
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1166
 msgid "Vault Status"
 msgstr "Kluisstatus"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1168
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1167
 msgid "Login with 'bw login' in terminal first"
 msgstr "Log eerst in met 'bw login' in de terminal"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1192
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1196
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1191
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1195
 msgid "Enter password"
 msgstr "Wachtwoord invoeren"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1203
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1202
 msgid "Unlocking..."
 msgstr "Ontgrendelen..."
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1296
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1271
 msgid "Invalid password"
 msgstr "Ongeldig wachtwoord"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1300
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1275
 msgid "Unlock failed"
 msgstr "Ontgrendeling mislukt"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1314
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1289
 msgid "1Password"
 msgstr "1Password"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1315
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1290
 msgid "Configure 1Password CLI integration"
 msgstr "1Password CLI-integratie configureren"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1320
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1295
 msgid "Service Account Token"
 msgstr "Serviceaccounttoken"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1322
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1297
 msgid "For headless/automated access (OP_SERVICE_ACCOUNT_TOKEN)"
 msgstr "Voor geautomatiseerde toegang (OP_SERVICE_ACCOUNT_TOKEN)"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1339
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1314
 msgid "Save token"
 msgstr "Token opslaan"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1346
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1321
 msgid "Sign In"
 msgstr "Inloggen"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1349
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1324
 msgid "Sign in to 1Password (opens terminal)"
 msgstr "Inloggen bij 1Password (opent terminal)"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1361
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1336
 msgid "Account Status"
 msgstr "Accountstatus"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1363
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1338
 msgid "Sign in with 'op signin' in terminal or use biometric unlock"
 msgstr ""
 "Log in met 'op signin' in de terminal of gebruik biometrische "
@@ -6632,113 +6632,113 @@ msgstr ""
 "ontgrendelingLog in met 'op signin' in de terminal of gebruik biometrische "
 "ontgrendeling"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1375
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1350
 msgid "Opening terminal..."
 msgstr "Terminal openen..."
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1397
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1372
 msgid "Check terminal"
 msgstr "Terminal controleren"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1403
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1378
 msgid "No terminal found"
 msgstr "Geen terminal gevonden"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1414
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1389
 msgid "Passbolt"
 msgstr "Passbolt"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1415
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1390
 msgid "Configure Passbolt CLI integration"
 msgstr "Passbolt CLI-integratie configureren"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1425
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1400
 msgid "Server URL"
 msgstr "Server-URL"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1426
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1401
 msgid "Passbolt web vault address"
 msgstr "Passbolt-webkluisadres"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1434
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1409
 msgid "GPG Passphrase"
 msgstr "GPG-wachtwoordzin"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1435
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1410
 msgid "Required to decrypt credentials from Passbolt"
 msgstr "Vereist om inloggegevens van Passbolt te ontsleutelen"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1450
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1888
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1425
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1863
 msgid "Save passphrase"
 msgstr "Wachtwoordzin opslaan"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1457
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1432
 msgid "Open Vault"
 msgstr "Kluis openen"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1460
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1435
 msgid "Open Passbolt web vault in browser"
 msgstr "Passbolt-webkluis openen in browser"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1472
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1447
 msgid "Server Status"
 msgstr "Serverstatus"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1473
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1448
 msgid "Configure with 'passbolt configure' in terminal"
 msgstr "Configureer met 'passbolt configure' in de terminal"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1496
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1471
 msgid "Failed to open browser"
 msgstr "Kon browser niet openen"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1501
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1476
 msgid "Enter server URL or run 'passbolt configure'"
 msgstr "Voer server-URL in of voer 'passbolt configure' uit"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1512
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1487
 msgid "Pass"
 msgstr "Pass"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1513
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1488
 msgid "Configure Pass (passwordstore.org) integration"
 msgstr "Pass (passwordstore.org)-integratie configureren"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1518
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1493
 msgid "~/.password-store"
 msgstr "~/.password-store"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1526
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1529
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1501
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1504
 msgid "Choose password store directory"
 msgstr "Wachtwoordopslagmap kiezen"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1540
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1515
 msgid "Store Directory"
 msgstr "Opslagmap"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1541
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1516
 msgid "Location of password-store (leave empty for default)"
 msgstr "Locatie van wachtwoordopslag (leeg voor standaard)"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1555
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1530
 msgid "Initialization Status"
 msgstr "Initialisatiestatus"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1556
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1531
 msgid "Run 'pass init &lt;gpg-id&gt;' to initialize"
 msgstr "Voer 'pass init &lt;gpg-id&gt;' uit om te initialiseren"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1567
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1542
 msgid "Select Password Store Directory"
 msgstr "Wachtwoordopslagmap selecteren"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1596
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1571
 msgid "Encrypted File"
 msgstr "Versleuteld bestand"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1598
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1573
 msgid ""
 "Credentials in a file on this computer. The key is derived from this "
 "machine, so the file cannot be opened anywhere else — and cannot be "
@@ -6748,16 +6748,16 @@ msgstr ""
 "deze machine, dus het bestand gaat nergens anders open — en is niet te "
 "herstellen als de machine verdwijnt."
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1604
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1656
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1579
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1631
 msgid "File path"
 msgstr "Bestandspad"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1624
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1599
 msgid "Portable Encrypted File"
 msgstr "Portable versleuteld bestand"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1626
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1601
 msgid ""
 "Credentials in a file encrypted with a passphrase you choose. Put it in a "
 "folder your cloud client syncs and the same file opens on your other "
@@ -6769,15 +6769,15 @@ msgstr ""
 "gaat open op je andere computers. De wachtwoordzin is niet te herstellen, "
 "daarom wordt er twee keer om gevraagd."
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1643
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1618
 msgid "Browse"
 msgstr "Doorzoeken"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1647
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1622
 msgid "Browse for portable credential file"
 msgstr "Portable bestand met inloggegevens kiezen"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1657
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1632
 msgid ""
 "Name a file inside a folder your cloud client syncs. Leave empty for the "
 "default location."
@@ -6785,23 +6785,23 @@ msgstr ""
 "Geef een bestand een naam in een map die je cloudclient synchroniseert. Laat "
 "leeg voor de standaardlocatie."
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1708
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1683
 msgid "Select Portable Credential File"
 msgstr "Portable bestand met inloggegevens kiezen"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1741
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1716
 msgid "Confirm passphrase"
 msgstr "Wachtwoordzin bevestigen"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1904
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1879
 msgid "Create File"
 msgstr "Bestand aanmaken"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1909
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1884
 msgid "Set up the file"
 msgstr "Bestand instellen"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1911
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1886
 msgid ""
 "Create the file now, or check that your passphrase opens one that is already "
 "there"
@@ -6809,20 +6809,20 @@ msgstr ""
 "Maak het bestand nu aan, of controleer of je wachtwoordzin een bestaand "
 "bestand opent"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1943
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1918
 msgid "Setting up the file…"
 msgstr "Bestand instellen…"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1959
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1934
 msgid "Created {}"
 msgstr "{} aangemaakt"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1963
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1938
 msgid "That file is already there and your passphrase opens it"
 msgstr "Dat bestand bestaat al en je wachtwoordzin opent het"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1968
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2100
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1943
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2075
 msgid ""
 "That passphrase does not open the existing portable file. Enter the "
 "passphrase the file was created with."
@@ -6830,170 +6830,170 @@ msgstr ""
 "Die wachtwoordzin opent het bestaande portable bestand niet. Voer de "
 "wachtwoordzin in waarmee het bestand is aangemaakt."
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1973
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1948
 msgid "Cannot set up the file: {}"
 msgstr "Kan het bestand niet instellen: {}"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1976
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1951
 msgid "Could not set up the file"
 msgstr "Kon het bestand niet instellen"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1991
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1966
 msgid "Change Passphrase…"
 msgstr "Wachtwoordzin wijzigen…"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1998
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1973
 msgid ""
 "Choose a new passphrase and encrypt every password in the file again under it"
 msgstr ""
 "Kies een nieuwe wachtwoordzin en versleutel elk wachtwoord in het bestand er "
 "opnieuw mee"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2009
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1984
 msgid ""
 "Copy passwords from the machine-bound encrypted file into this portable file"
 msgstr ""
 "Wachtwoorden uit het aan deze computer gebonden versleutelde bestand naar "
 "dit portable bestand kopiëren"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2015
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1990
 msgid "Existing passwords"
 msgstr "Bestaande wachtwoorden"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2017
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1992
 msgid "Re-encrypt credentials from the machine-bound file with your passphrase"
 msgstr ""
 "Inloggegevens uit het aan deze computer gebonden bestand opnieuw "
 "versleutelen met uw wachtwoordzin"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2063
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2038
 msgid "No stored passwords to copy"
 msgstr "Geen opgeslagen wachtwoorden om te kopiëren"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2081
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2056
 msgid "Checking the passphrase…"
 msgstr "Wachtwoordzin controleren…"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2106
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2081
 msgid "Could not check the passphrase"
 msgstr "Wachtwoordzin kon niet worden gecontroleerd"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2144
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2119
 msgid "KeePass Database"
 msgstr "KeePass-database"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2146
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2121
 msgid ""
 "Configure KDBX file integration (works with KeePassXC, GNOME Secrets, etc.)"
 msgstr ""
 "KDBX-bestandsintegratie configureren (werkt met KeePassXC, GNOME Secrets, "
 "enz.)"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2151
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2126
 msgid "KDBX Integration"
 msgstr "KDBX-integratie"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2152
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2127
 msgid "Enable direct database access"
 msgstr "Directe databasetoegang inschakelen"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2158
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2133
 msgid "Select .kdbx file"
 msgstr ".kdbx-bestand selecteren"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2165
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2140
 msgid "Browse for database file"
 msgstr "Bladeren naar databasebestand"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2168
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2143
 msgid "Browse for KeePass database file"
 msgstr "KeePass-databasebestand selecteren"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2179
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2154
 msgid "Database File"
 msgstr "Databasebestand"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2189
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2164
 msgid "Database unlock methods"
 msgstr "Ontgrendelingsmethoden voor database"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2198
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2173
 msgid "Use password"
 msgstr "Wachtwoord gebruiken"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2214
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2189
 msgid "Not connected"
 msgstr "Niet verbonden"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2230
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2205
 msgid "Save password"
 msgstr "Wachtwoord opslaan"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2239
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2214
 msgid "Use key file"
 msgstr "Sleutelbestand gebruiken"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2247
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2222
 msgid "Select .keyx or .key file"
 msgstr ".keyx- of .key-bestand selecteren"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2275
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2250
 msgid "KDBX Status"
 msgstr "KDBX-status"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2280
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2255
 msgid "Check"
 msgstr "Controleren"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2282
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2257
 msgid "Test database connection"
 msgstr "Databaseverbinding testen"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2294
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2269
 msgid "Connection Status"
 msgstr "Verbindingsstatus"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2488
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:3337
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2466
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:3311
 msgid "Token loaded from keyring"
 msgstr "Token geladen uit sleutelhanger"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2550
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2528
 msgid "Select KeePass Database"
 msgstr "KeePass-database selecteren"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2556
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2534
 msgid "KeePass Database (*.kdbx)"
 msgstr "KeePass-database (*.kdbx)"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2584
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2562
 msgid "Select Key File"
 msgstr "Sleutelbestand selecteren"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2591
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2569
 msgid "Key Files (*.keyx, *.key)"
 msgstr "Sleutelbestanden (*.keyx, *.key)"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2595
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:595
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2573
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:612
 msgid "All Files"
 msgstr "Alle bestanden"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2631
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2609
 msgid "No database selected"
 msgstr "Geen database geselecteerd"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2679
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2657
 #: rustconn/src/embedded_rdp/ui.rs:167 rustconn/src/embedded_trait.rs:324
 #: rustconn/src/sidebar/view.rs:739
 msgid "Connected"
 msgstr "Verbonden"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:3168
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:3146
 msgid "Database path required"
 msgstr "Databasepad vereist"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:3171
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:3149
 msgid "Disabled"
 msgstr "Uitgeschakeld"
 
@@ -7068,7 +7068,7 @@ msgid "Not available"
 msgstr "Niet beschikbaar"
 
 #: rustconn/src/dialogs/settings/ssh_agent_tab.rs:247
-#: rustconn/src/dialogs/tunnel.rs:319
+#: rustconn/src/dialogs/tunnel.rs:414
 msgid "Running"
 msgstr "Actief"
 
@@ -7134,26 +7134,26 @@ msgstr "Wachtwoordzin (optioneel)"
 msgid "Failed to add key: {}"
 msgstr "Kan sleutel niet toevoegen: {}"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:590
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:607
 msgid "SSH Keys"
 msgstr "SSH-sleutels"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:639
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:681
 msgid "Cannot Use That File"
 msgstr "Dat bestand kan niet worden gebruikt"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:641
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:683
 msgid ""
 "That location has no local file path. Copy the key to a local folder first."
 msgstr ""
 "Die locatie heeft geen lokaal bestandspad. Kopieer de sleutel eerst naar een "
 "lokale map."
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:669
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:713
 msgid "Could Not Open the File Chooser"
 msgstr "Bestandskiezer kon niet worden geopend"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:671
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:715
 msgid ""
 "{}\n"
 "\n"
@@ -7165,11 +7165,11 @@ msgstr ""
 "Sleutels die al in ~/.ssh staan, staan onder Beschikbare sleutelbestanden en "
 "kunnen daar zonder bestandskiezer worden toegevoegd."
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:702
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:746
 msgid "Remove from agent"
 msgstr "Verwijderen uit agent"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:706
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:750
 msgid "Remove key from SSH agent"
 msgstr "Sleutel uit SSH-agent verwijderen"
 
@@ -7979,8 +7979,8 @@ msgstr "web, productie"
 msgid "Filter by Group"
 msgstr "Filteren op groep"
 
-#: rustconn/src/dialogs/snippet.rs:67 rustconn/src/window/snippets.rs:170
-#: rustconn/src/window/snippets.rs:171
+#: rustconn/src/dialogs/snippet.rs:67 rustconn/src/window/snippets.rs:226
+#: rustconn/src/window/snippets.rs:227
 msgid "New Snippet"
 msgstr "Nieuw fragment"
 
@@ -8439,7 +8439,7 @@ msgstr ""
 
 #: rustconn/src/dialogs/template_manager.rs:109 rustconn/src/sidebar_ui.rs:268
 #: rustconn/src/sidebar_ui.rs:386 rustconn/src/smart_folder_ui.rs:390
-#: rustconn/src/smart_folder_ui.rs:497 rustconn/src/window/snippets.rs:351
+#: rustconn/src/smart_folder_ui.rs:497 rustconn/src/window/snippets.rs:407
 msgid "Edit"
 msgstr "Bewerken"
 
@@ -8557,80 +8557,80 @@ msgid "SSH tunnels forward ports through encrypted connections"
 msgstr "SSH-tunnels sturen poorten door via versleutelde verbindingen"
 
 #: rustconn/src/dialogs/tunnel.rs:109 rustconn/src/dialogs/tunnel.rs:201
-#: rustconn/src/dialogs/tunnel.rs:636
+#: rustconn/src/dialogs/tunnel.rs:760
 msgid "Active"
 msgstr "Actief"
 
 #: rustconn/src/dialogs/tunnel.rs:116 rustconn/src/dialogs/tunnel.rs:204
-#: rustconn/src/dialogs/tunnel.rs:320 rustconn/src/dialogs/tunnel.rs:639
+#: rustconn/src/dialogs/tunnel.rs:415 rustconn/src/dialogs/tunnel.rs:763
 #: rustconn/src/terminal/playback.rs:457
 msgid "Stopped"
 msgstr "Gestopt"
 
-#: rustconn/src/dialogs/tunnel.rs:295
+#: rustconn/src/dialogs/tunnel.rs:390
 msgid "No port forwards configured"
 msgstr "Geen poortweiterleidingen geconfigureerd"
 
-#: rustconn/src/dialogs/tunnel.rs:317
+#: rustconn/src/dialogs/tunnel.rs:412
 msgid "Stopped unexpectedly"
 msgstr "Onverwacht gestopt"
 
-#: rustconn/src/dialogs/tunnel.rs:332
+#: rustconn/src/dialogs/tunnel.rs:427
 msgid "Stop Tunnel"
 msgstr "Tunnel stoppen"
 
-#: rustconn/src/dialogs/tunnel.rs:333
+#: rustconn/src/dialogs/tunnel.rs:428
 msgid "Stop tunnel"
 msgstr "Tunnel stoppen"
 
-#: rustconn/src/dialogs/tunnel.rs:338
+#: rustconn/src/dialogs/tunnel.rs:433
 msgid "Start Tunnel"
 msgstr "Tunnel starten"
 
-#: rustconn/src/dialogs/tunnel.rs:339
+#: rustconn/src/dialogs/tunnel.rs:434
 msgid "Start tunnel"
 msgstr "Tunnel starten"
 
-#: rustconn/src/dialogs/tunnel.rs:362
+#: rustconn/src/dialogs/tunnel.rs:457
 msgid "Unknown connection"
 msgstr "Onbekende verbinding"
 
-#: rustconn/src/dialogs/tunnel.rs:365
+#: rustconn/src/dialogs/tunnel.rs:460
 #: rustconn/src/dialogs/tunnel_builder/step_connection.rs:83
 msgid "SSH Connection"
 msgstr "SSH-verbinding"
 
-#: rustconn/src/dialogs/tunnel.rs:377
+#: rustconn/src/dialogs/tunnel.rs:472
 msgid "Last Error"
 msgstr "Laatste fout"
 
-#: rustconn/src/dialogs/tunnel.rs:386
+#: rustconn/src/dialogs/tunnel.rs:481
 msgid "Actions"
 msgstr "Acties"
 
-#: rustconn/src/dialogs/tunnel.rs:391
+#: rustconn/src/dialogs/tunnel.rs:486
 #: rustconn/src/dialogs/tunnel_builder/mod.rs:163
 #: rustconn/src/dialogs/tunnel_builder/mod.rs:164
 msgid "Edit Tunnel"
 msgstr "Tunnel bewerken"
 
-#: rustconn/src/dialogs/tunnel.rs:392
+#: rustconn/src/dialogs/tunnel.rs:487
 msgid "Edit this tunnel"
 msgstr "Deze tunnel bewerken"
 
-#: rustconn/src/dialogs/tunnel.rs:398
+#: rustconn/src/dialogs/tunnel.rs:493
 msgid "Delete Tunnel"
 msgstr "Tunnel verwijderen"
 
-#: rustconn/src/dialogs/tunnel.rs:400
+#: rustconn/src/dialogs/tunnel.rs:495
 msgid "Delete this tunnel"
 msgstr "Deze tunnel verwijderen"
 
-#: rustconn/src/dialogs/tunnel.rs:479 rustconn/src/dialogs/tunnel.rs:491
+#: rustconn/src/dialogs/tunnel.rs:574 rustconn/src/dialogs/tunnel.rs:586
 msgid "Tunnel Did Not Start"
 msgstr "Tunnel Is Niet Gestart"
 
-#: rustconn/src/dialogs/tunnel.rs:493
+#: rustconn/src/dialogs/tunnel.rs:588
 msgid ""
 "“{}” refers to an SSH connection that no longer exists. Edit the tunnel and "
 "pick a connection."
@@ -8638,15 +8638,12 @@ msgstr ""
 "“{}” verwijst naar een SSH-verbinding die niet meer bestaat. Bewerk de "
 "tunnel en kies een verbinding."
 
-#: rustconn/src/dialogs/tunnel.rs:539
-msgid ""
-"“{}” needs {}, which is not installed or not on PATH. Install the OpenSSH "
-"client and try again."
+#: rustconn/src/dialogs/tunnel.rs:642
+msgid "“{}” needs {}, which is not installed or not on PATH. {}"
 msgstr ""
-"“{}” heeft {} nodig, dat niet is geïnstalleerd of niet in PATH staat. "
-"Installeer de OpenSSH-client en probeer het opnieuw."
+"“{}” heeft {} nodig, dat niet is geïnstalleerd of niet in PATH staat. {}"
 
-#: rustconn/src/dialogs/tunnel.rs:543
+#: rustconn/src/dialogs/tunnel.rs:646
 msgid ""
 "“{}” is attached to a connection that is not SSH. Port forwarding needs an "
 "SSH connection."
@@ -8654,19 +8651,36 @@ msgstr ""
 "“{}” hoort bij een verbinding die geen SSH is. Poortdoorsturing vereist een "
 "SSH-verbinding."
 
-#: rustconn/src/dialogs/tunnel.rs:546
+#: rustconn/src/dialogs/tunnel.rs:649
 msgid "“{}” is already running."
 msgstr "“{}” is al actief."
 
-#: rustconn/src/dialogs/tunnel.rs:549
+#: rustconn/src/dialogs/tunnel.rs:652
 msgid "“{}” could not be started: {}"
 msgstr "“{}” kon niet worden gestart: {}"
 
-#: rustconn/src/dialogs/tunnel.rs:591
+#: rustconn/src/dialogs/tunnel.rs:669
+msgid "Install the OpenSSH client and try again."
+msgstr "Installeer de OpenSSH-client en probeer het opnieuw."
+
+#: rustconn/src/dialogs/tunnel.rs:671
+msgid ""
+"It ships with the Multipath TCP tools (package “mptcpd” on most "
+"distributions). Install them, or turn off Multipath TCP for this connection."
+msgstr ""
+"Het wordt meegeleverd met de Multipath TCP-hulpprogramma's (pakket “mptcpd” "
+"in de meeste distributies). Installeer die, of schakel Multipath TCP uit "
+"voor deze verbinding."
+
+#: rustconn/src/dialogs/tunnel.rs:673
+msgid "Install it, or make sure it can be found on PATH."
+msgstr "Installeer het, of controleer of het via PATH te vinden is."
+
+#: rustconn/src/dialogs/tunnel.rs:715
 msgid "Delete Tunnel?"
 msgstr "Tunnel verwijderen?"
 
-#: rustconn/src/dialogs/tunnel.rs:593
+#: rustconn/src/dialogs/tunnel.rs:717
 msgid "Tunnel \"{}\" will be permanently removed."
 msgstr "Tunnel \"{}\" wordt permanent verwijderd."
 
@@ -9472,7 +9486,7 @@ msgid "CMD"
 msgstr "CMD"
 
 #: rustconn/src/embedded_rdp/mod.rs:1075 rustconn/src/embedded_rdp/mod.rs:1146
-#: rustconn/src/embedded_rdp/mod.rs:1396
+#: rustconn/src/embedded_rdp/mod.rs:1404
 msgid "Channel not ready"
 msgstr "Kanaal niet gereed"
 
@@ -9484,7 +9498,7 @@ msgstr "Script verzonden"
 msgid "Run Snippet?"
 msgstr "Fragment uitvoeren?"
 
-#: rustconn/src/embedded_rdp/mod.rs:1221 rustconn/src/window/snippets.rs:110
+#: rustconn/src/embedded_rdp/mod.rs:1226 rustconn/src/window/snippets.rs:110
 msgid ""
 "This runs “{}” in the active session:\n"
 "\n"
@@ -9494,23 +9508,23 @@ msgstr ""
 "\n"
 "{}"
 
-#: rustconn/src/embedded_rdp/mod.rs:1224 rustconn/src/window/snippets.rs:113
+#: rustconn/src/embedded_rdp/mod.rs:1232 rustconn/src/window/snippets.rs:113
 msgid "Run"
 msgstr "Uitvoeren"
 
-#: rustconn/src/embedded_rdp/mod.rs:1441
+#: rustconn/src/embedded_rdp/mod.rs:1449
 msgid "Select folder to save files"
 msgstr "Map selecteren om bestanden op te slaan"
 
-#: rustconn/src/embedded_rdp/mod.rs:1470
+#: rustconn/src/embedded_rdp/mod.rs:1478
 msgid "Downloading..."
 msgstr "Downloaden..."
 
-#: rustconn/src/embedded_rdp/mod.rs:1503
+#: rustconn/src/embedded_rdp/mod.rs:1511
 msgid "Downloading files..."
 msgstr "Bestanden downloaden..."
 
-#: rustconn/src/embedded_rdp/mod.rs:1921
+#: rustconn/src/embedded_rdp/mod.rs:1929
 msgid "Connection may have been lost while the computer slept"
 msgstr ""
 "De verbinding is mogelijk verbroken terwijl de computer in slaapstand stond"
@@ -10401,7 +10415,7 @@ msgid "Tab Overview (Ctrl+Shift+O)"
 msgstr "Tabbladoverzicht (Ctrl+Shift+O)"
 
 #: rustconn/src/terminal/mod.rs:467 rustconn/src/terminal/tab_lifecycle.rs:35
-#: rustconn/src/terminal/tab_lifecycle.rs:50 rustconn/src/window/mod.rs:3161
+#: rustconn/src/terminal/tab_lifecycle.rs:50 rustconn/src/window/mod.rs:3163
 msgid "Welcome"
 msgstr "Welkom"
 
@@ -10612,7 +10626,7 @@ msgstr "{} actieve sessie(s)"
 msgid "About RustConn"
 msgstr "Over RustConn"
 
-#: rustconn/src/vault_ops.rs:50 rustconn/src/window/mod.rs:4475
+#: rustconn/src/vault_ops.rs:50 rustconn/src/window/mod.rs:4486
 msgid "Passphrase Does Not Open the Portable File"
 msgstr "Wachtwoordzin opent het portable bestand niet"
 
@@ -11445,47 +11459,47 @@ msgstr ""
 msgid "Global variables could not be saved to disk."
 msgstr "Globale variabelen konden niet naar schijf worden opgeslagen."
 
-#: rustconn/src/window/mod.rs:729
+#: rustconn/src/window/mod.rs:731
 msgid "Dismiss"
 msgstr "Negeren"
 
-#: rustconn/src/window/mod.rs:2114
+#: rustconn/src/window/mod.rs:2116
 msgid "Already running in an external window"
 msgstr "Wordt al uitgevoerd in een extern venster"
 
-#: rustconn/src/window/mod.rs:2265
+#: rustconn/src/window/mod.rs:2267
 msgid "Connection to ‘{}’ failed"
 msgstr "Verbinding met ‘{}’ mislukt"
 
-#: rustconn/src/window/mod.rs:2491 rustconn/src/window/mod.rs:2505
+#: rustconn/src/window/mod.rs:2493 rustconn/src/window/mod.rs:2507
 msgid "Pre-connect task failed: {}"
 msgstr "Taak vóór verbinding mislukt: {}"
 
-#: rustconn/src/window/mod.rs:2539
+#: rustconn/src/window/mod.rs:2541
 msgid "Port knock failed: {}"
 msgstr "Port knock mislukt: {}"
 
-#: rustconn/src/window/mod.rs:2588
+#: rustconn/src/window/mod.rs:2590
 msgid "SPA failed: {}"
 msgstr "SPA mislukt: {}"
 
-#: rustconn/src/window/mod.rs:2787 rustconn/src/window/mod.rs:2962
+#: rustconn/src/window/mod.rs:2789 rustconn/src/window/mod.rs:2964
 msgid "Connection “{}” created"
 msgstr "Verbinding “{}” aangemaakt"
 
-#: rustconn/src/window/mod.rs:3166
+#: rustconn/src/window/mod.rs:3168
 msgid "RustConn - {}"
 msgstr "RustConn — {}"
 
-#: rustconn/src/window/mod.rs:3299
+#: rustconn/src/window/mod.rs:3301
 msgid "Settings saved"
 msgstr "Instellingen opgeslagen"
 
-#: rustconn/src/window/mod.rs:3336
+#: rustconn/src/window/mod.rs:3338
 msgid "Passphrase Not Saved on This Computer"
 msgstr "Wachtwoordzin niet op deze computer opgeslagen"
 
-#: rustconn/src/window/mod.rs:3338
+#: rustconn/src/window/mod.rs:3340
 msgid ""
 "The passphrase could not be encrypted for local storage, so it is kept for "
 "this session only and you will be asked for it again after a restart. Choose "
@@ -11497,11 +11511,11 @@ msgstr ""
 "Kies in plaats daarvan ‘Systeem-sleutelhanger’ of controleer of RustConn "
 "naar zijn gegevensmap kan schrijven."
 
-#: rustconn/src/window/mod.rs:3384
+#: rustconn/src/window/mod.rs:3386
 msgid "Credentials Not Saved to Keyring"
 msgstr "Referenties niet opgeslagen in de sleutelbos"
 
-#: rustconn/src/window/mod.rs:3386
+#: rustconn/src/window/mod.rs:3388
 msgid ""
 "The system keyring did not accept the credentials, so they are kept for this "
 "session only and will be gone after a restart. Check that your keyring "
@@ -11512,44 +11526,44 @@ msgstr ""
 "Controleer of de sleutelbos-service actief en ontgrendeld is en sla de "
 "instellingen opnieuw op."
 
-#: rustconn/src/window/mod.rs:3566
+#: rustconn/src/window/mod.rs:3568
 msgid "Close RustConn?"
 msgstr "RustConn sluiten?"
 
-#: rustconn/src/window/mod.rs:3568
+#: rustconn/src/window/mod.rs:3570
 msgid "{} session tab(s) are open. Active connections will be disconnected."
 msgstr ""
 "{} sessietabblad(en) zijn geopend. Actieve verbindingen worden verbroken."
 
-#: rustconn/src/window/mod.rs:3603
+#: rustconn/src/window/mod.rs:3605
 msgid "Cloud sync failed for '{}': {}"
 msgstr "Cloudsynchronisatie mislukt voor ‘{}’: {}"
 
-#: rustconn/src/window/mod.rs:3784
+#: rustconn/src/window/mod.rs:3786
 msgid "Startup connection not found"
 msgstr "Opstartverbinding niet gevonden"
 
-#: rustconn/src/window/mod.rs:3820
+#: rustconn/src/window/mod.rs:3822
 msgid "Failed to open .rdp file"
 msgstr "Kan .rdp-bestand niet openen"
 
-#: rustconn/src/window/mod.rs:3856
+#: rustconn/src/window/mod.rs:3858
 msgid "Failed to open .vv file"
 msgstr "Kan .vv-bestand niet openen"
 
-#: rustconn/src/window/mod.rs:3893
+#: rustconn/src/window/mod.rs:3895
 msgid "Tunnel “{}” stopped: {}"
 msgstr "Tunnel “{}” is gestopt: {}"
 
-#: rustconn/src/window/mod.rs:3909
+#: rustconn/src/window/mod.rs:3911
 msgid "Gave up reconnecting tunnel “{}”: {}"
 msgstr "Opnieuw verbinden van tunnel “{}” opgegeven: {}"
 
-#: rustconn/src/window/mod.rs:4391
+#: rustconn/src/window/mod.rs:4402
 msgid "Successfully exported {} connection(s). {} skipped."
 msgstr "{} verbinding(en) succesvol geëxporteerd. {} overgeslagen."
 
-#: rustconn/src/window/mod.rs:4477
+#: rustconn/src/window/mod.rs:4488
 msgid ""
 "The passphrase you saved does not decrypt the portable credential file, so "
 "none of the passwords in it can be read. Open Settings ▸ Secrets and enter "
@@ -11953,59 +11967,59 @@ msgstr "Voorkeur kon niet worden opgeslagen: {}"
 msgid "Could not save preference"
 msgstr "Kan voorkeur niet opslaan"
 
-#: rustconn/src/window/snippets.rs:162
+#: rustconn/src/window/snippets.rs:218
 msgid "Manage Snippets"
 msgstr "Fragmenten beheren"
 
-#: rustconn/src/window/snippets.rs:183 rustconn/src/window/snippets.rs:565
+#: rustconn/src/window/snippets.rs:239 rustconn/src/window/snippets.rs:621
 msgid "Search snippets..."
 msgstr "Fragmenten zoeken..."
 
-#: rustconn/src/window/snippets.rs:345
+#: rustconn/src/window/snippets.rs:401
 msgid "Execute"
 msgstr "Uitvoeren"
 
-#: rustconn/src/window/snippets.rs:346
+#: rustconn/src/window/snippets.rs:402
 msgid "Execute snippet"
 msgstr "Fragment uitvoeren"
 
-#: rustconn/src/window/snippets.rs:352
+#: rustconn/src/window/snippets.rs:408
 msgid "Edit snippet"
 msgstr "Fragment bewerken"
 
-#: rustconn/src/window/snippets.rs:358
+#: rustconn/src/window/snippets.rs:414
 msgid "Delete snippet"
 msgstr "Fragment verwijderen"
 
-#: rustconn/src/window/snippets.rs:445
+#: rustconn/src/window/snippets.rs:501
 msgid "Delete Snippet?"
 msgstr "Fragment verwijderen?"
 
-#: rustconn/src/window/snippets.rs:446
+#: rustconn/src/window/snippets.rs:502
 msgid "Are you sure you want to delete this snippet?"
 msgstr "Weet u zeker dat u dit fragment wilt verwijderen?"
 
-#: rustconn/src/window/snippets.rs:551
+#: rustconn/src/window/snippets.rs:607
 msgid "Execute Snippet"
 msgstr "Fragment uitvoeren"
 
-#: rustconn/src/window/snippets.rs:581
+#: rustconn/src/window/snippets.rs:637
 msgid "No snippets available"
 msgstr "Geen fragmenten beschikbaar"
 
-#: rustconn/src/window/snippets.rs:582
+#: rustconn/src/window/snippets.rs:638
 msgid "Create snippets in the Manage Snippets dialog"
 msgstr "Maak fragmenten aan in het dialoogvenster Fragmenten beheren"
 
-#: rustconn/src/window/snippets.rs:645
+#: rustconn/src/window/snippets.rs:701
 msgid "No Active Terminal"
 msgstr "Geen actieve terminal"
 
-#: rustconn/src/window/snippets.rs:646
+#: rustconn/src/window/snippets.rs:702
 msgid "Open a terminal session first before executing a snippet."
 msgstr "Open eerst een terminalsessie voordat je een snippet uitvoert."
 
-#: rustconn/src/window/snippets.rs:727
+#: rustconn/src/window/snippets.rs:753
 msgid "Enter Variable Values"
 msgstr "Variabelewaarden invoeren"
 

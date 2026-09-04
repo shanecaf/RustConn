@@ -35,9 +35,10 @@ step with `ls po/*.po`.
 Rules that apply to one tree live in that tree's own `AGENTS.md`, which Kiro loads
 when you work there. There are nine: one per crate, plus `po/` and `packaging/`.
 They hold the things that are wrong to state globally — `rustconn-cli` inverts the
-"never `println!`" rule because printing is its interface, and the four `-sys`
-crates are the only places `unsafe` is legal. Read the local file before editing a
-tree; it is shorter than this one and it is more specific.
+"never `println!`" rule because printing is its interface, and is untranslated
+besides, and the four `-sys` crates are the only places `unsafe` is legal. Read the
+local file before editing a tree; it is shorter than this one and it is more
+specific.
 
 ## Commands
 
@@ -100,9 +101,12 @@ Per-crate contracts are in each crate's `AGENTS.md`; the full table is in
 - Never log or format a secret into an error message
 - Errors → `thiserror::Error`. No `unwrap()`/`expect()` outside tests
 - Logging → `tracing`, never `println!`/`eprintln!`
-- Every user-facing string → `i18n()` / `i18n_f()` with `{}` placeholders, then
-  `bash po/update-pot.sh`. `ls po/*.po` is the authoritative locale count — do not
-  trust a number written in prose, including one written here
+- Every user-facing string in `rustconn` → `i18n()` / `i18n_f()` with `{}`
+  placeholders, then `bash po/update-pot.sh`. `ls po/*.po` is the authoritative
+  locale count — do not trust a number written in prose, including one written
+  here. `rustconn-cli` is the exception and is English throughout; see
+  `rustconn-cli/AGENTS.md` before adding an `i18n()` call there, because one
+  wrapped string among hundreds of bare ones is worse than none
 - Never `std::env::set_var`/`remove_var` (unsafe in Rust 2024). The sole exception
   is `rustconn-env-sys::set_startup_var`, and its window is already sealed by two
   existing callers — see `rustconn-env-sys/AGENTS.md` before considering a third

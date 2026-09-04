@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: rustconn 0.12.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-04 22:15+0300\n"
+"POT-Creation-Date: 2026-09-05 00:23+0300\n"
 "PO-Revision-Date: 2026-04-25 10:46+0000\n"
 "Last-Translator: RustConn Team\n"
 "Language-Team: Kazakh\n"
@@ -39,7 +39,7 @@ msgstr "OK"
 #: rustconn/src/dialogs/settings/terminal_tab.rs:838
 #: rustconn/src/dialogs/statistics.rs:85
 #: rustconn/src/dialogs/template_manager.rs:190
-#: rustconn/src/dialogs/tunnel.rs:598
+#: rustconn/src/dialogs/tunnel.rs:722
 #: rustconn/src/dialogs/tunnel_builder/mod.rs:559
 #: rustconn/src/dialogs/variable_setup.rs:85
 #: rustconn/src/dialogs/workspace.rs:236 rustconn/src/dialogs/workspace.rs:290
@@ -48,7 +48,7 @@ msgstr "OK"
 #: rustconn/src/vault_ops.rs:315 rustconn/src/window/batch_edit.rs:69
 #: rustconn/src/window/connection_dialogs.rs:1078
 #: rustconn/src/window/edit_group.rs:1787
-#: rustconn/src/window/edit_group.rs:1835 rustconn/src/window/mod.rs:3572
+#: rustconn/src/window/edit_group.rs:1835 rustconn/src/window/mod.rs:3574
 #: rustconn/src/window/operations.rs:82 rustconn/src/window/operations.rs:457
 #: rustconn/src/window/operations.rs:640 rustconn/src/window/sessions.rs:339
 #: rustconn/src/window/workspaces.rs:548
@@ -160,7 +160,7 @@ msgid "{} — RustConn"
 msgstr "{} — RustConn"
 
 #: rustconn/src/detached_window.rs:140 rustconn/src/embedded_rdp/mod.rs:746
-#: rustconn/src/embedded_rdp/mod.rs:1936
+#: rustconn/src/embedded_rdp/mod.rs:1944
 #: rustconn/src/embedded_rdp/polling_handlers.rs:62
 #: rustconn/src/embedded_vnc/ui.rs:132
 #: rustconn/src/terminal/session_lifecycle.rs:337
@@ -190,7 +190,7 @@ msgid "Enter Password Manually"
 msgstr "Құпия сөзді қолмен енгізу"
 
 #: rustconn/src/dialogs/backend_missing.rs:56 rustconn/src/vault_ops.rs:66
-#: rustconn/src/vault_ops.rs:316 rustconn/src/window/mod.rs:742
+#: rustconn/src/vault_ops.rs:316 rustconn/src/window/mod.rs:744
 msgid "Open Settings"
 msgstr "Параметрлерді ашу"
 
@@ -310,11 +310,11 @@ msgstr "Бұл кластер біржола жойылады."
 #: rustconn/src/dialogs/cluster.rs:624 rustconn/src/dialogs/recording.rs:579
 #: rustconn/src/dialogs/template_manager.rs:113
 #: rustconn/src/dialogs/template_manager.rs:191
-#: rustconn/src/dialogs/tunnel.rs:599 rustconn/src/dialogs/workspace.rs:118
+#: rustconn/src/dialogs/tunnel.rs:723 rustconn/src/dialogs/workspace.rs:118
 #: rustconn/src/dialogs/workspace.rs:291 rustconn/src/sidebar_ui.rs:406
 #: rustconn/src/smart_folder_ui.rs:404 rustconn/src/smart_folder_ui.rs:596
 #: rustconn/src/window/clusters.rs:435 rustconn/src/window/operations.rs:137
-#: rustconn/src/window/snippets.rs:357 rustconn/src/window/snippets.rs:447
+#: rustconn/src/window/snippets.rs:413 rustconn/src/window/snippets.rs:503
 #: rustconn/src/window/templates.rs:151
 msgid "Delete"
 msgstr "Жою"
@@ -1743,7 +1743,7 @@ msgstr "Тікелей топтан немесе жаһандық түрде м�
 #: rustconn/src/dialogs/connection/vnc.rs:284
 #: rustconn/src/dialogs/connection_wizard/auth_page.rs:85
 #: rustconn/src/dialogs/connection_wizard/auth_page.rs:388
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2188
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2163
 #: rustconn/src/dialogs/template.rs:625
 msgid "Authentication"
 msgstr "Аутентификация"
@@ -3047,7 +3047,7 @@ msgid "Default"
 msgstr "Әдепкі"
 
 #: rustconn/src/dialogs/connection/ssh.rs:246
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:736
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:735
 #: rustconn/src/dialogs/template.rs:652
 msgid "File"
 msgstr "Файл"
@@ -3072,8 +3072,8 @@ msgid "Path to SSH key"
 msgstr "SSH кілтіне жол"
 
 #: rustconn/src/dialogs/connection/ssh.rs:272
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2254
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2257
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2229
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2232
 msgid "Browse for key file"
 msgstr "Кілт файлын шолу"
 
@@ -3084,7 +3084,7 @@ msgstr "SSH кілт файлын шолу"
 #: rustconn/src/dialogs/connection/ssh.rs:280
 #: rustconn/src/dialogs/connection_wizard/auth_page.rs:124
 #: rustconn/src/dialogs/connection_wizard/auth_page.rs:336
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2267
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2242
 #: rustconn/src/dialogs/template.rs:676
 msgid "Key File"
 msgstr "Кілт файлы"
@@ -3871,7 +3871,7 @@ msgid "Finish"
 msgstr "Аяқтау"
 
 #: rustconn/src/dialogs/connection_wizard/auth_page.rs:247
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:582
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:599
 msgid "Select SSH Key File"
 msgstr "SSH кілт файлын таңдау"
 
@@ -4113,7 +4113,7 @@ msgstr ""
 "Бұл құпия тіркес тасымалды файлды ашпайды. Файл жасалған тіркесті енгізіңіз."
 
 #: rustconn/src/dialogs/credential_transfer.rs:607
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2103
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2078
 msgid "Cannot open the portable file: {}"
 msgstr "Тасымалды файлды ашу мүмкін емес: {}"
 
@@ -4147,7 +4147,7 @@ msgstr "Көшіру тоқтатылды"
 #: rustconn/src/dialogs/settings/cloud_sync_tab.rs:238
 #: rustconn/src/dialogs/tunnel_builder/mod.rs:618
 #: rustconn/src/dialogs/widgets.rs:460 rustconn/src/terminal/tab_menu.rs:407
-#: rustconn/src/vault_ops.rs:65 rustconn/src/window/mod.rs:3573
+#: rustconn/src/vault_ops.rs:65 rustconn/src/window/mod.rs:3575
 msgid "Close"
 msgstr "Жабу"
 
@@ -5149,7 +5149,7 @@ msgstr ""
 "Құпия сөз жадта тек осы сеанс үшін сақталады."
 
 #: rustconn/src/dialogs/kdbx_unlock.rs:77
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2207
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2182
 msgid "Database password"
 msgstr "Дерекқор құпия сөзі"
 
@@ -5164,7 +5164,7 @@ msgstr "Тексерілуде…"
 
 #: rustconn/src/dialogs/kdbx_unlock.rs:168
 #: rustconn/src/dialogs/portable_unlock.rs:166
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2685
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2663
 msgid "Verification failed"
 msgstr "Тексеру сәтсіз"
 
@@ -5426,7 +5426,7 @@ msgstr ""
 "Түпнұсқалар сақталады, сондықтан шешіміңізді өзгертсеңіз, ештеңе жоғалмайды."
 
 #: rustconn/src/dialogs/portable_migration.rs:59
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2007
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1982
 msgid "Copy Credentials"
 msgstr "Тіркелгі деректерін көшіру"
 
@@ -5518,7 +5518,7 @@ msgid "Could not change the passphrase. The file was not modified."
 msgstr "Кодтық тіркесті өзгерту мүмкін болмады. Файл өзгертілмеді."
 
 #: rustconn/src/dialogs/portable_passphrase_change.rs:284
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:908
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:907
 msgid ""
 "A passphrase this short can be guessed quickly. This file is meant to be "
 "copied to your other computers, so the passphrase is the only thing "
@@ -5529,7 +5529,7 @@ msgstr ""
 "кодтық тіркес."
 
 #: rustconn/src/dialogs/portable_passphrase_change.rs:288
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:912
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:911
 msgid ""
 "This passphrase would not take long to guess. Several unrelated words make a "
 "much stronger one, and are easier to remember than symbols."
@@ -5579,8 +5579,8 @@ msgstr ""
 "Кілт тіркесі жадта тек осы сеанс бойы сақталады."
 
 #: rustconn/src/dialogs/portable_unlock.rs:75
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1736
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1996
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1711
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1971
 msgid "Passphrase"
 msgstr "Кілт тіркесі"
 
@@ -5736,9 +5736,9 @@ msgstr "Kubernetes CLI құралдары"
 
 #: rustconn/src/dialogs/settings/clients_tab.rs:154
 #: rustconn/src/dialogs/settings/secrets_tab/detection.rs:77
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:732
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:976
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2661
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:731
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:975
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2639
 #: rustconn/src/dialogs/settings/ssh_agent_tab.rs:41
 #: rustconn/src/dialogs/settings/ssh_agent_tab.rs:191
 msgid "Checking..."
@@ -6222,12 +6222,12 @@ msgid "Ready"
 msgstr "Дайын"
 
 #: rustconn/src/dialogs/settings/secrets_tab/detection.rs:76
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2404
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2832
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2841
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2849
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2866
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2873
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2379
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2810
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2819
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2827
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2844
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2851
 msgid "Not installed"
 msgstr "Орнатылмаған"
 
@@ -6264,7 +6264,7 @@ msgid "Cannot determine store directory"
 msgstr "Қойма каталогын анықтау мүмкін емес"
 
 #: rustconn/src/dialogs/settings/secrets_tab/detection.rs:711
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1285
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1260
 msgid "Unlocked"
 msgstr "Ашылды"
 
@@ -6273,7 +6273,7 @@ msgid "Locked"
 msgstr "Құлыпталған"
 
 #: rustconn/src/dialogs/settings/secrets_tab/detection.rs:713
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1298
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1273
 msgid "Not logged in"
 msgstr "Кірмеген"
 
@@ -6282,107 +6282,107 @@ msgid "Status: {}"
 msgstr "Күй: {}"
 
 #: rustconn/src/dialogs/settings/secrets_tab/detection.rs:716
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:808
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:831
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:822
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:845
 msgid "Error checking status"
 msgstr "Күйді тексеру қатесі"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:794
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:808
 msgid "Signed in: {}"
 msgstr "Кірген: {}"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:796
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:810
 msgid "Signed in"
 msgstr "Кірген"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:801
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:805
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:815
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:819
 msgid "Not signed in"
 msgstr "Кірмеген"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:803
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:817
 msgid "Session expired"
 msgstr "Сеанс мерзімі аяқталды"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:820
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:3166
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:834
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:3144
 msgid "Configured"
 msgstr "Конфигурацияланған"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:824
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:828
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:838
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:842
 msgid "Not configured"
 msgstr "Конфигурацияланбаған"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:826
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:840
 msgid "Authentication failed"
 msgstr "Аутентификация сәтсіз"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:299
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:298
 msgid "Don't save"
 msgstr "Сақтамау"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:300
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:299
 msgid "Encrypted file (machine-specific)"
 msgstr "Шифрланған файл (машинаға тән)"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:301
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:300
 msgid "System keyring (recommended)"
 msgstr "Жүйелік кілттер сақтағышы (ұсынылады)"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:305
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:304
 msgid "How to persist the credential between sessions"
 msgstr "Тіркелгі деректерін сеанстар арасында қалай сақтау керек"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:326
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:372
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:325
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:371
 msgid "System keyring unavailable — install libsecret (secret-tool)"
 msgstr ""
 "Жүйелік кілттер қоймасы қолжетімсіз — libsecret (secret-tool) орнатыңыз"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:446
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:445
 msgid "This Mac's login keychain, unlocked with your session"
 msgstr "Осы Mac жүйесінің кіру кілттер тізбегі, сеанспен бірге ашылады"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:452
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:451
 msgid "This computer's login keyring, unlocked with your session"
 msgstr "Осы компьютердің кіру кілттер тізбегі, сеанспен бірге ашылады"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:459
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:458
 msgid "A KeePass database, through the KeePassXC application"
 msgstr "KeePass дерекқоры, KeePassXC қолданбасы арқылы"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:465
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:464
 msgid "Your Bitwarden vault, through the bw command line tool"
 msgstr "Bitwarden қоймаңыз, bw пәрмен жолы құралы арқылы"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:470
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:469
 msgid "Your 1Password vault, through the op command line tool"
 msgstr "1Password қоймаңыз, op пәрмен жолы құралы арқылы"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:475
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:474
 msgid "Your Passbolt server, through the passbolt command line tool"
 msgstr "Passbolt серверіңіз, passbolt пәрмен жолы құралы арқылы"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:480
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:479
 msgid "The pass password store, encrypted with your GPG key"
 msgstr "pass құпиясөз сақтауы, GPG кілтіңізбен шифрланған"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:494
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:493
 #: rustconn/src/window/credentials.rs:366
 msgid "Encrypted file"
 msgstr "Шифрланған файл"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:495
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:494
 msgid "A file on this computer, encrypted with a key tied to this machine"
 msgstr "Осы компьютердегі файл, осы машинаға байланған кілтпен шифрланған"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:499
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:498
 #: rustconn/src/window/credentials.rs:370
 msgid "Portable encrypted file"
 msgstr "Тасымалды шифрланған файл"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:501
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:500
 msgid ""
 "A file encrypted with a passphrase you choose, so it opens on your other "
 "computers"
@@ -6390,37 +6390,37 @@ msgstr ""
 "Өзіңіз таңдаған құпия тіркеспен шифрланған файл, сондықтан басқа "
 "компьютерлеріңізде де ашылады"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:667
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:666
 msgid "Not created yet"
 msgstr "Әзірге жасалмаған"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:668
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:667
 msgid "Ready, no passwords yet"
 msgstr "Дайын, әзірге құпиясөз жоқ"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:674
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:673
 msgid "Passwords stored: {}"
 msgstr "Сақталған құпиясөздер: {}"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:677
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:676
 msgid "Cannot read the file: {}"
 msgstr "Файлды оқу мүмкін емес: {}"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:678
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:677
 msgid "Could not check the file"
 msgstr "Файлды тексеру мүмкін болмады"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:705
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:704
 msgid "Enter the passphrase that will protect the portable file"
 msgstr "Тасымалды файлды қорғайтын кілт тіркесін енгізіңіз"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:709
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1829
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:708
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1804
 msgid "The two passphrases do not match"
 msgstr "Екі кілт тіркесі сәйкес келмейді"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:713
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1844
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:712
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1819
 msgid ""
 "Repeat the passphrase to confirm it. A new file cannot be recovered if the "
 "passphrase is wrong."
@@ -6428,36 +6428,36 @@ msgstr ""
 "Растау үшін кодтық фразаны қайталаңыз. Кодтық фраза қате болса, жаңа файлды "
 "қалпына келтіру мүмкін емес."
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:920
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:919
 msgid "Secrets"
 msgstr "Құпиялар"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:926
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:925
 msgid "Secret Backend"
 msgstr "Құпия бэкенді"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:927
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:926
 msgid "Choose how passwords are stored"
 msgstr "Құпия сөздерді сақтау тәсілін таңдаңыз"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:941
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:940
 msgid "Backend"
 msgstr "Бэкенд"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:957
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:956
 msgid "Version"
 msgstr "Нұсқа"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:982
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:981
 #: rustconn/src/dialogs/settings/ssh_agent_tab.rs:45
 msgid "Status"
 msgstr "Күй"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1003
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1002
 msgid "Also read from the encrypted file"
 msgstr "Шифрланған файлдан да оқу"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1005
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1004
 msgid ""
 "Look for passwords in this computer's encrypted file too, so ones saved "
 "before you switched backend still resolve"
@@ -6465,144 +6465,144 @@ msgstr ""
 "Құпия сөздерді осы компьютердің шифрланған файлынан да іздеңіз, сонда "
 "бэкендті ауыстырмас бұрын сақталғандар әлі де табылады"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1020
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1019
 msgid "Copy Passwords…"
 msgstr "Құпиясөздерді көшіру…"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1024
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1023
 msgid "Move between stores"
 msgstr "Сақтаулар арасында тасымалдау"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1026
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1025
 msgid ""
 "Copy the passwords you already have from one store into another, for example "
 "into the portable file"
 msgstr ""
 "Бар құпиясөздерді бір сақтаудан екіншісіне көшіріңіз, мысалы тасымалды файлға"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1068
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1087
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1329
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1441
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1548
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2407
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1067
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1086
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1304
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1416
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1523
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2382
 msgid "Detecting..."
 msgstr "Анықталуда..."
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1073
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1072
 msgid "Bitwarden"
 msgstr "Bitwarden"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1074
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1073
 msgid "Configure Bitwarden CLI integration"
 msgstr "Bitwarden CLI интеграциясын баптау"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1080
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1079
 msgid "Master Password"
 msgstr "Негізгі құпия сөз"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1081
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1080
 msgid "Required to unlock vault"
 msgstr "Қойманы ашу үшін қажет"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1097
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1096
 msgid "Save master password"
 msgstr "Басты құпиясөзді сақтау"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1106
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1105
 msgid "Use API key authentication"
 msgstr "API кілт аутентификациясын қолдану"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1108
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1107
 msgid "For automation or 2FA methods not supported by CLI (FIDO2, Duo)"
 msgstr "Автоматтандыру немесе CLI қолдамайтын 2FA тәсілдері үшін (FIDO2, Duo)"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1117
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1116
 msgid "client_id"
 msgstr "client_id"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1122
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1121
 msgid "Client ID"
 msgstr "Клиент идентификаторы"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1124
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1123
 msgid "From Bitwarden web vault → Settings → Security → Keys"
 msgstr "Bitwarden веб-қоймасынан → Параметрлер → Қауіпсіздік → Кілттер"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1133
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1132
 msgid "Client Secret"
 msgstr "Клиент құпиясы"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1134
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1133
 msgid "Keep this secret safe"
 msgstr "Бұл құпияны қауіпсіз сақтаңыз"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1152
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1151
 msgid "Unlock"
 msgstr "Ашу"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1155
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1154
 msgid "Unlock Bitwarden vault"
 msgstr "Bitwarden қоймасын ашу"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1167
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1166
 msgid "Vault Status"
 msgstr "Қойма күйі"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1168
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1167
 msgid "Login with 'bw login' in terminal first"
 msgstr "Алдымен терминалда 'bw login' арқылы кіріңіз"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1192
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1196
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1191
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1195
 msgid "Enter password"
 msgstr "Құпия сөзді енгізіңіз"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1203
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1202
 msgid "Unlocking..."
 msgstr "Ашылуда..."
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1296
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1271
 msgid "Invalid password"
 msgstr "Жарамсыз құпия сөз"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1300
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1275
 msgid "Unlock failed"
 msgstr "Ашу сәтсіз"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1314
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1289
 msgid "1Password"
 msgstr "1Password"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1315
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1290
 msgid "Configure 1Password CLI integration"
 msgstr "1Password CLI интеграциясын баптау"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1320
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1295
 msgid "Service Account Token"
 msgstr "Қызмет тіркелгісінің токені"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1322
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1297
 msgid "For headless/automated access (OP_SERVICE_ACCOUNT_TOKEN)"
 msgstr "Автоматтандырылған қол жеткізу үшін (OP_SERVICE_ACCOUNT_TOKEN)"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1339
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1314
 msgid "Save token"
 msgstr "Токенді сақтау"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1346
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1321
 msgid "Sign In"
 msgstr "Кіру"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1349
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1324
 msgid "Sign in to 1Password (opens terminal)"
 msgstr "1Password-қа кіру (терминалды ашады)"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1361
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1336
 msgid "Account Status"
 msgstr "Тіркелгі күйі"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1363
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1338
 msgid "Sign in with 'op signin' in terminal or use biometric unlock"
 msgstr ""
 "Терминалда 'op signin' арқылы кіріңіз немесе биометриялық құлыпты ашуды "
@@ -6610,113 +6610,113 @@ msgstr ""
 "құлыпты ашуды пайдаланыңызТерминалда 'op signin' арқылы кіріңіз немесе "
 "биометриялық ашуды қолданыңыз"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1375
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1350
 msgid "Opening terminal..."
 msgstr "Терминал ашылуда..."
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1397
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1372
 msgid "Check terminal"
 msgstr "Терминалды тексеру"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1403
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1378
 msgid "No terminal found"
 msgstr "Терминал табылмады"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1414
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1389
 msgid "Passbolt"
 msgstr "Passbolt"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1415
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1390
 msgid "Configure Passbolt CLI integration"
 msgstr "Passbolt CLI интеграциясын баптау"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1425
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1400
 msgid "Server URL"
 msgstr "Сервер URL"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1426
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1401
 msgid "Passbolt web vault address"
 msgstr "Passbolt веб-қойма мекенжайы"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1434
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1409
 msgid "GPG Passphrase"
 msgstr "GPG құпия фразасы"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1435
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1410
 msgid "Required to decrypt credentials from Passbolt"
 msgstr "Passbolt тіркелгі деректерін шифрдан шығару үшін қажет"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1450
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1888
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1425
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1863
 msgid "Save passphrase"
 msgstr "Құпия фразаны сақтау"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1457
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1432
 msgid "Open Vault"
 msgstr "Қоймаcын ашу"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1460
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1435
 msgid "Open Passbolt web vault in browser"
 msgstr "Passbolt веб-қоймасын браузерде ашу"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1472
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1447
 msgid "Server Status"
 msgstr "Сервер күйі"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1473
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1448
 msgid "Configure with 'passbolt configure' in terminal"
 msgstr "Терминалда 'passbolt configure' арқылы баптаңыз"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1496
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1471
 msgid "Failed to open browser"
 msgstr "Браузерді ашу сәтсіз"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1501
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1476
 msgid "Enter server URL or run 'passbolt configure'"
 msgstr "Сервер URL енгізіңіз немесе 'passbolt configure' іске қосыңыз"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1512
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1487
 msgid "Pass"
 msgstr "Pass"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1513
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1488
 msgid "Configure Pass (passwordstore.org) integration"
 msgstr "Pass (passwordstore.org) интеграциясын конфигурациялау"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1518
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1493
 msgid "~/.password-store"
 msgstr "~/.password-store"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1526
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1529
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1501
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1504
 msgid "Choose password store directory"
 msgstr "Құпия сөз қоймасы каталогын таңдау"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1540
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1515
 msgid "Store Directory"
 msgstr "Қойма каталогы"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1541
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1516
 msgid "Location of password-store (leave empty for default)"
 msgstr "Құпия сөз қоймасының орны (әдепкі үшін бос қалдырыңыз)"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1555
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1530
 msgid "Initialization Status"
 msgstr "Инициализация күйі"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1556
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1531
 msgid "Run 'pass init &lt;gpg-id&gt;' to initialize"
 msgstr "Инициализациялау үшін 'pass init &lt;gpg-id&gt;' іске қосыңыз"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1567
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1542
 msgid "Select Password Store Directory"
 msgstr "Құпия сөз қоймасы каталогын таңдау"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1596
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1571
 msgid "Encrypted File"
 msgstr "Шифрланған файл"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1598
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1573
 msgid ""
 "Credentials in a file on this computer. The key is derived from this "
 "machine, so the file cannot be opened anywhere else — and cannot be "
@@ -6726,16 +6726,16 @@ msgstr ""
 "сондықтан файлды басқа жерде ашуға болмайды — және машина жоғалса, қалпына "
 "келтіру мүмкін емес."
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1604
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1656
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1579
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1631
 msgid "File path"
 msgstr "Файл жолы"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1624
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1599
 msgid "Portable Encrypted File"
 msgstr "Тасымалды шифрланған файл"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1626
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1601
 msgid ""
 "Credentials in a file encrypted with a passphrase you choose. Put it in a "
 "folder your cloud client syncs and the same file opens on your other "
@@ -6747,15 +6747,15 @@ msgstr ""
 "компьютерлеріңізде ашылады. Құпия тіркесті қалпына келтіру мүмкін емес, "
 "сондықтан ол екі рет сұралады."
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1643
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1618
 msgid "Browse"
 msgstr "Шолу"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1647
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1622
 msgid "Browse for portable credential file"
 msgstr "Тасымалды тіркелгі деректері файлын таңдау"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1657
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1632
 msgid ""
 "Name a file inside a folder your cloud client syncs. Leave empty for the "
 "default location."
@@ -6763,43 +6763,43 @@ msgstr ""
 "Бұлттық клиентіңіз синхрондайтын қалтадағы файлға ат беріңіз. Әдепкі орын "
 "үшін бос қалдырыңыз."
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1708
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1683
 msgid "Select Portable Credential File"
 msgstr "Тасымалды тіркелгі деректері файлын таңдау"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1741
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1716
 msgid "Confirm passphrase"
 msgstr "Кілт тіркесін растау"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1904
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1879
 msgid "Create File"
 msgstr "Файл жасау"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1909
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1884
 msgid "Set up the file"
 msgstr "Файлды реттеу"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1911
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1886
 msgid ""
 "Create the file now, or check that your passphrase opens one that is already "
 "there"
 msgstr ""
 "Файлды қазір жасаңыз немесе құпия тіркесіңіз бар файлды ашатынын тексеріңіз"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1943
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1918
 msgid "Setting up the file…"
 msgstr "Файл реттелуде…"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1959
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1934
 msgid "Created {}"
 msgstr "{} жасалды"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1963
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1938
 msgid "That file is already there and your passphrase opens it"
 msgstr "Бұл файл әлдеқашан бар және құпия тіркесіңіз оны ашады"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1968
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2100
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1943
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2075
 msgid ""
 "That passphrase does not open the existing portable file. Enter the "
 "passphrase the file was created with."
@@ -6807,169 +6807,169 @@ msgstr ""
 "Бұл кілт тіркесі бар тасымалды файлды ашпайды. Файл жасалған кілт тіркесін "
 "енгізіңіз."
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1973
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1948
 msgid "Cannot set up the file: {}"
 msgstr "Файлды реттеу мүмкін емес: {}"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1976
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1951
 msgid "Could not set up the file"
 msgstr "Файлды реттеу мүмкін болмады"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1991
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1966
 msgid "Change Passphrase…"
 msgstr "Кодтық тіркесті өзгерту…"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1998
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1973
 msgid ""
 "Choose a new passphrase and encrypt every password in the file again under it"
 msgstr ""
 "Жаңа кодтық тіркесті таңдап, файлдағы әр құпия сөзді онымен қайта шифрлаңыз"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2009
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1984
 msgid ""
 "Copy passwords from the machine-bound encrypted file into this portable file"
 msgstr ""
 "Құпия сөздерді компьютерге байланған шифрланған файлдан осы тасымалды файлға "
 "көшіру"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2015
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1990
 msgid "Existing passwords"
 msgstr "Бар құпия сөздер"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2017
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1992
 msgid "Re-encrypt credentials from the machine-bound file with your passphrase"
 msgstr ""
 "Компьютерге байланған файлдағы тіркелгі деректерін кілт тіркесіңізбен қайта "
 "шифрлау"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2063
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2038
 msgid "No stored passwords to copy"
 msgstr "Көшіруге сақталған құпия сөздер жоқ"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2081
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2056
 msgid "Checking the passphrase…"
 msgstr "Құпия фраза тексерілуде…"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2106
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2081
 msgid "Could not check the passphrase"
 msgstr "Құпия фразаны тексеру мүмкін болмады"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2144
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2119
 msgid "KeePass Database"
 msgstr "KeePass деректер қоры"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2146
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2121
 msgid ""
 "Configure KDBX file integration (works with KeePassXC, GNOME Secrets, etc.)"
 msgstr ""
 "KDBX файл интеграциясын баптау (KeePassXC, GNOME Secrets және т.б. жұмыс "
 "істейді)"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2151
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2126
 msgid "KDBX Integration"
 msgstr "KDBX интеграциясы"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2152
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2127
 msgid "Enable direct database access"
 msgstr "Деректер қорына тікелей қол жеткізуді қосу"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2158
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2133
 msgid "Select .kdbx file"
 msgstr ".kdbx файлын таңдау"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2165
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2140
 msgid "Browse for database file"
 msgstr "Дерекқор файлын шолу"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2168
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2143
 msgid "Browse for KeePass database file"
 msgstr "KeePass дерекқор файлын шолу"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2179
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2154
 msgid "Database File"
 msgstr "Деректер қоры файлы"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2189
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2164
 msgid "Database unlock methods"
 msgstr "Деректер қорын ашу тәсілдері"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2198
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2173
 msgid "Use password"
 msgstr "Құпия сөзді қолдану"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2214
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2189
 msgid "Not connected"
 msgstr "Қосылмаған"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2230
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2205
 msgid "Save password"
 msgstr "Құпия сөзді сақтау"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2239
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2214
 msgid "Use key file"
 msgstr "Кілт файлын қолдану"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2247
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2222
 msgid "Select .keyx or .key file"
 msgstr ".keyx немесе .key файлын таңдау"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2275
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2250
 msgid "KDBX Status"
 msgstr "KDBX күйі"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2280
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2255
 msgid "Check"
 msgstr "Тексеру"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2282
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2257
 msgid "Test database connection"
 msgstr "Дерекқор қосылымын тексеру"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2294
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2269
 msgid "Connection Status"
 msgstr "Қосылым күйі"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2488
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:3337
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2466
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:3311
 msgid "Token loaded from keyring"
 msgstr "Токен кілт тізбегінен жүктелді"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2550
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2528
 msgid "Select KeePass Database"
 msgstr "KeePass дерекқорын таңдау"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2556
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2534
 msgid "KeePass Database (*.kdbx)"
 msgstr "KeePass дерекқоры (*.kdbx)"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2584
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2562
 msgid "Select Key File"
 msgstr "Кілт файлын таңдау"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2591
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2569
 msgid "Key Files (*.keyx, *.key)"
 msgstr "Кілт файлдары (*.keyx, *.key)"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2595
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:595
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2573
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:612
 msgid "All Files"
 msgstr "Барлық файлдар"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2631
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2609
 msgid "No database selected"
 msgstr "Дерекқор таңдалмаған"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2679
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2657
 #: rustconn/src/embedded_rdp/ui.rs:167 rustconn/src/embedded_trait.rs:324
 #: rustconn/src/sidebar/view.rs:739
 msgid "Connected"
 msgstr "Қосылған"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:3168
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:3146
 msgid "Database path required"
 msgstr "Дерекқор жолы қажет"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:3171
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:3149
 msgid "Disabled"
 msgstr "Өшірілген"
 
@@ -7043,7 +7043,7 @@ msgid "Not available"
 msgstr "Қолжетімсіз"
 
 #: rustconn/src/dialogs/settings/ssh_agent_tab.rs:247
-#: rustconn/src/dialogs/tunnel.rs:319
+#: rustconn/src/dialogs/tunnel.rs:414
 msgid "Running"
 msgstr "Жұмыс істеуде"
 
@@ -7105,26 +7105,26 @@ msgstr "Құпия фраза (міндетті емес)"
 msgid "Failed to add key: {}"
 msgstr "Кілтті қосу сәтсіз: {}"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:590
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:607
 msgid "SSH Keys"
 msgstr "SSH кілттері"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:639
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:681
 msgid "Cannot Use That File"
 msgstr "Бұл файлды пайдалану мүмкін емес"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:641
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:683
 msgid ""
 "That location has no local file path. Copy the key to a local folder first."
 msgstr ""
 "Бұл орында жергілікті файл жолы жоқ. Кілтті алдымен жергілікті қапшыққа "
 "көшіріңіз."
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:669
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:713
 msgid "Could Not Open the File Chooser"
 msgstr "Файл таңдағышты ашу мүмкін болмады"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:671
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:715
 msgid ""
 "{}\n"
 "\n"
@@ -7136,11 +7136,11 @@ msgstr ""
 "~/.ssh ішінде бар кілттер «Қолжетімді кілт файлдары» бөлімінде тізілген және "
 "оларды файл таңдағышсыз сол жерден қосуға болады."
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:702
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:746
 msgid "Remove from agent"
 msgstr "Агенттен жою"
 
-#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:706
+#: rustconn/src/dialogs/settings/ssh_agent_tab.rs:750
 msgid "Remove key from SSH agent"
 msgstr "SSH агенттен кілтті жою"
 
@@ -7945,8 +7945,8 @@ msgstr "веб, өндіріс"
 msgid "Filter by Group"
 msgstr "Топ бойынша сүзу"
 
-#: rustconn/src/dialogs/snippet.rs:67 rustconn/src/window/snippets.rs:170
-#: rustconn/src/window/snippets.rs:171
+#: rustconn/src/dialogs/snippet.rs:67 rustconn/src/window/snippets.rs:226
+#: rustconn/src/window/snippets.rs:227
 msgid "New Snippet"
 msgstr "Жаңа үзінді"
 
@@ -8403,7 +8403,7 @@ msgstr ""
 
 #: rustconn/src/dialogs/template_manager.rs:109 rustconn/src/sidebar_ui.rs:268
 #: rustconn/src/sidebar_ui.rs:386 rustconn/src/smart_folder_ui.rs:390
-#: rustconn/src/smart_folder_ui.rs:497 rustconn/src/window/snippets.rs:351
+#: rustconn/src/smart_folder_ui.rs:497 rustconn/src/window/snippets.rs:407
 msgid "Edit"
 msgstr "Өңдеу"
 
@@ -8521,114 +8521,127 @@ msgid "SSH tunnels forward ports through encrypted connections"
 msgstr "SSH туннельдері порттарды шифрланған қосылымдар арқылы бағыттайды"
 
 #: rustconn/src/dialogs/tunnel.rs:109 rustconn/src/dialogs/tunnel.rs:201
-#: rustconn/src/dialogs/tunnel.rs:636
+#: rustconn/src/dialogs/tunnel.rs:760
 msgid "Active"
 msgstr "Белсенді"
 
 #: rustconn/src/dialogs/tunnel.rs:116 rustconn/src/dialogs/tunnel.rs:204
-#: rustconn/src/dialogs/tunnel.rs:320 rustconn/src/dialogs/tunnel.rs:639
+#: rustconn/src/dialogs/tunnel.rs:415 rustconn/src/dialogs/tunnel.rs:763
 #: rustconn/src/terminal/playback.rs:457
 msgid "Stopped"
 msgstr "Тоқтатылды"
 
-#: rustconn/src/dialogs/tunnel.rs:295
+#: rustconn/src/dialogs/tunnel.rs:390
 msgid "No port forwards configured"
 msgstr "Порт бағыттаулары конфигурацияланбаған"
 
-#: rustconn/src/dialogs/tunnel.rs:317
+#: rustconn/src/dialogs/tunnel.rs:412
 msgid "Stopped unexpectedly"
 msgstr "Күтпеген жерден тоқтады"
 
-#: rustconn/src/dialogs/tunnel.rs:332
+#: rustconn/src/dialogs/tunnel.rs:427
 msgid "Stop Tunnel"
 msgstr "Туннельді тоқтату"
 
-#: rustconn/src/dialogs/tunnel.rs:333
+#: rustconn/src/dialogs/tunnel.rs:428
 msgid "Stop tunnel"
 msgstr "Туннельді тоқтату"
 
-#: rustconn/src/dialogs/tunnel.rs:338
+#: rustconn/src/dialogs/tunnel.rs:433
 msgid "Start Tunnel"
 msgstr "Туннельді іске қосу"
 
-#: rustconn/src/dialogs/tunnel.rs:339
+#: rustconn/src/dialogs/tunnel.rs:434
 msgid "Start tunnel"
 msgstr "Туннельді іске қосу"
 
-#: rustconn/src/dialogs/tunnel.rs:362
+#: rustconn/src/dialogs/tunnel.rs:457
 msgid "Unknown connection"
 msgstr "Белгісіз қосылым"
 
-#: rustconn/src/dialogs/tunnel.rs:365
+#: rustconn/src/dialogs/tunnel.rs:460
 #: rustconn/src/dialogs/tunnel_builder/step_connection.rs:83
 msgid "SSH Connection"
 msgstr "SSH қосылымы"
 
-#: rustconn/src/dialogs/tunnel.rs:377
+#: rustconn/src/dialogs/tunnel.rs:472
 msgid "Last Error"
 msgstr "Соңғы қате"
 
-#: rustconn/src/dialogs/tunnel.rs:386
+#: rustconn/src/dialogs/tunnel.rs:481
 msgid "Actions"
 msgstr "Әрекеттер"
 
-#: rustconn/src/dialogs/tunnel.rs:391
+#: rustconn/src/dialogs/tunnel.rs:486
 #: rustconn/src/dialogs/tunnel_builder/mod.rs:163
 #: rustconn/src/dialogs/tunnel_builder/mod.rs:164
 msgid "Edit Tunnel"
 msgstr "Туннельді өңдеу"
 
-#: rustconn/src/dialogs/tunnel.rs:392
+#: rustconn/src/dialogs/tunnel.rs:487
 msgid "Edit this tunnel"
 msgstr "Бұл туннельді өңдеу"
 
-#: rustconn/src/dialogs/tunnel.rs:398
+#: rustconn/src/dialogs/tunnel.rs:493
 msgid "Delete Tunnel"
 msgstr "Туннельді жою"
 
-#: rustconn/src/dialogs/tunnel.rs:400
+#: rustconn/src/dialogs/tunnel.rs:495
 msgid "Delete this tunnel"
 msgstr "Бұл туннельді жою"
 
-#: rustconn/src/dialogs/tunnel.rs:479 rustconn/src/dialogs/tunnel.rs:491
+#: rustconn/src/dialogs/tunnel.rs:574 rustconn/src/dialogs/tunnel.rs:586
 msgid "Tunnel Did Not Start"
 msgstr "Туннель Іске Қосылмады"
 
-#: rustconn/src/dialogs/tunnel.rs:493
+#: rustconn/src/dialogs/tunnel.rs:588
 msgid ""
 "“{}” refers to an SSH connection that no longer exists. Edit the tunnel and "
 "pick a connection."
 msgstr ""
 "“{}” енді жоқ SSH қосылымына сілтейді. Туннельді өңдеп, қосылым таңдаңыз."
 
-#: rustconn/src/dialogs/tunnel.rs:539
-msgid ""
-"“{}” needs {}, which is not installed or not on PATH. Install the OpenSSH "
-"client and try again."
-msgstr ""
-"“{}” үшін {} қажет, ол орнатылмаған немесе PATH-та жоқ. OpenSSH клиентін "
-"орнатып, қайта көріңіз."
+#: rustconn/src/dialogs/tunnel.rs:642
+msgid "“{}” needs {}, which is not installed or not on PATH. {}"
+msgstr "“{}” үшін {} қажет, ол орнатылмаған немесе PATH-та жоқ. {}"
 
-#: rustconn/src/dialogs/tunnel.rs:543
+#: rustconn/src/dialogs/tunnel.rs:646
 msgid ""
 "“{}” is attached to a connection that is not SSH. Port forwarding needs an "
 "SSH connection."
 msgstr ""
 "“{}” SSH емес қосылымға байланған. Порт бағыттау SSH қосылымын талап етеді."
 
-#: rustconn/src/dialogs/tunnel.rs:546
+#: rustconn/src/dialogs/tunnel.rs:649
 msgid "“{}” is already running."
 msgstr "“{}” қазірдің өзінде жұмыс істеп тұр."
 
-#: rustconn/src/dialogs/tunnel.rs:549
+#: rustconn/src/dialogs/tunnel.rs:652
 msgid "“{}” could not be started: {}"
 msgstr "“{}” іске қосылмады: {}"
 
-#: rustconn/src/dialogs/tunnel.rs:591
+#: rustconn/src/dialogs/tunnel.rs:669
+msgid "Install the OpenSSH client and try again."
+msgstr "OpenSSH клиентін орнатып, қайта көріңіз."
+
+#: rustconn/src/dialogs/tunnel.rs:671
+msgid ""
+"It ships with the Multipath TCP tools (package “mptcpd” on most "
+"distributions). Install them, or turn off Multipath TCP for this connection."
+msgstr ""
+"Ол Multipath TCP құралдарымен бірге келеді (көптеген дистрибутивтерде "
+"«mptcpd» дестесі). Оларды орнатыңыз немесе осы қосылым үшін Multipath TCP-ны "
+"өшіріңіз."
+
+#: rustconn/src/dialogs/tunnel.rs:673
+msgid "Install it, or make sure it can be found on PATH."
+msgstr "Оны орнатыңыз немесе PATH-та табылатынына көз жеткізіңіз."
+
+#: rustconn/src/dialogs/tunnel.rs:715
 msgid "Delete Tunnel?"
 msgstr "Тунельді жою керек пе?"
 
-#: rustconn/src/dialogs/tunnel.rs:593
+#: rustconn/src/dialogs/tunnel.rs:717
 msgid "Tunnel \"{}\" will be permanently removed."
 msgstr "\"{}\" тунелі біржола жойылады."
 
@@ -9435,7 +9448,7 @@ msgid "CMD"
 msgstr "CMD"
 
 #: rustconn/src/embedded_rdp/mod.rs:1075 rustconn/src/embedded_rdp/mod.rs:1146
-#: rustconn/src/embedded_rdp/mod.rs:1396
+#: rustconn/src/embedded_rdp/mod.rs:1404
 msgid "Channel not ready"
 msgstr "Арна дайын емес"
 
@@ -9447,7 +9460,7 @@ msgstr "Скрипт жіберілді"
 msgid "Run Snippet?"
 msgstr "Үзіндіні орындау?"
 
-#: rustconn/src/embedded_rdp/mod.rs:1221 rustconn/src/window/snippets.rs:110
+#: rustconn/src/embedded_rdp/mod.rs:1226 rustconn/src/window/snippets.rs:110
 msgid ""
 "This runs “{}” in the active session:\n"
 "\n"
@@ -9457,23 +9470,23 @@ msgstr ""
 "\n"
 "{}"
 
-#: rustconn/src/embedded_rdp/mod.rs:1224 rustconn/src/window/snippets.rs:113
+#: rustconn/src/embedded_rdp/mod.rs:1232 rustconn/src/window/snippets.rs:113
 msgid "Run"
 msgstr "Орындау"
 
-#: rustconn/src/embedded_rdp/mod.rs:1441
+#: rustconn/src/embedded_rdp/mod.rs:1449
 msgid "Select folder to save files"
 msgstr "Файлдарды сақтау үшін қалтаны таңдаңыз"
 
-#: rustconn/src/embedded_rdp/mod.rs:1470
+#: rustconn/src/embedded_rdp/mod.rs:1478
 msgid "Downloading..."
 msgstr "Жүктелуде..."
 
-#: rustconn/src/embedded_rdp/mod.rs:1503
+#: rustconn/src/embedded_rdp/mod.rs:1511
 msgid "Downloading files..."
 msgstr "Файлдар жүктелуде..."
 
-#: rustconn/src/embedded_rdp/mod.rs:1921
+#: rustconn/src/embedded_rdp/mod.rs:1929
 msgid "Connection may have been lost while the computer slept"
 msgstr "Компьютер ұйықтап жатқанда қосылым үзілген болуы мүмкін"
 
@@ -10361,7 +10374,7 @@ msgid "Tab Overview (Ctrl+Shift+O)"
 msgstr "Қойындылар шолуы (Ctrl+Shift+O)"
 
 #: rustconn/src/terminal/mod.rs:467 rustconn/src/terminal/tab_lifecycle.rs:35
-#: rustconn/src/terminal/tab_lifecycle.rs:50 rustconn/src/window/mod.rs:3161
+#: rustconn/src/terminal/tab_lifecycle.rs:50 rustconn/src/window/mod.rs:3163
 msgid "Welcome"
 msgstr "Қош келдіңіз"
 
@@ -10572,7 +10585,7 @@ msgstr "{} белсенді сеанс"
 msgid "About RustConn"
 msgstr "RustConn туралы"
 
-#: rustconn/src/vault_ops.rs:50 rustconn/src/window/mod.rs:4475
+#: rustconn/src/vault_ops.rs:50 rustconn/src/window/mod.rs:4486
 msgid "Passphrase Does Not Open the Portable File"
 msgstr "Құпия фраза тасымалды файлды ашпайды"
 
@@ -11395,47 +11408,47 @@ msgstr ""
 msgid "Global variables could not be saved to disk."
 msgstr "Жаһандық айнымалыларды дискіге сақтау мүмкін болмады."
 
-#: rustconn/src/window/mod.rs:729
+#: rustconn/src/window/mod.rs:731
 msgid "Dismiss"
 msgstr "Елемеу"
 
-#: rustconn/src/window/mod.rs:2114
+#: rustconn/src/window/mod.rs:2116
 msgid "Already running in an external window"
 msgstr "Сыртқы терезеде әлдеқашан жұмыс істеп тұр"
 
-#: rustconn/src/window/mod.rs:2265
+#: rustconn/src/window/mod.rs:2267
 msgid "Connection to ‘{}’ failed"
 msgstr "‘{}’ қосылу сәтсіз аяқталды"
 
-#: rustconn/src/window/mod.rs:2491 rustconn/src/window/mod.rs:2505
+#: rustconn/src/window/mod.rs:2493 rustconn/src/window/mod.rs:2507
 msgid "Pre-connect task failed: {}"
 msgstr "Қосылым алдындағы тапсырма сәтсіз: {}"
 
-#: rustconn/src/window/mod.rs:2539
+#: rustconn/src/window/mod.rs:2541
 msgid "Port knock failed: {}"
 msgstr "Port knock сәтсіз аяқталды: {}"
 
-#: rustconn/src/window/mod.rs:2588
+#: rustconn/src/window/mod.rs:2590
 msgid "SPA failed: {}"
 msgstr "SPA сәтсіз аяқталды: {}"
 
-#: rustconn/src/window/mod.rs:2787 rustconn/src/window/mod.rs:2962
+#: rustconn/src/window/mod.rs:2789 rustconn/src/window/mod.rs:2964
 msgid "Connection “{}” created"
 msgstr "“{}” қосылымы жасалды"
 
-#: rustconn/src/window/mod.rs:3166
+#: rustconn/src/window/mod.rs:3168
 msgid "RustConn - {}"
 msgstr "RustConn — {}"
 
-#: rustconn/src/window/mod.rs:3299
+#: rustconn/src/window/mod.rs:3301
 msgid "Settings saved"
 msgstr "Баптаулар сақталды"
 
-#: rustconn/src/window/mod.rs:3336
+#: rustconn/src/window/mod.rs:3338
 msgid "Passphrase Not Saved on This Computer"
 msgstr "Құпия фраза осы компьютерде сақталмады"
 
-#: rustconn/src/window/mod.rs:3338
+#: rustconn/src/window/mod.rs:3340
 msgid ""
 "The passphrase could not be encrypted for local storage, so it is kept for "
 "this session only and you will be asked for it again after a restart. Choose "
@@ -11447,11 +11460,11 @@ msgstr ""
 "сұралады. Оның орнына «Жүйелік кілттер сақтағышын» таңдаңыз немесе RustConn "
 "өз деректер каталогына жаза алатынын тексеріңіз."
 
-#: rustconn/src/window/mod.rs:3384
+#: rustconn/src/window/mod.rs:3386
 msgid "Credentials Not Saved to Keyring"
 msgstr "Тіркелгі деректері кілттер қоймасына сақталмады"
 
-#: rustconn/src/window/mod.rs:3386
+#: rustconn/src/window/mod.rs:3388
 msgid ""
 "The system keyring did not accept the credentials, so they are kept for this "
 "session only and will be gone after a restart. Check that your keyring "
@@ -11462,43 +11475,43 @@ msgstr ""
 "қоймасы қызметінің іске қосылғанын және құлпы ашылғанын тексеріп, "
 "баптауларды қайта сақтаңыз."
 
-#: rustconn/src/window/mod.rs:3566
+#: rustconn/src/window/mod.rs:3568
 msgid "Close RustConn?"
 msgstr "RustConn жабылсын ба?"
 
-#: rustconn/src/window/mod.rs:3568
+#: rustconn/src/window/mod.rs:3570
 msgid "{} session tab(s) are open. Active connections will be disconnected."
 msgstr "{} сессия қойындысы ашық. Белсенді қосылымдар ажыратылады."
 
-#: rustconn/src/window/mod.rs:3603
+#: rustconn/src/window/mod.rs:3605
 msgid "Cloud sync failed for '{}': {}"
 msgstr "«{}» үшін бұлтпен синхрондау сәтсіз аяқталды: {}"
 
-#: rustconn/src/window/mod.rs:3784
+#: rustconn/src/window/mod.rs:3786
 msgid "Startup connection not found"
 msgstr "Іске қосу қосылымы табылмады"
 
-#: rustconn/src/window/mod.rs:3820
+#: rustconn/src/window/mod.rs:3822
 msgid "Failed to open .rdp file"
 msgstr ".rdp файлын ашу сәтсіз"
 
-#: rustconn/src/window/mod.rs:3856
+#: rustconn/src/window/mod.rs:3858
 msgid "Failed to open .vv file"
 msgstr ".vv файлын ашу сәтсіз"
 
-#: rustconn/src/window/mod.rs:3893
+#: rustconn/src/window/mod.rs:3895
 msgid "Tunnel “{}” stopped: {}"
 msgstr "“{}” туннелі тоқтады: {}"
 
-#: rustconn/src/window/mod.rs:3909
+#: rustconn/src/window/mod.rs:3911
 msgid "Gave up reconnecting tunnel “{}”: {}"
 msgstr "“{}” туннелін қайта қосу тоқтатылды: {}"
 
-#: rustconn/src/window/mod.rs:4391
+#: rustconn/src/window/mod.rs:4402
 msgid "Successfully exported {} connection(s). {} skipped."
 msgstr "{} қосылым сәтті экспортталды. {} өткізіп жіберілді."
 
-#: rustconn/src/window/mod.rs:4477
+#: rustconn/src/window/mod.rs:4488
 msgid ""
 "The passphrase you saved does not decrypt the portable credential file, so "
 "none of the passwords in it can be read. Open Settings ▸ Secrets and enter "
@@ -11896,59 +11909,59 @@ msgstr "Параметрді сақтау мүмкін болмады: {}"
 msgid "Could not save preference"
 msgstr "Параметрді сақтау мүмкін болмады"
 
-#: rustconn/src/window/snippets.rs:162
+#: rustconn/src/window/snippets.rs:218
 msgid "Manage Snippets"
 msgstr "Үзінділерді басқару"
 
-#: rustconn/src/window/snippets.rs:183 rustconn/src/window/snippets.rs:565
+#: rustconn/src/window/snippets.rs:239 rustconn/src/window/snippets.rs:621
 msgid "Search snippets..."
 msgstr "Үзінділерді іздеу..."
 
-#: rustconn/src/window/snippets.rs:345
+#: rustconn/src/window/snippets.rs:401
 msgid "Execute"
 msgstr "Орындау"
 
-#: rustconn/src/window/snippets.rs:346
+#: rustconn/src/window/snippets.rs:402
 msgid "Execute snippet"
 msgstr "Фрагментті орындау"
 
-#: rustconn/src/window/snippets.rs:352
+#: rustconn/src/window/snippets.rs:408
 msgid "Edit snippet"
 msgstr "Фрагментті өңдеу"
 
-#: rustconn/src/window/snippets.rs:358
+#: rustconn/src/window/snippets.rs:414
 msgid "Delete snippet"
 msgstr "Фрагментті жою"
 
-#: rustconn/src/window/snippets.rs:445
+#: rustconn/src/window/snippets.rs:501
 msgid "Delete Snippet?"
 msgstr "Үзіндіні жою?"
 
-#: rustconn/src/window/snippets.rs:446
+#: rustconn/src/window/snippets.rs:502
 msgid "Are you sure you want to delete this snippet?"
 msgstr "Бұл үзіндіні жоюға сенімдісіз бе?"
 
-#: rustconn/src/window/snippets.rs:551
+#: rustconn/src/window/snippets.rs:607
 msgid "Execute Snippet"
 msgstr "Үзіндіні орындау"
 
-#: rustconn/src/window/snippets.rs:581
+#: rustconn/src/window/snippets.rs:637
 msgid "No snippets available"
 msgstr "Қолжетімді фрагменттер жоқ"
 
-#: rustconn/src/window/snippets.rs:582
+#: rustconn/src/window/snippets.rs:638
 msgid "Create snippets in the Manage Snippets dialog"
 msgstr "Фрагменттерді басқару диалогында фрагменттер жасаңыз"
 
-#: rustconn/src/window/snippets.rs:645
+#: rustconn/src/window/snippets.rs:701
 msgid "No Active Terminal"
 msgstr "Белсенді терминал жоқ"
 
-#: rustconn/src/window/snippets.rs:646
+#: rustconn/src/window/snippets.rs:702
 msgid "Open a terminal session first before executing a snippet."
 msgstr "Сниппетті орындамас бұрын алдымен терминал сессиясын ашыңыз."
 
-#: rustconn/src/window/snippets.rs:727
+#: rustconn/src/window/snippets.rs:753
 msgid "Enter Variable Values"
 msgstr "Айнымалы мәндерін енгізіңіз"
 

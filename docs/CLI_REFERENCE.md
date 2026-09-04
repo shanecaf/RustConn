@@ -644,7 +644,7 @@ Snippets are reusable command templates with variable substitution. Variables us
 | `snippet list` | List all snippets (`--format`, `--category`, `--tag`) |
 | `snippet show <name>` | Show snippet details and variables |
 | `snippet add` | Create a snippet (`--name`, `--command`, `--description`, `--category`, `--tags`, `--confirm`) |
-| `snippet edit <name>` | Edit a snippet (`--new-name`, `--command`, `--description`, `--category`, `--tags`, `--confirm <bool>`) |
+| `snippet edit <name>` | Edit a snippet (`--new-name`, `--command`, `--description`, `--category`, `--tags`, `--confirm [<bool>]`) |
 | `snippet delete <name>` | Delete a snippet |
 | `snippet run <name>` | Execute with variable substitution (`--var key=value`, `--execute`, `--force`) |
 
@@ -658,9 +658,11 @@ rustconn-cli snippet run "Restart" --var service=nginx --execute   # Actually ru
 rustconn-cli snippet delete "Old Snippet"
 ```
 
-The `run` subcommand without `--execute` only prints the expanded command (safe preview). With `--execute`, it runs the command via `sh -c`. Variables referencing Global Variables (`${VARIABLE}`) are automatically resolved before execution; if all variables are resolved, the snippet executes immediately without prompting.
+The `run` subcommand without `--execute` only prints the expanded command (safe preview). With `--execute`, it runs the command via `sh -c`.
 
-**Confirmation flag.** `--confirm` on `add` marks a snippet as needing a second confirmation before it runs; on `edit` it takes an explicit `true`/`false` so that omitting the flag leaves the current setting alone. The GUI shows a dialog with the expanded command; the CLI prompts on stderr.
+Variable values come from `--var name=value` and from each variable's default in the snippet; a variable with neither is an error naming what is missing. Global Variables are **not** resolved here — that is a GUI feature, because a global variable may be backed by the vault and the CLI has no session to unlock it with. A `${NAME}` the CLI cannot fill is left in the command text, so under `--execute` the shell expands it from the environment, usually to nothing.
+
+**Confirmation flag.** `--confirm` on `add` marks a snippet as needing a second confirmation before it runs. On `edit` the value is optional: `--confirm` turns it on, `--confirm false` turns it off, and omitting the flag leaves the current setting alone. The GUI shows a dialog with the expanded command; the CLI prompts on stderr.
 
 ```bash
 rustconn-cli snippet add --name "Wipe" --command "mkfs.ext4 /dev/sdb" --confirm
