@@ -441,11 +441,11 @@ done
   JSON files in binary mode — the sdl-freerdp.json path the bundled cJSON module
   exists to enable. Only Flatpak/Flathub bundle FreeRDP; this package uses the
   distribution's copy and is unaffected
-- Dependencies: openh264 2.6.0 is now bundled in the Flathub manifest as well as
-  the local Flatpak one. The embedded RDP client dlopens a decoder rather than
-  linking one, and the module supplying it had been added to the local manifest
-  alone, so on Flathub every AVC420/AVC444 session negotiated down to RemoteFX.
-  Does not affect this package
+- Dependencies: openh264 2.6.0 is now bundled in all three Flatpak manifests, not
+  just the release one. The embedded RDP client dlopens a decoder rather than
+  linking one, so the Flathub build had none at all and every AVC420 or AVC444
+  session negotiated down to RemoteFX; a local flatpak-builder run had none
+  either. Does not affect this package
 - Dependencies: the nine other bundled Flatpak modules were checked against
   upstream and are already current, so only FreeRDP moved
 

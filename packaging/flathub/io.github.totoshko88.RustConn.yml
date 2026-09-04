@@ -316,9 +316,10 @@ modules:
   # `/app/lib64`; when nothing is found an AVC420/AVC444 GFX session drops to
   # the RemoteFX path without saying so.
   #
-  # Both manifests need it. It lived in packaging/flatpak/ alone from the commit
-  # that added the IronRDP GFX handler until 0.21.6, so every Flathub build in
-  # between shipped with no H.264 decoder at all. Bundled rather than taken from
+  # All three Flatpak manifests need it, and until 0.21.6 only
+  # packaging/flatpak/io.github.totoshko88.RustConn.yml had it: Flathub shipped
+  # with no H.264 decoder at all, and a local build could not reproduce an H.264
+  # bug from the build it exists to mirror. Bundled rather than taken from
   # org.freedesktop.Platform.openh264 because freedesktop dropped that extension
   # from the runtime in 2025 — there is no extension left to depend on.
   - name: openh264
