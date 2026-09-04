@@ -353,6 +353,67 @@ fn show_vault_store_failed_dialog(
     });
 }
 
+/// How long one vault operation may take before the GUI stops waiting for it.
+///
+/// Two budgets, because the backends are two different kinds of thing and until
+/// now the smaller number was applied to both. A keyring, a KDBX database and the
+/// two file stores answer locally — a D-Bus round trip, a read, an Argon2id
+/// derivation — so ten seconds there already means something is wrong. A
+/// CLI-backed backend is child processes and network: one Bitwarden store is
+/// `bw list folders`, then `bw list items`, then `bw create item` or
+/// `bw edit item`, and each of those is a fresh `node` plus a round trip to the
+/// vault server.
+///
+/// Measured on the reporter's machine in issue
+/// [#312](https://github.com/totoshko88/RustConn/issues/312) against
+/// `bitwarden.eu`: 2.9 s for the folder list, 5.0 s for the item search, and
+/// `create item` still in flight when the ten-second budget expired at 10.008 s.
+/// The consequence was worse than a save that failed, because dropping that future
+/// does not stop the child — `tokio::process` does not kill on drop — so `bw` ran
+/// to completion, the item landed in the vault, and RustConn told the user the
+/// write had been refused and offered to put the password somewhere else.
+///
+/// Forty-five seconds is about three times that measured worst case. It is not the
+/// only thing bounding a hung CLI: every `bw` invocation carries its own 30 s
+/// ceiling inside `rustconn-core`. And none of these calls run on the GTK thread —
+/// [`store_primary_blocking`] is reached through `spawn_blocking_with_callback`,
+/// and the connect-path resolution runs off the main loop — so a long wait here
+/// costs a slow save, not a frozen window.
+///
+/// The credential-transfer loop keeps its own, deliberately smaller
+/// [`TRANSFER_OP_TIMEOUT`]: that budget is per entry across a batch of forty, and
+/// changing it is a different trade-off from the one made here.
+const fn vault_op_timeout(
+    backend: rustconn_core::config::SecretBackendType,
+) -> std::time::Duration {
+    use rustconn_core::config::SecretBackendType;
+
+    match backend {
+        // Shells out to a CLI that talks to a remote vault.
+        SecretBackendType::Bitwarden
+        | SecretBackendType::OnePassword
+        | SecretBackendType::Passbolt
+        | SecretBackendType::Pass => std::time::Duration::from_secs(45),
+        // Answers from this machine.
+        SecretBackendType::LibSecret
+        | SecretBackendType::MacOsKeychain
+        | SecretBackendType::KeePassXc
+        | SecretBackendType::KdbxFile
+        | SecretBackendType::EncryptedFile
+        | SecretBackendType::PortableEncryptedFile => std::time::Duration::from_secs(10),
+    }
+}
+
+/// The message for a vault operation that ran out of its budget.
+///
+/// One function so the wording and the number cannot drift apart, and so the
+/// number shown is the one that was actually applied — the previous messages said
+/// "after 10s" as a literal, which would have started lying the moment
+/// [`vault_op_timeout`] returned anything else.
+fn vault_op_timed_out(operation: &str, budget: std::time::Duration) -> String {
+    format!("Vault {operation} timed out after {}s", budget.as_secs())
+}
+
 /// Stores credentials in the selected backend, and only in the selected backend.
 ///
 /// `allow_fallback` is passed as `false` to [`SecretManager::store_reported`], so
@@ -374,11 +435,12 @@ fn show_vault_store_failed_dialog(
 ///
 /// # Errors
 ///
-/// Returns the backend's own [`SecretError`] if the store times out after 10s or
-/// the backend rejects the write. The typed error is preserved rather than
-/// flattened to a string because the caller has to tell a locked portable store
-/// apart from an unresponsive keyring — the two need different advice, and a
-/// formatted string cannot be matched on.
+/// Returns the backend's own [`SecretError`] if the store exceeds
+/// [`vault_op_timeout`] for the selected backend, or the backend rejects the
+/// write. The typed error is preserved rather than flattened to a string because
+/// the caller has to tell a locked portable store apart from an unresponsive
+/// keyring — the two need different advice, and a formatted string cannot be
+/// matched on.
 ///
 /// [`SecretManager`]: rustconn_core::secret::SecretManager
 /// [`SecretManager::store_reported`]: rustconn_core::secret::SecretManager::store_reported
@@ -391,17 +453,16 @@ fn store_primary_blocking(
     use rustconn_core::error::SecretError;
 
     let manager = rustconn_core::secret::SecretManager::build_from_settings(secret_settings);
+    // The budget follows the backend the manager will actually write to: a hung
+    // keyring must not block the callback for as long as a Bitwarden round trip
+    // legitimately needs.
+    let budget = vault_op_timeout(secret_settings.preferred_backend);
 
     crate::async_utils::with_runtime(|rt| {
         rt.block_on(async {
-            // Vault operations wait 10 seconds — a hung keyring must not block the
-            // GTK callback indefinitely (matches dispatch_vault_op's timeout).
-            tokio::time::timeout(
-                std::time::Duration::from_secs(10),
-                manager.store_reported(lookup_key, creds, false),
-            )
-            .await
-            .map_err(|_| SecretError::StoreFailed("Vault store timed out after 10s".to_string()))?
+            tokio::time::timeout(budget, manager.store_reported(lookup_key, creds, false))
+                .await
+                .map_err(|_| SecretError::StoreFailed(vault_op_timed_out("store", budget)))?
         })
     })
     .map_err(SecretError::StoreFailed)
@@ -1448,10 +1509,14 @@ fn retrieve_by_vault_entry_name(
     use secrecy::ExposeSecret;
 
     let backend_type = select_backend_for_load(settings);
+    // The Bitwarden arm below opens with `auto_unlock`, which is itself allowed
+    // 30 s elsewhere in this module, and then runs a `bw list items` on top of it.
+    // Ten seconds could not cover the first step alone.
+    let budget = vault_op_timeout(backend_type);
 
     crate::async_utils::with_runtime(|rt| {
         rt.block_on(async {
-            tokio::time::timeout(std::time::Duration::from_secs(10), async {
+            tokio::time::timeout(budget, async {
                 match backend_type {
                     SecretBackendType::Bitwarden => {
                         let bw = rustconn_core::secret::auto_unlock(settings)
@@ -1570,7 +1635,7 @@ fn retrieve_by_vault_entry_name(
                 }
             })
             .await
-            .map_err(|_| "Vault retrieve by entry name timed out after 10s".to_string())?
+            .map_err(|_| vault_op_timed_out("retrieve by entry name", budget))?
         })
     })?
 }
@@ -2103,6 +2168,10 @@ pub fn dispatch_vault_op_for(
     lookup_key: &str,
     op: VaultOp<'_>,
 ) -> Result<Option<rustconn_core::models::Credentials>, String> {
+    // One budget for whichever operation follows, derived from the backend that
+    // was named rather than assumed to be a local one.
+    let budget = vault_op_timeout(backend_type);
+
     crate::async_utils::with_runtime(|rt| {
         let backend = build_single_backend(secret_settings, backend_type, rt)?;
 
@@ -2114,13 +2183,10 @@ pub fn dispatch_vault_op_for(
                     "dispatch_vault_op: storing credentials"
                 );
                 rt.block_on(async {
-                    tokio::time::timeout(
-                        std::time::Duration::from_secs(10),
-                        backend.store(lookup_key, creds),
-                    )
-                    .await
-                    .map_err(|_| "Vault store timed out after 10s".to_string())?
-                    .map_err(|e| format!("{e}"))
+                    tokio::time::timeout(budget, backend.store(lookup_key, creds))
+                        .await
+                        .map_err(|_| vault_op_timed_out("store", budget))?
+                        .map_err(|e| format!("{e}"))
                 })?;
                 tracing::debug!(%lookup_key, "dispatch_vault_op: store succeeded");
                 Ok(None)
@@ -2132,13 +2198,10 @@ pub fn dispatch_vault_op_for(
                     "dispatch_vault_op: retrieving credentials"
                 );
                 let result = rt.block_on(async {
-                    tokio::time::timeout(
-                        std::time::Duration::from_secs(10),
-                        backend.retrieve(lookup_key),
-                    )
-                    .await
-                    .map_err(|_| "Vault retrieve timed out after 10s".to_string())?
-                    .map_err(|e| format!("{e}"))
+                    tokio::time::timeout(budget, backend.retrieve(lookup_key))
+                        .await
+                        .map_err(|_| vault_op_timed_out("retrieve", budget))?
+                        .map_err(|e| format!("{e}"))
                 })?;
                 tracing::debug!(
                     %lookup_key,
@@ -2149,13 +2212,10 @@ pub fn dispatch_vault_op_for(
             }
             VaultOp::Delete => {
                 rt.block_on(async {
-                    tokio::time::timeout(
-                        std::time::Duration::from_secs(10),
-                        backend.delete(lookup_key),
-                    )
-                    .await
-                    .map_err(|_| "Vault delete timed out after 10s".to_string())?
-                    .map_err(|e| format!("{e}"))
+                    tokio::time::timeout(budget, backend.delete(lookup_key))
+                        .await
+                        .map_err(|_| vault_op_timed_out("delete", budget))?
+                        .map_err(|e| format!("{e}"))
                 })?;
                 Ok(None)
             }
@@ -2947,6 +3007,72 @@ mod tests {
             enable_fallback: false,
             ..Default::default()
         }
+    }
+
+    // ── vault_op_timeout ─────────────────────────────────────────────
+
+    /// The two tiers exist because a CLI-backed backend is child processes and a
+    /// network round trip while the rest answer from this machine. Asserted as a
+    /// relation rather than as two literals, so retuning either number does not
+    /// break the test — only collapsing them back into one would.
+    #[test]
+    fn a_cli_backed_backend_gets_a_longer_budget_than_a_local_one() {
+        let cli = [
+            SecretBackendType::Bitwarden,
+            SecretBackendType::OnePassword,
+            SecretBackendType::Passbolt,
+            SecretBackendType::Pass,
+        ];
+        let local = [
+            SecretBackendType::LibSecret,
+            SecretBackendType::MacOsKeychain,
+            SecretBackendType::KeePassXc,
+            SecretBackendType::KdbxFile,
+            SecretBackendType::EncryptedFile,
+            SecretBackendType::PortableEncryptedFile,
+        ];
+
+        for remote in cli {
+            for near in local {
+                assert!(
+                    vault_op_timeout(remote) > vault_op_timeout(near),
+                    "{remote:?} must outlast {near:?}"
+                );
+            }
+        }
+    }
+
+    /// The measurement the budget was chosen from: one Bitwarden store was three
+    /// `bw` invocations totalling over ten seconds on the reporter's machine in
+    /// issue #312, and the old ten-second budget expired mid-write while `bw`
+    /// carried on and completed it. Anything at or below that measurement
+    /// reintroduces the bug where a successful store is reported as refused.
+    #[test]
+    fn the_bitwarden_budget_clears_the_measured_worst_case() {
+        let budget = vault_op_timeout(SecretBackendType::Bitwarden);
+        assert!(
+            budget > std::time::Duration::from_secs(10),
+            "10s is the budget that expired mid-write; got {budget:?}"
+        );
+    }
+
+    /// The message has to state the budget that was applied. It used to say "10s"
+    /// as a literal, which would start lying the moment the budget was no longer
+    /// ten seconds — which is exactly what this release did.
+    #[test]
+    fn the_timeout_message_names_the_budget_that_was_applied() {
+        let budget = vault_op_timeout(SecretBackendType::Bitwarden);
+        let message = vault_op_timed_out("store", budget);
+
+        assert!(message.contains("store"), "operation missing: {message}");
+        assert!(
+            message.contains(&budget.as_secs().to_string()),
+            "budget missing: {message}"
+        );
+        assert!(
+            !message.contains("10s"),
+            "still reporting the old hardcoded budget: {message}"
+        );
     }
 
     // ── select_backend_for_load ──────────────────────────────────────
