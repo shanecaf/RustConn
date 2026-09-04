@@ -1217,9 +1217,17 @@ impl EmbeddedRdpWidget {
                     crate::alert::show_confirm(
                         &confirm_parent,
                         &i18n("Run Snippet?"),
+                        // Truncated with the same helper the terminal gate uses,
+                        // and for the same reason: an AlertDialog grows with its
+                        // body until it stops being readable. This path showed the
+                        // command whole, so a generated one-liner made the dialog
+                        // unreadable on exactly the snippets most worth reading.
                         &crate::i18n::i18n_f(
                             "This runs “{}” in the active session:\n\n{}",
-                            &[&confirm_name, &confirm_command],
+                            &[
+                                &confirm_name,
+                                &crate::window::snippets::truncate_command(&confirm_command),
+                            ],
                         ),
                         &i18n("Run"),
                         true,

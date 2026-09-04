@@ -143,8 +143,64 @@ fn send_snippet_command(
     );
 }
 
+/// Resolves a snippet's variables from global variables and its own defaults.
+///
+/// Returns what it could resolve and the names it could not, so a caller can
+/// pre-fill the variable dialog with the former and ask only for the latter.
+///
+/// One function because the two callers had a copy each and they had drifted:
+/// `execute_snippet` collected every unresolved name, while
+/// `execute_snippet_direct` stopped at the first, so the same snippet arrived at
+/// the same dialog with different fields pre-filled depending on which menu the
+/// user came from. That only became visible once the direct path started opening
+/// the dialog at all instead of dropping the snippet.
+fn resolve_snippet_variables(
+    snippet: &rustconn_core::models::Snippet,
+    state: &SharedAppState,
+) -> (std::collections::HashMap<String, String>, Vec<String>) {
+    use rustconn_core::variables::{VariableManager, VariableScope};
+
+    let variables = rustconn_core::snippet::SnippetManager::extract_variables(&snippet.command);
+
+    let state_ref = state.borrow();
+    let global_variables = crate::state::resolve_global_variables(state_ref.settings());
+    drop(state_ref);
+
+    let mut var_manager = VariableManager::new();
+    for var in &global_variables {
+        var_manager.set_global(var.clone());
+    }
+
+    let mut resolved = std::collections::HashMap::new();
+    let mut unresolved = Vec::new();
+
+    for var_name in &variables {
+        match var_manager.resolve(var_name, VariableScope::Global) {
+            Ok(value) => {
+                resolved.insert(var_name.clone(), value);
+            }
+            // A global variable is the first choice; the snippet's own default is
+            // the fallback. Neither means the user has to be asked.
+            Err(_) => {
+                if let Some(default) = snippet
+                    .variables
+                    .iter()
+                    .find(|v| &v.name == var_name)
+                    .and_then(|v| v.default_value.clone())
+                {
+                    resolved.insert(var_name.clone(), default);
+                } else {
+                    unresolved.push(var_name.clone());
+                }
+            }
+        }
+    }
+
+    (resolved, unresolved)
+}
+
 /// Shortens a command for display, respecting character boundaries.
-fn truncate_command(command: &str) -> String {
+pub(crate) fn truncate_command(command: &str) -> String {
     match command.char_indices().nth(CONFIRM_COMMAND_PREVIEW_LIMIT) {
         Some((idx, _)) => format!("{}…", &command[..idx]),
         None => command.to_string(),
@@ -662,37 +718,7 @@ pub fn execute_snippet(
             || {},
         );
     } else {
-        // Try to resolve variables from Global Variables first
-        let state_ref = state.borrow();
-        let global_variables = crate::state::resolve_global_variables(state_ref.settings());
-        drop(state_ref);
-
-        let mut var_manager = rustconn_core::variables::VariableManager::new();
-        for var in &global_variables {
-            var_manager.set_global(var.clone());
-        }
-
-        let mut resolved: std::collections::HashMap<String, String> =
-            std::collections::HashMap::new();
-        let mut unresolved: Vec<String> = Vec::new();
-
-        for var_name in &variables {
-            match var_manager.resolve(var_name, rustconn_core::variables::VariableScope::Global) {
-                Ok(value) => {
-                    resolved.insert(var_name.clone(), value);
-                }
-                Err(_) => {
-                    // Check snippet-defined defaults as fallback
-                    if let Some(var_def) = snippet.variables.iter().find(|v| &v.name == var_name)
-                        && let Some(ref default) = var_def.default_value
-                    {
-                        resolved.insert(var_name.clone(), default.clone());
-                    } else {
-                        unresolved.push(var_name.clone());
-                    }
-                }
-            }
-        }
+        let (resolved, unresolved) = resolve_snippet_variables(snippet, state);
 
         if unresolved.is_empty() {
             // All variables resolved — execute directly
@@ -821,17 +847,22 @@ pub fn show_variable_input_dialog(
     var_dialog.present(Some(&parent_widget));
 }
 
-/// Executes a snippet without opening the picker or the variable dialog.
+/// Executes a snippet without opening the picker.
 ///
-/// Used by the inline context menu action `win.run-snippet-direct`. Variables are
-/// resolved from global variables and snippet defaults only; a snippet with a
-/// variable that neither supplies is skipped, since this path deliberately shows
-/// no input dialog.
+/// Used by the inline context menu action `win.run-snippet-direct`, which names a
+/// snippet outright, so the picker is skipped. Variables are resolved from global
+/// variables and snippet defaults first; when that leaves any unresolved, the
+/// variable-input dialog opens rather than nothing happening.
 ///
-/// `parent` is the window the terminal lives in. It is not used to present a
-/// dialog on the happy path, but a snippet with `confirm_before_run` needs
-/// somewhere to anchor its confirmation — without it this route would be the one
-/// way to bypass the flag.
+/// That dialog used to be unreachable from here and the snippet was dropped in
+/// silence, on the stated grounds that a context-menu action has no parent window
+/// to present one on. It has had one since the confirmation gate needed somewhere
+/// to anchor — the reason in the old comment outlived the constraint it described,
+/// which left the one route where picking a snippet from a menu could do nothing
+/// at all and log nothing either.
+///
+/// `parent` is the window the terminal lives in, and is unused on the path where
+/// everything resolves and the snippet does not ask for confirmation.
 pub fn execute_snippet_direct(
     parent: &impl IsA<gtk4::Window>,
     notebook: &SharedNotebook,
@@ -856,39 +887,9 @@ pub fn execute_snippet_direct(
             || {},
         );
     } else {
-        // Resolve variables from Global Variables and snippet defaults
-        let state_ref = state.borrow();
-        let global_variables = crate::state::resolve_global_variables(state_ref.settings());
-        drop(state_ref);
+        let (resolved, unresolved) = resolve_snippet_variables(snippet, state);
 
-        let mut var_manager = rustconn_core::variables::VariableManager::new();
-        for var in &global_variables {
-            var_manager.set_global(var.clone());
-        }
-
-        let mut resolved: std::collections::HashMap<String, String> =
-            std::collections::HashMap::new();
-        let mut has_unresolved = false;
-
-        for var_name in &variables {
-            match var_manager.resolve(var_name, rustconn_core::variables::VariableScope::Global) {
-                Ok(value) => {
-                    resolved.insert(var_name.clone(), value);
-                }
-                Err(_) => {
-                    if let Some(var_def) = snippet.variables.iter().find(|v| &v.name == var_name)
-                        && let Some(ref default) = var_def.default_value
-                    {
-                        resolved.insert(var_name.clone(), default.clone());
-                    } else {
-                        has_unresolved = true;
-                        break;
-                    }
-                }
-            }
-        }
-
-        if !has_unresolved {
+        if unresolved.is_empty() {
             let substituted = rustconn_core::snippet::SnippetManager::substitute_variables(
                 &snippet.command,
                 &resolved,
@@ -901,8 +902,16 @@ pub fn execute_snippet_direct(
                 &substituted,
                 || {},
             );
+        } else {
+            // Ask, rather than drop the snippet. Whatever did resolve is passed
+            // through, so only the genuinely missing values need typing.
+            tracing::debug!(
+                snippet = %snippet.name,
+                snippet_id = %snippet.id,
+                unresolved = unresolved.len(),
+                "Snippet has unresolved variables; asking for them"
+            );
+            show_variable_input_dialog(parent, notebook, session_bridges, snippet, &resolved);
         }
-        // If unresolved variables remain, silently skip — the user should
-        // use the full "Execute Snippet…" picker which shows the variable dialog.
     }
 }
