@@ -327,23 +327,26 @@ fn arb_snippet() -> impl Strategy<Value = Snippet> {
         arb_optional_string(),                  // category
         arb_tags(),
         prop::collection::vec(arb_snippet_variable(), 0..3),
+        any::<bool>(), // confirm_before_run
     )
-        .prop_map(|(name, command, description, category, tags, variables)| {
-            let mut snippet = Snippet::new(name, command);
-            if let Some(d) = description {
-                snippet = snippet.with_description(d);
-            }
-            if let Some(c) = category {
-                snippet = snippet.with_category(c);
-            }
-            if !tags.is_empty() {
-                snippet = snippet.with_tags(tags);
-            }
-            if !variables.is_empty() {
-                snippet = snippet.with_variables(variables);
-            }
-            snippet
-        })
+        .prop_map(
+            |(name, command, description, category, tags, variables, confirm_before_run)| {
+                let mut snippet = Snippet::new(name, command);
+                if let Some(d) = description {
+                    snippet = snippet.with_description(d);
+                }
+                if let Some(c) = category {
+                    snippet = snippet.with_category(c);
+                }
+                if !tags.is_empty() {
+                    snippet = snippet.with_tags(tags);
+                }
+                if !variables.is_empty() {
+                    snippet = snippet.with_variables(variables);
+                }
+                snippet.with_confirm_before_run(confirm_before_run)
+            },
+        )
 }
 
 // Strategy for generating AppSettings
@@ -689,6 +692,7 @@ proptest! {
             prop_assert_eq!(&original.category, &loaded_snippet.category, "Category should be preserved");
             prop_assert_eq!(&original.tags, &loaded_snippet.tags, "Tags should be preserved");
             prop_assert_eq!(&original.variables, &loaded_snippet.variables, "Variables should be preserved");
+            prop_assert_eq!(original.confirm_before_run, loaded_snippet.confirm_before_run, "Confirmation flag should be preserved");
         }
     }
 

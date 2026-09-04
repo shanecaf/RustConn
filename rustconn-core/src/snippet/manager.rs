@@ -553,6 +553,39 @@ mod tests {
     }
 
     #[test]
+    fn test_confirm_before_run_defaults_off_and_survives_a_round_trip() {
+        let (mut manager, _temp) = create_test_manager();
+
+        // A snippet created the plain way must keep running on one activation —
+        // the flag is opt-in, so an upgrade cannot start prompting for existing
+        // snippets.
+        let plain = manager
+            .create_snippet("List files".to_string(), "ls -la".to_string())
+            .unwrap();
+        assert!(!manager.get_snippet(plain).unwrap().confirm_before_run);
+
+        let guarded = manager
+            .create_snippet_from(
+                Snippet::new("Wipe disk".to_string(), "mkfs.ext4 /dev/sdb".to_string())
+                    .with_confirm_before_run(true),
+            )
+            .unwrap();
+        assert!(manager.get_snippet(guarded).unwrap().confirm_before_run);
+
+        // Persisted and read back, not just held in the in-memory map.
+        manager.reload().unwrap();
+        assert!(manager.get_snippet(guarded).unwrap().confirm_before_run);
+        assert!(!manager.get_snippet(plain).unwrap().confirm_before_run);
+
+        // And the flag is editable in both directions.
+        let mut cleared = manager.get_snippet(guarded).unwrap().clone();
+        cleared.confirm_before_run = false;
+        manager.update_snippet(guarded, cleared).unwrap();
+        manager.reload().unwrap();
+        assert!(!manager.get_snippet(guarded).unwrap().confirm_before_run);
+    }
+
+    #[test]
     fn test_delete_snippet() {
         let (mut manager, _temp) = create_test_manager();
 

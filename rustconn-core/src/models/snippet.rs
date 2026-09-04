@@ -97,6 +97,13 @@ pub struct Snippet {
     /// Delivery method for RDP sessions (auto, clipboard, or autotype)
     #[serde(default, skip_serializing_if = "is_default_delivery")]
     pub delivery: ScriptDelivery,
+    /// Ask for a second confirmation before the command is sent to a session.
+    ///
+    /// Opt-in per snippet, for commands whose accidental execution is expensive
+    /// (`rm -rf`, `mkfs`, a production deploy). Defaults to `false`, so an
+    /// existing snippet keeps running on a single activation.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub confirm_before_run: bool,
     /// When the snippet was created
     #[serde(default = "Utc::now")]
     pub created_at: DateTime<Utc>,
@@ -120,6 +127,7 @@ impl Snippet {
             tags: Vec::new(),
             target: SnippetTarget::default(),
             delivery: ScriptDelivery::default(),
+            confirm_before_run: false,
             created_at: now,
             updated_at: now,
         }
@@ -164,6 +172,13 @@ impl Snippet {
     #[must_use]
     pub const fn with_delivery(mut self, delivery: ScriptDelivery) -> Self {
         self.delivery = delivery;
+        self
+    }
+
+    /// Requires a second confirmation before this snippet is sent to a session
+    #[must_use]
+    pub const fn with_confirm_before_run(mut self, confirm: bool) -> Self {
+        self.confirm_before_run = confirm;
         self
     }
 }

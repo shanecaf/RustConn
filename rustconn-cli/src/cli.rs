@@ -1313,6 +1313,10 @@ pub enum SnippetCommands {
         /// Tags (comma-separated)
         #[arg(short, long)]
         tags: Option<String>,
+
+        /// Ask for confirmation before running this snippet
+        #[arg(long)]
+        confirm: bool,
     },
 
     /// Edit an existing snippet
@@ -1340,6 +1344,10 @@ pub enum SnippetCommands {
         /// New tags (comma-separated, replaces existing)
         #[arg(short, long)]
         tags: Option<String>,
+
+        /// Ask for confirmation before running this snippet
+        #[arg(long)]
+        confirm: Option<bool>,
     },
 
     /// Delete a snippet
@@ -1362,6 +1370,10 @@ pub enum SnippetCommands {
         /// Actually execute the command (default: just print)
         #[arg(short, long)]
         execute: bool,
+
+        /// Skip the prompt for a snippet marked "confirm before running"
+        #[arg(long)]
+        force: bool,
     },
 }
 

@@ -2224,6 +2224,30 @@ If all variables are resolved automatically, the snippet executes immediately wi
 
 **Organization:** Snippets support categories and tags for filtering.
 
+#### Confirm Before Running
+
+Some commands are not the kind you want to fire by accident — `rm -rf`, `mkfs`, a production deploy. Turn on **Confirm before running** in the snippet editor and RustConn asks once more, showing the exact command it is about to send, every time that snippet runs.
+
+The setting is per snippet and off by default, so existing snippets keep running on a single action.
+
+It covers every way a snippet can be started: the picker, the Execute button in the snippet manager, the variable-input dialog, the snippet entries in the terminal's right-click menu, and the Scripts menu of an embedded RDP session. Cancelling in the variable dialog's case keeps the values you typed, so you can correct a variable rather than start over.
+
+**From the CLI:**
+
+```bash
+# Mark a snippet as needing confirmation
+rustconn-cli snippet add --name "Wipe scratch disk" \
+    --command "mkfs.ext4 /dev/sdb" --confirm
+
+# Turn it on or off for an existing snippet
+rustconn-cli snippet edit "Wipe scratch disk" --confirm false
+
+# Running it prompts on a terminal; --force is required in a script
+rustconn-cli snippet run "Wipe scratch disk" --execute --force
+```
+
+Without a terminal on stdin and without `--force`, `snippet run --execute` refuses rather than prompting into the void.
+
 ### Clusters
 
 A cluster is a named set of connections you open together — a rack, a Kubernetes node pool, the three web servers behind one load balancer.

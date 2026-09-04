@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: rustconn 0.20.2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:02+0300\n"
+"POT-Creation-Date: 2026-09-04 17:12+0300\n"
 "PO-Revision-Date: 2026-08-19 09:53+0200\n"
 "Last-Translator: Ekaterine Papava <papava.e@gtu.ge>\n"
 "Language-Team: Georgian <(nothing)>\n"
@@ -18,7 +18,7 @@ msgstr ""
 "X-Generator: Poedit 3.9\n"
 
 #: rustconn/src/alert.rs:15 rustconn/src/alert.rs:54 rustconn/src/alert.rs:64
-#: rustconn/src/app.rs:1732 rustconn/src/toast.rs:246
+#: rustconn/src/app.rs:1775 rustconn/src/toast.rs:246
 msgid "OK"
 msgstr "დიახ"
 
@@ -68,7 +68,7 @@ msgstr "არ შეინახო"
 #: rustconn/src/dialogs/connection_wizard/auth_page.rs:177
 #: rustconn/src/dialogs/settings/terminal_tab.rs:839
 #: rustconn/src/dialogs/smart_folder.rs:82
-#: rustconn/src/dialogs/smart_folder.rs:83 rustconn/src/dialogs/snippet.rs:391
+#: rustconn/src/dialogs/smart_folder.rs:83 rustconn/src/dialogs/snippet.rs:406
 #: rustconn/src/dialogs/template.rs:2783
 #: rustconn/src/dialogs/tunnel_builder/mod.rs:194
 #: rustconn/src/dialogs/variables.rs:131 rustconn/src/dialogs/widgets.rs:461
@@ -88,12 +88,12 @@ msgstr ""
 "პარამეტრებში"
 
 #: rustconn/src/app.rs:688 rustconn/src/dialogs/shortcuts.rs:176
-#: rustconn/src/embedded_rdp/mod.rs:383 rustconn/src/split_view/bridge.rs:1980
+#: rustconn/src/embedded_rdp/mod.rs:383 rustconn/src/split_view/bridge.rs:1977
 #: rustconn/src/window/ui.rs:111
 msgid "Settings"
 msgstr "მორგება"
 
-#: rustconn/src/app.rs:1329
+#: rustconn/src/app.rs:1372
 msgid ""
 "{} is selected, but the system keyring is not accessible. Run: sudo snap "
 "connect rustconn:password-manager-service — or open Settings, then Secrets, "
@@ -103,7 +103,7 @@ msgstr ""
 "sudo snap connect rustconn:password-manager-service — ან გახსენით მორგების "
 "ფანჯარა, გადართეთ საიდუმლოებზე და აირჩიეთ სხვა უკანაბოლო."
 
-#: rustconn/src/app.rs:1334
+#: rustconn/src/app.rs:1377
 msgid ""
 "{} is selected, but it cannot store passwords yet: {}. Open Settings, then "
 "Secrets."
@@ -111,7 +111,7 @@ msgstr ""
 "{} არჩეულია, მაგრამ ის ჯერ ვერ ინახავს პაროლებს: {}. გახსენით პარამეტრები, "
 "შემდეგ საიდუმლოებები."
 
-#: rustconn/src/app.rs:1628
+#: rustconn/src/app.rs:1671
 msgid ""
 "Modern connection manager for Linux with a GTK4/Wayland-native interface. "
 "Manage SSH, RDP, VNC, SPICE, Telnet, Serial, Kubernetes, and Zero Trust "
@@ -122,35 +122,35 @@ msgstr ""
 "წვდომის კავშირები ერთი აპლიკაციიდან."
 
 #. Translators: Replace this with your name and language, e.g. "John Doe (German)"
-#: rustconn/src/app.rs:1664
+#: rustconn/src/app.rs:1707
 msgid "translator-credits"
 msgstr "ეკატერინე პაპავა"
 
-#: rustconn/src/app.rs:1671
+#: rustconn/src/app.rs:1714
 msgid "User Guide"
 msgstr "მომხმარებლის სახელმძღვანელო"
 
-#: rustconn/src/app.rs:1675
+#: rustconn/src/app.rs:1718
 msgid "Installation"
 msgstr "დაყენება"
 
-#: rustconn/src/app.rs:1679
+#: rustconn/src/app.rs:1722
 msgid "Releases"
 msgstr "რელიზი"
 
-#: rustconn/src/app.rs:1683
+#: rustconn/src/app.rs:1726
 msgid "Changelog"
 msgstr "ცვლილებების ჟურნალი"
 
-#: rustconn/src/app.rs:1693
+#: rustconn/src/app.rs:1736
 msgid "Special Thanks"
 msgstr "განსაკუთრებული მადლობა"
 
-#: rustconn/src/app.rs:1708
+#: rustconn/src/app.rs:1751
 msgid "Made in Ukraine"
 msgstr "დამზადებულია უკრაინაში"
 
-#: rustconn/src/app.rs:1709
+#: rustconn/src/app.rs:1752
 msgid "All contributors and supporters"
 msgstr "ყველა მოხალისე და მხარდამჭერი"
 
@@ -159,7 +159,7 @@ msgid "{} — RustConn"
 msgstr "{} — RustConn"
 
 #: rustconn/src/detached_window.rs:140 rustconn/src/embedded_rdp/mod.rs:746
-#: rustconn/src/embedded_rdp/mod.rs:1886
+#: rustconn/src/embedded_rdp/mod.rs:1922
 #: rustconn/src/embedded_rdp/polling_handlers.rs:62
 #: rustconn/src/embedded_vnc/ui.rs:132
 #: rustconn/src/terminal/session_lifecycle.rs:337
@@ -203,8 +203,8 @@ msgstr "ახალი კლასტერი"
 #: rustconn/src/dialogs/connection/dialog/construction.rs:140
 #: rustconn/src/dialogs/settings/terminal_tab.rs:789
 #: rustconn/src/dialogs/smart_folder.rs:87
-#: rustconn/src/dialogs/smart_folder.rs:88 rustconn/src/dialogs/snippet.rs:74
-#: rustconn/src/dialogs/snippet.rs:75 rustconn/src/dialogs/template.rs:143
+#: rustconn/src/dialogs/smart_folder.rs:88 rustconn/src/dialogs/snippet.rs:75
+#: rustconn/src/dialogs/snippet.rs:76 rustconn/src/dialogs/template.rs:143
 #: rustconn/src/dialogs/template.rs:144
 #: rustconn/src/dialogs/tunnel_builder/step_review.rs:191
 #: rustconn/src/dialogs/widgets.rs:462
@@ -222,7 +222,7 @@ msgstr "კლასტერის დეტალები"
 #: rustconn/src/dialogs/connection/general_tab.rs:92
 #: rustconn/src/dialogs/connection_wizard/connection_page.rs:101
 #: rustconn/src/dialogs/export.rs:374 rustconn/src/dialogs/settings/mod.rs:1806
-#: rustconn/src/dialogs/smart_folder.rs:121 rustconn/src/dialogs/snippet.rs:175
+#: rustconn/src/dialogs/smart_folder.rs:121 rustconn/src/dialogs/snippet.rs:179
 #: rustconn/src/dialogs/template.rs:511
 #: rustconn/src/dialogs/tunnel_builder/step_review.rs:78
 #: rustconn/src/window/connection_dialogs.rs:428
@@ -315,7 +315,7 @@ msgstr "ეს კლასტერი სამუდამოდ წაიშ
 #: rustconn/src/dialogs/workspace.rs:291 rustconn/src/sidebar_ui.rs:406
 #: rustconn/src/smart_folder_ui.rs:404 rustconn/src/smart_folder_ui.rs:596
 #: rustconn/src/window/clusters.rs:435 rustconn/src/window/operations.rs:137
-#: rustconn/src/window/snippets.rs:252 rustconn/src/window/snippets.rs:342
+#: rustconn/src/window/snippets.rs:324 rustconn/src/window/snippets.rs:414
 #: rustconn/src/window/templates.rs:151
 msgid "Delete"
 msgstr "წაშლა"
@@ -835,7 +835,7 @@ msgstr "მაგ:, /path/to/script.sh ან vpn-connect ${host}"
 #: rustconn/src/dialogs/connection/general_tab.rs:381
 #: rustconn/src/dialogs/connection_wizard/connection_page.rs:217
 #: rustconn/src/dialogs/settings/terminal_tab.rs:480
-#: rustconn/src/dialogs/snippet.rs:244 rustconn/src/dialogs/template.rs:1929
+#: rustconn/src/dialogs/snippet.rs:259 rustconn/src/dialogs/template.rs:1929
 msgid "Command"
 msgstr "ბრძანება"
 
@@ -1064,7 +1064,7 @@ msgid "Advanced"
 msgstr "დამატებით"
 
 #: rustconn/src/dialogs/connection/dialog/build.rs:726
-#: rustconn/src/dialogs/connection/dialog/populate.rs:1106
+#: rustconn/src/dialogs/connection/dialog/populate.rs:1107
 #: rustconn/src/dialogs/connection/ssh.rs:507
 #: rustconn/src/dialogs/template.rs:698
 msgid "Jump host for tunneling (-J)"
@@ -1394,35 +1394,35 @@ msgstr "აირჩიეთ SSH გასაღები"
 msgid "Edit Connection"
 msgstr "შეერთების ჩასწორება"
 
-#: rustconn/src/dialogs/connection/dialog/populate.rs:423
+#: rustconn/src/dialogs/connection/dialog/populate.rs:424
 #: rustconn/src/dialogs/connection/general_tab.rs:412
 #: rustconn/src/dialogs/widgets.rs:45
 msgid "(Root)"
 msgstr "(Root)"
 
-#: rustconn/src/dialogs/connection/dialog/populate.rs:1067
-#: rustconn/src/dialogs/connection/dialog/populate.rs:1138
+#: rustconn/src/dialogs/connection/dialog/populate.rs:1068
+#: rustconn/src/dialogs/connection/dialog/populate.rs:1139
 msgid "Inherited: {}"
 msgstr "მემკვიდრეობით: {}"
 
-#: rustconn/src/dialogs/connection/dialog/populate.rs:1071
-#: rustconn/src/dialogs/connection/dialog/populate.rs:1075
+#: rustconn/src/dialogs/connection/dialog/populate.rs:1072
+#: rustconn/src/dialogs/connection/dialog/populate.rs:1076
 msgid "Inherited from parent group"
 msgstr "მემკვიდრეობით მშობელი ჯგუფიდან"
 
-#: rustconn/src/dialogs/connection/dialog/populate.rs:1080
+#: rustconn/src/dialogs/connection/dialog/populate.rs:1081
 #: rustconn/src/dialogs/connection/ssh.rs:258
 msgid "Default tries ~/.ssh/id_rsa, id_ed25519, id_ecdsa automatically"
 msgstr "ნაგულისხმევად ეძებს ~/.ssh/id_rsa, id_ed25519, id_ecdsa ავტომატურად"
 
-#: rustconn/src/dialogs/connection/dialog/populate.rs:1146
-#: rustconn/src/dialogs/connection/dialog/populate.rs:1163
+#: rustconn/src/dialogs/connection/dialog/populate.rs:1147
+#: rustconn/src/dialogs/connection/dialog/populate.rs:1164
 msgid "Direct — an inherited jump host is ignored"
 msgstr "პირდაპირი — მემკვიდრეობით მიღებული შუალედური ჰოსტი უგულებელყოფილია"
 
 #: rustconn/src/dialogs/connection/dialog/rows.rs:46
 #: rustconn/src/dialogs/connection/dialog/rows.rs:906
-#: rustconn/src/dialogs/snippet.rs:332 rustconn/src/dialogs/variables.rs:227
+#: rustconn/src/dialogs/snippet.rs:347 rustconn/src/dialogs/variables.rs:227
 msgid "Name:"
 msgstr "სახელი:"
 
@@ -1648,12 +1648,12 @@ msgid "Secret (mask value)"
 msgstr "საიდუმლო (მნიშვნელობის შენიღბვა)"
 
 #: rustconn/src/dialogs/connection/dialog/rows.rs:976
-#: rustconn/src/dialogs/snippet.rs:345 rustconn/src/dialogs/variables.rs:291
+#: rustconn/src/dialogs/snippet.rs:360 rustconn/src/dialogs/variables.rs:291
 msgid "Description:"
 msgstr "აღწერა:"
 
 #: rustconn/src/dialogs/connection/dialog/rows.rs:981
-#: rustconn/src/dialogs/snippet.rs:183 rustconn/src/dialogs/variables.rs:296
+#: rustconn/src/dialogs/snippet.rs:187 rustconn/src/dialogs/variables.rs:296
 msgid "Optional description"
 msgstr "არასავალდებულო აღწერა"
 
@@ -1751,7 +1751,7 @@ msgstr ""
 #: rustconn/src/dialogs/connection/vnc.rs:284
 #: rustconn/src/dialogs/connection_wizard/auth_page.rs:85
 #: rustconn/src/dialogs/connection_wizard/auth_page.rs:388
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2187
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2188
 #: rustconn/src/dialogs/template.rs:625
 msgid "Authentication"
 msgstr "ავთენტიკაცია"
@@ -1919,13 +1919,13 @@ msgstr "ორგანიზაცია"
 
 #: rustconn/src/dialogs/connection/general_tab.rs:400
 #: rustconn/src/dialogs/connection/general_tab.rs:408
-#: rustconn/src/dialogs/export.rs:410 rustconn/src/dialogs/snippet.rs:196
+#: rustconn/src/dialogs/export.rs:410 rustconn/src/dialogs/snippet.rs:200
 #: rustconn/src/dialogs/template.rs:572
 msgid "Tags"
 msgstr "ჭდეები"
 
 #: rustconn/src/dialogs/connection/general_tab.rs:402
-#: rustconn/src/dialogs/snippet.rs:198
+#: rustconn/src/dialogs/snippet.rs:202
 msgid "tag1, tag2, ..."
 msgstr "ჭდე1, ჭდე2, ..."
 
@@ -1936,7 +1936,7 @@ msgid "Group"
 msgstr "ჯგუფები"
 
 #: rustconn/src/dialogs/connection/general_tab.rs:440
-#: rustconn/src/dialogs/export.rs:416 rustconn/src/dialogs/snippet.rs:182
+#: rustconn/src/dialogs/export.rs:416 rustconn/src/dialogs/snippet.rs:186
 #: rustconn/src/dialogs/template.rs:515
 #: rustconn/src/window/connection_dialogs.rs:849
 #: rustconn/src/window/edit_group.rs:1342
@@ -2910,7 +2910,7 @@ msgstr "USB მოწყობილობების გადამისა�
 
 #: rustconn/src/dialogs/connection/spice.rs:179
 #: rustconn/src/dialogs/connection/vnc.rs:108
-#: rustconn/src/dialogs/snippet.rs:219 rustconn/src/dialogs/template.rs:1256
+#: rustconn/src/dialogs/snippet.rs:223 rustconn/src/dialogs/template.rs:1256
 #: rustconn/src/embedded_rdp/mod.rs:392
 msgid "Auto"
 msgstr "ავტო"
@@ -3057,7 +3057,7 @@ msgid "Default"
 msgstr "ნაგულისხმევი"
 
 #: rustconn/src/dialogs/connection/ssh.rs:246
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:735
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:736
 #: rustconn/src/dialogs/template.rs:652
 msgid "File"
 msgstr "ფაილი"
@@ -3082,8 +3082,8 @@ msgid "Path to SSH key"
 msgstr "ბილიკი SSH გასაღებამდე"
 
 #: rustconn/src/dialogs/connection/ssh.rs:272
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2253
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2256
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2254
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2257
 msgid "Browse for key file"
 msgstr "გასაღების ფაილის პოვნა"
 
@@ -3094,7 +3094,7 @@ msgstr "SSH-ის გასაღების ფაილის პოვნ�
 #: rustconn/src/dialogs/connection/ssh.rs:280
 #: rustconn/src/dialogs/connection_wizard/auth_page.rs:124
 #: rustconn/src/dialogs/connection_wizard/auth_page.rs:336
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2266
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2267
 #: rustconn/src/dialogs/template.rs:676
 msgid "Key File"
 msgstr "გასაღების ფაილი"
@@ -4120,7 +4120,7 @@ msgstr ""
 "ეს პაროლი არ ხსნის პორტატულ ფაილს. შეიყვანეთ პაროლი, რომლითაც შეიქმნა ფაილი."
 
 #: rustconn/src/dialogs/credential_transfer.rs:607
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2102
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2103
 msgid "Cannot open the portable file: {}"
 msgstr "შეუძლებელია პორტატული ფაილის გახსნა: {}"
 
@@ -4579,8 +4579,8 @@ msgid "Not available for download"
 msgstr "გადმოსაწერად ხელმისაწვდომი არაა"
 
 #: rustconn/src/dialogs/flatpak_components.rs:521
-#: rustconn/src/dialogs/statistics.rs:167
-#: rustconn/src/dialogs/statistics.rs:267
+#: rustconn/src/dialogs/statistics.rs:169
+#: rustconn/src/dialogs/statistics.rs:269
 msgid "Failed"
 msgstr "ჩავარდა"
 
@@ -5000,7 +5000,7 @@ msgid "RDP File"
 msgstr "RDP ფაილი"
 
 #: rustconn/src/dialogs/import/sources.rs:255
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:697
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:715
 msgid "Unknown"
 msgstr "უცნობი"
 
@@ -5162,7 +5162,7 @@ msgstr ""
 "პაროლი მეხსიერებაში შეინახება მხოლოდ ამ სესიისთვის."
 
 #: rustconn/src/dialogs/kdbx_unlock.rs:77
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2206
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2207
 msgid "Database password"
 msgstr "მონაცემთა ბაზის პაროლი"
 
@@ -5439,7 +5439,7 @@ msgstr ""
 "ორიგინალები ინახება, ასე რომ, თუ გადაიფიქრებთ, არაფერი დაიკარგება."
 
 #: rustconn/src/dialogs/portable_migration.rs:59
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2006
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2007
 msgid "Copy Credentials"
 msgstr "დააკოპირეთ რწმუნებათა სიგელები"
 
@@ -5531,7 +5531,7 @@ msgid "Could not change the passphrase. The file was not modified."
 msgstr "პაროლის შეცვლა ვერ მოხერხდა. ფაილი არ შეცვლილა."
 
 #: rustconn/src/dialogs/portable_passphrase_change.rs:284
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:907
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:908
 msgid ""
 "A passphrase this short can be guessed quickly. This file is meant to be "
 "copied to your other computers, so the passphrase is the only thing "
@@ -5541,7 +5541,7 @@ msgstr ""
 "სხვა კომპიუტერებზე დასაკოპირებლად, ამიტომ პაროლი ერთადერთია, რაც მას იცავს."
 
 #: rustconn/src/dialogs/portable_passphrase_change.rs:288
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:911
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:912
 msgid ""
 "This passphrase would not take long to guess. Several unrelated words make a "
 "much stronger one, and are easier to remember than symbols."
@@ -5591,8 +5591,8 @@ msgstr ""
 "საიდუმლო ფრაზა შეინახება მეხსიერებაში მხოლოდ ამ სესიისთვის."
 
 #: rustconn/src/dialogs/portable_unlock.rs:75
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1735
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1995
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1736
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1996
 msgid "Passphrase"
 msgstr "პაროლის ფრაზა"
 
@@ -5748,8 +5748,8 @@ msgstr "Kubernetes CLI-ის ხელსაწყოები"
 
 #: rustconn/src/dialogs/settings/clients_tab.rs:154
 #: rustconn/src/dialogs/settings/secrets_tab/detection.rs:77
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:731
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:975
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:732
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:976
 #: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2661
 #: rustconn/src/dialogs/settings/ssh_agent_tab.rs:43
 #: rustconn/src/dialogs/settings/ssh_agent_tab.rs:203
@@ -5867,7 +5867,7 @@ msgstr "კლავიატურის მალსახმობები"
 
 #: rustconn/src/dialogs/settings/keybindings_tab.rs:58
 #: rustconn/src/dialogs/shortcuts.rs:155 rustconn/src/dialogs/shortcuts.rs:301
-#: rustconn/src/split_view/bridge.rs:1968
+#: rustconn/src/split_view/bridge.rs:1965
 msgid "Keyboard Shortcuts"
 msgstr "კლავიატურის მალსახმობები"
 
@@ -6235,7 +6235,7 @@ msgid "Ready"
 msgstr "მზადაა"
 
 #: rustconn/src/dialogs/settings/secrets_tab/detection.rs:76
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2403
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2404
 #: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2832
 #: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2841
 #: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2849
@@ -6276,126 +6276,126 @@ msgstr "ინიციალიზებული არაა (გაუშვ
 msgid "Cannot determine store directory"
 msgstr "საცავის საქაღალდის დადგენა შეუძლებელია"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:691
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1284
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:711
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1285
 msgid "Unlocked"
 msgstr "განბლოკილი"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:692
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:712
 msgid "Locked"
 msgstr "დაბლოკილია"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:693
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1297
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:713
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1298
 msgid "Not logged in"
 msgstr "შესული არ ბრძანდებით"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:694
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:714
 msgid "Status: {}"
 msgstr "სტატუსი: {}"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:699
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:730
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:753
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:716
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:808
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:831
 msgid "Error checking status"
 msgstr "შეცდომა სტატუსის შემოწმებისას"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:716
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:794
 msgid "Signed in: {}"
 msgstr "შესულია: {}"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:718
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:796
 msgid "Signed in"
 msgstr "Შესული"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:723
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:727
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:801
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:805
 msgid "Not signed in"
 msgstr "შესული არ ბრძანდებით"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:725
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:803
 msgid "Session expired"
 msgstr "სესიის დრო გავიდა"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:742
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:820
 #: rustconn/src/dialogs/settings/secrets_tab/mod.rs:3166
 msgid "Configured"
 msgstr "მორგებულია"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:746
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:750
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:824
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:828
 msgid "Not configured"
 msgstr "მორგებული არაა"
 
-#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:748
+#: rustconn/src/dialogs/settings/secrets_tab/detection.rs:826
 msgid "Authentication failed"
 msgstr "ავთენტიკაცია ჩავარდა"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:298
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:299
 msgid "Don't save"
 msgstr "არ შეინახო"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:299
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:300
 msgid "Encrypted file (machine-specific)"
 msgstr "დაშიფრული ფაილი (მანქანის სპეციფიკური)"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:300
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:301
 msgid "System keyring (recommended)"
 msgstr "სისტემური ბრელოკი (რეკომენდებულია)"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:304
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:305
 msgid "How to persist the credential between sessions"
 msgstr "როგორ შევინახოთ ავტორიზაციის დეტალები სესიებს შორის"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:325
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:371
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:326
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:372
 msgid "System keyring unavailable — install libsecret (secret-tool)"
 msgstr ""
 "სისტემური ბრელოკი ხელმისაწვდომი არაა — დააყენეთ libsecret (secret-tool)"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:445
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:446
 msgid "This Mac's login keychain, unlocked with your session"
 msgstr "ამ Mac-ის შესვლის გასაღების ჯაჭვი, განბლოკილია თქვენი სესიით"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:451
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:452
 msgid "This computer's login keyring, unlocked with your session"
 msgstr "ამ კომპიუტერის შესვლის გასაღები, განბლოკილია თქვენი სესიით"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:458
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:459
 msgid "A KeePass database, through the KeePassXC application"
 msgstr "KeePass მონაცემთა ბაზა, KeePassXC აპლიკაციის მეშვეობით"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:464
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:465
 msgid "Your Bitwarden vault, through the bw command line tool"
 msgstr "თქვენი Bitwarden სარდაფით, bw ბრძანების ხაზის ხელსაწყოს მეშვეობით"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:469
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:470
 msgid "Your 1Password vault, through the op command line tool"
 msgstr "თქვენი 1Password სარდაფით, op ბრძანების ხაზის ხელსაწყოს მეშვეობით"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:474
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:475
 msgid "Your Passbolt server, through the passbolt command line tool"
 msgstr "თქვენი Passbolt სერვერი, passbolt ბრძანების ხაზის ხელსაწყოს მეშვეობით"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:479
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:480
 msgid "The pass password store, encrypted with your GPG key"
 msgstr "პაროლის შენახვა, დაშიფრული თქვენი GPG გასაღებით"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:493
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:494
 #: rustconn/src/window/credentials.rs:366
 msgid "Encrypted file"
 msgstr "დაშიფრული ფაილი"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:494
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:495
 msgid "A file on this computer, encrypted with a key tied to this machine"
 msgstr "ფაილი ამ კომპიუტერზე, დაშიფრულია ამ მოწყობილობაზე მიბმული გასაღებით"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:498
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:499
 #: rustconn/src/window/credentials.rs:370
 msgid "Portable encrypted file"
 msgstr "პორტატული დაშიფრული ფაილი"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:500
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:501
 msgid ""
 "A file encrypted with a passphrase you choose, so it opens on your other "
 "computers"
@@ -6403,37 +6403,37 @@ msgstr ""
 "ფაილი, რომელიც დაშიფრულია თქვენს მიერ არჩეული პაროლით, ასე რომ, ის იხსნება "
 "თქვენს სხვა კომპიუტერებზე"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:666
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:667
 msgid "Not created yet"
 msgstr "ჯერ არ არის შექმნილი"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:667
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:668
 msgid "Ready, no passwords yet"
 msgstr "მზადაა, პაროლები ჯერ არ არის"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:673
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:674
 msgid "Passwords stored: {}"
 msgstr "შენახული პაროლები: {}"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:676
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:677
 msgid "Cannot read the file: {}"
 msgstr "ფაილის წაკითხვა შეუძლებელია: {}"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:677
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:678
 msgid "Could not check the file"
 msgstr "ფაილის შემოწმება ვერ მოხერხდა"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:704
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:705
 msgid "Enter the passphrase that will protect the portable file"
 msgstr "შეიყვანეთ პაროლი, რომელიც დაიცავს პორტატულ ფაილს"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:708
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1828
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:709
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1829
 msgid "The two passphrases do not match"
 msgstr "ორი საიდუმლო ფრაზა არ ემთხვევა"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:712
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1843
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:713
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1844
 msgid ""
 "Repeat the passphrase to confirm it. A new file cannot be recovered if the "
 "passphrase is wrong."
@@ -6441,36 +6441,36 @@ msgstr ""
 "გაიმეორეთ საიდუმლო ფრაზა მის დასადასტურებლად. ახალი ფაილის აღდგენა "
 "შეუძლებელია, თუ პაროლი არასწორია."
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:919
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:920
 msgid "Secrets"
 msgstr "საიდუმლოები"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:925
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:926
 msgid "Secret Backend"
 msgstr "საიდუმლო უკანაბოლო"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:926
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:927
 msgid "Choose how passwords are stored"
 msgstr "აირჩიეთ, როგორ ხდება პაროლების დამახსოვრება"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:940
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:941
 msgid "Backend"
 msgstr "უკანაბოლო"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:956
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:957
 msgid "Version"
 msgstr "ვერსია"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:981
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:982
 #: rustconn/src/dialogs/settings/ssh_agent_tab.rs:47
 msgid "Status"
 msgstr "სტატუსი"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1002
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1003
 msgid "Also read from the encrypted file"
 msgstr "წაიკითხეთ დაშიფრული ფაილიდანაც"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1004
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1005
 msgid ""
 "Look for passwords in this computer's encrypted file too, so ones saved "
 "before you switched backend still resolve"
@@ -6478,15 +6478,15 @@ msgstr ""
 "მოძებნეთ პაროლები ამ კომპიუტერის დაშიფრულ ფაილშიც, რათა backend-ის შეცვლამდე "
 "შენახულები კვლავ მოიძებნოს"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1019
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1020
 msgid "Copy Passwords…"
 msgstr "პაროლების კოპირება…"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1023
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1024
 msgid "Move between stores"
 msgstr "გადაადგილება მაღაზიებს შორის"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1025
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1026
 msgid ""
 "Copy the passwords you already have from one store into another, for example "
 "into the portable file"
@@ -6494,243 +6494,243 @@ msgstr ""
 "დააკოპირეთ პაროლები, რომლებიც უკვე გაქვთ ერთი მაღაზიიდან მეორეში, მაგალითად, "
 "პორტატულ ფაილში"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1067
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1086
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1328
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1440
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1547
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2406
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1068
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1087
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1329
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1441
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1548
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2407
 msgid "Detecting..."
 msgstr "მიმდინარეობს აღმოჩენა..."
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1072
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1073
 msgid "Bitwarden"
 msgstr "Bitwarden"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1073
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1074
 msgid "Configure Bitwarden CLI integration"
 msgstr "Bitwarden-ის CLI-ის ინტეგრაციის მორგება"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1079
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1080
 msgid "Master Password"
 msgstr "მთავარი პაროლი"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1080
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1081
 msgid "Required to unlock vault"
 msgstr "აუცილებელია საცავის განბლოკვისთვის"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1096
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1097
 msgid "Save master password"
 msgstr "მთავარი პაროლის შენახვა"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1105
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1106
 msgid "Use API key authentication"
 msgstr "API გასაღებით ავთენტიკაციის გამოყენება"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1107
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1108
 msgid "For automation or 2FA methods not supported by CLI (FIDO2, Duo)"
 msgstr ""
 "ავტომატიზაციისთვის, ან 2FA-ის მეთოდებისთვის, რომლის მხარდაჭრაც CLI-ს არ აქვს "
 "(FIDO2, Duo)"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1116
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1117
 msgid "client_id"
 msgstr "client_id"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1121
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1122
 msgid "Client ID"
 msgstr "კლიენტის ID"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1123
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1124
 msgid "From Bitwarden web vault → Settings → Security → Keys"
 msgstr "Bitwarden-ის ვებსაცავიდან → მორგება → უსაფრთხოება → გასაღებები"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1132
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1133
 msgid "Client Secret"
 msgstr "კლიენტის საიდუმლო"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1133
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1134
 msgid "Keep this secret safe"
 msgstr "შეინახეთ ეს საიდუმლო უსაფრთხოდ"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1151
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1152
 msgid "Unlock"
 msgstr "განბლოკვა"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1154
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1155
 msgid "Unlock Bitwarden vault"
 msgstr "Bitwarden-ის საცავის განბლოკვა"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1166
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1167
 msgid "Vault Status"
 msgstr "საცავის სტატუსი"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1167
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1168
 msgid "Login with 'bw login' in terminal first"
 msgstr "ჯერ შედით ტერმინალში ბრძანებიტ 'bw login'"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1191
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1195
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1192
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1196
 msgid "Enter password"
 msgstr "შეიყვანეთ პაროლი"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1202
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1203
 msgid "Unlocking..."
 msgstr "განბლოკვა..."
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1295
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1296
 msgid "Invalid password"
 msgstr "არასწორი პაროლი"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1299
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1300
 msgid "Unlock failed"
 msgstr "განბლოკვა ჩავარდა"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1313
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1314
 msgid "1Password"
 msgstr "1Password"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1314
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1315
 msgid "Configure 1Password CLI integration"
 msgstr "1Password CLI-ის ინტეგრაციის მორგება"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1319
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1320
 msgid "Service Account Token"
 msgstr "სერვისის ანგარიშის ტოკენი"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1321
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1322
 msgid "For headless/automated access (OP_SERVICE_ACCOUNT_TOKEN)"
 msgstr "უთავო/ავტომატიზებული წვდომისთვის (OP_SERVICE_ACCOUNT_TOKEN)"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1338
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1339
 msgid "Save token"
 msgstr "ტოკენის შენახვა"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1345
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1346
 msgid "Sign In"
 msgstr "შესვლა"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1348
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1349
 msgid "Sign in to 1Password (opens terminal)"
 msgstr "1Password-ში შესვლა (გახსნის ტერმინალს)"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1360
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1361
 msgid "Account Status"
 msgstr "ანგარიშის სტატუსი"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1362
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1363
 msgid "Sign in with 'op signin' in terminal or use biometric unlock"
 msgstr ""
 "შესვლა ბრძანებით 'op signin' ტერმინალში, ან ბიომეტრიული განბლოკვის "
 "გამოყენებით"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1374
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1375
 msgid "Opening terminal..."
 msgstr "ტერმინალის გახსნა..."
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1396
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1397
 msgid "Check terminal"
 msgstr "ტერმინალის შემოწმება"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1402
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1403
 msgid "No terminal found"
 msgstr "ტერმინალი აღმოჩენილი არაა"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1413
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1414
 msgid "Passbolt"
 msgstr "Passbolt"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1414
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1415
 msgid "Configure Passbolt CLI integration"
 msgstr "Passbolt CLI-ის ინტეგრაციის მორგება"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1424
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1425
 msgid "Server URL"
 msgstr "სერვერის URL"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1425
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1426
 msgid "Passbolt web vault address"
 msgstr "Passbolt ვებსაცავის მისამართი"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1433
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1434
 msgid "GPG Passphrase"
 msgstr "GPG-ის საკვანძო ფრაზა"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1434
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1435
 msgid "Required to decrypt credentials from Passbolt"
 msgstr "აუცილებელია Passbolt-ის ავტორიზაციის დეტალების გასაშიფრად"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1449
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1887
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1450
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1888
 msgid "Save passphrase"
 msgstr "საკვანძო ფრაზის შენახვა"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1456
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1457
 msgid "Open Vault"
 msgstr "საცავის გახსნა"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1459
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1460
 msgid "Open Passbolt web vault in browser"
 msgstr "Passbolt ვებსაცავის გახსნა ბრაუზერში"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1471
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1472
 msgid "Server Status"
 msgstr "სერვერის სტატუსი"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1472
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1473
 msgid "Configure with 'passbolt configure' in terminal"
 msgstr "მორგება ტერმინალში ბრძანებით 'passbolt configure'"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1495
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1496
 msgid "Failed to open browser"
 msgstr "ბრაუზერის გახსნის შედომა"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1500
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1501
 msgid "Enter server URL or run 'passbolt configure'"
 msgstr "შეიყვანეთ სერვერის URL, ან გაუსვით 'passbolt configure'"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1511
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1512
 msgid "Pass"
 msgstr "ბილეთი"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1512
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1513
 msgid "Configure Pass (passwordstore.org) integration"
 msgstr "Pass-ის (passwordstore.org) ინტეგრაციის მროგება"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1517
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1518
 msgid "~/.password-store"
 msgstr "~/.password-store"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1525
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1528
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1526
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1529
 msgid "Choose password store directory"
 msgstr "აირჩიეთ პაროლის შენახვის საქაღალდე"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1539
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1540
 msgid "Store Directory"
 msgstr "საცავის საქაღალდე"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1540
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1541
 msgid "Location of password-store (leave empty for default)"
 msgstr "პაროლის საცავის მდებარეობა (ნაგულისხმევისთვის დატოვეთ ცარიელი)"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1554
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1555
 msgid "Initialization Status"
 msgstr "ინიციალიზაციის სტატუსი"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1555
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1556
 msgid "Run 'pass init &lt;gpg-id&gt;' to initialize"
 msgstr "ინიციალიზაციისთვის გაუშვით 'pass init &lt;gpg-id&gt;'"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1566
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1567
 msgid "Select Password Store Directory"
 msgstr "აირჩიეთ პაროლის შენახვის საქაღალდე"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1595
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1596
 msgid "Encrypted File"
 msgstr "დაშიფრული ფაილი"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1597
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1598
 msgid ""
 "Credentials in a file on this computer. The key is derived from this "
 "machine, so the file cannot be opened anywhere else — and cannot be "
@@ -6740,16 +6740,16 @@ msgstr ""
 "ამიტომ ფაილის სხვაგან გახსნა შეუძლებელია — და მისი აღდგენა შეუძლებელია, თუ "
 "მანქანა დაიკარგება."
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1603
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1655
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1604
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1656
 msgid "File path"
 msgstr "ფაილის გზა"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1623
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1624
 msgid "Portable Encrypted File"
 msgstr "პორტატული დაშიფრული ფაილი"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1625
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1626
 msgid ""
 "Credentials in a file encrypted with a passphrase you choose. Put it in a "
 "folder your cloud client syncs and the same file opens on your other "
@@ -6761,15 +6761,15 @@ msgstr ""
 "იხსნება თქვენს სხვა კომპიუტერებზე. პაროლის აღდგენის გზა არ არსებობს, ამიტომ "
 "მას ორჯერ ითხოვენ."
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1642
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1643
 msgid "Browse"
 msgstr "დათვალიერება"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1646
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1647
 msgid "Browse for portable credential file"
 msgstr "დაათვალიერეთ პორტატული საკრედიტო ფაილი"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1656
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1657
 msgid ""
 "Name a file inside a folder your cloud client syncs. Leave empty for the "
 "default location."
@@ -6777,23 +6777,23 @@ msgstr ""
 "დაასახელეთ ფაილი საქაღალდეში, რომელსაც თქვენი ღრუბლოვანი კლიენტი "
 "სინქრონიზებს. დატოვეთ ცარიელი ნაგულისხმევი ადგილისთვის."
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1707
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1708
 msgid "Select Portable Credential File"
 msgstr "აირჩიეთ პორტატული საკრედიტო ფაილი"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1740
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1741
 msgid "Confirm passphrase"
 msgstr "დაადასტურეთ პაროლი"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1903
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1904
 msgid "Create File"
 msgstr "შექმენით ფაილი"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1908
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1909
 msgid "Set up the file"
 msgstr "დააყენეთ ფაილი"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1910
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1911
 msgid ""
 "Create the file now, or check that your passphrase opens one that is already "
 "there"
@@ -6801,20 +6801,20 @@ msgstr ""
 "შექმენით ფაილი ახლა, ან შეამოწმეთ, რომ თქვენი პაროლი ხსნის ისეთს, რომელიც "
 "უკვე არსებობს"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1942
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1943
 msgid "Setting up the file…"
 msgstr "მიმდინარეობს ფაილის დაყენება…"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1958
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1959
 msgid "Created {}"
 msgstr "შეიქმნა {}"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1962
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1963
 msgid "That file is already there and your passphrase opens it"
 msgstr "ეს ფაილი უკვე არის და თქვენი პაროლი ხსნის მას"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1967
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2099
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1968
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2100
 msgid ""
 "That passphrase does not open the existing portable file. Enter the "
 "passphrase the file was created with."
@@ -6822,128 +6822,128 @@ msgstr ""
 "ეს საიდუმლო ფრაზა არ ხსნის არსებულ პორტატულ ფაილს. შეიყვანეთ პაროლი, "
 "რომლითაც შეიქმნა ფაილი."
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1972
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1973
 msgid "Cannot set up the file: {}"
 msgstr "ფაილის დაყენება შეუძლებელია: {}"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1975
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1976
 msgid "Could not set up the file"
 msgstr "ფაილის დაყენება ვერ მოხერხდა"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1990
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1991
 msgid "Change Passphrase…"
 msgstr "პაროლის შეცვლა…"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1997
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:1998
 msgid ""
 "Choose a new passphrase and encrypt every password in the file again under it"
 msgstr "აირჩიეთ ახალი პაროლი და დაშიფრეთ ყველა პაროლი ფაილში მის ქვეშ"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2008
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2009
 msgid ""
 "Copy passwords from the machine-bound encrypted file into this portable file"
 msgstr ""
 "დააკოპირეთ პაროლები მანქანით შეკრული დაშიფრული ფაილიდან ამ პორტატულ ფაილში"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2014
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2015
 msgid "Existing passwords"
 msgstr "არსებული პაროლები"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2016
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2017
 msgid "Re-encrypt credentials from the machine-bound file with your passphrase"
 msgstr ""
 "ხელახლა დაშიფრეთ რწმუნებათა სიგელები მანქანით შეკრული ფაილიდან თქვენი "
 "საიდუმლო ფრაზით"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2062
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2063
 msgid "No stored passwords to copy"
 msgstr "არ არის შენახული პაროლები კოპირებისთვის"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2080
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2081
 msgid "Checking the passphrase…"
 msgstr "საიდუმლო ფრაზის შემოწმება…"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2105
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2106
 msgid "Could not check the passphrase"
 msgstr "პაროლის შემოწმება ვერ მოხერხდა"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2143
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2144
 msgid "KeePass Database"
 msgstr "KeePass-ის მონაცემთა ბაზა"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2145
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2146
 msgid ""
 "Configure KDBX file integration (works with KeePassXC, GNOME Secrets, etc.)"
 msgstr ""
 "KDBX-ის ფაილთან ინტეგრაციის მორგება (მუშაობს KeePassXC-თან, GNOME Secrets-"
 "თან და ა.შ.)"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2150
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2151
 msgid "KDBX Integration"
 msgstr "KDBX-თან Integration"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2151
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2152
 msgid "Enable direct database access"
 msgstr "მონაცემთა ბაზის პირდაპირი წვდომის ჩართვა"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2157
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2158
 msgid "Select .kdbx file"
 msgstr "აირჩიეთ .kdbx ფაილი"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2164
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2165
 msgid "Browse for database file"
 msgstr "მონაცემთა ბაზის ფაილის პოვნა"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2167
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2168
 msgid "Browse for KeePass database file"
 msgstr "KeePass-ის მონაცემთა ბაზის ფაილის პოვნა"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2178
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2179
 msgid "Database File"
 msgstr "ბაზის ფაილი"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2188
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2189
 msgid "Database unlock methods"
 msgstr "მონაცემთა ბაზის განბლოკვის მეთოდები"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2197
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2198
 msgid "Use password"
 msgstr "პაროლის გამოყენება"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2213
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2214
 msgid "Not connected"
 msgstr "დაკავშირებული არაა"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2229
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2230
 msgid "Save password"
 msgstr "პაროლის შენახვა"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2238
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2239
 msgid "Use key file"
 msgstr "გასაღების ფაილის გამოყენება"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2246
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2247
 msgid "Select .keyx or .key file"
 msgstr "აირჩიეთ .keyx ან .key ფაილი"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2274
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2275
 msgid "KDBX Status"
 msgstr "KDBX-ის სტატუსი"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2279
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2280
 msgid "Check"
 msgstr "შემოწმება"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2281
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2282
 msgid "Test database connection"
 msgstr "ბაზასთან მიერთების ტესტირება"
 
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2293
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2294
 msgid "Connection Status"
 msgstr "მიერთების სტატუსი"
 
 #: rustconn/src/dialogs/settings/secrets_tab/mod.rs:2488
-#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:3330
+#: rustconn/src/dialogs/settings/secrets_tab/mod.rs:3337
 msgid "Token loaded from keyring"
 msgstr "ტოკენი ჩაიტვირთა ბრელოკიდან"
 
@@ -7765,7 +7765,7 @@ msgstr "სწრაფი დაკავშირება"
 msgid "Move to Group"
 msgstr "ჯგუფში გადატანა"
 
-#: rustconn/src/dialogs/shortcuts.rs:171 rustconn/src/split_view/bridge.rs:1976
+#: rustconn/src/dialogs/shortcuts.rs:171 rustconn/src/split_view/bridge.rs:1973
 msgid "Search"
 msgstr "ძებნა"
 
@@ -7791,7 +7791,7 @@ msgstr "ჩასმა"
 msgid "Find in Terminal"
 msgstr "იპოვნეთ ტერმინალში"
 
-#: rustconn/src/dialogs/shortcuts.rs:181 rustconn/src/terminal/tab_menu.rs:789
+#: rustconn/src/dialogs/shortcuts.rs:181 rustconn/src/terminal/tab_menu.rs:794
 msgid "Close Tab"
 msgstr "ჩანართის დახურვა"
 
@@ -7834,7 +7834,7 @@ msgstr "მოცილება გაყოფილიდან"
 
 #: rustconn/src/dialogs/shortcuts.rs:192
 #: rustconn/src/split_view/adapter.rs:1362
-#: rustconn/src/terminal/tab_menu.rs:772
+#: rustconn/src/terminal/tab_menu.rs:777
 msgid "Remove Split"
 msgstr "გაყოფის წაშლა"
 
@@ -7897,7 +7897,7 @@ msgstr "კავშირი უნდა ემთხვეოდეს ყვ
 
 #: rustconn/src/dialogs/smart_folder.rs:143
 #: rustconn/src/dialogs/smart_folder.rs:182
-#: rustconn/src/dialogs/smart_folder.rs:252 rustconn/src/dialogs/snippet.rs:207
+#: rustconn/src/dialogs/smart_folder.rs:252 rustconn/src/dialogs/snippet.rs:211
 msgid "Any"
 msgstr "ნებისმიერი"
 
@@ -7929,102 +7929,110 @@ msgstr "ვები, მუშა"
 msgid "Filter by Group"
 msgstr "ჯგუფით გაფილტვრა"
 
-#: rustconn/src/dialogs/snippet.rs:66 rustconn/src/window/snippets.rs:65
-#: rustconn/src/window/snippets.rs:66
+#: rustconn/src/dialogs/snippet.rs:67 rustconn/src/window/snippets.rs:137
+#: rustconn/src/window/snippets.rs:138
 msgid "New Snippet"
 msgstr "ახალი ფრაგმენტი"
 
-#: rustconn/src/dialogs/snippet.rs:171
+#: rustconn/src/dialogs/snippet.rs:175
 msgid "Snippet Info"
 msgstr "ფრაგმენტის ინფორმაცია"
 
-#: rustconn/src/dialogs/snippet.rs:176
+#: rustconn/src/dialogs/snippet.rs:180
 msgid "Enter snippet name"
 msgstr "შეიყვანეთ ფრაგმენტის სახელი"
 
-#: rustconn/src/dialogs/snippet.rs:189
+#: rustconn/src/dialogs/snippet.rs:193
 msgid "Category"
 msgstr "კატეგორია"
 
-#: rustconn/src/dialogs/snippet.rs:190
+#: rustconn/src/dialogs/snippet.rs:194
 msgid "e.g., System, Network"
 msgstr "მაგ: სისტემა, ქსელი"
 
-#: rustconn/src/dialogs/snippet.rs:197
+#: rustconn/src/dialogs/snippet.rs:201
 msgid "Comma-separated"
 msgstr "მძიმით გამოყოფილი"
 
-#: rustconn/src/dialogs/snippet.rs:205
+#: rustconn/src/dialogs/snippet.rs:209
 msgid "Terminal (SSH/Local)"
 msgstr "ტერმინალი (SSH/ლოკალური"
 
-#: rustconn/src/dialogs/snippet.rs:206
+#: rustconn/src/dialogs/snippet.rs:210
 msgid "Windows (RDP)"
 msgstr "Windows (RDP)"
 
-#: rustconn/src/dialogs/snippet.rs:210
+#: rustconn/src/dialogs/snippet.rs:214
 #: rustconn/src/dialogs/tunnel_builder/path_diagram.rs:138
 #: rustconn/src/dialogs/tunnel_builder/path_diagram.rs:221
 msgid "Target"
 msgstr "სამიზნე"
 
-#: rustconn/src/dialogs/snippet.rs:211
+#: rustconn/src/dialogs/snippet.rs:215
 msgid "Where this snippet can be executed"
 msgstr "სად შეიძლება ამ ფრაგმენტის შესრულება"
 
-#: rustconn/src/dialogs/snippet.rs:220 rustconn/src/embedded_rdp/mod.rs:393
+#: rustconn/src/dialogs/snippet.rs:224 rustconn/src/embedded_rdp/mod.rs:393
 msgid "Clipboard (fast)"
 msgstr "ბუფერი (სწრაფი)"
 
-#: rustconn/src/dialogs/snippet.rs:221 rustconn/src/embedded_rdp/mod.rs:394
+#: rustconn/src/dialogs/snippet.rs:225 rustconn/src/embedded_rdp/mod.rs:394
 msgid "Autotype (reliable)"
 msgstr "ავტოაკრეფა (საიმედო)"
 
-#: rustconn/src/dialogs/snippet.rs:224
+#: rustconn/src/dialogs/snippet.rs:228
 msgid "Delivery"
 msgstr "მიწოდება"
 
-#: rustconn/src/dialogs/snippet.rs:225
+#: rustconn/src/dialogs/snippet.rs:229
 msgid "How to send the script to the remote session"
 msgstr "როგორ გავაგზავნო სკრიპტი დაშორებულ სესიაზე"
 
-#: rustconn/src/dialogs/snippet.rs:245
+#: rustconn/src/dialogs/snippet.rs:237
+msgid "Confirm before running"
+msgstr "დადასტურება გაშვებამდე"
+
+#: rustconn/src/dialogs/snippet.rs:239
+msgid "Show a confirmation dialog every time this snippet is run"
+msgstr "დადასტურების ფანჯრის ჩვენება ამ ფრაგმენტის ყოველი გაშვებისას"
+
+#: rustconn/src/dialogs/snippet.rs:260
 msgid "Use ${variable_name} for placeholders"
 msgstr "${variable_name}-ის გამოყენება ადგილმჭერებისთვის"
 
-#: rustconn/src/dialogs/snippet.rs:267 rustconn/src/dialogs/variables.rs:168
+#: rustconn/src/dialogs/snippet.rs:282 rustconn/src/dialogs/variables.rs:168
 msgid "Variables"
 msgstr "ცვლადები"
 
-#: rustconn/src/dialogs/snippet.rs:269
+#: rustconn/src/dialogs/snippet.rs:284
 msgid "Variables are auto-detected from ${name} placeholders in the command"
 msgstr "ცვლადები ავტოაღმოჩენილია ${name} ადგილმჭერიდან ბრძანებაში"
 
-#: rustconn/src/dialogs/snippet.rs:350
+#: rustconn/src/dialogs/snippet.rs:365
 msgid "Variable description"
 msgstr "ცვლადის აღწერა"
 
-#: rustconn/src/dialogs/snippet.rs:360
+#: rustconn/src/dialogs/snippet.rs:375
 msgid "Default:"
 msgstr "ნაგულისხმევი:"
 
-#: rustconn/src/dialogs/snippet.rs:365
+#: rustconn/src/dialogs/snippet.rs:380
 msgid "Default value"
 msgstr "ნაგულისხმევი მნიშვნელობა"
 
-#: rustconn/src/dialogs/snippet.rs:390
+#: rustconn/src/dialogs/snippet.rs:405
 msgid "Edit Snippet"
 msgstr "ფრაგმენტის ჩსწორება"
 
-#: rustconn/src/dialogs/snippet.rs:448
+#: rustconn/src/dialogs/snippet.rs:465
 msgid "Snippet name is required"
 msgstr "ფრაგმენტის სახელი აუცილებელია"
 
-#: rustconn/src/dialogs/snippet.rs:455
+#: rustconn/src/dialogs/snippet.rs:472
 msgid "Command is required"
 msgstr "ბრძანება აუცილებელია"
 
-#: rustconn/src/dialogs/statistics.rs:31 rustconn/src/dialogs/statistics.rs:145
+#: rustconn/src/dialogs/statistics.rs:31 rustconn/src/dialogs/statistics.rs:147
 msgid "Connection Statistics"
 msgstr "კავშირის სტატისტიკა"
 
@@ -8040,78 +8048,78 @@ msgstr "მოხდეს სტატისტიკის ჩამოყრ�
 msgid "All connection statistics will be permanently cleared."
 msgstr "ყველა კავშირის სტატისტიკა სამუდამოდ გასუფთავდება."
 
-#: rustconn/src/dialogs/statistics.rs:134
+#: rustconn/src/dialogs/statistics.rs:136
 msgid "No Statistics Yet"
 msgstr "ჯერ სტატისტიკა არ არსებობს"
 
-#: rustconn/src/dialogs/statistics.rs:135
+#: rustconn/src/dialogs/statistics.rs:137
 msgid "Statistics will appear after your first connection."
 msgstr "სტატისტიკა პირველი კავშირის შემდეგ გამჩნდება."
 
-#: rustconn/src/dialogs/statistics.rs:150
+#: rustconn/src/dialogs/statistics.rs:152
 msgid "Total connections"
 msgstr "კავშირები ჯამში"
 
-#: rustconn/src/dialogs/statistics.rs:159
-#: rustconn/src/dialogs/statistics.rs:259
+#: rustconn/src/dialogs/statistics.rs:161
+#: rustconn/src/dialogs/statistics.rs:261
 msgid "Successful"
 msgstr "წარმატებულია"
 
-#: rustconn/src/dialogs/statistics.rs:176
+#: rustconn/src/dialogs/statistics.rs:178
 msgid "Success rate"
 msgstr "წარმატების სიხშირე"
 
-#: rustconn/src/dialogs/statistics.rs:186
+#: rustconn/src/dialogs/statistics.rs:188
 msgid "Total time connected"
 msgstr "კავშირის ჯამური დრო"
 
-#: rustconn/src/dialogs/statistics.rs:199
+#: rustconn/src/dialogs/statistics.rs:201
 msgid "Last connected"
 msgstr "ბოლო კავშირი"
 
-#: rustconn/src/dialogs/statistics.rs:213
+#: rustconn/src/dialogs/statistics.rs:215
 msgid "Average session"
 msgstr "საშუალო სესია"
 
-#: rustconn/src/dialogs/statistics.rs:245
+#: rustconn/src/dialogs/statistics.rs:247
 msgid "Overview"
 msgstr "მიმოხილვა"
 
-#: rustconn/src/dialogs/statistics.rs:246
+#: rustconn/src/dialogs/statistics.rs:248
 msgid "All connections summary"
 msgstr "ყველა კავშირის შეჯამება"
 
-#: rustconn/src/dialogs/statistics.rs:250
+#: rustconn/src/dialogs/statistics.rs:252
 msgid "Total sessions"
 msgstr "სესიები სულ"
 
-#: rustconn/src/dialogs/statistics.rs:275
+#: rustconn/src/dialogs/statistics.rs:277
 msgid "Total time"
 msgstr "სრული დრო"
 
-#: rustconn/src/dialogs/statistics.rs:291
+#: rustconn/src/dialogs/statistics.rs:293
 msgid "Most Used"
 msgstr "ხშირად გამოყენებული"
 
-#: rustconn/src/dialogs/statistics.rs:292
+#: rustconn/src/dialogs/statistics.rs:294
 msgid "Top connections by usage"
 msgstr "საუკეთესო კავშირები გამოყენების მიხედვით"
 
-#: rustconn/src/dialogs/statistics.rs:302
-#: rustconn/src/dialogs/statistics.rs:349
-#: rustconn/src/dialogs/statistics.rs:380
+#: rustconn/src/dialogs/statistics.rs:304
+#: rustconn/src/dialogs/statistics.rs:351
+#: rustconn/src/dialogs/statistics.rs:382
 msgid "sessions"
 msgstr "სესიები"
 
-#: rustconn/src/dialogs/statistics.rs:334
+#: rustconn/src/dialogs/statistics.rs:336
 msgid "Protocol Distribution"
 msgstr "პროტოკოლის განაწილება"
 
-#: rustconn/src/dialogs/statistics.rs:370
+#: rustconn/src/dialogs/statistics.rs:372
 msgid "Per-Connection"
 msgstr "თითოეული კავშირისთვის"
 
-#: rustconn/src/dialogs/statistics.rs:406
+#: rustconn/src/dialogs/statistics.rs:408
 msgid "Success Rate"
 msgstr "წარმატების სიხშირე"
 
@@ -8379,7 +8387,7 @@ msgstr ""
 
 #: rustconn/src/dialogs/template_manager.rs:109 rustconn/src/sidebar_ui.rs:268
 #: rustconn/src/sidebar_ui.rs:386 rustconn/src/smart_folder_ui.rs:390
-#: rustconn/src/smart_folder_ui.rs:497 rustconn/src/window/snippets.rs:246
+#: rustconn/src/smart_folder_ui.rs:497 rustconn/src/window/snippets.rs:318
 msgid "Edit"
 msgstr "ჩასწორება"
 
@@ -9362,28 +9370,46 @@ msgstr "PowerShell"
 msgid "CMD"
 msgstr "CMD"
 
-#: rustconn/src/embedded_rdp/mod.rs:1072 rustconn/src/embedded_rdp/mod.rs:1143
-#: rustconn/src/embedded_rdp/mod.rs:1346
+#: rustconn/src/embedded_rdp/mod.rs:1075 rustconn/src/embedded_rdp/mod.rs:1146
+#: rustconn/src/embedded_rdp/mod.rs:1382
 msgid "Channel not ready"
 msgstr "არხი მზად არაა"
 
-#: rustconn/src/embedded_rdp/mod.rs:1117 rustconn/src/embedded_rdp/mod.rs:1170
+#: rustconn/src/embedded_rdp/mod.rs:1120 rustconn/src/embedded_rdp/mod.rs:1173
 msgid "Script sent"
 msgstr "სკრიპტი გაგზავნილია"
 
-#: rustconn/src/embedded_rdp/mod.rs:1391
+#: rustconn/src/embedded_rdp/mod.rs:1212 rustconn/src/window/snippets.rs:90
+msgid "Run Snippet?"
+msgstr "გავუშვა ფრაგმენტი?"
+
+#: rustconn/src/embedded_rdp/mod.rs:1214 rustconn/src/window/snippets.rs:92
+msgid ""
+"This runs “{}” in the active session:\n"
+"\n"
+"{}"
+msgstr ""
+"ეს გაუშვებს “{}”-ს აქტიურ სესიაში:\n"
+"\n"
+"{}"
+
+#: rustconn/src/embedded_rdp/mod.rs:1217 rustconn/src/window/snippets.rs:95
+msgid "Run"
+msgstr "გაშვება"
+
+#: rustconn/src/embedded_rdp/mod.rs:1427
 msgid "Select folder to save files"
 msgstr "აირჩიეთ საქაღალდე ფაილების შესანახად"
 
-#: rustconn/src/embedded_rdp/mod.rs:1420
+#: rustconn/src/embedded_rdp/mod.rs:1456
 msgid "Downloading..."
 msgstr "გადმოწერა..."
 
-#: rustconn/src/embedded_rdp/mod.rs:1453
+#: rustconn/src/embedded_rdp/mod.rs:1489
 msgid "Downloading files..."
 msgstr "ფაილების გადმოწერა..."
 
-#: rustconn/src/embedded_rdp/mod.rs:1871
+#: rustconn/src/embedded_rdp/mod.rs:1907
 msgid "Connection may have been lost while the computer slept"
 msgstr "შეიძლება, კავშირი დაიკარგა, სანამ კომპიუტერს ეძინა"
 
@@ -10178,87 +10204,87 @@ msgstr "ავტორიზაციის დეტალების უს�
 msgid "Remote host monitoring"
 msgstr "დაშორებული ჰოსტის მონიტორინგი"
 
-#: rustconn/src/split_view/bridge.rs:1904
+#: rustconn/src/split_view/bridge.rs:1902
 msgid "Cloud Sync across devices"
 msgstr "ღრუბლოვანი სინქრონიზაცია მოწყობილობას შორის"
 
-#: rustconn/src/split_view/bridge.rs:1906
+#: rustconn/src/split_view/bridge.rs:1903
 msgid "Expect automation & tasks"
 msgstr "Expect-ის ავტომატიზაცია და ამოცანები"
 
-#: rustconn/src/split_view/bridge.rs:1907
+#: rustconn/src/split_view/bridge.rs:1904
 msgid "Groups, tags, and templates"
 msgstr "ჯგუფები, ჭდეები, ნიმუშები"
 
-#: rustconn/src/split_view/bridge.rs:1908
+#: rustconn/src/split_view/bridge.rs:1905
 msgid "Zero Trust tunnels"
 msgstr "ნულოვანი ნდობის გვირაბები"
 
-#: rustconn/src/split_view/bridge.rs:1909
+#: rustconn/src/split_view/bridge.rs:1906
 msgid "Command snippets & clusters"
 msgstr "ბრძანების ფრაგმენტები და კლასტერები"
 
-#: rustconn/src/split_view/bridge.rs:1912
+#: rustconn/src/split_view/bridge.rs:1909
 msgid "Drag & drop files to sessions"
 msgstr "ფაილების გადათრევა/დაყრა სესიებზე"
 
-#: rustconn/src/split_view/bridge.rs:1972
+#: rustconn/src/split_view/bridge.rs:1969
 msgid "New connection"
 msgstr "ახალი შეერთება"
 
-#: rustconn/src/split_view/bridge.rs:1973
+#: rustconn/src/split_view/bridge.rs:1970
 msgid "Quick connect"
 msgstr "სწრაფი დაკავშირება"
 
-#: rustconn/src/split_view/bridge.rs:1974
+#: rustconn/src/split_view/bridge.rs:1971
 msgid "Command palette"
 msgstr "ბრძანებების პალიტრა"
 
-#: rustconn/src/split_view/bridge.rs:1975
+#: rustconn/src/split_view/bridge.rs:1972
 msgid "Local shell"
 msgstr "ლოკალური გარსი"
 
-#: rustconn/src/split_view/bridge.rs:1977
+#: rustconn/src/split_view/bridge.rs:1974
 msgid "Split vertical / horizontal"
 msgstr "ჰორიზონტალური / ვერტიკალური გაყოფა"
 
-#: rustconn/src/split_view/bridge.rs:1978
+#: rustconn/src/split_view/bridge.rs:1975
 msgid "Disable shortcuts"
 msgstr "მალსახმობების გათიშვა"
 
-#: rustconn/src/split_view/bridge.rs:1979
+#: rustconn/src/split_view/bridge.rs:1976
 msgid "Import connections"
 msgstr "კავშირების შემოტანა"
 
-#: rustconn/src/split_view/bridge.rs:2009
+#: rustconn/src/split_view/bridge.rs:2006
 msgid "Quick Access"
 msgstr "სწრაფი წვდომა"
 
-#: rustconn/src/split_view/bridge.rs:2013
+#: rustconn/src/split_view/bridge.rs:2010
 msgid "Fuzzy search & command palette"
 msgstr "ბუნდოვანი ძებნა და ბრძანებების პალიტრა"
 
-#: rustconn/src/split_view/bridge.rs:2014
+#: rustconn/src/split_view/bridge.rs:2011
 msgid "Pin favorites to sidebar"
 msgstr "რჩეულების ამაგრება გვერდით პანელზე"
 
-#: rustconn/src/split_view/bridge.rs:2015
+#: rustconn/src/split_view/bridge.rs:2012
 msgid "Split view for terminals"
 msgstr "გაყოფილი ხედი ტერმინალებისთვის"
 
-#: rustconn/src/split_view/bridge.rs:2018
+#: rustconn/src/split_view/bridge.rs:2015
 msgid "Tab Overview grid (Ctrl+Shift+O)"
 msgstr "ჩანართის მიმოხილვის ბადე (Ctrl+Shift+O)"
 
-#: rustconn/src/split_view/bridge.rs:2035
+#: rustconn/src/split_view/bridge.rs:2032
 msgid "Import Formats"
 msgstr "შემოტანის ფორმატები"
 
-#: rustconn/src/split_view/bridge.rs:2201
+#: rustconn/src/split_view/bridge.rs:2198
 msgid "All tabs are already displayed in this split view"
 msgstr "ყველა ჩანართი უკვე ნაჩვენებია ამ გაყოფილ ხედში"
 
-#: rustconn/src/split_view/bridge.rs:2240
+#: rustconn/src/split_view/bridge.rs:2237
 msgid "Select a tab to display"
 msgstr "აირჩიეთ საჩვენებელი ჩანართი"
 
@@ -10369,7 +10395,7 @@ msgstr "ან შეიყვანეთ ახალი სახელი:"
 msgid "Apply"
 msgstr "გადატარება"
 
-#: rustconn/src/terminal/tab_menu.rs:400 rustconn/src/terminal/tab_menu.rs:754
+#: rustconn/src/terminal/tab_menu.rs:400 rustconn/src/terminal/tab_menu.rs:759
 msgid "Close All in Group"
 msgstr "ჯგუფში ყველას დახურვა"
 
@@ -10377,59 +10403,59 @@ msgstr "ჯგუფში ყველას დახურვა"
 msgid "Close {} tabs in group '{}'?"
 msgstr "დაიხუროს {} ჩანართი ჯგუფში '{}'?"
 
-#: rustconn/src/terminal/tab_menu.rs:725
+#: rustconn/src/terminal/tab_menu.rs:730
 msgid "Monitor {} ({})"
 msgstr "{}-ის მონიტორინგი ({})"
 
-#: rustconn/src/terminal/tab_menu.rs:726
+#: rustconn/src/terminal/tab_menu.rs:731
 msgid "Monitor {}"
 msgstr "{}-ის მონიტორინგი"
 
-#: rustconn/src/terminal/tab_menu.rs:740
+#: rustconn/src/terminal/tab_menu.rs:745
 msgid "Unpin Tab"
 msgstr "ჩანართის ჩამოხსნა"
 
-#: rustconn/src/terminal/tab_menu.rs:742
+#: rustconn/src/terminal/tab_menu.rs:747
 msgid "Pin Tab"
 msgstr "ჩანართის მიმაგრება"
 
-#: rustconn/src/terminal/tab_menu.rs:750
+#: rustconn/src/terminal/tab_menu.rs:755
 msgid "Set Group…"
 msgstr "ჯგუფის დაყენება…"
 
-#: rustconn/src/terminal/tab_menu.rs:752
+#: rustconn/src/terminal/tab_menu.rs:757
 msgid "Remove from Group"
 msgstr "ჯგუფიდან წაშლა"
 
-#: rustconn/src/terminal/tab_menu.rs:763
+#: rustconn/src/terminal/tab_menu.rs:768
 msgid "Monitor: {}"
 msgstr "მინიტორინგი: {}"
 
-#: rustconn/src/terminal/tab_menu.rs:779
+#: rustconn/src/terminal/tab_menu.rs:784
 msgid "Move to New Window"
 msgstr "ახალ ფანჯარაში გადატანა"
 
-#: rustconn/src/terminal/tab_menu.rs:782
+#: rustconn/src/terminal/tab_menu.rs:787
 msgid "Move to New Window on"
 msgstr "ახალ ფანჯარაში გადატანა"
 
-#: rustconn/src/terminal/tab_menu.rs:790
+#: rustconn/src/terminal/tab_menu.rs:795
 msgid "Close Others"
 msgstr "სხვების დახურვა"
 
-#: rustconn/src/terminal/tab_menu.rs:791
+#: rustconn/src/terminal/tab_menu.rs:796
 msgid "Close to the Left"
 msgstr "მარცხნივ მყოფების დახურვა"
 
-#: rustconn/src/terminal/tab_menu.rs:792
+#: rustconn/src/terminal/tab_menu.rs:797
 msgid "Close to the Right"
 msgstr "მარჯვნივ მყოფების დახურვა"
 
-#: rustconn/src/terminal/tab_menu.rs:795
+#: rustconn/src/terminal/tab_menu.rs:800
 msgid "Close All Ungrouped"
 msgstr "ყველა დაუჯგუფებლის დახურვა"
 
-#: rustconn/src/terminal/tab_menu.rs:799
+#: rustconn/src/terminal/tab_menu.rs:804
 msgid "Close All Tabs"
 msgstr "ყველა ჩანართის დახურვა"
 
@@ -11661,24 +11687,24 @@ msgstr "კომპიუტერმა გაიღვიძა — დაშ
 msgid "Reconnecting sessions after sleep"
 msgstr "სესიების თავიდან დაკავშირება ძილის შემდეგ"
 
-#: rustconn/src/window/session_lifecycle.rs:263
+#: rustconn/src/window/session_lifecycle.rs:316
 msgid "Session log could not be created: {}"
 msgstr "სესიის ჟურნალის შექმნა შეუძლებელია: {}"
 
-#: rustconn/src/window/session_lifecycle.rs:469
+#: rustconn/src/window/session_lifecycle.rs:522
 msgid "Activity detected: {}"
 msgstr "აღმოჩენილია აქტივობა: {}"
 
-#: rustconn/src/window/session_lifecycle.rs:473
+#: rustconn/src/window/session_lifecycle.rs:526
 msgid "Silence detected: {}"
 msgstr "აღმოჩენილია სიჩუმე: {}"
 
-#: rustconn/src/window/session_lifecycle.rs:479
-#: rustconn/src/window/session_lifecycle.rs:492
+#: rustconn/src/window/session_lifecycle.rs:539
+#: rustconn/src/window/session_lifecycle.rs:552
 msgid "Command finished: {}"
 msgstr "ბრძანება დასრულდა: {}"
 
-#: rustconn/src/window/session_lifecycle.rs:486
+#: rustconn/src/window/session_lifecycle.rs:546
 msgid "Command failed with status {}: {}"
 msgstr "ბრძანება ჩავარდა სტატუსით {}: {}"
 
@@ -11794,59 +11820,59 @@ msgstr "პარამეტრის შენახვა შეუძლე�
 msgid "Could not save preference"
 msgstr "პარამეტრის შენახვა შეუძლებელია"
 
-#: rustconn/src/window/snippets.rs:57
+#: rustconn/src/window/snippets.rs:129
 msgid "Manage Snippets"
 msgstr "ფრაგმენტების ნახვა"
 
-#: rustconn/src/window/snippets.rs:78 rustconn/src/window/snippets.rs:460
+#: rustconn/src/window/snippets.rs:150 rustconn/src/window/snippets.rs:532
 msgid "Search snippets..."
 msgstr "ფრაგმენტების ძებნა..."
 
-#: rustconn/src/window/snippets.rs:240
+#: rustconn/src/window/snippets.rs:312
 msgid "Execute"
 msgstr "შესრულება"
 
-#: rustconn/src/window/snippets.rs:241
+#: rustconn/src/window/snippets.rs:313
 msgid "Execute snippet"
 msgstr "ფრაგმენტის შესრულება"
 
-#: rustconn/src/window/snippets.rs:247
+#: rustconn/src/window/snippets.rs:319
 msgid "Edit snippet"
 msgstr "ფრაგმენტის ჩასწორება"
 
-#: rustconn/src/window/snippets.rs:253
+#: rustconn/src/window/snippets.rs:325
 msgid "Delete snippet"
 msgstr "ნაწყვეტის წაშლა"
 
-#: rustconn/src/window/snippets.rs:340
+#: rustconn/src/window/snippets.rs:412
 msgid "Delete Snippet?"
 msgstr "წავშალო ფრაგმენტი?"
 
-#: rustconn/src/window/snippets.rs:341
+#: rustconn/src/window/snippets.rs:413
 msgid "Are you sure you want to delete this snippet?"
 msgstr "მართლა გნებავთ ამ ფრაგმენტის წაშლა?"
 
-#: rustconn/src/window/snippets.rs:446
+#: rustconn/src/window/snippets.rs:518
 msgid "Execute Snippet"
 msgstr "ფრაგმენტის შესრულება"
 
-#: rustconn/src/window/snippets.rs:476
+#: rustconn/src/window/snippets.rs:548
 msgid "No snippets available"
 msgstr "ფრაგმენტები ხელმისაწვდომი არაა"
 
-#: rustconn/src/window/snippets.rs:477
+#: rustconn/src/window/snippets.rs:549
 msgid "Create snippets in the Manage Snippets dialog"
 msgstr "შექმენით ფრაგმენტები 'ფრაგმენტების მართვის' დიალოგში"
 
-#: rustconn/src/window/snippets.rs:540
+#: rustconn/src/window/snippets.rs:612
 msgid "No Active Terminal"
 msgstr "აქტიური ტერმინალის გარეშე"
 
-#: rustconn/src/window/snippets.rs:541
+#: rustconn/src/window/snippets.rs:613
 msgid "Open a terminal session first before executing a snippet."
 msgstr "ფრაგმენტის შესრულებამდე ჯერ ტერმინალის სესია გახსენით."
 
-#: rustconn/src/window/snippets.rs:608
+#: rustconn/src/window/snippets.rs:694
 msgid "Enter Variable Values"
 msgstr "შეიყვანეთ ცვლადის მნიშვნელობები"
 

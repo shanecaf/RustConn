@@ -33,6 +33,7 @@ pub struct SnippetDialog {
     save_btn: Button,
     target_row: adw::ComboRow,
     delivery_row: adw::ComboRow,
+    confirm_row: adw::SwitchRow,
     editing_id: Rc<RefCell<Option<Uuid>>>,
     variables: Rc<RefCell<Vec<VariableRow>>>,
     on_save: super::SnippetCallback,
@@ -111,6 +112,7 @@ impl SnippetDialog {
             tags_entry,
             target_row,
             delivery_row,
+            confirm_row,
         ) = Self::create_basic_section();
         content.append(&basic_frame);
 
@@ -149,6 +151,7 @@ impl SnippetDialog {
             save_btn: new_btn,
             target_row,
             delivery_row,
+            confirm_row,
             editing_id: Rc::new(RefCell::new(None)),
             variables,
             on_save,
@@ -164,6 +167,7 @@ impl SnippetDialog {
         Entry,
         adw::ComboRow,
         adw::ComboRow,
+        adw::SwitchRow,
     ) {
         use super::widgets::EntryRowBuilder;
 
@@ -228,6 +232,16 @@ impl SnippetDialog {
             .build();
         group.add(&delivery_row);
 
+        // Second confirmation before the command is sent (issue #315)
+        let confirm_row = adw::SwitchRow::builder()
+            .title(i18n("Confirm before running"))
+            .subtitle(i18n(
+                "Show a confirmation dialog every time this snippet is run",
+            ))
+            .active(false)
+            .build();
+        group.add(&confirm_row);
+
         (
             group,
             name_entry,
@@ -236,6 +250,7 @@ impl SnippetDialog {
             tags_entry,
             target_row,
             delivery_row,
+            confirm_row,
         )
     }
 
@@ -414,6 +429,8 @@ impl SnippetDialog {
             rustconn_core::models::ScriptDelivery::Autotype => 2,
         });
 
+        self.confirm_row.set_active(snippet.confirm_before_run);
+
         // Set command
         self.command_view.buffer().set_text(&snippet.command);
 
@@ -491,6 +508,7 @@ impl SnippetDialog {
             &self.editing_id,
             &self.target_row,
             &self.delivery_row,
+            &self.confirm_row,
         )
     }
 
@@ -514,6 +532,7 @@ impl SnippetDialog {
         let editing_id = self.editing_id.clone();
         let target_row = self.target_row.clone();
         let delivery_row = self.delivery_row.clone();
+        let confirm_row = self.confirm_row.clone();
 
         self.save_btn.connect_clicked(move |_| {
             // Validate
@@ -546,6 +565,7 @@ impl SnippetDialog {
                 &editing_id,
                 &target_row,
                 &delivery_row,
+                &confirm_row,
             );
 
             if let Some(ref cb) = *on_save.borrow() {
@@ -575,6 +595,7 @@ impl SnippetDialog {
         editing_id: &Rc<RefCell<Option<Uuid>>>,
         target_row: &adw::ComboRow,
         delivery_row: &adw::ComboRow,
+        confirm_row: &adw::SwitchRow,
     ) -> Option<Snippet> {
         use rustconn_core::models::{ScriptDelivery, SnippetTarget};
 
@@ -620,6 +641,8 @@ impl SnippetDialog {
             2 => ScriptDelivery::Autotype,
             _ => ScriptDelivery::Auto,
         };
+
+        snippet.confirm_before_run = confirm_row.is_active();
 
         // Variables
         let vars = variables.borrow();

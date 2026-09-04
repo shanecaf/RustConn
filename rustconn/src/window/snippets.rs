@@ -14,13 +14,22 @@ use uuid::Uuid;
 
 use crate::alert;
 use crate::dialogs::SnippetDialog;
-use crate::i18n::i18n;
+use crate::i18n::{i18n, i18n_f};
 use crate::state::SharedAppState;
 use crate::terminal::TerminalNotebook;
 use crate::window::types::SessionSplitBridges;
 
 /// Type alias for shared terminal notebook
 pub type SharedNotebook = Rc<TerminalNotebook>;
+
+/// Longest command shown verbatim in the confirmation dialog.
+///
+/// The point of the dialog is that the user reads what is about to run, so the
+/// command is shown in full rather than summarised. A generated one-liner can be
+/// arbitrarily long, though, and an `AlertDialog` grows with its body until it
+/// stops being readable — this caps it while still showing far more than the
+/// 50-character preview used in the snippet lists.
+const CONFIRM_COMMAND_PREVIEW_LIMIT: usize = 400;
 
 /// Sends text to the focused terminal, respecting split view focus.
 ///
@@ -44,6 +53,102 @@ fn send_text_to_focused(
     }
     // Fallback: send to the active tab's terminal
     notebook.send_text(text);
+}
+
+/// Sends a snippet's resolved command to the focused terminal, asking first when
+/// the snippet opts into confirmation.
+///
+/// Every terminal execution path funnels through this function, so
+/// `confirm_before_run` cannot be bypassed by the route the user took: the
+/// picker, the manager's Execute button, the variable-input dialog and the
+/// inline context-menu item all arrive here. `command` is the substituted
+/// command *without* a trailing newline — this function adds the newline that
+/// makes the shell run it.
+///
+/// `after_send` runs only once the command has actually been sent, so a caller
+/// that owns a dialog can keep it open when the user cancels.
+fn send_snippet_command(
+    parent: &gtk4::Widget,
+    notebook: &SharedNotebook,
+    session_bridges: &SessionSplitBridges,
+    snippet: &rustconn_core::models::Snippet,
+    command: &str,
+    after_send: impl Fn() + 'static,
+) {
+    // Never log `command` itself. Variable substitution has already happened by
+    // this point, so it can carry values resolved from vault-backed global
+    // variables. The length is enough to tell "sent something" from "sent
+    // nothing" without putting a secret in the log.
+    if !snippet.confirm_before_run {
+        tracing::debug!(
+            snippet = %snippet.name,
+            snippet_id = %snippet.id,
+            command_bytes = command.len(),
+            "Sending snippet to the focused terminal"
+        );
+        send_text_to_focused(notebook, session_bridges, &format!("{command}\n"));
+        after_send();
+        return;
+    }
+
+    let notebook_confirm = notebook.clone();
+    let bridges_confirm = session_bridges.clone();
+    let command_confirm = command.to_string();
+    let name_confirm = snippet.name.clone();
+    let id_confirm = snippet.id;
+
+    tracing::debug!(
+        snippet = %snippet.name,
+        snippet_id = %snippet.id,
+        "Snippet asks for confirmation; waiting for the user"
+    );
+
+    alert::show_confirm(
+        parent,
+        &i18n("Run Snippet?"),
+        &i18n_f(
+            "This runs “{}” in the active session:\n\n{}",
+            &[&snippet.name, &truncate_command(command)],
+        ),
+        &i18n("Run"),
+        // The user marked this snippet as needing confirmation, which is a
+        // statement that running it by accident is expensive. Destructive
+        // appearance carries that; the default response stays Cancel.
+        true,
+        move |confirmed| {
+            if confirmed {
+                tracing::debug!(
+                    snippet = %name_confirm,
+                    snippet_id = %id_confirm,
+                    command_bytes = command_confirm.len(),
+                    "Snippet confirmed; sending to the focused terminal"
+                );
+                send_text_to_focused(
+                    &notebook_confirm,
+                    &bridges_confirm,
+                    &format!("{command_confirm}\n"),
+                );
+                after_send();
+            } else {
+                // The state the confirmation flag creates that did not exist
+                // before: the user deliberately declined. Without this line it
+                // is indistinguishable from a dialog that never appeared.
+                tracing::debug!(
+                    snippet = %name_confirm,
+                    snippet_id = %id_confirm,
+                    "Snippet run cancelled at the confirmation dialog"
+                );
+            }
+        },
+    );
+}
+
+/// Shortens a command for display, respecting character boundaries.
+fn truncate_command(command: &str) -> String {
+    match command.char_indices().nth(CONFIRM_COMMAND_PREVIEW_LIMIT) {
+        Some((idx, _)) => format!("{}…", &command[..idx]),
+        None => command.to_string(),
+    }
 }
 
 /// Shows the snippets manager dialog
@@ -548,7 +653,14 @@ pub fn execute_snippet(
 
     if variables.is_empty() {
         // No variables, execute directly
-        send_text_to_focused(notebook, session_bridges, &format!("{}\n", snippet.command));
+        send_snippet_command(
+            parent.as_ref().upcast_ref(),
+            notebook,
+            session_bridges,
+            snippet,
+            &snippet.command,
+            || {},
+        );
     } else {
         // Try to resolve variables from Global Variables first
         let state_ref = state.borrow();
@@ -588,7 +700,14 @@ pub fn execute_snippet(
                 &snippet.command,
                 &resolved,
             );
-            send_text_to_focused(notebook, session_bridges, &format!("{substituted}\n"));
+            send_snippet_command(
+                parent.as_ref().upcast_ref(),
+                notebook,
+                session_bridges,
+                snippet,
+                &substituted,
+                || {},
+            );
         } else {
             // Some variables unresolved — show dialog with pre-filled values
             show_variable_input_dialog(parent, notebook, session_bridges, snippet, &resolved);
@@ -671,30 +790,50 @@ pub fn show_variable_input_dialog(
     let dialog_clone = var_dialog.clone();
     let notebook_clone = notebook.clone();
     let bridges_clone = session_bridges.clone();
-    let command = snippet.command.clone();
+    let snippet_clone = snippet.clone();
     execute_btn.connect_clicked(move |_| {
         let mut values = std::collections::HashMap::new();
         for (name, entry) in &entries {
             values.insert(name.clone(), entry.text().to_string());
         }
 
-        let substituted =
-            rustconn_core::snippet::SnippetManager::substitute_variables(&command, &values);
-        send_text_to_focused(&notebook_clone, &bridges_clone, &format!("{substituted}\n"));
-        dialog_clone.close();
+        let substituted = rustconn_core::snippet::SnippetManager::substitute_variables(
+            &snippet_clone.command,
+            &values,
+        );
+        // Parented on this dialog, and closed only after the command is sent, so
+        // cancelling the confirmation returns to the values the user typed
+        // instead of discarding them.
+        let dialog_after_send = dialog_clone.clone();
+        send_snippet_command(
+            dialog_clone.upcast_ref(),
+            &notebook_clone,
+            &bridges_clone,
+            &snippet_clone,
+            &substituted,
+            move || {
+                dialog_after_send.close();
+            },
+        );
     });
 
     let parent_widget: gtk4::Widget = parent.as_ref().clone().upcast();
     var_dialog.present(Some(&parent_widget));
 }
 
-/// Executes a snippet directly without a parent window dialog.
+/// Executes a snippet without opening the picker or the variable dialog.
 ///
-/// Used by the inline context menu action `win.run-snippet-direct`.
-/// If the snippet has unresolved variables, falls back to the full
-/// `execute_snippet` flow (which requires a parent window — not available
-/// from a context menu action, so variables are resolved from globals/defaults only).
+/// Used by the inline context menu action `win.run-snippet-direct`. Variables are
+/// resolved from global variables and snippet defaults only; a snippet with a
+/// variable that neither supplies is skipped, since this path deliberately shows
+/// no input dialog.
+///
+/// `parent` is the window the terminal lives in. It is not used to present a
+/// dialog on the happy path, but a snippet with `confirm_before_run` needs
+/// somewhere to anchor its confirmation — without it this route would be the one
+/// way to bypass the flag.
 pub fn execute_snippet_direct(
+    parent: &impl IsA<gtk4::Window>,
     notebook: &SharedNotebook,
     session_bridges: &SessionSplitBridges,
     snippet: &rustconn_core::models::Snippet,
@@ -708,7 +847,14 @@ pub fn execute_snippet_direct(
     let variables = rustconn_core::snippet::SnippetManager::extract_variables(&snippet.command);
 
     if variables.is_empty() {
-        send_text_to_focused(notebook, session_bridges, &format!("{}\n", snippet.command));
+        send_snippet_command(
+            parent.as_ref().upcast_ref(),
+            notebook,
+            session_bridges,
+            snippet,
+            &snippet.command,
+            || {},
+        );
     } else {
         // Resolve variables from Global Variables and snippet defaults
         let state_ref = state.borrow();
@@ -747,7 +893,14 @@ pub fn execute_snippet_direct(
                 &snippet.command,
                 &resolved,
             );
-            send_text_to_focused(notebook, session_bridges, &format!("{substituted}\n"));
+            send_snippet_command(
+                parent.as_ref().upcast_ref(),
+                notebook,
+                session_bridges,
+                snippet,
+                &substituted,
+                || {},
+            );
         }
         // If unresolved variables remain, silently skip — the user should
         // use the full "Execute Snippet…" picker which shows the variable dialog.

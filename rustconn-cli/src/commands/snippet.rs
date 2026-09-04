@@ -1,6 +1,7 @@
 //! Snippet management commands.
 
 use std::collections::HashMap;
+use std::io::IsTerminal;
 use std::path::Path;
 
 use rustconn_core::models::Snippet;
@@ -41,6 +42,7 @@ pub(super) fn cmd_snippet(
             description,
             category,
             tags,
+            confirm,
         } => cmd_snippet_add(
             config_path,
             &name,
@@ -48,6 +50,7 @@ pub(super) fn cmd_snippet(
             description.as_deref(),
             category,
             tags,
+            confirm,
         ),
         SnippetCommands::Edit {
             name,
@@ -56,6 +59,7 @@ pub(super) fn cmd_snippet(
             description,
             category,
             tags,
+            confirm,
         } => cmd_snippet_edit(
             config_path,
             &name,
@@ -64,11 +68,15 @@ pub(super) fn cmd_snippet(
             description.as_deref(),
             category.as_deref(),
             tags.as_deref(),
+            confirm,
         ),
         SnippetCommands::Delete { name } => cmd_snippet_delete(config_path, &name),
-        SnippetCommands::Run { name, var, execute } => {
-            cmd_snippet_run(config_path, &name, &var, execute)
-        }
+        SnippetCommands::Run {
+            name,
+            var,
+            execute,
+            force,
+        } => cmd_snippet_run(config_path, &name, &var, execute, force),
     }
 }
 
@@ -178,6 +186,9 @@ fn cmd_snippet_show(config_path: Option<&Path>, name: &str) -> Result<(), CliErr
     if !snippet.tags.is_empty() {
         println!("  Tags:     {}", snippet.tags.join(", "));
     }
+    if snippet.confirm_before_run {
+        println!("  Confirm:  asks for confirmation before running");
+    }
 
     println!(
         "  Created:  {}",
@@ -215,6 +226,7 @@ fn cmd_snippet_add(
     description: Option<&str>,
     category: Option<String>,
     tags: Option<String>,
+    confirm: bool,
 ) -> Result<(), CliError> {
     let config_manager = create_config_manager(config_path)?;
 
@@ -235,7 +247,9 @@ fn cmd_snippet_add(
     }
 
     let variables = SnippetManager::extract_variable_objects(command);
-    snippet = snippet.with_variables(variables);
+    snippet = snippet
+        .with_variables(variables)
+        .with_confirm_before_run(confirm);
 
     let id = snippet_manager
         .create_snippet_from(snippet)
@@ -251,6 +265,10 @@ fn cmd_snippet_add(
     Ok(())
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "function parameters mirror the Edit subcommand's flags 1:1; bundling into a struct only restates the flag list"
+)]
 fn cmd_snippet_edit(
     config_path: Option<&Path>,
     name: &str,
@@ -259,6 +277,7 @@ fn cmd_snippet_edit(
     description: Option<&str>,
     category: Option<&str>,
     tags: Option<&str>,
+    confirm: Option<bool>,
 ) -> Result<(), CliError> {
     let config_manager = create_config_manager(config_path)?;
 
@@ -286,6 +305,9 @@ fn cmd_snippet_edit(
     }
     if let Some(tags_str) = tags {
         updated.tags = tags_str.split(',').map(|s| s.trim().to_string()).collect();
+    }
+    if let Some(flag) = confirm {
+        updated.confirm_before_run = flag;
     }
 
     updated.updated_at = chrono::Utc::now();
@@ -318,11 +340,29 @@ fn cmd_snippet_delete(config_path: Option<&Path>, name: &str) -> Result<(), CliE
     Ok(())
 }
 
+/// Prompts for confirmation on an interactive terminal.
+///
+/// Returns `false` when stdin is not a terminal, so a snippet marked
+/// "confirm before running" cannot be executed unattended by accident. Scripts
+/// that mean it pass `--force`.
+fn confirm_run(command: &str) -> bool {
+    if !std::io::stdin().is_terminal() {
+        return false;
+    }
+    eprintln!("About to run: {command}");
+    eprint!("Continue? [y/N] ");
+    let mut input = String::new();
+    std::io::stdin()
+        .read_line(&mut input)
+        .is_ok_and(|_| input.trim().eq_ignore_ascii_case("y"))
+}
+
 fn cmd_snippet_run(
     config_path: Option<&Path>,
     name: &str,
     vars: &[(String, String)],
     execute: bool,
+    force: bool,
 ) -> Result<(), CliError> {
     let config_manager = create_config_manager(config_path)?;
 
@@ -345,6 +385,16 @@ fn cmd_snippet_run(
     let command = SnippetManager::substitute_with_defaults(snippet, &values);
 
     if execute {
+        // A snippet flagged "confirm before running" must not execute on a bare
+        // `--execute`, the same way the GUI will not send it without a prompt.
+        if snippet.confirm_before_run && !force && !confirm_run(&command) {
+            return Err(CliError::Snippet(
+                "This snippet asks for confirmation before running. \
+                 Confirm at the prompt, or pass --force to run it unattended."
+                    .to_string(),
+            ));
+        }
+
         // Warn about potentially dangerous shell metacharacters in variable values
         let unsafe_vars = SnippetManager::check_shell_safety(&values);
         if !unsafe_vars.is_empty() {
