@@ -447,8 +447,16 @@ fn add_key_with_passphrase_dialog(
 
     let toolbar_view = adw::ToolbarView::new();
 
+    // Cancel at the start, the action at the end, both in the header — the same
+    // shape as `portable_passphrase_change` and `credential_transfer`, the other
+    // two dialogs that take input and hide the title buttons. This one used to
+    // hide them and put its only button in the body, which left no visible way
+    // out: Escape and click-outside did close it, but nothing said so.
+    let cancel_button = Button::with_label(&i18n("Cancel"));
+
     let header = adw::HeaderBar::builder()
         .show_end_title_buttons(false)
+        .show_start_title_buttons(false)
         .build();
 
     let content = GtkBox::builder()
@@ -474,26 +482,35 @@ fn add_key_with_passphrase_dialog(
         .hexpand(true)
         .build();
 
-    let button_box = GtkBox::builder()
-        .orientation(Orientation::Horizontal)
-        .spacing(6)
-        .halign(gtk4::Align::End)
-        .build();
-
     let add_button = Button::builder()
         .label(i18n("Add Key"))
         .css_classes(["suggested-action"])
         .build();
 
-    button_box.append(&add_button);
+    header.pack_start(&cancel_button);
+    header.pack_end(&add_button);
 
     content.append(&body_label);
     content.append(&passphrase_entry);
-    content.append(&button_box);
 
     toolbar_view.add_top_bar(&header);
     toolbar_view.set_content(Some(&content));
     dialog.set_child(Some(&toolbar_view));
+
+    // Cancel closes without touching the agent. `can-close` is left on, so
+    // Escape and click-outside already did this; the button is what makes it
+    // discoverable.
+    let dialog_for_cancel = dialog.clone();
+    cancel_button.connect_clicked(move |_| {
+        dialog_for_cancel.close();
+    });
+
+    // Enter in the passphrase field submits, as in the connection password
+    // dialog. Registered before the entry is moved into the handler below.
+    let add_for_activate = add_button.clone();
+    passphrase_entry.connect_activate(move |_| {
+        add_for_activate.emit_clicked();
+    });
 
     // Connect add button
     let manager_clone = ssh_agent_manager.clone();
