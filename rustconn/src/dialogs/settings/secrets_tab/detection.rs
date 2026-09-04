@@ -420,7 +420,7 @@ fn detect_bitwarden() -> (bool, String, Option<String>, Option<(String, &'static
         None
     };
     let bitwarden_status = if bitwarden_installed {
-        Some(check_bitwarden_status_sync(&bitwarden_cmd))
+        Some(check_bitwarden_status_sync(&bitwarden_cmd).to_status_pair())
     } else {
         None
     };
@@ -674,29 +674,121 @@ fn parse_version(output: &str) -> Option<String> {
         .map(|m| m.as_str().to_string())
 }
 
-/// Checks Bitwarden vault status synchronously
-pub(super) fn check_bitwarden_status_sync(bw_cmd: &str) -> (String, &'static str) {
-    let output = probe(
-        std::process::Command::new(bw_cmd).arg("status"),
-        "bw status",
-    );
+/// What `bw status` reported about the vault.
+///
+/// A typed verdict, because the display string this used to return was the thing
+/// two callers made a decision on: both compared it against the literal
+/// `"Locked"` to decide whether to attempt an unlock, and the string had already
+/// been through [`i18n`]. In Italian it is `Bloccato`, in Ukrainian
+/// `Заблоковано`, and neither equals `"Locked"` — so outside an English locale the
+/// comparison said "not locked", the unlock was skipped, and the Secrets page kept
+/// reporting a locked vault it was holding the master password for
+/// (issue [#312](https://github.com/totoshko88/RustConn/issues/312)). The verdict
+/// and its presentation are now separate things: this enum decides, and
+/// [`Self::to_status_pair`] renders.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) enum BwVaultStatus {
+    /// Unlocked, and the CLI has the vault key it needs to answer lookups.
+    Unlocked,
+    /// Logged in, but locked. The one state an unlock attempt can change.
+    Locked,
+    /// No account is logged in, so unlocking cannot help — `bw login` has to
+    /// happen first.
+    Unauthenticated,
+    /// `bw status` named a state this build does not know. The raw value is kept
+    /// so the page can show what was actually said.
+    Other(String),
+    /// `bw status` ran but produced nothing this could read as a status.
+    Unparseable,
+    /// The probe did not run, or exceeded [`PROBE_TIMEOUT`].
+    ProbeFailed,
+}
 
-    match output {
-        Some(o) if o.status.success() => {
-            let status_str = String::from_utf8_lossy(&o.stdout);
-            if let Ok(status) = serde_json::from_str::<serde_json::Value>(&status_str)
-                && let Some(status_val) = status.get("status").and_then(|v| v.as_str())
-            {
-                return match status_val {
-                    "unlocked" => (i18n("Unlocked"), "success"),
-                    "locked" => (i18n("Locked"), "warning"),
-                    "unauthenticated" => (i18n("Not logged in"), "error"),
-                    _ => (i18n_f("Status: {}", &[status_val]), "dim-label"),
-                };
-            }
-            (i18n("Unknown"), "dim-label")
+impl BwVaultStatus {
+    /// Renders the translated label and css class the Secrets page shows.
+    pub(super) fn to_status_pair(&self) -> (String, &'static str) {
+        match self {
+            Self::Unlocked => (i18n("Unlocked"), "success"),
+            Self::Locked => (i18n("Locked"), "warning"),
+            Self::Unauthenticated => (i18n("Not logged in"), "error"),
+            Self::Other(raw) => (i18n_f("Status: {}", &[raw.as_str()]), "dim-label"),
+            Self::Unparseable => (i18n("Unknown"), "dim-label"),
+            Self::ProbeFailed => (i18n("Error checking status"), "error"),
         }
-        _ => (i18n("Error checking status"), "error"),
+    }
+
+    /// Whether to attempt an unlock, given that a master password is in hand.
+    ///
+    /// [`Self::Locked`] is the obvious yes. The two inconclusive verdicts are
+    /// also yes, and that is the deliberate part: [`Self::ProbeFailed`] means
+    /// `bw status` did not answer within [`PROBE_TIMEOUT`], which is five seconds
+    /// against a call measured at 2.5 s on the reporter's machine in issue
+    /// [#312](https://github.com/totoshko88/RustConn/issues/312) — a slower link
+    /// turns a locked vault into "probe failed", and treating that as "nothing to
+    /// do" reproduces the same silent skip through a different door.
+    /// [`Self::Unparseable`] is the same argument: `bw` ran and said something
+    /// unreadable, which is not evidence that the vault is fine.
+    ///
+    /// An attempt against an already-unlocked vault costs one `bw unlock` and
+    /// returns a fresh session key, so guessing wrong here is cheap. The two
+    /// verdicts that stay `false` are the ones where it cannot help:
+    /// [`Self::Unlocked`] needs nothing, and [`Self::Unauthenticated`] needs
+    /// `bw login` — no password will unlock a CLI with no account.
+    /// [`Self::Other`] is a state this build does not recognise, so it is left
+    /// alone rather than acted on.
+    pub(super) const fn should_try_unlock(&self) -> bool {
+        matches!(self, Self::Locked | Self::ProbeFailed | Self::Unparseable)
+    }
+}
+
+/// Asks `bw status` what state the vault is in.
+///
+/// The command is assembled the way [`BitwardenBackend::build_command`] assembles
+/// it, and the part that was missing is `BW_SESSION`. RustConn keeps the session
+/// key in process memory rather than in its own environment, and `bw status` reads
+/// the session from the environment of the child — so a probe that did not pass it
+/// reported `locked` for a vault RustConn had unlocked seconds earlier. That
+/// verdict is what [`backend_readiness`] turns into
+/// `BackendReadiness::NeedsAction`, which is what put "cannot store passwords yet:
+/// Locked" on the startup banner of a working vault
+/// (issue [#312](https://github.com/totoshko88/RustConn/issues/312)).
+///
+/// The other two additions are not new bugs but the same omissions: the extended
+/// `PATH` is how a sandboxed `bw` finds the tools it shells out to, and
+/// `--nointeraction` stops it prompting or reaching the network on a call that has
+/// five seconds to answer.
+///
+/// The key travels as an environment variable, not as `--session`, for the reason
+/// the backend does the same: argv is world-readable through `/proc/PID/cmdline`.
+///
+/// [`BitwardenBackend::build_command`]: rustconn_core::secret::BitwardenBackend
+pub(super) fn check_bitwarden_status_sync(bw_cmd: &str) -> BwVaultStatus {
+    use secrecy::ExposeSecret;
+
+    let mut cmd = std::process::Command::new(bw_cmd);
+    cmd.env("PATH", rustconn_core::cli_download::get_extended_path());
+    cmd.args(["--nointeraction", "status"]);
+    if let Some(session) = rustconn_core::secret::get_session_key() {
+        cmd.env("BW_SESSION", session.expose_secret());
+    }
+
+    let Some(output) = probe(&mut cmd, "bw status") else {
+        return BwVaultStatus::ProbeFailed;
+    };
+    if !output.status.success() {
+        return BwVaultStatus::ProbeFailed;
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&stdout) else {
+        return BwVaultStatus::Unparseable;
+    };
+    match parsed.get("status").and_then(|v| v.as_str()) {
+        Some("unlocked") => BwVaultStatus::Unlocked,
+        Some("locked") => BwVaultStatus::Locked,
+        Some("unauthenticated") => BwVaultStatus::Unauthenticated,
+        Some(other) => BwVaultStatus::Other(other.to_string()),
+        None => BwVaultStatus::Unparseable,
     }
 }
 
@@ -771,31 +863,11 @@ pub(super) fn read_passbolt_server_url_sync() -> Option<String> {
         .map(String::from)
 }
 
-/// Extracts session key from `bw unlock` output
-pub(super) fn extract_session_key(output: &str) -> Option<String> {
-    // Output format: export BW_SESSION="<session_key>"
-    // or: $ export BW_SESSION="<session_key>"
-    for line in output.lines() {
-        if line.contains("BW_SESSION=") {
-            // Extract the value between quotes
-            if let Some(start) = line.find('"')
-                && let Some(end) = line.rfind('"')
-                && end > start
-            {
-                return Some(line[start + 1..end].to_string());
-            }
-            // Try without quotes (BW_SESSION=value)
-            if let Some(pos) = line.find("BW_SESSION=") {
-                let value_start = pos + "BW_SESSION=".len();
-                let value = line[value_start..].trim().trim_matches('"');
-                if !value.is_empty() {
-                    return Some(value.to_string());
-                }
-            }
-        }
-    }
-    None
-}
+// `extract_session_key` used to live here, a second copy of the parser in
+// `rustconn_core::secret::bitwarden`. Both existed because this page built its own
+// `bw unlock` commands; now that all four of those call sites go through
+// `unlock_vault_blocking`, core parses its own output and the GUI never sees a
+// session key as text.
 
 #[cfg(test)]
 mod readiness_tests {
@@ -856,6 +928,110 @@ mod readiness_tests {
                 assert!(
                     backend_needs_probe(backend),
                     "{backend:?} answers Unknown without a probe but is exempt from running one"
+                );
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod bw_vault_status_tests {
+    use super::BwVaultStatus;
+
+    /// Written out rather than derived, for the same reason `ALL_BACKENDS` above
+    /// is: the enum has no iterator, and the point is to notice a variant that
+    /// was added without a decision being made about it.
+    fn all_variants() -> Vec<BwVaultStatus> {
+        vec![
+            BwVaultStatus::Unlocked,
+            BwVaultStatus::Locked,
+            BwVaultStatus::Unauthenticated,
+            BwVaultStatus::Other("pendingApproval".to_string()),
+            BwVaultStatus::Unparseable,
+            BwVaultStatus::ProbeFailed,
+        ]
+    }
+
+    /// The regression test for issue #312. The bug was that the unlock decision
+    /// was made by comparing a *translated* display string against the literal
+    /// `"Locked"`, so it could only ever be true in English. Pinning the decision
+    /// to the variant is the fix, and this asserts the decision directly —
+    /// nothing here goes near a rendered label.
+    #[test]
+    fn a_locked_vault_is_the_case_an_unlock_exists_for() {
+        assert!(BwVaultStatus::Locked.should_try_unlock());
+    }
+
+    #[test]
+    fn an_unlocked_vault_and_a_missing_login_are_both_left_alone() {
+        // Nothing to do.
+        assert!(!BwVaultStatus::Unlocked.should_try_unlock());
+        // `bw unlock` cannot help a CLI with no account; it needs `bw login`.
+        assert!(!BwVaultStatus::Unauthenticated.should_try_unlock());
+        // A state this build does not recognise is not acted on.
+        assert!(!BwVaultStatus::Other("pendingApproval".to_string()).should_try_unlock());
+    }
+
+    /// An inconclusive probe must not be read as "the vault is fine". `bw status`
+    /// gets five seconds and was measured at 2.5 s on the reporter's machine, so a
+    /// slower link turns a locked vault into `ProbeFailed` — and skipping the
+    /// unlock there is the same silent no-op the issue was about, reached through a
+    /// different door.
+    #[test]
+    fn an_inconclusive_probe_still_attempts_the_unlock() {
+        assert!(BwVaultStatus::ProbeFailed.should_try_unlock());
+        assert!(BwVaultStatus::Unparseable.should_try_unlock());
+    }
+
+    /// The separation the fix introduced: deciding and rendering are different
+    /// jobs. Every variant must produce a non-empty label and a css class, and
+    /// none of that may feed back into the decision.
+    #[test]
+    fn every_variant_renders_a_label_without_affecting_the_decision() {
+        for status in all_variants() {
+            let (text, css) = status.to_status_pair();
+            assert!(!text.is_empty(), "{status:?} rendered an empty label");
+            assert!(!css.is_empty(), "{status:?} rendered no css class");
+            // Rendering is pure: asking twice gives the same answer, and asking at
+            // all does not change what the decision would be.
+            let (text_again, css_again) = status.to_status_pair();
+            assert_eq!(text, text_again);
+            assert_eq!(css, css_again);
+        }
+    }
+
+    /// `Other` exists to show what `bw` actually said, so the raw value has to
+    /// reach the label rather than being flattened to "Unknown".
+    #[test]
+    fn an_unrecognised_state_shows_what_bw_reported() {
+        let (text, _) = BwVaultStatus::Other("pendingApproval".to_string()).to_status_pair();
+        assert!(
+            text.contains("pendingApproval"),
+            "raw state was dropped from the label: {text}"
+        );
+    }
+
+    /// The shape of the original bug, pinned so it cannot come back: a decision
+    /// taken from the rendered text is wrong even in English, because the text is
+    /// what a translator is free to change.
+    #[test]
+    fn the_decision_does_not_depend_on_the_rendered_text() {
+        for status in all_variants() {
+            let (text, _) = status.to_status_pair();
+            let by_text = text == "Locked";
+            if matches!(
+                status,
+                BwVaultStatus::ProbeFailed | BwVaultStatus::Unparseable
+            ) {
+                // These two are exactly where the two answers legitimately differ:
+                // an inconclusive probe never renders as "Locked" but is still
+                // worth an attempt.
+                assert!(status.should_try_unlock() && !by_text);
+            } else {
+                assert_eq!(
+                    status.should_try_unlock(),
+                    by_text,
+                    "{status:?} would have been decided differently by its label"
                 );
             }
         }
