@@ -28,9 +28,13 @@ const TERM_GRACE: Duration = Duration::from_millis(500);
 /// The same grace on the way out, where it is paid as a blocked main thread.
 ///
 /// Shorter than [`TERM_GRACE`] on purpose: it is added to the time the window
-/// takes to disappear. It is enough for the clients this actually concerns —
-/// `telnet`, `ssh` and `picocom` all terminate on `SIGTERM` in well under a
-/// millisecond — and it is spent once for all sessions, not once per session.
+/// takes to disappear, and it is spent once for all sessions rather than once
+/// per session.
+///
+/// It used to claim the clients concerned all terminate "in well under a
+/// millisecond". They do act on the signal immediately, but they are still
+/// unreaped when the grace expires, which is a different thing — see
+/// [`is_zombie`] for why that distinction is the whole point here.
 const SHUTDOWN_TERM_GRACE: Duration = Duration::from_millis(100);
 
 /// Sends `SIGTERM` to the child's process group and returns whether it landed.
@@ -60,6 +64,47 @@ fn still_our_group_leader(pid: i32) -> bool {
         && unistd::getpgid(Some(probe)).is_ok_and(|pgid| pgid.as_raw() == pid)
 }
 
+/// Returns whether `pid` is a corpse awaiting reaping rather than a live process.
+///
+/// [`still_our_group_leader`] cannot tell the two apart: `kill(pid, None)`
+/// succeeds for a zombie and `getpgid` still answers, which is deliberate there —
+/// it is a PID-reuse guard, not a liveness test. The consequence was a log line
+/// asserting the child "ignored SIGTERM" whenever it had in fact obeyed it and
+/// simply had not been collected yet.
+///
+/// On the shutdown path that is the *normal* outcome, because the reaper is a
+/// GLib child watch and the main loop it needs is going away. A session log from
+/// the field showed all four children reported as ignoring the signal while their
+/// wait statuses said otherwise: `65280` is `WIFEXITED` with code 255, ssh's own
+/// exit, and `15` is `WIFSIGNALED` with SIGTERM. Neither is a `SIGKILL`.
+///
+/// Read-only on purpose. Calling `waitpid` here would answer the same question
+/// but would also steal the child from the GLib watch that is still running, and
+/// the accuracy of a debug line does not justify that.
+#[cfg(target_os = "linux")]
+fn is_zombie(pid: i32) -> bool {
+    let Ok(stat) = std::fs::read_to_string(format!("/proc/{pid}/stat")) else {
+        return false;
+    };
+    // Field 3 is the state, but field 2 is the command in parentheses and may
+    // itself contain spaces and parentheses — so split after the last `)` rather
+    // than tokenising the whole line.
+    let Some((_, after_comm)) = stat.rsplit_once(')') else {
+        return false;
+    };
+    after_comm.split_whitespace().next() == Some("Z")
+}
+
+/// Always reports "alive", so the escalation below behaves exactly as before.
+///
+/// There is no equally cheap read-only probe outside Linux. Answering wrongly in
+/// this direction costs only the imprecise log line; answering wrongly the other
+/// way would skip a `SIGKILL` that is sometimes needed.
+#[cfg(not(target_os = "linux"))]
+const fn is_zombie(_pid: i32) -> bool {
+    false
+}
+
 /// Ends a session's child process group, escalating on the GTK main loop.
 ///
 /// For use while the application keeps running (closing a tab, ending a single
@@ -71,8 +116,7 @@ pub(super) fn terminate_child_group(pid: i32) {
     }
     glib::timeout_add_local_once(TERM_GRACE, move || {
         if still_our_group_leader(pid) {
-            let _ = signal::kill(Pid::from_raw(-pid), Signal::SIGKILL);
-            tracing::debug!(%pid, "session child ignored SIGTERM, sent SIGKILL");
+            sweep_group(pid, "");
         }
     });
 }
@@ -95,9 +139,27 @@ pub(super) fn terminate_child_groups_blocking(pids: &[i32]) {
     std::thread::sleep(SHUTDOWN_TERM_GRACE);
     for pid in pending {
         if still_our_group_leader(pid) {
-            let _ = signal::kill(Pid::from_raw(-pid), Signal::SIGKILL);
-            tracing::debug!(%pid, "session child ignored SIGTERM on shutdown, sent SIGKILL");
+            sweep_group(pid, " on shutdown");
         }
+    }
+}
+
+/// Sends the escalating `SIGKILL` to the group and says truthfully what it was for.
+///
+/// The signal goes out either way, including when the leader is already a corpse:
+/// a client may have spawned helpers that outlive it — ssh with a `ProxyCommand`
+/// does exactly that — and those are in the same group. Only the log line
+/// distinguishes the two cases, because only the log line was ever wrong.
+fn sweep_group(pid: i32, when: &str) {
+    let leader_already_gone = is_zombie(pid);
+    let _ = signal::kill(Pid::from_raw(-pid), Signal::SIGKILL);
+    if leader_already_gone {
+        tracing::debug!(
+            %pid,
+            "session child exited on SIGTERM{when} but was not reaped yet; swept its group"
+        );
+    } else {
+        tracing::debug!(%pid, "session child ignored SIGTERM{when}, sent SIGKILL");
     }
 }
 
@@ -158,6 +220,51 @@ mod tests {
         let start = std::time::Instant::now();
         terminate_child_groups_blocking(&[]);
         assert!(start.elapsed() < SHUTDOWN_TERM_GRACE);
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn an_unreaped_corpse_is_told_apart_from_a_live_child() {
+        // The distinction the shutdown log got wrong. `true` exits immediately
+        // and nothing here reaps it, so it sits as a zombie in exactly the state
+        // a well-behaved client is in when the grace expires — and
+        // `still_our_group_leader` reports it as present, which is why the
+        // liveness question needs its own answer.
+        let corpse =
+            pty_spawn::spawn_on_pty(&["true"], &[], None, (24, 80)).expect("true should spawn");
+        let corpse_pid = corpse.pid as i32;
+
+        let mut seen_zombie = false;
+        for _ in 0..100 {
+            if is_zombie(corpse_pid) {
+                seen_zombie = true;
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        assert!(
+            seen_zombie,
+            "an unreaped child that exited must read as a zombie"
+        );
+        assert!(
+            still_our_group_leader(corpse_pid),
+            "the PID-reuse guard deliberately still answers for a zombie, \
+             which is why is_zombie has to exist"
+        );
+
+        let alive = pty_spawn::spawn_on_pty(&["sleep", "30"], &[], None, (24, 80))
+            .expect("sleep should spawn");
+        assert!(
+            !is_zombie(alive.pid as i32),
+            "a running child must not read as a zombie"
+        );
+
+        terminate_child_groups_blocking(&[corpse_pid, alive.pid as i32]);
+        assert!(
+            wait_gone(alive.pid),
+            "the live child must still be cleaned up"
+        );
+        assert!(wait_gone(corpse.pid), "the corpse must still be reapable");
     }
 
     #[test]
