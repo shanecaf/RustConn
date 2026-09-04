@@ -600,13 +600,10 @@ pub fn show_add_key_file_chooser(
     file_dialog.set_filters(Some(&filters));
     file_dialog.set_default_filter(Some(&key_filter));
 
-    // No `set_initial_folder`. It used to point at ~/.ssh, and it was the only
-    // thing separating this call from the KeePass database and key-file choosers
-    // a few groups above, which are raised from this same dialog and do open. It
-    // is also the least useful part: keys inside ~/.ssh are already listed under
-    // Available Key Files and can be added from there, so the chooser exists
-    // precisely for keys kept somewhere else — which is where defaulting to
-    // ~/.ssh actively gets in the way.
+    // No `set_initial_folder`: keys inside ~/.ssh are already listed under
+    // Available Key Files and can be added from there, so the chooser is for keys
+    // kept somewhere else — which is where defaulting into ~/.ssh gets in the way.
+    // GTK reopens wherever it was last anyway.
 
     let manager_clone = ssh_agent_manager.clone();
     let keys_list_clone = ssh_agent_keys_list.clone();
@@ -615,19 +612,15 @@ pub fn show_add_key_file_chooser(
     let button_clone = button.clone();
     let window_clone = window.clone();
 
-    // One chooser at a time. Nothing stopped a second click from starting a
-    // second one, and a log of three "Opening" lines with no completion is
-    // exactly what that produces — clicking again is the natural response to a
-    // chooser that does not appear, so the failure mode invited it. It also
-    // makes the state legible: a button that stays insensitive means the
-    // callback never came back.
+    // One chooser at a time: nothing stopped a second click from starting a
+    // second one, and clicking again is the natural response to a chooser that is
+    // slow to appear.
     button.set_sensitive(false);
-    let reenable = button.clone();
 
     tracing::debug!("Opening the SSH key file chooser");
 
     file_dialog.open(Some(window), gtk4::gio::Cancellable::NONE, move |result| {
-        reenable.set_sensitive(true);
+        button_clone.set_sensitive(true);
         match result {
             Ok(file) => {
                 let Some(path) = file.path() else {
@@ -659,10 +652,12 @@ pub fn show_add_key_file_chooser(
                 tracing::debug!("Key file chooser dismissed");
             }
             Err(e) => {
-                // Until now this arm did not exist: the whole result was matched
-                // with `if let Ok(...)`, so a chooser that refused to open —
-                // which is what a denied desktop portal looks like — made the
-                // Add Key button appear to do nothing at all.
+                // This arm did not exist while the result was matched with
+                // `if let Ok(...)`, which collapsed a dismissal, a real failure
+                // and a callback that never runs into one silent outcome. Telling
+                // them apart is what identified the "Add Key does nothing" report
+                // as the environment rather than this code — see the portal note
+                // in steering `shell-environment.md`.
                 tracing::warn!(error = %e, "SSH key file chooser failed to open");
                 crate::alert::show_error(
                     &window_clone,
