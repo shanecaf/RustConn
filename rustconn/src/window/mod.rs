@@ -3866,6 +3866,7 @@ impl MainWindow {
         {
             let tm = self.tunnel_manager.clone();
             let state_c = self.state.clone();
+            let toast_c = self.toast_overlay.clone();
             glib::timeout_add_local(std::time::Duration::from_secs(5), move || {
                 let failed = tm.borrow_mut().health_check();
                 if !failed.is_empty() {
@@ -3877,42 +3878,72 @@ impl MainWindow {
                         .into_iter()
                         .cloned()
                         .collect();
-                    for id in &failed {
-                        if let Some(tunnel) = tunnels.iter().find(|t| t.id == *id)
-                            && tunnel.auto_reconnect
-                            && tunnel.enabled
+                    for failure in &failed {
+                        let id = &failure.id;
+                        let Some(tunnel) = tunnels.iter().find(|t| t.id == *id) else {
+                            continue;
+                        };
+
+                        // A tunnel that dies is a background failure the user can
+                        // retry, so it gets a toast (gnome-hig.md). Until now the
+                        // only trace was a log line: the row simply left the
+                        // Active group, which looks the same as stopping it.
+                        if !tunnel.auto_reconnect || !tunnel.enabled {
+                            toast_c.show_error(&crate::i18n::i18n_f(
+                                "Tunnel “{}” stopped: {}",
+                                &[&tunnel.name, &failure.reason],
+                            ));
+                            continue;
+                        }
+
+                        // Check if tunnel exceeded max reconnect attempts
+                        if tm.borrow().exceeded_max_reconnects(*id) {
+                            tracing::warn!(
+                                tunnel = %tunnel.name,
+                                tunnel_id = %id,
+                                "Tunnel exceeded max reconnect attempts, giving up"
+                            );
+                            // Giving up is the end of the retry loop, so this is
+                            // the last chance to tell the user anything.
+                            toast_c.show_error(&crate::i18n::i18n_f(
+                                "Gave up reconnecting tunnel “{}”: {}",
+                                &[&tunnel.name, &failure.reason],
+                            ));
+                            continue;
+                        }
+
+                        if let Some(conn) =
+                            connections.iter().find(|c| c.id == tunnel.connection_id)
                         {
-                            // Check if tunnel exceeded max reconnect attempts
-                            if tm.borrow().exceeded_max_reconnects(*id) {
+                            tracing::info!(tunnel = %tunnel.name, "Auto-reconnecting failed tunnel");
+                            // Resolve cached password for reconnection
+                            let cached_pw: Option<secrecy::SecretString> = state_c
+                                .try_borrow()
+                                .ok()
+                                .and_then(|s| {
+                                    s.get_cached_credentials(tunnel.connection_id).cloned()
+                                })
+                                .and_then(|c| {
+                                    use secrecy::ExposeSecret;
+                                    if c.password.expose_secret().is_empty() {
+                                        None
+                                    } else {
+                                        Some(c.password.clone())
+                                    }
+                                });
+                            // The reconnect result used to be discarded, so a
+                            // reconnect that could never work — `ssh` missing, the
+                            // connection no longer SSH — retried in silence until
+                            // the attempt counter ran out.
+                            if let Err(e) =
+                                tm.borrow_mut().start(tunnel, conn, cached_pw.as_ref(), &[])
+                            {
                                 tracing::warn!(
                                     tunnel = %tunnel.name,
                                     tunnel_id = %id,
-                                    "Tunnel exceeded max reconnect attempts, giving up"
+                                    %e,
+                                    "Auto-reconnect failed"
                                 );
-                                continue;
-                            }
-
-                            if let Some(conn) =
-                                connections.iter().find(|c| c.id == tunnel.connection_id)
-                            {
-                                tracing::info!(tunnel = %tunnel.name, "Auto-reconnecting failed tunnel");
-                                // Resolve cached password for reconnection
-                                let cached_pw: Option<secrecy::SecretString> = state_c
-                                    .try_borrow()
-                                    .ok()
-                                    .and_then(|s| {
-                                        s.get_cached_credentials(tunnel.connection_id).cloned()
-                                    })
-                                    .and_then(|c| {
-                                        use secrecy::ExposeSecret;
-                                        if c.password.expose_secret().is_empty() {
-                                            None
-                                        } else {
-                                            Some(c.password.clone())
-                                        }
-                                    });
-                                let _ =
-                                    tm.borrow_mut().start(tunnel, conn, cached_pw.as_ref(), &[]);
                             }
                         }
                     }

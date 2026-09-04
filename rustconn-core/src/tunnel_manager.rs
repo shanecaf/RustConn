@@ -32,6 +32,31 @@ pub enum TunnelManagerError {
     /// Failed to spawn the SSH process
     #[error("Failed to spawn SSH tunnel: {0}")]
     SpawnFailed(#[from] std::io::Error),
+    /// The program that carries the tunnel is not installed.
+    ///
+    /// Separate from `SpawnFailed` because it is the one spawn failure with an
+    /// obvious remedy, and because the caller cannot otherwise tell *which*
+    /// program is missing: an MPTCP-enabled connection runs `mptcpize`, not
+    /// `ssh`, so a message naming `ssh` would send the user to install something
+    /// they already have.
+    #[error("{program} was not found")]
+    ProgramNotFound {
+        /// Name of the executable that could not be found on `PATH`.
+        program: String,
+    },
+}
+
+/// A tunnel that exited on its own, with the diagnosis of why.
+///
+/// `health_check` used to build this message, assign it to the tunnel's status
+/// and then drop the whole record in the same call, so the captured stderr never
+/// reached a caller. Returning it is what makes the failure reportable.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TunnelFailure {
+    /// The tunnel that exited.
+    pub id: Uuid,
+    /// Exit status, and the process's stderr when it wrote any.
+    pub reason: String,
 }
 
 /// Result type for tunnel manager operations
@@ -57,6 +82,13 @@ pub struct TunnelManager {
     running: HashMap<Uuid, RunningTunnel>,
     /// Consecutive reconnect failure count per tunnel (reset on manual start/stop)
     reconnect_failures: HashMap<Uuid, u32>,
+    /// Why each tunnel last exited on its own, kept after the process record is
+    /// gone so `status` can still answer `Failed`.
+    ///
+    /// Without this, a tunnel that died reported `Stopped` — indistinguishable
+    /// from one the user stopped on purpose — and the `TunnelStatus::Failed`
+    /// branch that `tunnel_builder::path_diagram` already draws was unreachable.
+    last_failure: HashMap<Uuid, String>,
 }
 
 impl TunnelManager {
@@ -66,6 +98,7 @@ impl TunnelManager {
         Self {
             running: HashMap::new(),
             reconnect_failures: HashMap::new(),
+            last_failure: HashMap::new(),
         }
     }
 
@@ -93,8 +126,11 @@ impl TunnelManager {
             return Err(TunnelManagerError::AlreadyRunning(tunnel.id));
         }
 
-        // Reset reconnect failure counter on manual start
+        // Reset reconnect failure counter on manual start, and clear any
+        // recorded exit reason so a restarted tunnel does not keep reporting the
+        // failure it recovered from.
         self.reconnect_failures.remove(&tunnel.id);
+        self.last_failure.remove(&tunnel.id);
 
         let ProtocolConfig::Ssh(ref ssh_config) = connection.protocol_config else {
             return Err(TunnelManagerError::NotSshConnection(tunnel.connection_id));
@@ -102,6 +138,7 @@ impl TunnelManager {
 
         // Build SSH command: ssh -N [-L ...] [-R ...] [-D ...] [options] user@host
         // Wrap with mptcpize if MPTCP is enabled for this connection.
+        let program = if ssh_config.mptcp { "mptcpize" } else { "ssh" };
         let mut cmd = if ssh_config.mptcp {
             let mut c = Command::new("mptcpize");
             c.args(["run", "ssh"]);
@@ -188,7 +225,15 @@ impl TunnelManager {
             "Starting standalone SSH tunnel"
         );
 
-        let mut child = cmd.spawn()?;
+        let mut child = cmd.spawn().map_err(|e| {
+            if e.kind() == std::io::ErrorKind::NotFound {
+                TunnelManagerError::ProgramNotFound {
+                    program: program.to_string(),
+                }
+            } else {
+                TunnelManagerError::SpawnFailed(e)
+            }
+        })?;
 
         // Capture stderr in background thread
         let stderr_output = Arc::new(Mutex::new(String::new()));
@@ -240,8 +285,11 @@ impl TunnelManager {
         if let Some(mut running) = self.running.remove(&tunnel_id) {
             let _ = running.child.kill();
             let _ = running.child.wait();
-            // Reset reconnect failure counter on manual stop
+            // Reset reconnect failure counter on manual stop, and forget any
+            // recorded exit reason: a tunnel the user stopped is `Stopped`, not
+            // `Failed`, whatever it did before.
             self.reconnect_failures.remove(&tunnel_id);
+            self.last_failure.remove(&tunnel_id);
             tracing::info!(tunnel_id = %tunnel_id, "Stopped standalone SSH tunnel");
             Ok(())
         } else {
@@ -257,12 +305,29 @@ impl TunnelManager {
         }
     }
 
-    /// Returns the status of a tunnel
+    /// Returns the status of a tunnel.
+    ///
+    /// A tunnel that is not running reports `Failed` when it exited on its own
+    /// and `health_check` recorded why, and `Stopped` only when it was never
+    /// started or the user stopped it. Both used to report `Stopped`.
     #[must_use]
     pub fn status(&self, tunnel_id: Uuid) -> TunnelStatus {
-        self.running
+        if let Some(running) = self.running.get(&tunnel_id) {
+            return running.status.clone();
+        }
+        self.last_failure
             .get(&tunnel_id)
-            .map_or(TunnelStatus::Stopped, |r| r.status.clone())
+            .map_or(TunnelStatus::Stopped, |reason| {
+                TunnelStatus::Failed(reason.clone())
+            })
+    }
+
+    /// Returns why a tunnel last exited on its own, if it did.
+    ///
+    /// Cleared when the tunnel is started or stopped deliberately.
+    #[must_use]
+    pub fn last_failure(&self, tunnel_id: Uuid) -> Option<&str> {
+        self.last_failure.get(&tunnel_id).map(String::as_str)
     }
 
     /// Returns true if the tunnel is currently running
@@ -290,10 +355,16 @@ impl TunnelManager {
 
     /// Performs a health check on all running tunnels.
     ///
-    /// Returns a list of tunnel IDs that have exited unexpectedly.
-    /// Updates internal status to `Failed` for crashed tunnels and
-    /// increments the reconnect failure counter for each failed tunnel.
-    pub fn health_check(&mut self) -> Vec<Uuid> {
+    /// Returns the tunnels that have exited unexpectedly, each with the exit
+    /// status and whatever the process wrote to stderr. Increments the reconnect
+    /// failure counter for each, and records the reason so a later `status` call
+    /// still reports `Failed` rather than `Stopped`.
+    ///
+    /// The reason is returned rather than only stored because the caller is the
+    /// only thing that can put it in front of the user; an earlier version built
+    /// this message, assigned it to the process record and then removed that
+    /// record in the same call, which discarded it.
+    pub fn health_check(&mut self) -> Vec<TunnelFailure> {
         let mut failed = Vec::new();
 
         for (id, running) in &mut self.running {
@@ -314,11 +385,14 @@ impl TunnelManager {
                         %status,
                         "Standalone tunnel exited unexpectedly"
                     );
-                    running.status = TunnelStatus::Failed(msg);
+                    running.status = TunnelStatus::Failed(msg.clone());
                     // Increment reconnect failure counter
                     let count = self.reconnect_failures.entry(*id).or_insert(0);
                     *count += 1;
-                    failed.push(*id);
+                    failed.push(TunnelFailure {
+                        id: *id,
+                        reason: msg,
+                    });
                 }
                 Ok(None) => {
                     // Still running — mark as Running if it was Starting
@@ -332,9 +406,11 @@ impl TunnelManager {
             }
         }
 
-        // Remove failed tunnels from the running set
-        for id in &failed {
-            self.running.remove(id);
+        // Remove failed tunnels from the running set, keeping the reason behind
+        // so the tunnel does not silently read as "Stopped" afterwards.
+        for failure in &failed {
+            self.running.remove(&failure.id);
+            self.last_failure.insert(failure.id, failure.reason.clone());
         }
 
         failed

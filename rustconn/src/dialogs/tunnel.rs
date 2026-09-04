@@ -15,12 +15,14 @@ use gtk4::glib;
 use gtk4::prelude::*;
 use libadwaita as adw;
 use rustconn_core::models::{Connection, StandaloneTunnel};
+use rustconn_core::tunnel_manager::TunnelManagerError;
 use uuid::Uuid;
 
+use crate::alert;
 use crate::dialogs::tunnel_builder::{
     NewConnectionOpener, TunnelBuilderContext, TunnelBuilderDialog,
 };
-use crate::i18n::i18n;
+use crate::i18n::{i18n, i18n_f};
 use crate::state::{SharedAppState, with_state, with_state_mut};
 use crate::window::SharedTunnelManager;
 
@@ -237,7 +239,8 @@ impl TunnelManagerWindow {
         let tm = self.tunnel_manager.borrow();
         for tunnel in &tunnels {
             let is_running = tm.is_running(tunnel.id);
-            let row = build_tunnel_row(tunnel, &connections, is_running);
+            let row =
+                build_tunnel_row(tunnel, &connections, is_running, tm.last_failure(tunnel.id));
 
             // Wire up edit/delete/start/stop buttons in the expanded content
             wire_tunnel_row_actions(&row, tunnel, &ctx);
@@ -276,11 +279,17 @@ struct TunnelRowContext {
     on_new_connection: NewConnectionOpener,
 }
 
-/// Builds an `adw::ExpanderRow` for a single tunnel definition
+/// Builds an `adw::ExpanderRow` for a single tunnel definition.
+///
+/// `failure` is why the tunnel last exited on its own, when it did. A tunnel
+/// that crashed and one the user stopped both sit in the Stopped group, so
+/// without it the two are indistinguishable — which is what made a dying tunnel
+/// invisible.
 fn build_tunnel_row(
     tunnel: &StandaloneTunnel,
     connections: &[Connection],
     is_running: bool,
+    failure: Option<&str>,
 ) -> adw::ExpanderRow {
     let summary = if tunnel.forwards.is_empty() {
         i18n("No port forwards configured")
@@ -293,13 +302,27 @@ fn build_tunnel_row(
         .subtitle(&summary)
         .build();
 
-    // Status icon: green = running, gray = stopped
-    let status_icon = gtk4::Image::from_icon_name("radio-symbolic");
-    if is_running {
-        status_icon.add_css_class("success");
-    } else {
-        status_icon.add_css_class("dim-label");
-    }
+    // A tunnel that exited on its own only counts as reported if it looks
+    // different from one the user stopped, since both sit in the Stopped group.
+    let crashed = failure.filter(|_| !is_running);
+
+    // Status icon: green = running, red warning = exited on its own, gray =
+    // stopped. The icon changes along with the colour, because colour alone is
+    // not a signal (gnome-hig.md), and the state is also in the accessible
+    // label rather than only in the tooltip.
+    let (icon, css_class, state_text) = match crashed {
+        Some(_) => (
+            "dialog-warning-symbolic",
+            "error",
+            i18n("Stopped unexpectedly"),
+        ),
+        None if is_running => ("radio-symbolic", "success", i18n("Running")),
+        None => ("radio-symbolic", "dim-label", i18n("Stopped")),
+    };
+    let status_icon = gtk4::Image::from_icon_name(icon);
+    status_icon.add_css_class(css_class);
+    status_icon.set_tooltip_text(Some(&state_text));
+    status_icon.update_property(&[gtk4::accessible::Property::Label(&state_text)]);
     row.add_prefix(&status_icon);
 
     // Start/Stop toggle button (suffix)
@@ -343,6 +366,21 @@ fn build_tunnel_row(
         .subtitle(&conn_name)
         .build();
     row.add_row(&conn_row);
+
+    // Why it died, in full. This lives in the expanded body rather than the
+    // subtitle because it carries the process's own stderr, which is arbitrarily
+    // long and would wreck the collapsed row. `ssh` writes the useful part here
+    // — "Permission denied", "Address already in use" — and until now it went
+    // only to the log.
+    if let Some(reason) = crashed {
+        let error_row = adw::ActionRow::builder()
+            .title(i18n("Last Error"))
+            .subtitle(glib::markup_escape_text(reason.trim()).as_str())
+            .subtitle_selectable(true)
+            .build();
+        error_row.add_css_class("error");
+        row.add_row(&error_row);
+    }
 
     // Action buttons row
     let actions_row = adw::ActionRow::builder().title(i18n("Actions")).build();
@@ -423,19 +461,38 @@ fn wire_tunnel_row_actions(
                                 }
                             })
                     });
-                    if let Err(e) = ctx_c.tunnel_manager.borrow_mut().start(
+                    let start_result = ctx_c.tunnel_manager.borrow_mut().start(
                         &tunnel_c,
                         conn,
                         cached_pw.as_ref(),
                         &[],
-                    ) {
+                    );
+                    if let Err(e) = start_result {
                         tracing::warn!(tunnel = %tunnel_c.name, %e, "Failed to start tunnel");
+                        // The row is about to be redrawn as "Stopped", which on
+                        // its own is indistinguishable from the button not having
+                        // been pressed. A start the user asked for and did not get
+                        // is a half-finished action, so it gets a dialog rather
+                        // than a toast (gnome-hig.md).
+                        alert::show_error(
+                            &ctx_c.dialog,
+                            &i18n("Tunnel Did Not Start"),
+                            &tunnel_start_error_body(&tunnel_c.name, &e),
+                        );
                     }
                 } else {
                     tracing::warn!(
                         tunnel = %tunnel_c.name,
                         connection_id = %tunnel_c.connection_id,
                         "SSH connection not found for tunnel"
+                    );
+                    alert::show_error(
+                        &ctx_c.dialog,
+                        &i18n("Tunnel Did Not Start"),
+                        &i18n_f(
+                            "“{}” refers to an SSH connection that no longer exists. Edit the tunnel and pick a connection.",
+                            &[&tunnel_c.name],
+                        ),
                     );
                 }
             }
@@ -466,6 +523,30 @@ fn wire_tunnel_row_actions(
         delete_btn.connect_clicked(move |_| {
             delete_tunnel(tunnel_id, &ctx_c);
         });
+    }
+}
+
+/// Builds the body text for a failed tunnel start.
+///
+/// GNOME HIG asks an error to say what happened *and* what to do, so the
+/// variants that have a remedy get one. `ProgramNotFound` carries the program
+/// name from core on purpose: an MPTCP-enabled connection runs `mptcpize` rather
+/// than `ssh`, and naming the wrong one sends the user to install something they
+/// already have.
+fn tunnel_start_error_body(name: &str, error: &TunnelManagerError) -> String {
+    match error {
+        TunnelManagerError::ProgramNotFound { program } => i18n_f(
+            "“{}” needs {}, which is not installed or not on PATH. Install the OpenSSH client and try again.",
+            &[name, program],
+        ),
+        TunnelManagerError::NotSshConnection(_) => i18n_f(
+            "“{}” is attached to a connection that is not SSH. Port forwarding needs an SSH connection.",
+            &[name],
+        ),
+        TunnelManagerError::AlreadyRunning(_) => i18n_f("“{}” is already running.", &[name]),
+        // SpawnFailed, ConnectionNotFound and TunnelNotFound have no single
+        // remedy, so show what the system reported rather than inventing advice.
+        _ => i18n_f("“{}” could not be started: {}", &[name, &error.to_string()]),
     }
 }
 
@@ -593,7 +674,7 @@ fn refresh_from_context(ctx: &TunnelRowContext) {
     let tm = ctx.tunnel_manager.borrow();
     for tunnel in &tunnels {
         let is_running = tm.is_running(tunnel.id);
-        let row = build_tunnel_row(tunnel, &connections, is_running);
+        let row = build_tunnel_row(tunnel, &connections, is_running, tm.last_failure(tunnel.id));
         wire_tunnel_row_actions(&row, tunnel, &rc_ctx);
         if is_running {
             ctx.active_group.borrow().add(&row);
