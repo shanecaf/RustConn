@@ -1,7 +1,6 @@
 //! Snippet management commands.
 
 use std::collections::HashMap;
-use std::io::IsTerminal;
 use std::path::Path;
 
 use rustconn_core::models::Snippet;
@@ -10,7 +9,7 @@ use rustconn_core::snippet::SnippetManager;
 use crate::cli::{OutputFormat, SnippetCommands};
 use crate::error::CliError;
 use crate::format::escape_csv_field;
-use crate::util::create_config_manager;
+use crate::util::{Confirmation, confirm_on_terminal, create_config_manager};
 
 /// Snippet command handler
 ///
@@ -340,21 +339,16 @@ fn cmd_snippet_delete(config_path: Option<&Path>, name: &str) -> Result<(), CliE
     Ok(())
 }
 
-/// Prompts for confirmation on an interactive terminal.
+/// Asks before running a snippet marked "confirm before running".
 ///
-/// Returns `false` when stdin is not a terminal, so a snippet marked
-/// "confirm before running" cannot be executed unattended by accident. Scripts
-/// that mean it pass `--force`.
-fn confirm_run(command: &str) -> bool {
-    if !std::io::stdin().is_terminal() {
-        return false;
-    }
+/// Shows the fully substituted command first, because that is what the flag is
+/// for — the GUI dialog does the same. The prompt itself, and the rule that a
+/// non-interactive stdin is never consent, come from
+/// [`crate::util::confirm_on_terminal`]; this used to be a third private copy of
+/// that prompt alongside the ones in `delete.rs` and `history.rs`.
+fn confirm_run(command: &str) -> Confirmation {
     eprintln!("About to run: {command}");
-    eprint!("Continue? [y/N] ");
-    let mut input = String::new();
-    std::io::stdin()
-        .read_line(&mut input)
-        .is_ok_and(|_| input.trim().eq_ignore_ascii_case("y"))
+    confirm_on_terminal("Continue?")
 }
 
 fn cmd_snippet_run(
@@ -387,12 +381,26 @@ fn cmd_snippet_run(
     if execute {
         // A snippet flagged "confirm before running" must not execute on a bare
         // `--execute`, the same way the GUI will not send it without a prompt.
-        if snippet.confirm_before_run && !force && !confirm_run(&command) {
-            return Err(CliError::Snippet(
-                "This snippet asks for confirmation before running. \
-                 Confirm at the prompt, or pass --force to run it unattended."
-                    .to_string(),
-            ));
+        // Declining and having nobody to ask both refuse, but they say different
+        // things: one is a decision, the other is a script that needs `--force`.
+        if snippet.confirm_before_run && !force {
+            match confirm_run(&command) {
+                Confirmation::Confirmed => {}
+                Confirmation::Declined => {
+                    return Err(CliError::Snippet(
+                        "This snippet asks for confirmation before running, and it was \
+                         not confirmed."
+                            .to_string(),
+                    ));
+                }
+                Confirmation::NotInteractive => {
+                    return Err(CliError::Snippet(
+                        "This snippet asks for confirmation before running, and there is \
+                         no terminal to ask on. Pass --force to run it unattended."
+                            .to_string(),
+                    ));
+                }
+            }
         }
 
         // Warn about potentially dangerous shell metacharacters in variable values

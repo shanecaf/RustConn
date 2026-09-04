@@ -1,13 +1,12 @@
 //! Connection history commands.
 
-use std::io::{self, IsTerminal, Write};
 use std::path::Path;
 
 use crate::cli::{HistoryCommands, OutputFormat};
 use crate::color;
 use crate::error::CliError;
 use crate::format::escape_csv_field;
-use crate::util::create_config_manager;
+use crate::util::{Confirmation, confirm_on_terminal, create_config_manager};
 
 /// History command dispatcher
 ///
@@ -206,24 +205,21 @@ fn cmd_history_show(config_path: Option<&Path>, id: &str) -> Result<(), CliError
 /// Clear all connection history
 fn cmd_history_clear(config_path: Option<&Path>, force: bool) -> Result<(), CliError> {
     if !force {
-        if !io::stdin().is_terminal() {
-            return Err(CliError::Config(
-                "Cannot prompt for confirmation in non-interactive mode. Use --force.".to_string(),
-            ));
-        }
-        print!("Clear all connection history? [y/N] ");
-        io::stdout()
-            .flush()
-            .map_err(|e| CliError::Config(format!("IO error: {e}")))?;
-
-        let mut input = String::new();
-        io::stdin()
-            .read_line(&mut input)
-            .map_err(|e| CliError::Config(format!("IO error: {e}")))?;
-
-        if !input.trim().eq_ignore_ascii_case("y") {
-            println!("Aborted.");
-            return Ok(());
+        match confirm_on_terminal("Clear all connection history?") {
+            Confirmation::Confirmed => {}
+            Confirmation::Declined => {
+                println!("Aborted.");
+                return Ok(());
+            }
+            // Refusing rather than aborting silently, unlike `connection delete`:
+            // this wipes every history entry with no undo, so a script that meant
+            // it should have to say so.
+            Confirmation::NotInteractive => {
+                return Err(CliError::Config(
+                    "Cannot prompt for confirmation in non-interactive mode. Use --force."
+                        .to_string(),
+                ));
+            }
         }
     }
 
