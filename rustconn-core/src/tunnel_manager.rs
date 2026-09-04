@@ -138,7 +138,7 @@ impl TunnelManager {
 
         // Build SSH command: ssh -N [-L ...] [-R ...] [-D ...] [options] user@host
         // Wrap with mptcpize if MPTCP is enabled for this connection.
-        let program = if ssh_config.mptcp { "mptcpize" } else { "ssh" };
+        let program = tunnel_program(ssh_config.mptcp);
         let mut cmd = if ssh_config.mptcp {
             let mut c = Command::new("mptcpize");
             c.args(["run", "ssh"]);
@@ -225,15 +225,7 @@ impl TunnelManager {
             "Starting standalone SSH tunnel"
         );
 
-        let mut child = cmd.spawn().map_err(|e| {
-            if e.kind() == std::io::ErrorKind::NotFound {
-                TunnelManagerError::ProgramNotFound {
-                    program: program.to_string(),
-                }
-            } else {
-                TunnelManagerError::SpawnFailed(e)
-            }
-        })?;
+        let mut child = cmd.spawn().map_err(|e| classify_spawn_error(e, program))?;
 
         // Capture stderr in background thread
         let stderr_output = Arc::new(Mutex::new(String::new()));
@@ -444,6 +436,29 @@ impl Drop for TunnelManager {
     }
 }
 
+/// Returns the program that carries the tunnel.
+///
+/// `mptcpize run ssh` rather than plain `ssh` when the connection asks for
+/// Multipath TCP. Split out from `start` so the choice can be asserted without
+/// spawning anything, and because `ProgramNotFound` reports this name.
+const fn tunnel_program(mptcp: bool) -> &'static str {
+    if mptcp { "mptcpize" } else { "ssh" }
+}
+
+/// Turns a spawn failure into the most specific error variant available.
+///
+/// `NotFound` means the executable is absent, which is the one spawn failure
+/// with an obvious remedy, so it does not get lumped in with the rest.
+fn classify_spawn_error(error: std::io::Error, program: &str) -> TunnelManagerError {
+    if error.kind() == std::io::ErrorKind::NotFound {
+        TunnelManagerError::ProgramNotFound {
+            program: program.to_string(),
+        }
+    } else {
+        TunnelManagerError::SpawnFailed(error)
+    }
+}
+
 /// Environment variable name used to pass the password to the askpass script.
 const ASKPASS_ENV_VAR: &str = "_RC_TUN_PW";
 
@@ -478,4 +493,308 @@ fn create_askpass_script() -> Result<std::path::PathBuf, String> {
     }
 
     Ok(path)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::Connection;
+
+    /// The obvious way to test the spawn paths — drop a stub `ssh` in a temp
+    /// directory and prepend it to `PATH` — is not available here: the workspace
+    /// forbids `std::env::set_var`, which is `unsafe` in Rust 2024 and permitted
+    /// only in `rustconn-env-sys` from `main()`. So the spawn paths are covered
+    /// by making the real `ssh` fail immediately and offline instead (see
+    /// `a_tunnel_that_exits_on_its_own_...`), and everything that does not need a
+    /// process is asserted directly.
+    fn ssh_is_installed() -> bool {
+        // Not `which` — the workspace deliberately does not spawn it (issue #303).
+        std::env::var_os("PATH")
+            .is_some_and(|paths| std::env::split_paths(&paths).any(|dir| dir.join("ssh").is_file()))
+    }
+
+    fn ssh_connection() -> Connection {
+        Connection::new_ssh("jump".to_string(), "127.0.0.1".to_string(), 22)
+    }
+
+    fn tunnel_for(connection: &Connection) -> StandaloneTunnel {
+        StandaloneTunnel::new("mysql prod", connection.id)
+    }
+
+    #[test]
+    fn a_fresh_manager_reports_nothing_running_and_no_failures() {
+        let manager = TunnelManager::new();
+        let id = Uuid::new_v4();
+
+        assert_eq!(manager.active_count(), 0);
+        assert!(!manager.is_running(id));
+        assert_eq!(manager.status(id), TunnelStatus::Stopped);
+        assert_eq!(manager.last_failure(id), None);
+        assert_eq!(manager.reconnect_failure_count(id), 0);
+        assert!(!manager.exceeded_max_reconnects(id));
+    }
+
+    #[test]
+    fn starting_a_non_ssh_connection_is_refused_before_anything_is_spawned() {
+        let mut manager = TunnelManager::new();
+        let connection = Connection::new_rdp("desktop".to_string(), "10.0.0.5".to_string(), 3389);
+        let tunnel = tunnel_for(&connection);
+
+        let error = manager
+            .start(&tunnel, &connection, None, &[])
+            .expect_err("an RDP connection cannot carry a port forward");
+
+        assert!(matches!(error, TunnelManagerError::NotSshConnection(_)));
+        // The point of checking first is that no process was created.
+        assert_eq!(manager.active_count(), 0);
+        assert!(!manager.is_running(tunnel.id));
+    }
+
+    #[test]
+    fn stopping_a_tunnel_that_is_not_running_is_an_error() {
+        let mut manager = TunnelManager::new();
+        let id = Uuid::new_v4();
+
+        let error = manager.stop(id).expect_err("nothing is running");
+        assert!(matches!(error, TunnelManagerError::TunnelNotFound(_)));
+    }
+
+    #[test]
+    fn stop_all_is_harmless_when_nothing_is_running() {
+        let mut manager = TunnelManager::new();
+        manager.stop_all();
+        assert_eq!(manager.active_count(), 0);
+    }
+
+    #[test]
+    fn the_program_is_mptcpize_only_when_the_connection_asks_for_it() {
+        // ProgramNotFound reports this name, so getting it wrong would tell the
+        // user to install the wrong package.
+        assert_eq!(tunnel_program(false), "ssh");
+        assert_eq!(tunnel_program(true), "mptcpize");
+    }
+
+    #[test]
+    fn a_missing_program_is_classified_apart_from_other_spawn_failures() {
+        let missing = classify_spawn_error(
+            std::io::Error::from(std::io::ErrorKind::NotFound),
+            "mptcpize",
+        );
+        match missing {
+            TunnelManagerError::ProgramNotFound { ref program } => {
+                assert_eq!(program, "mptcpize");
+                // The name has to reach the message, not just the variant.
+                assert!(missing.to_string().contains("mptcpize"));
+            }
+            other => panic!("expected ProgramNotFound, got {other:?}"),
+        }
+
+        let denied = classify_spawn_error(
+            std::io::Error::from(std::io::ErrorKind::PermissionDenied),
+            "ssh",
+        );
+        assert!(matches!(denied, TunnelManagerError::SpawnFailed(_)));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn the_askpass_script_is_readable_only_by_its_owner() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let path = create_askpass_script().expect("temp dir should be writable");
+        let mode = std::fs::metadata(&path)
+            .expect("script was just created")
+            .permissions()
+            .mode();
+
+        // It echoes a password, so group and other must have nothing.
+        assert_eq!(mode & 0o777, 0o700, "mode was {:o}", mode & 0o777);
+
+        let body = std::fs::read_to_string(&path).expect("script is readable");
+        assert!(body.starts_with("#!/bin/sh"));
+        // The password travels in the environment, never in the file.
+        assert!(body.contains(ASKPASS_ENV_VAR));
+        assert!(!body.contains("hunter2"));
+
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn each_askpass_script_gets_its_own_path() {
+        // Two concurrent tunnels sharing one path means the second File::create
+        // truncates the script while the first ssh is still reading it.
+        let first = create_askpass_script().expect("temp dir should be writable");
+        let second = create_askpass_script().expect("temp dir should be writable");
+
+        assert_ne!(first, second);
+
+        let _ = std::fs::remove_file(&first);
+        let _ = std::fs::remove_file(&second);
+    }
+
+    /// Exercises the path the visibility fix is about: a tunnel that starts and
+    /// then exits on its own must be reported, and must keep saying so.
+    ///
+    /// `ssh` is made to fail offline and immediately by handing it a
+    /// configuration option that does not exist, so this touches no network and
+    /// does not wait for a connect timeout.
+    #[test]
+    fn a_tunnel_that_exits_on_its_own_is_reported_and_keeps_saying_so() {
+        if !ssh_is_installed() {
+            return;
+        }
+
+        let mut manager = TunnelManager::new();
+        let connection = ssh_connection();
+        let tunnel = tunnel_for(&connection);
+
+        manager
+            .start(
+                &tunnel,
+                &connection,
+                None,
+                &["-o".to_string(), "ThisOptionDoesNotExist=yes".to_string()],
+            )
+            .expect("ssh exists, so the spawn itself succeeds");
+        assert!(
+            manager.is_running(tunnel.id),
+            "the process was just spawned"
+        );
+
+        // Poll rather than assume: the child has to be scheduled and exit first.
+        let mut failures = Vec::new();
+        for _ in 0..100 {
+            failures = manager.health_check();
+            if !failures.is_empty() {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        }
+
+        let failure = failures
+            .first()
+            .expect("ssh rejects an unknown option and exits");
+        assert_eq!(failure.id, tunnel.id);
+        // The reason is what reaches the user, so it must carry ssh's own words
+        // rather than only an exit code.
+        assert!(
+            failure.reason.to_lowercase().contains("option"),
+            "reason lost ssh's stderr: {}",
+            failure.reason
+        );
+
+        // This is the regression the fix is for: the record is gone from the
+        // running set, but the tunnel must not read as a deliberate stop.
+        assert!(!manager.is_running(tunnel.id));
+        assert_eq!(
+            manager.status(tunnel.id),
+            TunnelStatus::Failed(failure.reason.clone())
+        );
+        assert_eq!(
+            manager.last_failure(tunnel.id),
+            Some(failure.reason.as_str())
+        );
+        assert_eq!(manager.reconnect_failure_count(tunnel.id), 1);
+    }
+
+    #[test]
+    fn a_recorded_reason_is_what_turns_status_from_stopped_into_failed() {
+        // The distinction the fix introduced: not running plus a recorded reason
+        // is Failed, not running with no reason is Stopped. Driven through the
+        // private map because producing it otherwise needs a live child, which
+        // the ssh-backed tests above cover end to end.
+        let mut manager = TunnelManager::new();
+        let id = Uuid::new_v4();
+
+        assert_eq!(manager.status(id), TunnelStatus::Stopped);
+
+        manager
+            .last_failure
+            .insert(id, "Process exited with 255".to_string());
+
+        assert_eq!(
+            manager.status(id),
+            TunnelStatus::Failed("Process exited with 255".to_string())
+        );
+        // Still not running: Failed describes how it ended, not a live process.
+        assert!(!manager.is_running(id));
+        assert_eq!(manager.active_count(), 0);
+    }
+
+    #[test]
+    fn a_deliberate_stop_clears_the_recorded_reason() {
+        if !ssh_is_installed() {
+            return;
+        }
+
+        // A tunnel the user stopped is Stopped whatever it did before, so the
+        // warning icon must not survive a deliberate stop. This goes through the
+        // real `stop`, which only reaches its clearing code when something was
+        // actually running.
+        let mut manager = TunnelManager::new();
+        let connection = ssh_connection();
+        let tunnel = tunnel_for(&connection);
+
+        manager
+            .start(&tunnel, &connection, None, &[])
+            .expect("ssh exists, so the spawn itself succeeds");
+        manager
+            .last_failure
+            .insert(tunnel.id, "Process exited with 255".to_string());
+
+        manager.stop(tunnel.id).expect("it is running");
+
+        assert_eq!(manager.last_failure(tunnel.id), None);
+        assert_eq!(manager.status(tunnel.id), TunnelStatus::Stopped);
+    }
+
+    #[test]
+    fn restarting_clears_a_recorded_failure_before_it_can_be_shown_again() {
+        if !ssh_is_installed() {
+            return;
+        }
+
+        let mut manager = TunnelManager::new();
+        let connection = ssh_connection();
+        let tunnel = tunnel_for(&connection);
+        manager
+            .last_failure
+            .insert(tunnel.id, "Process exited with 255".to_string());
+        manager.reconnect_failures.insert(tunnel.id, 3);
+
+        manager
+            .start(&tunnel, &connection, None, &[])
+            .expect("ssh exists, so the spawn itself succeeds");
+
+        assert_eq!(manager.last_failure(tunnel.id), None);
+        assert_eq!(manager.reconnect_failure_count(tunnel.id), 0);
+
+        let _ = manager.stop(tunnel.id);
+    }
+
+    #[test]
+    fn a_running_tunnel_refuses_a_second_start() {
+        if !ssh_is_installed() {
+            return;
+        }
+
+        let mut manager = TunnelManager::new();
+        let connection = ssh_connection();
+        let tunnel = tunnel_for(&connection);
+
+        manager
+            .start(&tunnel, &connection, None, &[])
+            .expect("ssh exists, so the spawn itself succeeds");
+
+        let error = manager
+            .start(&tunnel, &connection, None, &[])
+            .expect_err("one tunnel is one process");
+        assert!(matches!(error, TunnelManagerError::AlreadyRunning(_)));
+        assert_eq!(manager.active_count(), 1);
+
+        manager.stop(tunnel.id).expect("it is running");
+        assert_eq!(manager.active_count(), 0);
+        assert_eq!(manager.status(tunnel.id), TunnelStatus::Stopped);
+    }
 }
