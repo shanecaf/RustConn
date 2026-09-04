@@ -46,6 +46,8 @@ RustConn is a modern connection manager designed for Linux with Wayland-first ap
    - [Templates](#templates)
    - [Snippets](#snippets)
    - [Clusters](#clusters)
+   - [Workspace Profiles](#workspace-profiles)
+   - [Port Knocking](#port-knocking)
    - [Broadcast Input](#broadcast-input)
    - [Command Palette](#command-palette)
    - [Global Variables](#global-variables)
@@ -53,6 +55,7 @@ RustConn is a modern connection manager designed for Linux with Wayland-first ap
    - [Wake-on-LAN](#wake-on-lan)
    - [Connection History & Statistics](#connection-history)
    - [Remote Monitoring](#remote-monitoring)
+   - [Flatpak Components](#flatpak-components)
    - [SSH Tunnel Manager](#ssh-tunnel-manager)
 8. [Settings](#settings)
    - [Custom Keybindings](#custom-keybindings)
@@ -2147,7 +2150,7 @@ Opening a [cluster](#clusters) assigns its member tabs to a group named after th
 
 Templates are connection presets that store protocol settings, authentication defaults, tags, custom properties, and automation tasks. When you create a connection from a template, all configured fields are copied into the new connection — including the template's icon.
 
-**Manage Templates:** Menu → Tools → **Manage Templates** (or `rustconn-cli template list`)
+**Manage Templates:** Menu → Tools → **Templates...** (or `rustconn-cli template list`)
 
 **Create Template:**
 - **From scratch:** Open Manage Templates → Click **Create Template** → configure name, icon (emoji or GTK icon name), protocol, default settings
@@ -2190,12 +2193,15 @@ pg_dump -h ${host} -U ${user} -d ${database} > /tmp/${database}_backup.sql
 
 **Variable Features:** Each variable can have a Name, Description (shown as hint), and Default Value (pre-filled when executing).
 
-**Manage Snippets:** Menu → Tools → **Manage Snippets** (or `rustconn-cli snippet list`)
+**Manage Snippets:** Menu → Tools → **Snippets...** (or `rustconn-cli snippet list`)
 
-**Execute Snippet:**
-1. Connect to a terminal session (SSH, Telnet, Serial, Kubernetes, or local shell)
-2. Menu → Tools → **Execute Snippet** (or use Command Palette → Snippets)
-3. Select a snippet, fill in variable values, click **Execute**
+**Execute Snippet:** running a snippet is always started from the thing you want it to run *on*, never from the app menu. The menu belongs to the main window, so an entry there would fire against whatever session happened to be current — not necessarily the one you are looking at, and not a detached session window at all. Pick whichever of these matches what you have in front of you:
+
+1. **Right-click inside the terminal** — up to five snippets appear inline for one-click use; beyond that the list becomes **Execute Snippet…**, which opens the picker
+2. **Right-click a connection in the sidebar** → **Run Snippet...** — connects first if needed, then opens the picker
+3. **Menu → Tools → Snippets...** → the ▶ button on a snippet's row
+
+Any of them fills in variable values first if the snippet needs them and they cannot be resolved from [Global Variables](#global-variables).
 
 **Global Variables Auto-Resolution:**
 
