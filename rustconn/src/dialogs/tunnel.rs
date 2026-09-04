@@ -255,12 +255,107 @@ impl TunnelManagerWindow {
 
     /// Presents the tunnel manager dialog
     pub fn present(&self, parent: Option<&gtk4::Window>) {
+        self.register_as_open();
         if let Some(p) = parent {
             self.dialog.present(Some(p));
         } else {
             self.dialog.present(gtk4::Widget::NONE);
         }
     }
+
+    /// Publishes a refresh handle so the tunnel health check can redraw this
+    /// dialog while it is open.
+    ///
+    /// The health check runs on a five-second timer in `window/mod.rs` and had no
+    /// way to reach here, so a tunnel that died while the user was looking at this
+    /// list kept its row in the Active group saying "Running". The warning icon,
+    /// the accessible label and the Last Error row — the entire visible half of
+    /// reporting a failed tunnel — only appeared after the dialog was closed and
+    /// reopened, or after some other button happened to trigger a refresh.
+    ///
+    /// The struct itself is dropped immediately after `present`: the caller in
+    /// `window/connection_actions.rs` builds it, presents it and lets it go, with
+    /// GTK keeping the dialog alive. So this stores the pieces rather than a
+    /// handle to `self`, and holds the dialog weakly — a strong reference here
+    /// would keep a closed dialog alive for the life of the process.
+    fn register_as_open(&self) {
+        let ctx = TunnelRowContext {
+            dialog: self.dialog.clone(),
+            state: self.state.clone(),
+            tunnel_manager: self.tunnel_manager.clone(),
+            active_group: self.active_group.clone(),
+            stopped_group: self.stopped_group.clone(),
+            content_stack: self.content_stack.clone(),
+            prefs_page: self.prefs_page.clone(),
+            on_new_connection: self.on_new_connection.clone(),
+        };
+
+        let handle = OpenTunnelManager {
+            dialog: self.dialog.downgrade(),
+            refresh: Rc::new(move || refresh_from_context(&ctx)),
+        };
+
+        OPEN_TUNNEL_MANAGER.with(|slot| {
+            *slot.borrow_mut() = Some(handle);
+        });
+
+        // Clearing on close is not strictly required — `refresh_open_manager`
+        // drops a slot whose dialog is gone — but it releases the captured state
+        // and connection list at the moment the user closes the dialog rather
+        // than at the next health check.
+        self.dialog.connect_closed(|_| {
+            OPEN_TUNNEL_MANAGER.with(|slot| {
+                slot.borrow_mut().take();
+            });
+        });
+    }
+}
+
+/// A live tunnel manager dialog and the closure that redraws its list.
+struct OpenTunnelManager {
+    /// Weak on purpose: see [`TunnelManagerWindow::register_as_open`].
+    dialog: glib::WeakRef<adw::Dialog>,
+    refresh: Rc<dyn Fn()>,
+}
+
+thread_local! {
+    /// The tunnel manager dialog currently on screen, if any.
+    ///
+    /// `thread_local` rather than a field on the main window because the dialog is
+    /// opened from an action that does not keep it, and because everything here is
+    /// GTK — main thread only by construction, so there is nothing to synchronise.
+    /// Only one can be open at a time: it is modal to the window that presented it.
+    static OPEN_TUNNEL_MANAGER: RefCell<Option<OpenTunnelManager>> = const { RefCell::new(None) };
+}
+
+/// Redraws the tunnel manager dialog if one is open.
+///
+/// Call after anything that changes a tunnel's state behind the user's back — the
+/// periodic health check is the reason this exists. A no-op when no dialog is
+/// open, which is the common case, so it is cheap to call on a timer.
+pub fn refresh_open_manager() {
+    OPEN_TUNNEL_MANAGER.with(|slot| {
+        let refresh = {
+            let mut guard = slot.borrow_mut();
+            match guard.as_ref() {
+                // The dialog is gone but `connect_closed` did not run, or ran
+                // before the slot was replaced. Either way the closure would
+                // redraw widgets nobody can see.
+                Some(open) if open.dialog.upgrade().is_none() => {
+                    guard.take();
+                    None
+                }
+                Some(open) => Some(Rc::clone(&open.refresh)),
+                None => None,
+            }
+        };
+        // Called with the borrow released: the refresh rebuilds rows and wires
+        // their handlers, and a handler that reopens the dialog would otherwise
+        // find this still held.
+        if let Some(refresh) = refresh {
+            refresh();
+        }
+    });
 }
 
 // ---------------------------------------------------------------------------
@@ -533,11 +628,19 @@ fn wire_tunnel_row_actions(
 /// name from core on purpose: an MPTCP-enabled connection runs `mptcpize` rather
 /// than `ssh`, and naming the wrong one sends the user to install something they
 /// already have.
+///
+/// Which is what the remedy sentence itself used to do. It said "Install the
+/// OpenSSH client" whatever `program` held, so an MPTCP connection missing
+/// `mptcpize` produced "needs mptcpize … install the OpenSSH client" — the exact
+/// misdirection the variant exists to avoid, reintroduced one line below the
+/// comment explaining it. The advice now follows the program that is actually
+/// missing, and [`missing_program_remedy`] is where a third carrier would be
+/// added.
 fn tunnel_start_error_body(name: &str, error: &TunnelManagerError) -> String {
     match error {
         TunnelManagerError::ProgramNotFound { program } => i18n_f(
-            "“{}” needs {}, which is not installed or not on PATH. Install the OpenSSH client and try again.",
-            &[name, program],
+            "“{}” needs {}, which is not installed or not on PATH. {}",
+            &[name, program, &missing_program_remedy(program)],
         ),
         TunnelManagerError::NotSshConnection(_) => i18n_f(
             "“{}” is attached to a connection that is not SSH. Port forwarding needs an SSH connection.",
@@ -547,6 +650,27 @@ fn tunnel_start_error_body(name: &str, error: &TunnelManagerError) -> String {
         // SpawnFailed, ConnectionNotFound and TunnelNotFound have no single
         // remedy, so show what the system reported rather than inventing advice.
         _ => i18n_f("“{}” could not be started: {}", &[name, &error.to_string()]),
+    }
+}
+
+/// What to do about the program that carries the tunnel being absent.
+///
+/// Two programs can reach `ProgramNotFound`, and they ship in different packages:
+/// `ssh` comes with the OpenSSH client, `mptcpize` with the Multipath TCP tools
+/// (`mptcpd` on most distributions). Naming the wrong one is worse than naming
+/// none, because the user installs something they already have and the tunnel
+/// still does not start.
+///
+/// An unrecognised name gets generic advice rather than a guess: the string comes
+/// from `rustconn-core`, so a future third carrier reaches here before it reaches
+/// this `match`, and a wrong package name would be silent.
+fn missing_program_remedy(program: &str) -> String {
+    match program {
+        "ssh" => i18n("Install the OpenSSH client and try again."),
+        "mptcpize" => i18n(
+            "It ships with the Multipath TCP tools (package “mptcpd” on most distributions). Install them, or turn off Multipath TCP for this connection.",
+        ),
+        _ => i18n("Install it, or make sure it can be found on PATH."),
     }
 }
 
@@ -739,4 +863,95 @@ fn open_tunnel_builder(
     }
 
     builder.present(parent);
+}
+
+#[cfg(test)]
+mod start_error_tests {
+    use rustconn_core::tunnel_manager::TunnelManagerError;
+    use uuid::Uuid;
+
+    use super::{missing_program_remedy, tunnel_start_error_body};
+
+    /// These are pure string builders — no widget is constructed — so they run
+    /// without a display. `i18n` is `gettext`, which returns the msgid unchanged
+    /// with no catalogue loaded, so the assertions below read the English source
+    /// strings.
+    fn program_not_found(program: &str) -> TunnelManagerError {
+        TunnelManagerError::ProgramNotFound {
+            program: program.to_string(),
+        }
+    }
+
+    /// The regression this file's own comment describes and then contradicted:
+    /// `ProgramNotFound` carries the program name precisely so the user is not
+    /// sent to install something they already have, and the remedy sentence said
+    /// "Install the OpenSSH client" regardless.
+    #[test]
+    fn a_missing_mptcpize_does_not_send_the_user_to_install_openssh() {
+        let body = tunnel_start_error_body("mysql prod", &program_not_found("mptcpize"));
+
+        assert!(body.contains("mptcpize"), "program name missing: {body}");
+        assert!(
+            !body.contains("OpenSSH"),
+            "still naming the wrong package: {body}"
+        );
+        // And it has to say what to do instead, not merely omit the wrong advice.
+        assert!(body.contains("mptcpd"), "no remedy offered: {body}");
+    }
+
+    #[test]
+    fn a_missing_ssh_still_names_the_openssh_client() {
+        let body = tunnel_start_error_body("mysql prod", &program_not_found("ssh"));
+
+        assert!(body.contains("OpenSSH"), "remedy missing: {body}");
+        assert!(!body.contains("mptcpd"), "wrong remedy: {body}");
+    }
+
+    /// The name comes from `rustconn-core`, so a third carrier added there reaches
+    /// this function before it reaches the `match`. It must fall back to generic
+    /// advice rather than guessing a package.
+    #[test]
+    fn an_unknown_program_gets_generic_advice_and_never_a_guessed_package() {
+        let remedy = missing_program_remedy("some-future-wrapper");
+
+        assert!(!remedy.is_empty());
+        assert!(!remedy.contains("OpenSSH"));
+        assert!(!remedy.contains("mptcpd"));
+        assert!(remedy.contains("PATH"), "no actionable advice: {remedy}");
+    }
+
+    /// Every variant has to name the tunnel, because the dialog is not otherwise
+    /// attached to a row and several tunnels can be listed at once.
+    #[test]
+    fn every_variant_names_the_tunnel_it_is_about() {
+        let id = Uuid::new_v4();
+        let errors = [
+            program_not_found("ssh"),
+            TunnelManagerError::NotSshConnection(id),
+            TunnelManagerError::AlreadyRunning(id),
+            TunnelManagerError::TunnelNotFound(id),
+            TunnelManagerError::ConnectionNotFound(id),
+        ];
+
+        for error in errors {
+            let body = tunnel_start_error_body("mysql prod", &error);
+            assert!(
+                body.contains("mysql prod"),
+                "{error:?} produced a body with no tunnel name: {body}"
+            );
+        }
+    }
+
+    /// The fallback arm exists to show what the system reported rather than
+    /// inventing advice, so the underlying error text has to survive into it.
+    #[test]
+    fn the_fallback_arm_passes_the_systems_own_words_through() {
+        let error = TunnelManagerError::SpawnFailed(std::io::Error::other("no pty available"));
+        let body = tunnel_start_error_body("mysql prod", &error);
+
+        assert!(
+            body.contains("no pty available"),
+            "system message was dropped: {body}"
+        );
+    }
 }

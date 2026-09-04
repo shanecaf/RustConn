@@ -28,7 +28,9 @@ pub mod session_restore;
 mod sessions;
 mod smart_folders;
 mod snippet_actions;
-mod snippets;
+// `pub(crate)` for `truncate_command`, which the embedded RDP script gate needs:
+// its confirmation shows the same command text and has to cap it the same way.
+pub(crate) mod snippets;
 mod sorting;
 mod split_view_actions;
 mod templates;
@@ -3947,6 +3949,15 @@ impl MainWindow {
                             }
                         }
                     }
+
+                    // Redraw the tunnel manager if the user has it open. Without
+                    // this, the row of a tunnel that just died kept saying
+                    // "Running" in the Active group until something else happened
+                    // to refresh the list — so the warning icon and the Last Error
+                    // row this release added were invisible in the one window
+                    // built to show them. A no-op when no dialog is open, which
+                    // is why it is safe on a five-second timer.
+                    crate::dialogs::tunnel::refresh_open_manager();
                 }
                 glib::ControlFlow::Continue
             });
