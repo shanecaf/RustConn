@@ -599,9 +599,19 @@ pub fn show_add_key_file_chooser(
     let button_clone = button.clone();
     let window_clone = window.clone();
 
+    // One chooser at a time. Nothing stopped a second click from starting a
+    // second one, and a log of three "Opening" lines with no completion is
+    // exactly what that produces — clicking again is the natural response to a
+    // chooser that does not appear, so the failure mode invited it. It also
+    // makes the state legible: a button that stays insensitive means the
+    // callback never came back.
+    button.set_sensitive(false);
+    let reenable = button.clone();
+
     tracing::debug!("Opening the SSH key file chooser");
 
     file_dialog.open(Some(window), gtk4::gio::Cancellable::NONE, move |result| {
+        reenable.set_sensitive(true);
         match result {
             Ok(file) => {
                 let Some(path) = file.path() else {
