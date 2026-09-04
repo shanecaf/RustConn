@@ -18,14 +18,12 @@ use crate::i18n::{i18n, i18n_f};
 /// Creates the SSH Agent settings page using AdwPreferencesPage
 pub fn create_ssh_agent_page() -> (
     adw::PreferencesPage,
-    Label,
-    Label,
-    Button,
-    ListBox,
-    Button,
-    gtk4::Widget,
-    Label,
-    Button,
+    Label,         // status
+    Label,         // socket path
+    Button,        // start agent
+    ListBox,       // loaded keys
+    Button,        // add key
+    Button,        // refresh
     ListBox,       // available_keys_list
     adw::EntryRow, // custom_socket_entry
 ) {
@@ -96,11 +94,10 @@ pub fn create_ssh_agent_page() -> (
     custom_socket_entry.set_tooltip_text(Some(&i18n(
         "Overrides auto-detected SSH_AUTH_SOCK for all connections",
     )));
-    // Use the text property's placeholder
-    custom_socket_entry.set_text("");
-    // Set placeholder via the underlying editable
-    let editable = custom_socket_entry.clone();
-    editable.set_text("");
+    // Three lines were removed here: `set_text("")` on a row that is already
+    // empty, then a clone of the same row and `set_text("")` again. Both were
+    // commented as setting a placeholder, which neither does — and the row is
+    // filled from settings by `load_settings` anyway.
 
     // Real-time validation feedback (Task 4.2)
     custom_socket_entry.connect_changed(|entry| {
@@ -140,13 +137,6 @@ pub fn create_ssh_agent_page() -> (
         .build();
     keys_group.add(&ssh_agent_keys_list);
 
-    let ssh_agent_loading_spinner = crate::spinner::new();
-    let ssh_agent_error_label = Label::builder()
-        .label("")
-        .halign(gtk4::Align::Start)
-        .css_classes(["error"])
-        .build();
-
     // Add Key button
     let ssh_agent_add_key_button = Button::builder()
         .label(i18n("Add Key"))
@@ -184,8 +174,6 @@ pub fn create_ssh_agent_page() -> (
         ssh_agent_start_button,
         ssh_agent_keys_list,
         ssh_agent_add_key_button,
-        ssh_agent_loading_spinner.upcast(),
-        ssh_agent_error_label,
         ssh_agent_refresh_button,
         available_keys_list,
         custom_socket_entry,
@@ -575,12 +563,18 @@ pub fn show_add_key_file_chooser(
     ssh_agent_status_label: &Label,
     ssh_agent_socket_label: &Label,
 ) {
+    // Both of these are programming-error paths rather than anything a user can
+    // cause, but they are also two more ways this button can appear to do
+    // nothing, so they say which one happened.
     let Some(root) = button.root() else {
-        tracing::error!("Cannot get root window for file chooser");
+        tracing::error!("Add Key: button has no root, cannot parent the file chooser");
         return;
     };
     let Some(window) = root.downcast_ref::<gtk4::Window>() else {
-        tracing::error!("Root is not a Window");
+        tracing::error!(
+            root = %root.type_(),
+            "Add Key: root is not a GtkWindow, cannot parent the file chooser"
+        );
         return;
     };
 
@@ -603,19 +597,56 @@ pub fn show_add_key_file_chooser(
     let status_label_clone = ssh_agent_status_label.clone();
     let socket_label_clone = ssh_agent_socket_label.clone();
     let button_clone = button.clone();
+    let window_clone = window.clone();
+
+    tracing::debug!("Opening the SSH key file chooser");
 
     file_dialog.open(Some(window), gtk4::gio::Cancellable::NONE, move |result| {
-        if let Ok(file) = result
-            && let Some(path) = file.path()
-        {
-            add_key_with_passphrase_dialog(
-                &button_clone,
-                &path,
-                &manager_clone,
-                &keys_list_clone,
-                &status_label_clone,
-                &socket_label_clone,
-            );
+        match result {
+            Ok(file) => {
+                let Some(path) = file.path() else {
+                    // A chooser result with no local path — a virtual location
+                    // such as a remote mount. ssh-add needs a real file.
+                    tracing::warn!("Chosen key file has no local path");
+                    crate::alert::show_error(
+                        &window_clone,
+                        &i18n("Cannot Use That File"),
+                        &i18n(
+                            "That location has no local file path. Copy the key to a local folder first.",
+                        ),
+                    );
+                    return;
+                };
+                tracing::debug!(path = %path.display(), "Key file chosen");
+                add_key_with_passphrase_dialog(
+                    &button_clone,
+                    &path,
+                    &manager_clone,
+                    &keys_list_clone,
+                    &status_label_clone,
+                    &socket_label_clone,
+                );
+            }
+            // Closing the chooser is an Err too, and the only one that means
+            // nothing went wrong.
+            Err(e) if e.matches(gtk4::DialogError::Dismissed) => {
+                tracing::debug!("Key file chooser dismissed");
+            }
+            Err(e) => {
+                // Until now this arm did not exist: the whole result was matched
+                // with `if let Ok(...)`, so a chooser that refused to open —
+                // which is what a denied desktop portal looks like — made the
+                // Add Key button appear to do nothing at all.
+                tracing::warn!(error = %e, "SSH key file chooser failed to open");
+                crate::alert::show_error(
+                    &window_clone,
+                    &i18n("Could Not Open the File Chooser"),
+                    &i18n_f(
+                        "{}\n\nKeys already in ~/.ssh are listed under Available Key Files, and can be added from there without the file chooser.",
+                        &[&e.to_string()],
+                    ),
+                );
+            }
         }
     });
 }
