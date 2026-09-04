@@ -155,6 +155,8 @@
           <li>Fixed: changes to global variables that could not be written to disk were reported as saved, and were gone at the next start</li>
           <li>Fixed: an SSH tunnel that failed to start, or that died on its own, could leave no trace at all — it looked exactly like a tunnel you had stopped on purpose. A failed tunnel now says so, carries the reason the SSH client gave, and updates while the tunnel window is open. When a tunnel needs a program that is missing, the message names the right package to install</li>
           <li>Fixed: running a snippet from the terminal's right-click menu did nothing when one of its variables could not be filled in automatically. It now asks for the missing values</li>
+          <li>Fixed: the Flathub build shipped without an H.264 decoder, so the built-in RDP client quietly fell back to an older image path on every Windows session that offered H.264. The decoder had been part of the local Flatpak build all along and was simply never added to the Flathub one</li>
+          <li>The bundled RDP client is now FreeRDP 3.31.1, which stops the session window flickering on displays that are scaled, and maps several keys the client used to ignore</li>
         </ul>
       </description>
     </release>

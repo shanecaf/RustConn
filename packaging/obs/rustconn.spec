@@ -435,6 +435,19 @@ done
 - Dependencies: cc 1.4.4-1.4.5, find-msvc-tools 0.1.11-0.1.12, syn 3.0.4-3.0.5,
   tinyvec 1.12.0-1.13.2, tokio-rustls 0.26.4-0.26.5, zstd-safe 7.2.4-7.3.0,
   zstd-sys 2.0.16-2.1.0
+- Dependencies: FreeRDP (Flatpak) 3.31.0-3.31.1. A papercut release with no
+  advisory behind it, but it fixes flickering in the SDL3 client on displays
+  scaled other than 1.0, maps keys that client used to drop, and makes WinPR read
+  JSON files in binary mode — the sdl-freerdp.json path the bundled cJSON module
+  exists to enable. Only Flatpak/Flathub bundle FreeRDP; this package uses the
+  distribution's copy and is unaffected
+- Dependencies: openh264 2.6.0 is now bundled in the Flathub manifest as well as
+  the local Flatpak one. The embedded RDP client dlopens a decoder rather than
+  linking one, and the module supplying it had been added to the local manifest
+  alone, so on Flathub every AVC420/AVC444 session negotiated down to RemoteFX.
+  Does not affect this package
+- Dependencies: the nine other bundled Flatpak modules were checked against
+  upstream and are already current, so only FreeRDP moved
 
 * Thu Sep 03 2026 Anton Isaiev <totoshko88@gmail.com> - 0.21.5-0
 - Version bump to 0.21.5

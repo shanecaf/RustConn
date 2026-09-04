@@ -230,7 +230,7 @@ modules:
       # like "7;6M7;6m" on every click. Removing XM prevents the
       # negotiation so VTE falls back to X10/normal mouse mode.
       - infocmp -x -1 xterm-256color | sed 's/xterm-256color/rustconn-256color/' | sed '/XM=/d' | tic -x -o /app/share/terminfo -
-      # Ensure `clear` and `tput` are available inside the sandbox.
+      # Ensure `clear` is available inside the sandbox.
       # GNOME Platform runtime may not include ncurses-utils, so we
       # create a minimal shell wrapper that uses ANSI escape sequences
       # directly — no ncurses dependency required.
@@ -322,14 +322,25 @@ modules:
       - -DWITH_RDTK=OFF
     sources:
       - type: archive
-        url: https://pub.freerdp.com/releases/freerdp-3.31.0.tar.xz
-        sha256: 8538da2f75cfde313808916943c31071b91869b2c616a94441639c7331f56dbc
+        url: https://pub.freerdp.com/releases/freerdp-3.31.1.tar.xz
+        sha256: e679ab1400b4d3f829786782d16e318d72f4712c9d29c041a86f5cc1a2a4ec94
         x-checker-data:
           type: anitya
           project-id: 10442
           stable-only: true
           url-template: https://pub.freerdp.com/releases/freerdp-$version.tar.xz
 
+  # OpenH264 — the decoder the *embedded* RDP client dlopens at runtime, not
+  # something FreeRDP above links against. `gfx_handler.rs` looks for
+  # `/app/lib/libopenh264.so` plus a versioned soname in `/app/lib` and
+  # `/app/lib64`; when nothing is found an AVC420/AVC444 GFX session drops to
+  # the RemoteFX path without saying so.
+  #
+  # Both manifests need it. It lived in packaging/flatpak/ alone from the commit
+  # that added the IronRDP GFX handler until 0.21.6, so every Flathub build in
+  # between shipped with no H.264 decoder at all. Bundled rather than taken from
+  # org.freedesktop.Platform.openh264 because freedesktop dropped that extension
+  # from the runtime in 2025 — there is no extension left to depend on.
   - name: openh264
     buildsystem: meson
     config-opts:
