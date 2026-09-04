@@ -240,7 +240,17 @@ pub fn create_app_menu() -> gio::Menu {
     conn_section.append(Some(&i18n("Local Shell")), Some("win.local-shell"));
     menu.append_section(None, &conn_section);
 
-    // Tools submenu — managers grouped together to reduce top-level height
+    // Tools submenu — managers grouped together to reduce top-level height.
+    //
+    // Everything here opens a manager: it acts on stored data, so it is safe to
+    // reach from a menu whatever has focus. Actions that act on the *current*
+    // focus or selection are deliberately not listed, even where that makes a
+    // frequent action harder to reach — `win.execute-snippet` (the snippet
+    // picker) and `win.wake-on-lan` both resolve their target at activation time,
+    // and an app menu hanging off the main window is the one place where that
+    // target is not what the user is looking at. See the comments at their
+    // registrations in `window/snippet_actions.rs` and `window/edit_actions.rs`
+    // before adding either here.
     let tools_submenu = gio::Menu::new();
     tools_submenu.append(Some(&i18n("Snippets...")), Some("win.manage-snippets"));
     tools_submenu.append(Some(&i18n("Clusters...")), Some("win.manage-clusters"));

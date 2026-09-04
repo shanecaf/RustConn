@@ -428,7 +428,19 @@ impl MainWindow {
         });
         window.add_action(&connect_to_action);
 
-        // Wake On LAN action — sends WoL packet for selected connection
+        // Wake On LAN action — sends WoL packet for selected connection.
+        //
+        // Deliberately reachable from the sidebar context menu only, and not from
+        // the app menu. It acts on `sidebar.get_selected_item()`, so the target is
+        // whatever the user right-clicked — an explicit choice made in the same
+        // gesture. An app-menu entry would fire against whatever happened to be
+        // selected, which the user is not looking at when the menu is open.
+        //
+        // Tools ▸ "Wake On LAN..." is not a second copy of this and should not be
+        // merged into it: that dialog wakes a host the user types a MAC for, which
+        // needs no selection and may not correspond to any saved connection. This
+        // action wakes the selected connection and then polls it to connect. Two
+        // different jobs that happen to send the same packet.
         let wol_action = gio::SimpleAction::new("wake-on-lan", None);
         let state_clone = state.clone();
         let sidebar_clone = sidebar.clone();
