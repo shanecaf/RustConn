@@ -864,7 +864,28 @@ fn openh264_candidates() -> Vec<std::path::PathBuf> {
     candidates
 }
 
+/// The outcome of the library search, decided once per process.
+///
+/// `Some` is the library that loaded; `None` means nothing usable was found.
+///
+/// The decoder itself cannot be shared — each session needs its own — but the
+/// search can, and so can the explanation. Without this the whole walk ran again
+/// for every RDP connection: re-`stat`ing every candidate, re-`dlopen`ing each
+/// one, and re-emitting the same warnings. A log from three connections carried
+/// nine identical lines about an unchangeable property of the machine, at the one
+/// severity users actually read, which is how real warnings get lost.
+///
+/// The trade is that installing a Cisco blob mid-session is not picked up until
+/// restart. That is the right way round: the answer depends on files and an
+/// environment variable that do not change under a running process in practice,
+/// and the alternative is paying the walk on every connection forever.
+static USABLE_LIBRARY: std::sync::OnceLock<Option<std::path::PathBuf>> = std::sync::OnceLock::new();
+
 /// Attempts to load OpenH264 at runtime via dlopen.
+///
+/// The search itself happens once per process and is cached in
+/// [`USABLE_LIBRARY`]; this returns a fresh decoder built from whatever that
+/// search settled on.
 ///
 /// Searches [`OPENH264_PATH_ENV`] and the well-known system paths, returning a
 /// decoder suitable for passing to
@@ -899,6 +920,28 @@ fn openh264_candidates() -> Vec<std::path::PathBuf> {
 pub fn try_load_openh264() -> Option<Box<dyn H264Decoder>> {
     use ironrdp_egfx::decode::OpenH264Decoder;
 
+    let path = USABLE_LIBRARY.get_or_init(probe_openh264).as_ref()?;
+
+    match OpenH264Decoder::from_library_path(path) {
+        Ok(decoder) => Some(Box::new(decoder)),
+        Err(e) => {
+            // The probe already loaded this exact file, so a failure here is a
+            // second session failing where the first succeeded — worth a warning
+            // rather than a silent fallback.
+            tracing::warn!(
+                path = %path.display(),
+                error = %e,
+                "OpenH264 loaded during detection but not for this session"
+            );
+            None
+        }
+    }
+}
+
+/// Walks the candidates once and reports which one is usable, if any.
+fn probe_openh264() -> Option<std::path::PathBuf> {
+    use ironrdp_egfx::decode::OpenH264Decoder;
+
     let mut rejected_hash = false;
 
     for path in openh264_candidates() {
@@ -908,12 +951,12 @@ pub fn try_load_openh264() -> Option<Box<dyn H264Decoder>> {
         }
 
         match OpenH264Decoder::from_library_path(path) {
-            Ok(decoder) => {
+            Ok(_) => {
                 tracing::info!(
                     path = %path.display(),
                     "OpenH264 loaded — H.264 decoding enabled"
                 );
-                return Some(Box::new(decoder));
+                return Some(path.to_path_buf());
             }
             Err(e) => {
                 // `Invalid hash` is the signature of the check described above:
