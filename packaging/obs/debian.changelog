@@ -1,3 +1,70 @@
+rustconn (0.21.6-1) unstable; urgency=medium
+
+  * Version bump to 0.21.6
+  * Added: an optional second confirmation before a snippet runs (#315) — a
+    Confirm before running switch in the snippet editor. Off by default, so
+    existing snippets keep running on a single action. It covers every route a
+    snippet can be started from: the picker, the Execute button in the snippet
+    manager, the variable-input dialog, the inline entries in the terminal's
+    right-click menu, and the Scripts menu of an embedded RDP session.
+  * Added: rustconn-cli snippet honours the same flag — --confirm on add,
+    --confirm [true|false] on edit, and snippet run --execute prompts on stderr.
+    With no terminal on stdin it refuses rather than prompting into a pipe;
+    --force is the opt-out for scripts that mean it.
+  * Fixed: Bitwarden auto-unlock did nothing in every interface language but
+    English (#312). The vault state was compared as a translated display string
+    against the literal "Locked", so outside English the guard read "not locked"
+    and skipped the unlock. The state is an enum now and the decision is made on
+    the variant, with the label rendered separately. It also fires on an
+    inconclusive probe, which was a second route to the same silence.
+  * Fixed: the startup banner announced that Bitwarden could not store passwords
+    while Bitwarden was storing them (#312). The readiness probe ran bw status
+    without BW_SESSION, so the CLI could not see the session and answered
+    locked, correctly. The probe now builds its command the way the backend does.
+  * Fixed: a Bitwarden password was written to the vault and reported as refused
+    at the same time (#312). One store is three bw processes and a network round
+    trip each; the ten-second budget expired mid-write while bw carried on and
+    completed it. The budget is now chosen per backend, 45s for the four
+    CLI-backed ones, and the message states the budget actually applied.
+  * Fixed: every bw unlock ran without a deadline. Up to three child processes
+    were spawned and none was bounded, so an unlock stalled on a network sync
+    blocked its caller indefinitely. All four bw invocations now share one 30s
+    ceiling. Two smaller things found alongside: the unlock logged the master
+    password's length, and raw bw stderr could carry a session key into a log
+    and into the error the Secrets page renders.
+  * Fixed: Add SSH Key did nothing and there was no way to find out why. The
+    file chooser's callback discarded every failure, so a dismissal, a real
+    error and a callback that never fires were indistinguishable. Dismissal is
+    now told apart from failure, and a second click supersedes the first request
+    instead of leaving the button unable to open a chooser at all.
+  * Fixed: the Add Key passphrase dialog had no visible way out — Cancel in the
+    header now, and Enter in the passphrase field submits.
+  * Fixed: global variables that could not be written to disk were reported as
+    saved. The edits survived until the next start and then were simply gone.
+  * Fixed: a standalone SSH tunnel could fail in complete silence while the
+    diagnosis was being built and thrown away. health_check now returns what it
+    found, so a tunnel that exited on its own reports Failed rather than
+    Stopped, with a warning icon and ssh's own words in a Last Error row. A
+    failed start opens a dialog; a tunnel dying on its own raises a toast. The
+    remedy names the package that is actually missing — mptcpize ships with the
+    Multipath TCP tools, not with the OpenSSH client. The tunnel manager is also
+    redrawn while it is open, which is where the failure was invisible before.
+  * Fixed: running a snippet from the terminal's right-click menu could do
+    nothing at all when a variable could not be resolved. It opens the variable
+    dialog now, with whatever did resolve pre-filled.
+  * Improved: the four hand-rolled bw unlock invocations on the Secrets page are
+    gone; they all call one core function that has the extended PATH, the
+    deadline and the verbose fallback.
+  * Improved: one confirmation prompt in rustconn-cli instead of three. The
+    copies differed in whether a non-interactive stdin is a silent abort or an
+    error naming --force, which a bool cannot carry; the shared helper reports
+    three outcomes and never treats "nobody to ask" as consent.
+  * Dependencies: cc 1.4.4-1.4.5, find-msvc-tools 0.1.11-0.1.12, syn 3.0.4-3.0.5,
+    tinyvec 1.12.0-1.13.2, tokio-rustls 0.26.4-0.26.5, zstd-safe 7.2.4-7.3.0,
+    zstd-sys 2.0.16-2.1.0.
+
+ -- Anton Isaiev <totoshko88@gmail.com>  Sat, 05 Sep 2026 01:14:07 +0300
+
 rustconn (0.21.5-1) unstable; urgency=medium
 
   * Version bump to 0.21.5

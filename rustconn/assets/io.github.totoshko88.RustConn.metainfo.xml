@@ -140,6 +140,24 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.21.6" date="2026-09-05">
+      <description>
+        <p>Version 0.21.6 - a confirmation before a snippet runs, a Bitwarden vault that unlocks in your own language, and failures that stop happening in silence:</p>
+        <ul>
+          <li>Snippets can now ask before they run. Turn on Confirm before running for a snippet whose accidental execution would be expensive, and RustConn shows the exact command and waits. It is off by default, and it covers every way a snippet can be started, including the entries in the terminal's right-click menu and the Scripts menu of a Windows session</li>
+          <li>The command-line tool honours the same flag, and refuses to run such a snippet unattended unless you pass --force</li>
+          <li>Fixed: Bitwarden never unlocked itself at startup in any interface language but English, even with the master password saved. The vault state was being compared as translated text, so outside English the check always concluded there was nothing to unlock</li>
+          <li>Fixed: the startup message said Bitwarden could not store passwords while it was storing them. The check was asking the Bitwarden tool a question without giving it the unlocked session, so it truthfully answered "locked"</li>
+          <li>Fixed: saving a password to Bitwarden could report a failure and save it anyway, then offer to store it somewhere else. Saving to a remote vault is slower than saving to this computer, and it was being given the same ten seconds; each kind of vault now gets a budget that suits it</li>
+          <li>Fixed: unlocking Bitwarden had no time limit at all, so an unlock that stalled on the network could wait forever with nothing on screen changing</li>
+          <li>Fixed: Add SSH Key appeared to do nothing when the file chooser could not open, and there was no way to find out why. It now says what went wrong, and clicking the button again reopens the chooser instead of leaving it stuck</li>
+          <li>Fixed: the Add Key passphrase dialog had no visible Cancel button, and Enter did not submit it</li>
+          <li>Fixed: changes to global variables that could not be written to disk were reported as saved, and were gone at the next start</li>
+          <li>Fixed: an SSH tunnel that failed to start, or that died on its own, could leave no trace at all — it looked exactly like a tunnel you had stopped on purpose. A failed tunnel now says so, carries the reason the SSH client gave, and updates while the tunnel window is open. When a tunnel needs a program that is missing, the message names the right package to install</li>
+          <li>Fixed: running a snippet from the terminal's right-click menu did nothing when one of its variables could not be filled in automatically. It now asks for the missing values</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.21.5" date="2026-09-03">
       <description>
         <p>Version 0.21.5 - terminals that follow the desktop's appearance, a notification for a finished command, and packages that finally build what they can:</p>

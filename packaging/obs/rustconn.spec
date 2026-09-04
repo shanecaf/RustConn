@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.21.5
+Version:        0.21.6
 Release:        0
 # rpmlint caps Summary at 79 characters (summary-too-long, badness 200); the
 # protocol list belongs in %description, which has room for all of it. Kept in
@@ -387,6 +387,55 @@ done
 %{_datadir}/icons/hicolor/*/apps/io.github.totoshko88.RustConn.*
 
 %changelog
+* Sat Sep 05 2026 Anton Isaiev <totoshko88@gmail.com> - 0.21.6-0
+- Version bump to 0.21.6
+- Added: an optional second confirmation before a snippet runs (#315) — a Confirm
+  before running switch in the snippet editor, off by default so existing snippets
+  keep running on a single action. It covers every route a snippet can be started
+  from, including the inline entries in the terminal's right-click menu and the
+  Scripts menu of an embedded RDP session
+- Added: rustconn-cli snippet honours the same flag — --confirm on add, --confirm
+  [true|false] on edit, and snippet run --execute prompts on stderr. With no
+  terminal on stdin it refuses rather than prompting into a pipe; --force is the
+  opt-out for scripts that mean it
+- Fixed: Bitwarden auto-unlock did nothing in every interface language but English
+  (#312). The vault state was compared as a translated display string against the
+  literal "Locked", so outside English the guard read "not locked" and skipped the
+  unlock. The state is an enum now and the decision is made on the variant. It
+  also fires on an inconclusive probe, a second route to the same silence
+- Fixed: the startup banner announced that Bitwarden could not store passwords
+  while Bitwarden was storing them (#312). The readiness probe ran bw status
+  without BW_SESSION, so the CLI could not see the session and answered locked
+- Fixed: a Bitwarden password was written to the vault and reported as refused at
+  the same time (#312). The ten-second budget expired mid-write while bw carried
+  on and completed it; the budget is chosen per backend now, 45s for the four
+  CLI-backed ones, and the message states the budget actually applied
+- Fixed: every bw unlock ran without a deadline, so an unlock stalled on a network
+  sync blocked its caller indefinitely. All four bw invocations now share one 30s
+  ceiling. Alongside: the unlock logged the master password's length, and raw bw
+  stderr could carry a session key into a log and into a user-visible error
+- Fixed: Add SSH Key did nothing and there was no way to find out why. The file
+  chooser's callback discarded every failure. Dismissal is now told apart from
+  failure, and a second click supersedes the first request instead of leaving the
+  button unable to open a chooser at all
+- Fixed: the Add Key passphrase dialog had no visible way out — Cancel in the
+  header now, and Enter in the passphrase field submits
+- Fixed: global variables that could not be written to disk were reported as saved
+- Fixed: a standalone SSH tunnel could fail in complete silence while the
+  diagnosis was being built and thrown away. It reports Failed rather than
+  Stopped, with ssh's own words in a Last Error row, and the remedy names the
+  package that is actually missing — mptcpize ships with the Multipath TCP tools,
+  not with the OpenSSH client. The tunnel manager is redrawn while it is open
+- Fixed: running a snippet from the terminal's right-click menu could do nothing
+  at all when a variable could not be resolved; it opens the variable dialog now
+- Improved: the four hand-rolled bw unlock invocations on the Secrets page are
+  gone; they all call one core function with the extended PATH and the deadline
+- Improved: one confirmation prompt in rustconn-cli instead of three, reporting
+  three outcomes so "nobody to ask" is never treated as consent
+- Dependencies: cc 1.4.4-1.4.5, find-msvc-tools 0.1.11-0.1.12, syn 3.0.4-3.0.5,
+  tinyvec 1.12.0-1.13.2, tokio-rustls 0.26.4-0.26.5, zstd-safe 7.2.4-7.3.0,
+  zstd-sys 2.0.16-2.1.0
+
 * Thu Sep 03 2026 Anton Isaiev <totoshko88@gmail.com> - 0.21.5-0
 - Version bump to 0.21.5
 - Added: terminal colours can follow the desktop's light/dark preference — a new
