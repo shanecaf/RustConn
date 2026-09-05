@@ -428,13 +428,82 @@ done
   not with the OpenSSH client. The tunnel manager is redrawn while it is open
 - Fixed: running a snippet from the terminal's right-click menu could do nothing
   at all when a variable could not be resolved; it opens the variable dialog now
+- Fixed: the embedded RDP confirmation showed the command untruncated, so a
+  generated one-liner made the dialog unreadable on exactly the snippets a
+  confirmation is worth having for. Same 400-character cap as the terminal gate
+- Fixed: RUST_LOG=debug wrote the RDP account password into the log in clear.
+  sspi logs the encoded CredSSP TSRequest at debug level, and field [2] of
+  TSPasswordCreds is the password as plain UTF-16LE, so the log carried a
+  decodable byte array while the same line printed "password: Secret" in its span
+  fields. An sspi=warn directive is added after EnvFilter::from_default_env(), so
+  RUST_LOG cannot re-enable it. Anyone who ran 0.21.5 or earlier with
+  RUST_LOG=debug against an RDP host should treat that password as disclosed
+- Fixed: a clean shutdown reported that every terminal child had ignored SIGTERM.
+  The liveness check answers true for a zombie, which on shutdown is the normal
+  state, since GLib's child watch is gone by then and cannot reap. It reads state
+  Z from /proc/<pid>/stat now; the SIGKILL to the process group stays, because an
+  ssh with a ProxyCommand shares its group with helpers the exit does not reach
+- Fixed: an unset console keymap made every RDP session US English. localectl
+  status prints VC Keymap above X11 Layout, and on a desktop the console keymap is
+  normally unconfigured, so the parser read "(unset)" and fell back with the
+  layout it wanted on the next line — every scancode then interpreted against the
+  wrong table. X11 Layout now wins wherever it appears, systemd's placeholders for
+  an unset value are rejected, and both sources report the whole group list
+- Fixed: with LibSecret, a password saved on a connection in no group was never
+  found again (#316). Four call sites built the group argument themselves and
+  disagreed on what "no group" is: saving passed Some(""), resolving passed None,
+  so the password was written under RustConn/{name} ({protocol}) and looked for at
+  {name} ({protocol}). A grouped connection escaped it because there the legacy
+  second lookup differs and hits. One function decides now, and tests pin the
+  GUI's key against the resolver's
+- Fixed: the shutting-down flag was set after the session exits it exists to
+  explain, from a GTK shutdown handler that runs after every session child has
+  already been signalled — so the guard suppressing a reconnect banner for a
+  session the teardown just killed was unreachable. It is set at the top of the
+  teardown every exit funnels through, which a tray-minimize never reaches. The
+  post-disconnect command is skipped at shutdown rather than started and abandoned
+- Fixed: a second Quit stacked a second confirmation instead of raising the first.
+  The close confirmation is reached from the window's close_request and from the
+  quit action behind Ctrl+Q, the primary menu and the tray, and neither asked
+  whether the question was already up. One helper now raises the window carrying
+  the pending dialog instead of building another; nothing is read as consent
 - Improved: the four hand-rolled bw unlock invocations on the Secrets page are
   gone; they all call one core function with the extended PATH and the deadline
 - Improved: one confirmation prompt in rustconn-cli instead of three, reporting
   three outcomes so "nobody to ask" is never treated as consent
-- Dependencies: cc 1.4.4-1.4.5, find-msvc-tools 0.1.11-0.1.12, syn 3.0.4-3.0.5,
-  tinyvec 1.12.0-1.13.2, tokio-rustls 0.26.4-0.26.5, zstd-safe 7.2.4-7.3.0,
-  zstd-sys 2.0.16-2.1.0
+- Improved: OpenH264 was probed again on every RDP connection. The embedded client
+  dlopens a decoder rather than linking one, and each connection rewalked the
+  candidate list, re-emitting the same loader warnings — nine identical lines for
+  three connections in one log. The outcome is cached and a fresh decoder built
+  from it per session; installing a Cisco blob now needs a restart to be seen
+- Improved: a KeePass lookup paid for one database open that could never match.
+  Every keepassxc-cli run reopens the KDBX and pays its Argon2 cost, about 700 ms,
+  and one of the three candidate paths for a grouped connection was a form
+  build_entry_path has never written. The order is pinned by tests now, and the
+  search for the binary is remembered instead of redone for every read and write
+- Documentation: three claims that were not true of the code — the CLI reference
+  said snippet run resolves ${VARIABLE} from Global Variables, which it cannot,
+  since a global may be vault-backed and the CLI has no session to unlock it; the
+  rustconn-cli agent rules required i18n() in a crate that has never contained
+  one; and a comment listing the routes to the snippet picker omitted the terminal
+  context menu's own entry, which is that action's main caller
+- Documentation: the debug-logging instructions did not say what a debug log
+  discloses. The user guide told users to run with RUST_LOG=debug and attach the
+  output, which names every host, username and connection opened, and until the
+  leak fixed above carried the RDP account password itself. The warning now comes
+  before the command rather than after it
+- Dependencies: cc 1.4.4-1.4.5, find-msvc-tools 0.1.11-0.1.12, indexmap
+  2.14.1-2.14.2, js-sys 0.3.104-0.3.105, syn 3.0.4-3.0.5, tinyvec 1.12.0-1.13.2,
+  tokio-rustls 0.26.4-0.26.5, wasm-bindgen 0.2.127-0.2.128 together with its
+  -futures, -macro, -macro-support and -shared crates, web-sys 0.3.104-0.3.105,
+  zstd-safe 7.2.4-7.3.0, zstd-sys 2.0.16-2.1.0. Six of the fifteen are the
+  wasm-bindgen family, which nothing this project ships compiles — no path to it
+  exists on the host target, only behind a wasm32 one, so they are recorded
+  because Cargo.lock moved and not because a binary did. indexmap is the one with
+  real reach, arriving through h2/hyper/reqwest, through serde_yaml_ng and
+  through toml_edit behind the GTK macro crates. Thirteen further crates remain
+  behind their latest release on semver grounds, a count this run leaves
+  unchanged, and cargo deny check advisories is clean against the new lockfile
 - Dependencies: FreeRDP (Flatpak) 3.31.0-3.31.1. A papercut release with no
   advisory behind it, but it fixes flickering in the SDL3 client on displays
   scaled other than 1.0, maps keys that client used to drop, and makes WinPR read
