@@ -7,6 +7,69 @@ use rustconn_core::models::Connection;
 
 use crate::error::CliError;
 
+/// What came back from asking the user to confirm something.
+///
+/// Three outcomes rather than a `bool`, because the difference between "the user
+/// said no" and "there was nobody to ask" is the whole reason three near-identical
+/// prompts had grown in this crate. `connection delete` treats a non-interactive
+/// stdin as a silent abort, `history clear` and `snippet run --execute` both fail
+/// and name `--force`; a `bool` cannot carry that, so each call site rolled its
+/// own prompt to keep its own answer.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Confirmation {
+    /// The user typed `y`.
+    Confirmed,
+    /// The user typed anything else, or closed stdin.
+    Declined,
+    /// stdin is not a terminal, so no question was asked. Never treat this as
+    /// consent: it is how a destructive command ends up running unattended.
+    NotInteractive,
+}
+
+impl Confirmation {
+    /// Whether the action may proceed.
+    #[must_use]
+    pub const fn is_confirmed(self) -> bool {
+        matches!(self, Self::Confirmed)
+    }
+}
+
+/// Asks a yes/no question on the terminal, defaulting to no.
+///
+/// `prompt` is the question without the `[y/N]` suffix, which is appended here so
+/// every prompt in the CLI looks the same.
+///
+/// The question goes to stderr, not stdout. A prompt is not output — it must not
+/// land in a file or a pipe that is collecting the command's results (clig.dev).
+/// The `history clear` copy printed to stdout and consequently needed an explicit
+/// flush, because stdout is line-buffered and a prompt has no trailing newline;
+/// Rust's stderr is unbuffered, so writing there removes both problems.
+///
+/// Only a bare `y`/`Y` confirms. Not `yes`, deliberately: every existing copy
+/// behaved this way, and widening it here would quietly lower the bar on
+/// `connection delete`.
+pub fn confirm_on_terminal(prompt: &str) -> Confirmation {
+    use std::io::IsTerminal;
+
+    if !std::io::stdin().is_terminal() {
+        return Confirmation::NotInteractive;
+    }
+
+    eprint!("{prompt} [y/N] ");
+
+    let mut input = String::new();
+    // A read error and a typed "n" are the same decision: do not proceed.
+    if std::io::stdin().read_line(&mut input).is_err() {
+        return Confirmation::Declined;
+    }
+
+    if input.trim().eq_ignore_ascii_case("y") {
+        Confirmation::Confirmed
+    } else {
+        Confirmation::Declined
+    }
+}
+
 /// Creates a `ConfigManager` using the optional custom config directory
 /// from CLI args, falling back to the `RUSTCONN_CONFIG_DIR` environment
 /// variable when no explicit path is provided.
@@ -231,5 +294,31 @@ pub fn default_port_for_protocol(proto: rustconn_core::models::ProtocolType) -> 
         ProtocolType::Kubernetes => 0,
         ProtocolType::ZeroTrust => 22,
         ProtocolType::Web => 443,
+    }
+}
+
+#[cfg(test)]
+mod confirmation_tests {
+    use super::Confirmation;
+
+    /// The rule the three-way enum exists to protect: only an explicit yes lets a
+    /// destructive command proceed. `NotInteractive` in particular must never read
+    /// as consent — that is how `snippet run --execute` or `history clear` would
+    /// end up running unattended in a pipeline.
+    #[test]
+    fn only_an_explicit_confirmation_proceeds() {
+        assert!(Confirmation::Confirmed.is_confirmed());
+        assert!(!Confirmation::Declined.is_confirmed());
+        assert!(!Confirmation::NotInteractive.is_confirmed());
+    }
+
+    /// `Declined` and `NotInteractive` both refuse, but they are not the same
+    /// answer and callers act differently on them: `connection delete` aborts
+    /// silently on a non-interactive stdin, while `history clear` and
+    /// `snippet run --execute` fail and name `--force`. Collapsing the two back
+    /// into a `bool` is what produced three copies of the prompt.
+    #[test]
+    fn declining_and_having_nobody_to_ask_stay_distinguishable() {
+        assert_ne!(Confirmation::Declined, Confirmation::NotInteractive);
     }
 }

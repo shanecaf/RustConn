@@ -302,13 +302,39 @@ modules:
       - -DWITH_RDTK=OFF
     sources:
       - type: archive
-        url: https://pub.freerdp.com/releases/freerdp-3.31.0.tar.xz
-        sha256: 8538da2f75cfde313808916943c31071b91869b2c616a94441639c7331f56dbc
+        url: https://pub.freerdp.com/releases/freerdp-3.31.1.tar.xz
+        sha256: e679ab1400b4d3f829786782d16e318d72f4712c9d29c041a86f5cc1a2a4ec94
         x-checker-data:
           type: anitya
           project-id: 10442
           stable-only: true
           url-template: https://pub.freerdp.com/releases/freerdp-$version.tar.xz
+
+  # OpenH264 — the decoder the *embedded* RDP client dlopens at runtime, not
+  # something FreeRDP above links against. `gfx_handler.rs` looks for
+  # `/app/lib/libopenh264.so` plus a versioned soname in `/app/lib` and
+  # `/app/lib64`; when nothing is found an AVC420/AVC444 GFX session drops to
+  # the RemoteFX path without saying so.
+  #
+  # All three Flatpak manifests need it, and until 0.21.6 only
+  # packaging/flatpak/io.github.totoshko88.RustConn.yml had it: Flathub shipped
+  # with no H.264 decoder at all, and a local build could not reproduce an H.264
+  # bug from the build it exists to mirror. Bundled rather than taken from
+  # org.freedesktop.Platform.openh264 because freedesktop dropped that extension
+  # from the runtime in 2025 — there is no extension left to depend on.
+  - name: openh264
+    buildsystem: meson
+    config-opts:
+      - -Dtests=disabled
+    sources:
+      - type: archive
+        url: https://github.com/cisco/openh264/archive/refs/tags/v2.6.0.tar.gz
+        sha256: 558544ad358283a7ab2930d69a9ceddf913f4a51ee9bf1bfb9e377322af81a69
+        x-checker-data:
+          type: anitya
+          project-id: 15752
+          stable-only: true
+          url-template: https://github.com/cisco/openh264/archive/refs/tags/v$version.tar.gz
 
   - name: rustconn
     buildsystem: simple
@@ -365,7 +391,7 @@ modules:
         # chicken-and-egg problem and any placeholder would be a fake pin.
         # The immutable commit is added once the tag exists — by hand or by the
         # Flathub bot — in the Flathub repository, not here.
-        tag: v0.21.5
+        tag: v0.21.6
         x-checker-data:
           type: git
           tag-pattern: ^v([\d.]+)$

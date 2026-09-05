@@ -165,3 +165,41 @@ a `^C` follow-up. Read the log file instead.
   <crate>`) and confirm from the output that compilation actually happened.
 - **Never use `--all-features`.** It enables a gtk3-dependent path that fails at
   build time with `gdk-3.0.pc` not found via pkg-config. Use `--all-targets`.
+
+## Never judge GUI behaviour from an app launched in this terminal
+
+`cargo run -p rustconn` started from the Kiro terminal produces a process whose
+`/proc/<pid>/root` the desktop portal refuses to open:
+
+```
+Gdk-WARNING: Failed to read portal settings: GDBus.Error:org.freedesktop.DBus.Error.AccessDenied:
+             Portal operation not allowed: Unable to open /proc/<pid>/root
+Gtk-WARNING:  Creating a portal monitor failed: <the same error>
+```
+
+Two consequences, measured on 2026-09-04 with the same binary in both terminals:
+
+- **`GtkFileDialog` never completes.** The task is started and its callback is
+  never invoked — not with a result, not with an error, not with
+  `DialogError::Dismissed`. Nothing is logged, and GTK emits no warning or
+  critical at the click. From the app's side this is indistinguishable from a
+  button with no handler attached, which is how it was first reported.
+- **Light/dark and the icon theme resolve wrongly**, because the settings portal
+  is where they come from: `dark=false` here against `dark=true` and
+  `previous_theme=Yaru-purple-dark` in an external terminal.
+
+Run the same build from an ordinary terminal and the portal warnings disappear,
+the chooser opens, and the theme is correct.
+
+So: this terminal is fine for `cargo build`, `clippy` and `test`, and it is not
+evidence about anything a portal touches — file choosers, the light/dark
+preference, the icon theme, screen casting, notifications, the monitor list.
+Before filing or chasing a GUI bug in that class, reproduce it outside Kiro.
+
+It cost about an hour to learn once, across three eliminated hypotheses (portal
+in use at all, `~/.ssh` contents, `FileDialog::set_initial_folder`). The
+diagnosis only became possible after the code stopped discarding the outcome:
+`show_add_key_file_chooser` matched the result with `if let Ok(file) = result`,
+so a dismissal, a real error and a callback that never fires all looked the
+same. When a GTK callback can fail three ways, log all three — the absence of a
+line is then evidence too.

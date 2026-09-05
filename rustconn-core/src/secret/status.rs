@@ -126,6 +126,63 @@ fn classify_show_failure(stderr: &str) -> ShowFailure {
     ShowFailure::Unusable
 }
 
+/// The entry paths a lookup tries, in order, for RustConn's own naming schemes.
+///
+/// Each one costs a separate `keepassxc-cli` invocation, and every invocation
+/// reopens the database and pays its Argon2 cost again — around 700 ms on a
+/// default KDBX. So the list is not free: a lookup that finds nothing pays for
+/// every entry in it before the user sees a password prompt. It is extracted from
+/// [`KeePassStatus::get_password_from_kdbx_with_key`] so the order is pinned by
+/// tests rather than by reading the loop, since a `keepassxc-cli` is needed to
+/// exercise the loop at all.
+///
+/// The candidates, in order:
+///
+/// 1. `RustConn/{entry_name}` — where this version writes.
+/// 2. `RustConn/{entry_name without its " (protocol)" suffix}` — the older
+///    format, before entries carried the protocol.
+/// 3. `RustConn/{entry_name} ({protocol})` — only when the caller passes the
+///    protocol separately instead of having it in the name already.
+/// 4. `{entry_name}` — a root-level entry, from before entries were grouped
+///    under `RustConn/` at all.
+///
+/// Candidate 4 is skipped when `entry_name` already carries a group path.
+/// [`KeePassHierarchy::build_entry_path`](super::hierarchy::KeePassHierarchy::build_entry_path)
+/// starts every path it builds at `RustConn`, so no release has ever written
+/// `Group/name` at the database root — the un-prefixed form can only match the
+/// ungrouped case, where the name is a bare entry name. Trying it for a grouped
+/// connection was a full database open that could not succeed, on every lookup.
+/// A path the *user* chose is not resolved through here: that is
+/// [`KeePassStatus::get_password_from_kdbx_exact`], which queries it as-is.
+fn candidate_entry_paths(entry_name: &str, protocol: Option<&str>) -> Vec<String> {
+    let mut entry_paths = Vec::new();
+
+    // First try exact entry name (may already include protocol suffix)
+    entry_paths.push(format!("RustConn/{entry_name}"));
+
+    // If entry_name contains protocol suffix like "name (ssh)", also try without it (legacy)
+    // This handles migration from old format where entries were stored without protocol
+    if let Some(base_name) = entry_name
+        .strip_suffix(')')
+        .and_then(|s| s.rfind(" (").map(|pos| &entry_name[..pos]))
+    {
+        entry_paths.push(format!("RustConn/{base_name}"));
+    }
+
+    // If protocol provided separately, try with it (for backward compatibility)
+    if let Some(proto) = protocol {
+        entry_paths.push(format!("RustConn/{entry_name} ({proto})"));
+    }
+
+    // Finally the un-prefixed name, but only where it could ever have been
+    // written — see the note above.
+    if !entry_name.contains('/') {
+        entry_paths.push(entry_name.to_string());
+    }
+
+    entry_paths
+}
+
 /// Status of `KeePass` integration
 ///
 /// This struct provides information about the current state of `KeePass` integration,
@@ -235,12 +292,39 @@ impl KeePassStatus {
         Ok(())
     }
 
-    /// Finds the `keepassxc-cli` binary
+    /// Finds the `keepassxc-cli` binary, searching once per process.
+    ///
+    /// Every reader and writer in this module called this, and each call redid
+    /// the whole search: a PATH walk plus up to six `stat`s natively, and inside
+    /// a Flatpak sandbox **an extra child process** — `find_on_host` runs
+    /// `sh -lc 'command -v …'` on the host. A single credential lookup is one of
+    /// those, a single save is four, and all of them answer the same question
+    /// about where a binary lives.
+    ///
+    /// Only a *successful* find is remembered. Caching the negative answer too
+    /// would be the tidier `OnceLock<Option<_>>`, and it would be wrong: the
+    /// Flatpak branch probes the host with a two-second budget, so one slow probe
+    /// would leave the whole session convinced KeePassXC is not installed, with
+    /// "keepassxc-cli not found. Please install KeePassXC." as the only symptom
+    /// and a restart as the only cure. A guard that can outlast the condition it
+    /// describes is worse than the cost it saves. A miss re-searches.
+    fn find_keepassxc_cli() -> Option<std::path::PathBuf> {
+        static LOCATION: std::sync::OnceLock<std::path::PathBuf> = std::sync::OnceLock::new();
+
+        if let Some(cached) = LOCATION.get() {
+            return Some(cached.clone());
+        }
+        let found = Self::locate_keepassxc_cli()?;
+        // A lost race means another thread found the same binary first.
+        Some(LOCATION.get_or_init(|| found).clone())
+    }
+
+    /// Performs the actual search behind [`Self::find_keepassxc_cli`].
     ///
     /// Searches in PATH and common installation locations. Inside a Flatpak
     /// sandbox, KeePassXC cannot be bundled (it is the user's host GUI app),
     /// so the host binary is located via `flatpak-spawn --host`.
-    fn find_keepassxc_cli() -> Option<std::path::PathBuf> {
+    fn locate_keepassxc_cli() -> Option<std::path::PathBuf> {
         // In Flatpak, resolve and run keepassxc-cli on the host (see #182). The
         // probe used to live here; it is now `which::find_on_host`, which does the
         // same `sh -lc 'command -v …'` for every host binary and bounds the wait.
@@ -982,10 +1066,6 @@ impl KeePassStatus {
     /// the database cannot be unlocked (wrong password or key file), or the
     /// CLI returns a non-zero exit code for any reason other than "entry not
     /// found".
-    #[expect(
-        clippy::too_many_lines,
-        reason = "sequential fallback over four candidate entry paths, each with its own argv and failure classification; splitting per path only relocates the boilerplate"
-    )]
     pub fn get_password_from_kdbx_with_key(
         kdbx_path: &Path,
         db_password: Option<&SecretString>,
@@ -1004,28 +1084,7 @@ impl KeePassStatus {
             SecretError::KeePassXC("keepassxc-cli not found. Please install KeePassXC.".to_string())
         })?;
 
-        // Build list of paths to try, prioritizing exact match then legacy formats
-        let mut entry_paths = Vec::new();
-
-        // First try exact entry name (may already include protocol suffix)
-        entry_paths.push(format!("RustConn/{entry_name}"));
-
-        // If entry_name contains protocol suffix like "name (ssh)", also try without it (legacy)
-        // This handles migration from old format where entries were stored without protocol
-        if let Some(base_name) = entry_name
-            .strip_suffix(')')
-            .and_then(|s| s.rfind(" (").map(|pos| &entry_name[..pos]))
-        {
-            entry_paths.push(format!("RustConn/{base_name}"));
-        }
-
-        // If protocol provided separately, try with it (for backward compatibility)
-        if let Some(proto) = protocol {
-            entry_paths.push(format!("RustConn/{entry_name} ({proto})"));
-        }
-
-        // Finally try direct entry name without RustConn prefix
-        entry_paths.push(entry_name.to_string());
+        let entry_paths = candidate_entry_paths(entry_name, protocol);
 
         tracing::debug!(
             "get_password: entry_name='{}', protocol={:?}, has_password={}, has_key_file={}",
@@ -1830,6 +1889,61 @@ mod tests {
             classify_show_failure("Error while reading the database: Not a KeePass database."),
             ShowFailure::Unusable
         ));
+    }
+
+    /// The candidate order, pinned. Nothing could test this before: exercising
+    /// the loop needs a `keepassxc-cli` and a real database on the machine
+    /// running the tests, so the sequence was only visible by reading it.
+    #[test]
+    fn the_current_naming_scheme_is_tried_first() {
+        let paths = candidate_entry_paths("Production/nginx-01 (ssh)", None);
+        assert_eq!(paths[0], "RustConn/Production/nginx-01 (ssh)");
+    }
+
+    #[test]
+    fn the_protocol_suffix_is_dropped_for_the_older_format() {
+        let paths = candidate_entry_paths("nginx-01 (ssh)", None);
+        assert_eq!(
+            paths,
+            vec![
+                "RustConn/nginx-01 (ssh)",
+                "RustConn/nginx-01",
+                "nginx-01 (ssh)",
+            ]
+        );
+    }
+
+    /// The saving: each candidate is a full database open, and this one could
+    /// never match a grouped connection.
+    ///
+    /// `build_entry_path` starts every path at `RustConn`, so `Production/x` at
+    /// the database root is not a location any release has written. Trying it
+    /// cost an Argon2 open — about 700 ms — on every lookup for every connection
+    /// that lives in a group.
+    #[test]
+    fn a_grouped_name_does_not_get_searched_at_the_database_root() {
+        let paths = candidate_entry_paths("Production/nginx-01 (ssh)", None);
+        assert!(
+            !paths.iter().any(|p| !p.starts_with("RustConn/")),
+            "a name carrying a group path must only be looked for under RustConn/: {paths:?}"
+        );
+        assert_eq!(paths.len(), 2);
+    }
+
+    #[test]
+    fn an_ungrouped_name_is_still_searched_at_the_root() {
+        // Where a pre-hierarchy release did write it, so this one stays.
+        let paths = candidate_entry_paths("nginx-01", None);
+        assert_eq!(paths, vec!["RustConn/nginx-01", "nginx-01"]);
+    }
+
+    #[test]
+    fn a_separately_supplied_protocol_adds_its_own_candidate() {
+        let paths = candidate_entry_paths("nginx-01", Some("ssh"));
+        assert_eq!(
+            paths,
+            vec!["RustConn/nginx-01", "RustConn/nginx-01 (ssh)", "nginx-01",]
+        );
     }
 
     /// Why the message locale is pinned, stated as a test.

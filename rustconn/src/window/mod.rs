@@ -28,7 +28,9 @@ pub mod session_restore;
 mod sessions;
 mod smart_folders;
 mod snippet_actions;
-mod snippets;
+// `pub(crate)` for `truncate_command`, which the embedded RDP script gate needs:
+// its confirmation shows the same command text and has to cap it the same way.
+pub(crate) mod snippets;
 mod sorting;
 mod split_view_actions;
 mod templates;
@@ -138,6 +140,69 @@ pub const fn open_session_count(tabbed: usize, detached: usize, external: usize)
     tabbed + detached + external
 }
 
+// The close confirmation currently on screen, if any.
+//
+// Two independent call sites raise this dialog — the main window's
+// `close_request` and the `app.quit` action that Ctrl+Q, the primary menu and
+// the tray's Quit item all go through — and each built a fresh one on every
+// activation. Asking to quit twice therefore produced two stacked copies of the
+// same question, which is what a tray Quit that "did nothing" looks like from
+// the outside: the log records two `Quit` messages ten seconds apart with the
+// teardown only after the second was answered.
+//
+// Held weakly on purpose. A strong handle has to be released by the `closed`
+// signal, and a guard that can outlive the thing it guards is how a control ends
+// up permanently dead — the failure mode that took the click guard back off Add
+// Key. A destroyed dialog upgrades to `None`, so the worst case here is asking
+// again, never being unable to ask.
+thread_local! {
+    static OPEN_CLOSE_CONFIRMATION: RefCell<Option<glib::WeakRef<adw::AlertDialog>>> =
+        const { RefCell::new(None) };
+}
+
+/// Raises the close confirmation, or the one already on screen.
+///
+/// Returns the new dialog for the caller to wire a `close` response onto, or
+/// `None` when a confirmation was already up — in which case the window carrying
+/// it has been presented and the caller must not build a second one, nor treat
+/// the absence of a dialog as consent to proceed.
+///
+/// Shared by the main window's `close_request` and the `app.quit` action so all
+/// four ways of asking to quit ask once.
+#[must_use]
+pub fn present_close_confirmation(
+    parent: &impl IsA<gtk4::Widget>,
+    open_sessions: usize,
+) -> Option<adw::AlertDialog> {
+    let already_open = OPEN_CLOSE_CONFIRMATION
+        .with(|cell| cell.borrow().as_ref().and_then(glib::WeakRef::upgrade));
+
+    if let Some(existing) = already_open {
+        tracing::debug!(
+            open_sessions,
+            "close confirmation already on screen — raising it instead of asking twice"
+        );
+        // An AdwDialog is drawn inside its host window, so raising that window
+        // is what puts the question back in front of the user. This is the case
+        // where the first ask went to a window that was behind, on another
+        // workspace, or hidden to the tray.
+        if let Some(window) = existing.root().and_downcast::<gtk4::Window>() {
+            window.present();
+        }
+        return None;
+    }
+
+    let dialog = MainWindow::close_confirmation_dialog(open_sessions);
+    OPEN_CLOSE_CONFIRMATION.with(|cell| *cell.borrow_mut() = Some(dialog.downgrade()));
+    dialog.connect_closed(|_| {
+        OPEN_CLOSE_CONFIRMATION.with(|cell| cell.borrow_mut().take());
+    });
+
+    tracing::debug!(open_sessions, "close confirmation presented");
+    dialog.present(Some(parent));
+    Some(dialog)
+}
+
 /// Ends every live session so none of them outlives the process.
 ///
 /// The single teardown for every way RustConn can exit, and it is one function
@@ -160,6 +225,16 @@ pub const fn open_session_count(tabbed: usize, detached: usize, external: usize)
 /// Must be called *after* `flush_active_recordings` — see
 /// [`crate::terminal::TerminalNotebook::shutdown_sessions`].
 pub fn shutdown_sessions_for_exit(notebook: &SharedNotebook) {
+    // First, before anything is signalled. Every session child is about to exit
+    // because this function is about to kill it, and the exit callbacks decide
+    // whether that is a fault by asking `is_shutting_down()`. The flag was only
+    // set in `connect_shutdown`, which GTK runs from `app.quit()` — and `do_quit`
+    // calls `app.quit()` *after* this, so the answer was still `false` for
+    // exactly the exits it exists to explain. A tray-minimize never reaches here,
+    // which is what makes this the right place: the flag cannot be set by a close
+    // that leaves the application running.
+    crate::app::mark_shutting_down();
+
     // Issue #209: kill owned viewer children so they do not become orphans, and
     // close their open history entries. Detaching viewers keep running.
     if let Some(registry) = external_session_registry() {
@@ -1706,16 +1781,20 @@ impl MainWindow {
                 external_open,
             );
             if !minimize_to_tray && !force_close.get() && open_sessions > 0 {
-                let dialog = Self::close_confirmation_dialog(open_sessions);
-                let force_close_confirm = force_close.clone();
-                let win_weak = win.downgrade();
-                dialog.connect_response(Some("close"), move |_, _| {
-                    force_close_confirm.set(true);
-                    if let Some(w) = win_weak.upgrade() {
-                        w.close();
-                    }
-                });
-                dialog.present(Some(win));
+                // `None` means a confirmation raised elsewhere — the quit action,
+                // which is where Ctrl+Q and the tray's Quit item arrive — is
+                // already asking. Either way the close is stopped here and the
+                // window goes only once that question is answered.
+                if let Some(dialog) = present_close_confirmation(win, open_sessions) {
+                    let force_close_confirm = force_close.clone();
+                    let win_weak = win.downgrade();
+                    dialog.connect_response(Some("close"), move |_, _| {
+                        force_close_confirm.set(true);
+                        if let Some(w) = win_weak.upgrade() {
+                            w.close();
+                        }
+                    });
+                }
                 return glib::Propagation::Stop;
             }
 
@@ -3866,6 +3945,7 @@ impl MainWindow {
         {
             let tm = self.tunnel_manager.clone();
             let state_c = self.state.clone();
+            let toast_c = self.toast_overlay.clone();
             glib::timeout_add_local(std::time::Duration::from_secs(5), move || {
                 let failed = tm.borrow_mut().health_check();
                 if !failed.is_empty() {
@@ -3877,45 +3957,84 @@ impl MainWindow {
                         .into_iter()
                         .cloned()
                         .collect();
-                    for id in &failed {
-                        if let Some(tunnel) = tunnels.iter().find(|t| t.id == *id)
-                            && tunnel.auto_reconnect
-                            && tunnel.enabled
+                    for failure in &failed {
+                        let id = &failure.id;
+                        let Some(tunnel) = tunnels.iter().find(|t| t.id == *id) else {
+                            continue;
+                        };
+
+                        // A tunnel that dies is a background failure the user can
+                        // retry, so it gets a toast (gnome-hig.md). Until now the
+                        // only trace was a log line: the row simply left the
+                        // Active group, which looks the same as stopping it.
+                        if !tunnel.auto_reconnect || !tunnel.enabled {
+                            toast_c.show_error(&crate::i18n::i18n_f(
+                                "Tunnel “{}” stopped: {}",
+                                &[&tunnel.name, &failure.reason],
+                            ));
+                            continue;
+                        }
+
+                        // Check if tunnel exceeded max reconnect attempts
+                        if tm.borrow().exceeded_max_reconnects(*id) {
+                            tracing::warn!(
+                                tunnel = %tunnel.name,
+                                tunnel_id = %id,
+                                "Tunnel exceeded max reconnect attempts, giving up"
+                            );
+                            // Giving up is the end of the retry loop, so this is
+                            // the last chance to tell the user anything.
+                            toast_c.show_error(&crate::i18n::i18n_f(
+                                "Gave up reconnecting tunnel “{}”: {}",
+                                &[&tunnel.name, &failure.reason],
+                            ));
+                            continue;
+                        }
+
+                        if let Some(conn) =
+                            connections.iter().find(|c| c.id == tunnel.connection_id)
                         {
-                            // Check if tunnel exceeded max reconnect attempts
-                            if tm.borrow().exceeded_max_reconnects(*id) {
+                            tracing::info!(tunnel = %tunnel.name, "Auto-reconnecting failed tunnel");
+                            // Resolve cached password for reconnection
+                            let cached_pw: Option<secrecy::SecretString> = state_c
+                                .try_borrow()
+                                .ok()
+                                .and_then(|s| {
+                                    s.get_cached_credentials(tunnel.connection_id).cloned()
+                                })
+                                .and_then(|c| {
+                                    use secrecy::ExposeSecret;
+                                    if c.password.expose_secret().is_empty() {
+                                        None
+                                    } else {
+                                        Some(c.password.clone())
+                                    }
+                                });
+                            // The reconnect result used to be discarded, so a
+                            // reconnect that could never work — `ssh` missing, the
+                            // connection no longer SSH — retried in silence until
+                            // the attempt counter ran out.
+                            if let Err(e) =
+                                tm.borrow_mut().start(tunnel, conn, cached_pw.as_ref(), &[])
+                            {
                                 tracing::warn!(
                                     tunnel = %tunnel.name,
                                     tunnel_id = %id,
-                                    "Tunnel exceeded max reconnect attempts, giving up"
+                                    %e,
+                                    "Auto-reconnect failed"
                                 );
-                                continue;
-                            }
-
-                            if let Some(conn) =
-                                connections.iter().find(|c| c.id == tunnel.connection_id)
-                            {
-                                tracing::info!(tunnel = %tunnel.name, "Auto-reconnecting failed tunnel");
-                                // Resolve cached password for reconnection
-                                let cached_pw: Option<secrecy::SecretString> = state_c
-                                    .try_borrow()
-                                    .ok()
-                                    .and_then(|s| {
-                                        s.get_cached_credentials(tunnel.connection_id).cloned()
-                                    })
-                                    .and_then(|c| {
-                                        use secrecy::ExposeSecret;
-                                        if c.password.expose_secret().is_empty() {
-                                            None
-                                        } else {
-                                            Some(c.password.clone())
-                                        }
-                                    });
-                                let _ =
-                                    tm.borrow_mut().start(tunnel, conn, cached_pw.as_ref(), &[]);
                             }
                         }
                     }
+
+                    // Redraw the tunnel manager if the user has it open. Without
+                    // this, the row of a tunnel that just died kept saying
+                    // "Running" in the Active group until something else happened
+                    // to refresh the list — so the warning icon and the Last Error
+                    // row this release added were invisible in the one window
+                    // built to show them. A no-op when no dialog is open, which
+                    // is why it is safe on a five-second timer.
+                    crate::dialogs::tunnel::refresh_open_manager();
                 }
                 glib::ControlFlow::Continue
             });

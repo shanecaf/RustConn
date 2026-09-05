@@ -140,6 +140,31 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.21.6" date="2026-09-05">
+      <description>
+        <p>Version 0.21.6 - a confirmation before a snippet runs, a Bitwarden vault that unlocks in your own language, and failures that stop happening in silence:</p>
+        <ul>
+          <li>Snippets can now ask before they run. Turn on Confirm before running for a snippet whose accidental execution would be expensive, and RustConn shows the exact command and waits. It is off by default, and it covers every way a snippet can be started, including the entries in the terminal's right-click menu and the Scripts menu of a Windows session</li>
+          <li>The command-line tool honours the same flag, and refuses to run such a snippet unattended unless you pass --force</li>
+          <li>Fixed: Bitwarden never unlocked itself at startup in any interface language but English, even with the master password saved. The vault state was being compared as translated text, so outside English the check always concluded there was nothing to unlock</li>
+          <li>Fixed: the startup message said Bitwarden could not store passwords while it was storing them. The check was asking the Bitwarden tool a question without giving it the unlocked session, so it truthfully answered "locked"</li>
+          <li>Fixed: saving a password to Bitwarden could report a failure and save it anyway, then offer to store it somewhere else. Saving to a remote vault is slower than saving to this computer, and it was being given the same ten seconds; each kind of vault now gets a budget that suits it</li>
+          <li>Fixed: unlocking Bitwarden had no time limit at all, so an unlock that stalled on the network could wait forever with nothing on screen changing</li>
+          <li>Fixed: Add SSH Key appeared to do nothing when the file chooser could not open, and there was no way to find out why. It now says what went wrong, and clicking the button again reopens the chooser instead of leaving it stuck</li>
+          <li>Fixed: the Add Key passphrase dialog had no visible Cancel button, and Enter did not submit it</li>
+          <li>Fixed: changes to global variables that could not be written to disk were reported as saved, and were gone at the next start</li>
+          <li>Fixed: an SSH tunnel that failed to start, or that died on its own, could leave no trace at all — it looked exactly like a tunnel you had stopped on purpose. A failed tunnel now says so, carries the reason the SSH client gave, and updates while the tunnel window is open. When a tunnel needs a program that is missing, the message names the right package to install</li>
+          <li>Fixed: running a snippet from the terminal's right-click menu did nothing when one of its variables could not be filled in automatically. It now asks for the missing values</li>
+          <li>Fixed: with the system keyring, a password saved on a connection that is not in any group was never found again — connecting asked for it every time, and the connection editor's load and test buttons both reported it missing. Putting the connection into a group used to be the workaround; it is no longer needed</li>
+          <li>Fixed: every Windows session used a US English keyboard on machines whose console keymap is not configured, which is most desktops. The layout was being read from the wrong line, so a German or French keyboard typed the wrong characters with nothing pointing at the cause</li>
+          <li>Fixed: running RustConn with debug logging turned on wrote the RDP account password into the log in readable form, by way of a library that logs the whole authentication structure. Debug logs are what people attach to bug reports, so if you have run 0.21.5 or earlier with debug logging against a Windows host, treat that account's password as disclosed. The documentation now says what a debug log contains before it tells you how to make one</li>
+          <li>Fixed: asking to quit twice built a second confirmation dialog on top of the first, which made the first click look ignored when its window was behind another one or hidden to the tray. The pending question is now raised instead</li>
+          <li>Connecting is quicker when a password is not in your KeePassXC database: one of the three lookups RustConn made could never have matched, and each one reopens the database</li>
+          <li>Fixed: the Flathub build shipped without an H.264 decoder, so the built-in RDP client quietly fell back to an older image path on every Windows session that offered H.264. The decoder is now bundled with every Flatpak build of RustConn</li>
+          <li>The bundled RDP client is now FreeRDP 3.31.1, which stops the session window flickering on displays that are scaled, and maps several keys the client used to ignore</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.21.5" date="2026-09-03">
       <description>
         <p>Version 0.21.5 - terminals that follow the desktop's appearance, a notification for a finished command, and packages that finally build what they can:</p>

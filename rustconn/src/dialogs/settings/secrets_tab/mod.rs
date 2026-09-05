@@ -18,8 +18,8 @@ use rustconn_core::secret::{CredentialStorage, set_session_key};
 use secrecy::SecretString;
 
 use self::detection::{
-    LocalBackendState, SecretCliDetection, backend_readiness, check_bitwarden_status_sync,
-    detect_secret_backends, extract_session_key, read_passbolt_server_url_sync,
+    BwVaultStatus, LocalBackendState, SecretCliDetection, backend_readiness,
+    check_bitwarden_status_sync, detect_secret_backends, read_passbolt_server_url_sync,
 };
 use self::keyring::{
     delete_bw_api_credentials_from_keyring, delete_bw_password_from_keyring,
@@ -1221,56 +1221,29 @@ pub fn create_secrets_page() -> SecretsPageWidgets {
             // thing the wrapper three statements up exists to prevent.
             let password_owned = zeroize::Zeroizing::new(password.to_string());
             let password_for_keyring = zeroize::Zeroizing::new(password.to_string());
+            // `bw_cmd_str` is only logged now. The unlock itself no longer needs
+            // it: core resolves the command through `get_bw_cmd()`, which is where
+            // the Flatpak host lookup lives.
             glib::spawn_future_local(async move {
                 let (session_result, raw_stderr) = gtk4::gio::spawn_blocking(move || {
-                    // Try --raw first, then verbose output parsing as fallback
-                    let raw_result = std::process::Command::new(&bw_cmd_str)
-                        .arg("unlock")
-                        .arg("--passwordenv")
-                        .arg("BW_PASSWORD")
-                        .arg("--raw")
-                        // `.as_str()`, not `&password_owned`: `Command::env` is
-                        // generic over `AsRef<OsStr>`, and deref coercion does not
-                        // apply through a generic bound, so a `Zeroizing<String>`
-                        // has to be unwrapped explicitly.
-                        .env("BW_PASSWORD", password_owned.as_str())
-                        .output();
-
-                    let (session, stderr) = match raw_result {
-                        Ok(output) if output.status.success() => {
-                            let stdout = String::from_utf8_lossy(&output.stdout);
-                            let key = stdout.trim().to_string();
-                            if key.is_empty() {
-                                (None, String::new())
-                            } else {
-                                (Some(key), String::new())
-                            }
-                        }
-                        Ok(output) => {
-                            let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-                            (None, stderr)
-                        }
-                        Err(_) => (None, String::new()),
-                    };
-
-                    // Fallback: try without --raw and parse session key
-                    let session = session.or_else(|| {
-                        let result = std::process::Command::new(&bw_cmd_str)
-                            .arg("unlock")
-                            .arg("--passwordenv")
-                            .arg("BW_PASSWORD")
-                            .env("BW_PASSWORD", password_owned.as_str())
-                            .output();
-                        match result {
-                            Ok(output) if output.status.success() => {
-                                let stdout = String::from_utf8_lossy(&output.stdout);
-                                extract_session_key(&stdout)
-                            }
-                            _ => None,
-                        }
-                    });
-
-                    (session, stderr)
+                    // One call, not a hand-rolled --raw/verbose ladder. Core's
+                    // `unlock_vault_blocking` runs the same two strategies plus a
+                    // stdin fallback for older CLIs, and adds the three things this
+                    // site was missing: the extended PATH a sandboxed `bw` needs,
+                    // `--nointeraction`, and a deadline (issue #312).
+                    // `.as_str()`, not `&password_owned`: `SecretString::from` is
+                    // generic, and deref coercion does not apply through a generic
+                    // bound, so a `Zeroizing<String>` has to be unwrapped.
+                    match rustconn_core::secret::unlock_vault_blocking(&SecretString::from(
+                        password_owned.as_str(),
+                    )) {
+                        Ok(session) => (Some(session), String::new()),
+                        // The reason is matched against below to pick a message,
+                        // so it has to survive. It carries `bw`'s stderr and never
+                        // the password: the password reaches `bw` through the
+                        // environment, so it cannot appear in an argv echoed back.
+                        Err(e) => (None, e.to_string()),
+                    }
                 })
                 .await
                 .unwrap_or((None, String::new()));
@@ -1280,7 +1253,10 @@ pub fn create_secrets_page() -> SecretsPageWidgets {
                     // the master password's length as bruteforce metadata, and a
                     // session key is no different in kind.
                     tracing::info!("Bitwarden GUI: unlock succeeded");
-                    set_session_key(SecretString::from(session_key));
+                    // Already a `SecretString` from core, so it is stored as it
+                    // arrived. It used to come back as a bare `String` that this
+                    // line re-wrapped, which left the key in freed heap.
+                    set_session_key(session_key);
                     update_status_label(&status_label_async, &i18n("Unlocked"), "success");
 
                     if save_to_keyring {
@@ -2427,33 +2403,32 @@ pub fn create_secrets_page() -> SecretsPageWidgets {
                 let gaps = keyring_gaps_switch.clone();
                 glib::spawn_future_local(async move {
                     let result = gtk4::gio::spawn_blocking(move || {
-                        use secrecy::ExposeSecret;
+                        // No `ExposeSecret` here: the master password goes to core
+                        // as a `SecretString` and is never unwrapped in the GUI.
                         let bw_cmd = rustconn_core::secret::get_bw_cmd();
                         let password = get_bw_password_from_keyring();
                         let password = password?;
                         let bw_status = check_bitwarden_status_sync(&bw_cmd);
-                        if bw_status.0 != "Locked" {
-                            return Some((bw_status.0, bw_status.1, None));
+                        if !bw_status.should_try_unlock() {
+                            let (text, css) = bw_status.to_status_pair();
+                            return Some((text, css, None));
                         }
-                        let unlock_result = std::process::Command::new(&bw_cmd)
-                            .arg("unlock")
-                            .arg("--passwordenv")
-                            .arg("BW_PASSWORD")
-                            .env("BW_PASSWORD", password.expose_secret())
-                            .output();
-                        if let Ok(output) = unlock_result
-                            && output.status.success()
-                        {
-                            let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-                            if let Some(session_key) = extract_session_key(&stdout) {
-                                return Some((
-                                    "Unlocked".to_string(),
-                                    "success",
-                                    Some(session_key),
-                                ));
+                        match rustconn_core::secret::unlock_vault_blocking(&password) {
+                            Ok(session_key) => {
+                                let (text, css) = BwVaultStatus::Unlocked.to_status_pair();
+                                Some((text, css, Some(session_key)))
+                            }
+                            Err(e) => {
+                                // Never silent: the whole point of #312 is that a
+                                // skipped or failed auto-unlock left no trace.
+                                tracing::warn!(
+                                    error = %e,
+                                    "Bitwarden auto-unlock from keyring failed"
+                                );
+                                let (text, css) = BwVaultStatus::Locked.to_status_pair();
+                                Some((text, css, None))
                             }
                         }
-                        Some(("Locked".to_string(), "warning", None))
                     })
                     .await
                     .ok()
@@ -2463,7 +2438,10 @@ pub fn create_secrets_page() -> SecretsPageWidgets {
                         // password (the blocking step bails out otherwise).
                         KeyringGaps::resolve(&gaps, |g| g.bitwarden = false);
                         if let Some(key) = session_key {
-                            set_session_key(SecretString::from(key));
+                            // Stored as it arrived. It used to travel back as a
+                            // bare `String` that this line re-wrapped, leaving the
+                            // key in freed heap.
+                            set_session_key(key);
                         }
                         update_status_label(&status_label, &text, css);
                     }
@@ -3237,7 +3215,8 @@ fn load_bitwarden_credentials_from_keyring(
         async move {
             let t_bw = std::time::Instant::now();
             let result = gtk4::gio::spawn_blocking(move || {
-                use secrecy::ExposeSecret;
+                // No `ExposeSecret` here: the master password goes to core as a
+                // `SecretString` and is never unwrapped in the GUI.
                 let bw_cmd = rustconn_core::secret::get_bw_cmd();
                 let password = get_bw_password_from_keyring();
                 let password = if let Some(p) = password {
@@ -3251,31 +3230,32 @@ fn load_bitwarden_credentials_from_keyring(
                     "Got keyring password, checking vault status"
                 );
                 let bw_status = check_bitwarden_status_sync(&bw_cmd);
-                if bw_status.0 != "Locked" {
-                    return Some((bw_status.0, bw_status.1, None));
+                if !bw_status.should_try_unlock() {
+                    tracing::debug!(
+                        ?bw_status,
+                        "Bitwarden auto-unlock: nothing to unlock, reporting the probed state"
+                    );
+                    let (text, css) = bw_status.to_status_pair();
+                    return Some((text, css, None));
                 }
-                let unlock_result = std::process::Command::new(&bw_cmd)
-                    .arg("unlock")
-                    .arg("--passwordenv")
-                    .arg("BW_PASSWORD")
-                    .env("BW_PASSWORD", password.expose_secret())
-                    .output();
-                if let Ok(output) = unlock_result {
-                    if output.status.success() {
-                        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-                        if let Some(session_key) = extract_session_key(&stdout) {
-                            return Some(("Unlocked".to_string(), "success", Some(session_key)));
-                        }
-                        tracing::warn!("bw unlock succeeded but no session key");
-                    } else {
-                        let stderr = String::from_utf8_lossy(&output.stderr);
+                tracing::debug!(
+                    ?bw_status,
+                    "Bitwarden auto-unlock: attempting an unlock with the keyring password"
+                );
+                match rustconn_core::secret::unlock_vault_blocking(&password) {
+                    Ok(session_key) => {
+                        let (text, css) = BwVaultStatus::Unlocked.to_status_pair();
+                        Some((text, css, Some(session_key)))
+                    }
+                    Err(e) => {
                         tracing::warn!(
-                            %stderr,
-                            "bw unlock from keyring failed"
+                            error = %e,
+                            "Bitwarden auto-unlock from keyring failed"
                         );
+                        let (text, css) = BwVaultStatus::Locked.to_status_pair();
+                        Some((text, css, None))
                     }
                 }
-                Some(("Locked".to_string(), "warning", None))
             })
             .await
             .ok()
@@ -3290,7 +3270,8 @@ fn load_bitwarden_credentials_from_keyring(
                 // — the blocking step returns `None` when the lookup is empty.
                 KeyringGaps::resolve(&gaps, |g| g.bitwarden = false);
                 if let Some(key) = session_key {
-                    set_session_key(SecretString::from(key));
+                    // Stored as it arrived; no bare `String` round trip.
+                    set_session_key(key);
                     tracing::info!("Bitwarden auto-unlocked from keyring");
                 }
                 update_status_label(&status_label, &text, css);

@@ -1044,7 +1044,10 @@ impl EmbeddedRdpWidget {
                 let config = self.config.clone();
                 let snippet_delivery = snippet.delivery;
 
-                action.connect_activate(move |_, _| {
+                // Boxed so the confirmation callback can own a handle to it. The
+                // action closure is `Fn` and may fire repeatedly, so the send
+                // path cannot simply be moved out of it.
+                let send_script: Rc<dyn Fn()> = Rc::new(move || {
                     let Some(ref sender) = *tx.borrow() else {
                         return;
                     };
@@ -1185,6 +1188,61 @@ impl EmbeddedRdpWidget {
                         snippet = %snippet_name,
                         clipboard = use_clipboard,
                         "User script sent"
+                    );
+                });
+
+                // A Windows snippet reaches a remote shell exactly like a
+                // terminal one, so the per-snippet confirmation has to be
+                // honoured on this path too — it is a separate delivery
+                // mechanism, not a separate feature.
+                let confirm_before_run = snippet.confirm_before_run;
+                let confirm_name = snippet.name.clone();
+                let confirm_command = snippet.command.clone();
+                let confirm_parent = self.container.clone();
+
+                action.connect_activate(move |_, _| {
+                    if !confirm_before_run {
+                        send_script();
+                        return;
+                    }
+
+                    tracing::debug!(
+                        protocol = "rdp",
+                        snippet = %confirm_name,
+                        "Script asks for confirmation; waiting for the user"
+                    );
+
+                    let send = Rc::clone(&send_script);
+                    let cancel_name = confirm_name.clone();
+                    crate::alert::show_confirm(
+                        &confirm_parent,
+                        &i18n("Run Snippet?"),
+                        // Truncated with the same helper the terminal gate uses,
+                        // and for the same reason: an AlertDialog grows with its
+                        // body until it stops being readable. This path showed the
+                        // command whole, so a generated one-liner made the dialog
+                        // unreadable on exactly the snippets most worth reading.
+                        &crate::i18n::i18n_f(
+                            "This runs “{}” in the active session:\n\n{}",
+                            &[
+                                &confirm_name,
+                                &crate::window::snippets::truncate_command(&confirm_command),
+                            ],
+                        ),
+                        &i18n("Run"),
+                        true,
+                        move |confirmed| {
+                            if confirmed {
+                                // The send path logs its own "User script sent".
+                                send();
+                            } else {
+                                tracing::debug!(
+                                    protocol = "rdp",
+                                    snippet = %cancel_name,
+                                    "Script run cancelled at the confirmation dialog"
+                                );
+                            }
+                        },
                     );
                 });
             }

@@ -35,7 +35,20 @@ for what the user must see, and both in `main` gated on `--quiet`.
   stdout is not a terminal, so a piped or redirected command emits structured
   output (clig.dev). Matching the raw value drops that silently — the flag still
   says `table` and nothing fails.
-- User-facing text still goes through `i18n()` / `i18n_f()`. A CLI is not exempt
-  from the locales.
+- **This crate is English-only, and that is a gap rather than a decision.** The
+  line that used to be here said user-facing text goes through `i18n()` /
+  `i18n_f()` and that "a CLI is not exempt from the locales". Check it:
+  `grep -rn i18n rustconn-cli/src` returns nothing, and never has. Every
+  `println!` in `commands/` is a bare English literal, and none of the crate's
+  files are in `po/POTFILES.in`.
+
+  So do not "follow the rule" by wrapping the one string you happen to be
+  touching. A single `i18n()` call among several hundred bare literals gives a
+  translator one string out of a screenful and makes the output a mix of two
+  languages — worse than consistent English. Translating this crate is a task of
+  its own: every literal at once, the files added to `POTFILES.in`, and a decision
+  about machine-readable output, which must stay stable regardless of locale
+  (`--format json` and `--format csv` are parsed by scripts). Until someone does
+  that, new strings here are English.
 
 Surface reference: `docs/CLI_REFERENCE.md`.

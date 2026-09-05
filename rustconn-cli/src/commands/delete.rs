@@ -1,26 +1,9 @@
 //! Delete connection command.
 
-use std::io::IsTerminal;
 use std::path::Path;
 
 use crate::error::CliError;
-use crate::util::{create_config_manager, find_connection};
-
-/// Prompts the user for confirmation on an interactive terminal.
-///
-/// Returns `true` only if the user explicitly confirms (types "y" or "Y").
-/// Returns `false` in non-interactive mode to prevent accidental destructive
-/// operations — use `--force` to bypass confirmation in scripts.
-fn confirm(message: &str) -> bool {
-    if !std::io::stdin().is_terminal() {
-        return false;
-    }
-    eprint!("{message} [y/N] ");
-    let mut input = String::new();
-    std::io::stdin()
-        .read_line(&mut input)
-        .is_ok_and(|_| input.trim().eq_ignore_ascii_case("y"))
-}
+use crate::util::{confirm_on_terminal, create_config_manager, find_connection};
 
 /// Delete connection command handler
 ///
@@ -49,7 +32,14 @@ pub(super) fn cmd_delete(
     let conn_name = connection.name.clone();
     let protocol = format!("{:?}", connection.protocol);
 
-    if !force && !confirm(&format!("Delete connection '{conn_name}' ({protocol})?")) {
+    // A non-interactive stdin is a silent abort here, not an error: this is the
+    // documented behaviour of `connection delete` and scripts rely on it. It is
+    // also why `confirm_on_terminal` reports three outcomes — `history clear` and
+    // `snippet run` make the opposite choice from the same helper.
+    if !force
+        && !confirm_on_terminal(&format!("Delete connection '{conn_name}' ({protocol})?"))
+            .is_confirmed()
+    {
         tracing::info!("Delete aborted by user for '{conn_name}'");
         return Ok(());
     }

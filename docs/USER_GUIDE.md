@@ -1,6 +1,6 @@
 # RustConn User Guide
 
-**Version 0.21.5** | GTK4/libadwaita Connection Manager for Linux
+**Version 0.21.6** | GTK4/libadwaita Connection Manager for Linux
 
 RustConn is a modern connection manager designed for Linux with Wayland-first approach. It supports SSH, RDP, VNC, SPICE, MOSH, SFTP, Telnet, Serial, Kubernetes, Web protocols and Zero Trust integrations through a native GTK4/libadwaita interface.
 
@@ -46,6 +46,8 @@ RustConn is a modern connection manager designed for Linux with Wayland-first ap
    - [Templates](#templates)
    - [Snippets](#snippets)
    - [Clusters](#clusters)
+   - [Workspace Profiles](#workspace-profiles)
+   - [Port Knocking](#port-knocking)
    - [Broadcast Input](#broadcast-input)
    - [Command Palette](#command-palette)
    - [Global Variables](#global-variables)
@@ -53,6 +55,7 @@ RustConn is a modern connection manager designed for Linux with Wayland-first ap
    - [Wake-on-LAN](#wake-on-lan)
    - [Connection History & Statistics](#connection-history)
    - [Remote Monitoring](#remote-monitoring)
+   - [Flatpak Components](#flatpak-components)
    - [SSH Tunnel Manager](#ssh-tunnel-manager)
 8. [Settings](#settings)
    - [Custom Keybindings](#custom-keybindings)
@@ -2147,7 +2150,7 @@ Opening a [cluster](#clusters) assigns its member tabs to a group named after th
 
 Templates are connection presets that store protocol settings, authentication defaults, tags, custom properties, and automation tasks. When you create a connection from a template, all configured fields are copied into the new connection — including the template's icon.
 
-**Manage Templates:** Menu → Tools → **Manage Templates** (or `rustconn-cli template list`)
+**Manage Templates:** Menu → Tools → **Templates...** (or `rustconn-cli template list`)
 
 **Create Template:**
 - **From scratch:** Open Manage Templates → Click **Create Template** → configure name, icon (emoji or GTK icon name), protocol, default settings
@@ -2190,12 +2193,15 @@ pg_dump -h ${host} -U ${user} -d ${database} > /tmp/${database}_backup.sql
 
 **Variable Features:** Each variable can have a Name, Description (shown as hint), and Default Value (pre-filled when executing).
 
-**Manage Snippets:** Menu → Tools → **Manage Snippets** (or `rustconn-cli snippet list`)
+**Manage Snippets:** Menu → Tools → **Snippets...** (or `rustconn-cli snippet list`)
 
-**Execute Snippet:**
-1. Connect to a terminal session (SSH, Telnet, Serial, Kubernetes, or local shell)
-2. Menu → Tools → **Execute Snippet** (or use Command Palette → Snippets)
-3. Select a snippet, fill in variable values, click **Execute**
+**Execute Snippet:** running a snippet is always started from the thing you want it to run *on*, never from the app menu. The menu belongs to the main window, so an entry there would fire against whatever session happened to be current — not necessarily the one you are looking at, and not a detached session window at all. Pick whichever of these matches what you have in front of you:
+
+1. **Right-click inside the terminal** — up to five snippets appear inline for one-click use; beyond that the list becomes **Execute Snippet…**, which opens the picker
+2. **Right-click a connection in the sidebar** → **Run Snippet...** — connects first if needed, then opens the picker
+3. **Menu → Tools → Snippets...** → the ▶ button on a snippet's row
+
+Any of them fills in variable values first if the snippet needs them and they cannot be resolved from [Global Variables](#global-variables).
 
 **Global Variables Auto-Resolution:**
 
@@ -2223,6 +2229,30 @@ If all variables are resolved automatically, the snippet executes immediately wi
 ```
 
 **Organization:** Snippets support categories and tags for filtering.
+
+#### Confirm Before Running
+
+Some commands are not the kind you want to fire by accident — `rm -rf`, `mkfs`, a production deploy. Turn on **Confirm before running** in the snippet editor and RustConn asks once more, showing the exact command it is about to send, every time that snippet runs.
+
+The setting is per snippet and off by default, so existing snippets keep running on a single action.
+
+It covers every way a snippet can be started: the picker, the Execute button in the snippet manager, the variable-input dialog, the snippet entries in the terminal's right-click menu, and the Scripts menu of an embedded RDP session. Cancelling in the variable dialog's case keeps the values you typed, so you can correct a variable rather than start over.
+
+**From the CLI:**
+
+```bash
+# Mark a snippet as needing confirmation
+rustconn-cli snippet add --name "Wipe scratch disk" \
+    --command "mkfs.ext4 /dev/sdb" --confirm
+
+# Turn it on or off for an existing snippet
+rustconn-cli snippet edit "Wipe scratch disk" --confirm false
+
+# Running it prompts on a terminal; --force is required in a script
+rustconn-cli snippet run "Wipe scratch disk" --execute --force
+```
+
+Without a terminal on stdin and without `--force`, `snippet run --execute` refuses rather than prompting into the void.
 
 ### Clusters
 
@@ -3498,6 +3528,8 @@ RUST_LOG=debug rustconn 2> rustconn.log
 RUST_LOG=rustconn_core::connection=debug rustconn
 RUST_LOG=rustconn_core::secret=debug rustconn
 ```
+
+**Before attaching a log to a bug report, skim it.** RustConn does not log passwords, and the one dependency that did — `sspi`, which printed the encoded CredSSP request containing the RDP password in clear — is filtered out and cannot be re-enabled through `RUST_LOG`. A debug log still describes your setup in detail, though: hostnames and ports, usernames, key file paths, vault entry names, and share paths. Prefer the narrowest filter that shows the problem, which is what the module-specific forms above are for.
 
 ### Serial Device Access
 

@@ -18,14 +18,12 @@ use crate::i18n::{i18n, i18n_f};
 /// Creates the SSH Agent settings page using AdwPreferencesPage
 pub fn create_ssh_agent_page() -> (
     adw::PreferencesPage,
-    Label,
-    Label,
-    Button,
-    ListBox,
-    Button,
-    gtk4::Widget,
-    Label,
-    Button,
+    Label,         // status
+    Label,         // socket path
+    Button,        // start agent
+    ListBox,       // loaded keys
+    Button,        // add key
+    Button,        // refresh
     ListBox,       // available_keys_list
     adw::EntryRow, // custom_socket_entry
 ) {
@@ -96,11 +94,10 @@ pub fn create_ssh_agent_page() -> (
     custom_socket_entry.set_tooltip_text(Some(&i18n(
         "Overrides auto-detected SSH_AUTH_SOCK for all connections",
     )));
-    // Use the text property's placeholder
-    custom_socket_entry.set_text("");
-    // Set placeholder via the underlying editable
-    let editable = custom_socket_entry.clone();
-    editable.set_text("");
+    // Three lines were removed here: `set_text("")` on a row that is already
+    // empty, then a clone of the same row and `set_text("")` again. Both were
+    // commented as setting a placeholder, which neither does — and the row is
+    // filled from settings by `load_settings` anyway.
 
     // Real-time validation feedback (Task 4.2)
     custom_socket_entry.connect_changed(|entry| {
@@ -140,13 +137,6 @@ pub fn create_ssh_agent_page() -> (
         .build();
     keys_group.add(&ssh_agent_keys_list);
 
-    let ssh_agent_loading_spinner = crate::spinner::new();
-    let ssh_agent_error_label = Label::builder()
-        .label("")
-        .halign(gtk4::Align::Start)
-        .css_classes(["error"])
-        .build();
-
     // Add Key button
     let ssh_agent_add_key_button = Button::builder()
         .label(i18n("Add Key"))
@@ -184,8 +174,6 @@ pub fn create_ssh_agent_page() -> (
         ssh_agent_start_button,
         ssh_agent_keys_list,
         ssh_agent_add_key_button,
-        ssh_agent_loading_spinner.upcast(),
-        ssh_agent_error_label,
         ssh_agent_refresh_button,
         available_keys_list,
         custom_socket_entry,
@@ -438,17 +426,30 @@ fn add_key_with_passphrase_dialog(
         .unwrap_or("key")
         .to_string();
 
-    // Create passphrase dialog using adw::Dialog
+    // Create passphrase dialog using adw::Dialog.
+    //
+    // Width only, no content_height: the body is a label and one entry, so the
+    // natural height is the right one and pinning it just adds dead space. The
+    // 180 that used to be here was sized for a body that also held the action
+    // button, which now lives in the header. `password.rs` does the same for the
+    // same reason.
     let dialog = adw::Dialog::builder()
         .title(i18n_f("Add Key: {}", &[&key_name]))
         .content_width(400)
-        .content_height(180)
         .build();
 
     let toolbar_view = adw::ToolbarView::new();
 
+    // Cancel at the start, the action at the end, both in the header — the same
+    // shape as `portable_passphrase_change` and `credential_transfer`, the other
+    // two dialogs that take input and hide the title buttons. This one used to
+    // hide them and put its only button in the body, which left no visible way
+    // out: Escape and click-outside did close it, but nothing said so.
+    let cancel_button = Button::with_label(&i18n("Cancel"));
+
     let header = adw::HeaderBar::builder()
         .show_end_title_buttons(false)
+        .show_start_title_buttons(false)
         .build();
 
     let content = GtkBox::builder()
@@ -474,26 +475,35 @@ fn add_key_with_passphrase_dialog(
         .hexpand(true)
         .build();
 
-    let button_box = GtkBox::builder()
-        .orientation(Orientation::Horizontal)
-        .spacing(6)
-        .halign(gtk4::Align::End)
-        .build();
-
     let add_button = Button::builder()
         .label(i18n("Add Key"))
         .css_classes(["suggested-action"])
         .build();
 
-    button_box.append(&add_button);
+    header.pack_start(&cancel_button);
+    header.pack_end(&add_button);
 
     content.append(&body_label);
     content.append(&passphrase_entry);
-    content.append(&button_box);
 
     toolbar_view.add_top_bar(&header);
     toolbar_view.set_content(Some(&content));
     dialog.set_child(Some(&toolbar_view));
+
+    // Cancel closes without touching the agent. `can-close` is left on, so
+    // Escape and click-outside already did this; the button is what makes it
+    // discoverable.
+    let dialog_for_cancel = dialog.clone();
+    cancel_button.connect_clicked(move |_| {
+        dialog_for_cancel.close();
+    });
+
+    // Enter in the passphrase field submits, as in the connection password
+    // dialog. Registered before the entry is moved into the handler below.
+    let add_for_activate = add_button.clone();
+    passphrase_entry.connect_activate(move |_| {
+        add_for_activate.emit_clicked();
+    });
 
     // Connect add button
     let manager_clone = ssh_agent_manager.clone();
@@ -545,6 +555,18 @@ fn add_key_with_passphrase_dialog(
     dialog.present(Some(parent_window));
 }
 
+thread_local! {
+    /// The SSH key file chooser request currently in flight, if any.
+    ///
+    /// Held so a second **Add Key** click can cancel the first request instead of
+    /// stacking a second chooser or requiring the button to be disabled. A
+    /// `thread_local` because everything here is GTK — main thread only by
+    /// construction, so there is nothing to synchronise — and because the chooser
+    /// is opened by a free function that keeps no state of its own.
+    static IN_FLIGHT_KEY_CHOOSER: RefCell<Option<gtk4::gio::Cancellable>> =
+        const { RefCell::new(None) };
+}
+
 /// Shows a file chooser dialog to add a key from any location
 pub fn show_add_key_file_chooser(
     button: &Button,
@@ -553,12 +575,23 @@ pub fn show_add_key_file_chooser(
     ssh_agent_status_label: &Label,
     ssh_agent_socket_label: &Label,
 ) {
+    // Both of these are programming-error paths rather than anything a user can
+    // cause, but they are also two more ways this button can appear to do
+    // nothing, so they say which one happened.
+    //
+    // Neither returns early past a disabled button, which used to matter: the
+    // button was made insensitive before these checks in an earlier draft, so a
+    // failure here left it dead. It stays live throughout now — see the
+    // superseding comment below.
     let Some(root) = button.root() else {
-        tracing::error!("Cannot get root window for file chooser");
+        tracing::error!("Add Key: button has no root, cannot parent the file chooser");
         return;
     };
     let Some(window) = root.downcast_ref::<gtk4::Window>() else {
-        tracing::error!("Root is not a Window");
+        tracing::error!(
+            root = %root.type_(),
+            "Add Key: root is not a GtkWindow, cannot parent the file chooser"
+        );
         return;
     };
 
@@ -567,33 +600,123 @@ pub fn show_add_key_file_chooser(
         .modal(true)
         .build();
 
-    // Set initial folder to ~/.ssh if it exists
-    if let Some(home) = dirs::home_dir() {
-        let ssh_dir = home.join(".ssh");
-        if ssh_dir.exists() {
-            let file = gtk4::gio::File::for_path(&ssh_dir);
-            file_dialog.set_initial_folder(Some(&file));
-        }
+    // Filters, matching the KeePass choosers on this same page. Private keys have
+    // no reliable extension, so the pattern list is a convenience and "All Files"
+    // has to stay reachable.
+    let key_filter = gtk4::FileFilter::new();
+    key_filter.set_name(Some(&i18n("SSH Keys")));
+    for pattern in ["*.pem", "*.key", "id_*", "*_rsa", "*_ed25519", "*_ecdsa"] {
+        key_filter.add_pattern(pattern);
     }
+    let all_filter = gtk4::FileFilter::new();
+    all_filter.set_name(Some(&i18n("All Files")));
+    all_filter.add_pattern("*");
+    let filters = gtk4::gio::ListStore::new::<gtk4::FileFilter>();
+    filters.append(&key_filter);
+    filters.append(&all_filter);
+    file_dialog.set_filters(Some(&filters));
+    file_dialog.set_default_filter(Some(&key_filter));
+
+    // No `set_initial_folder`: keys inside ~/.ssh are already listed under
+    // Available Key Files and can be added from there, so the chooser is for keys
+    // kept somewhere else — which is where defaulting into ~/.ssh gets in the way.
+    // GTK reopens wherever it was last anyway.
 
     let manager_clone = ssh_agent_manager.clone();
     let keys_list_clone = ssh_agent_keys_list.clone();
     let status_label_clone = ssh_agent_status_label.clone();
     let socket_label_clone = ssh_agent_socket_label.clone();
     let button_clone = button.clone();
+    let window_clone = window.clone();
 
-    file_dialog.open(Some(window), gtk4::gio::Cancellable::NONE, move |result| {
-        if let Ok(file) = result
-            && let Some(path) = file.path()
-        {
-            add_key_with_passphrase_dialog(
-                &button_clone,
-                &path,
-                &manager_clone,
-                &keys_list_clone,
-                &status_label_clone,
-                &socket_label_clone,
-            );
+    // One chooser at a time, by superseding rather than by disabling the button.
+    //
+    // Nothing used to stop a second click stacking a second chooser, and clicking
+    // again is the natural response to a chooser that is slow to appear. The first
+    // attempt at that was `button.set_sensitive(false)` with the button re-enabled
+    // in the callback — which is wrong twice over. The callback fires when the user
+    // picks a file or closes the chooser, so it can legitimately be minutes away
+    // while they browse, and there is no signal for "the chooser appeared" to time
+    // out against instead. Worse, `shell-environment.md` documents an environment
+    // where the callback never fires at all: there the button would have stayed
+    // dead for the rest of the session, with no message — a worse version of the
+    // "Add Key does nothing" report this whole path exists to fix.
+    //
+    // So the button stays live and a new click cancels the request in flight. A
+    // cancelled request arrives at the callback below and is recognised there.
+    let cancellable = gtk4::gio::Cancellable::new();
+    IN_FLIGHT_KEY_CHOOSER.with(|slot| {
+        if let Some(previous) = slot.borrow_mut().replace(cancellable.clone()) {
+            tracing::debug!("Superseding an SSH key file chooser that was still open");
+            previous.cancel();
+        }
+    });
+
+    tracing::debug!("Opening the SSH key file chooser");
+
+    file_dialog.open(Some(window), Some(&cancellable), move |result| {
+        // Cancellation means a later click took over, so the slot now holds that
+        // request and must not be cleared. Every other outcome is terminal for
+        // this one.
+        let superseded = result
+            .as_ref()
+            .err()
+            .is_some_and(|e| e.matches(gtk4::gio::IOErrorEnum::Cancelled));
+        if superseded {
+            tracing::debug!("Key file chooser was superseded by a later Add Key click");
+            return;
+        }
+        IN_FLIGHT_KEY_CHOOSER.with(|slot| {
+            slot.borrow_mut().take();
+        });
+
+        match result {
+            Ok(file) => {
+                let Some(path) = file.path() else {
+                    // A chooser result with no local path — a virtual location
+                    // such as a remote mount. ssh-add needs a real file.
+                    tracing::warn!("Chosen key file has no local path");
+                    crate::alert::show_error(
+                        &window_clone,
+                        &i18n("Cannot Use That File"),
+                        &i18n(
+                            "That location has no local file path. Copy the key to a local folder first.",
+                        ),
+                    );
+                    return;
+                };
+                tracing::debug!(path = %path.display(), "Key file chosen");
+                add_key_with_passphrase_dialog(
+                    &button_clone,
+                    &path,
+                    &manager_clone,
+                    &keys_list_clone,
+                    &status_label_clone,
+                    &socket_label_clone,
+                );
+            }
+            // Closing the chooser is an Err too, and the only one that means
+            // nothing went wrong.
+            Err(e) if e.matches(gtk4::DialogError::Dismissed) => {
+                tracing::debug!("Key file chooser dismissed");
+            }
+            Err(e) => {
+                // This arm did not exist while the result was matched with
+                // `if let Ok(...)`, which collapsed a dismissal, a real failure
+                // and a callback that never runs into one silent outcome. Telling
+                // them apart is what identified the "Add Key does nothing" report
+                // as the environment rather than this code — see the portal note
+                // in steering `shell-environment.md`.
+                tracing::warn!(error = %e, "SSH key file chooser failed to open");
+                crate::alert::show_error(
+                    &window_clone,
+                    &i18n("Could Not Open the File Chooser"),
+                    &i18n_f(
+                        "{}\n\nKeys already in ~/.ssh are listed under Available Key Files, and can be added from there without the file chooser.",
+                        &[&e.to_string()],
+                    ),
+                );
+            }
         }
     });
 }

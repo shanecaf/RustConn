@@ -1313,6 +1313,10 @@ pub enum SnippetCommands {
         /// Tags (comma-separated)
         #[arg(short, long)]
         tags: Option<String>,
+
+        /// Ask for confirmation before running this snippet
+        #[arg(long)]
+        confirm: bool,
     },
 
     /// Edit an existing snippet
@@ -1340,6 +1344,18 @@ pub enum SnippetCommands {
         /// New tags (comma-separated, replaces existing)
         #[arg(short, long)]
         tags: Option<String>,
+
+        // `Option` so that omitting the flag leaves the current setting alone,
+        // rather than an absent flag meaning "turn it off". `num_args(0..=1)` with
+        // a missing value of `true` so that a bare `--confirm` works here exactly
+        // as it does on `add`: the flag had the same name on both subcommands but
+        // required a value on this one only, so the obvious spelling failed with
+        // "a value is required". Kept as a `//` comment, not a doc comment — clap
+        // renders doc comments as user-facing long help, and clap already appends
+        // the possible values itself.
+        /// Ask for confirmation before running this snippet
+        #[arg(long, num_args = 0..=1, default_missing_value = "true")]
+        confirm: Option<bool>,
     },
 
     /// Delete a snippet
@@ -1362,6 +1378,10 @@ pub enum SnippetCommands {
         /// Actually execute the command (default: just print)
         #[arg(short, long)]
         execute: bool,
+
+        /// Skip the prompt for a snippet marked "confirm before running"
+        #[arg(long)]
+        force: bool,
     },
 }
 

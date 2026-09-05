@@ -515,6 +515,21 @@ fn main() -> gtk4::glib::ExitCode {
             "ironrdp_tokio=warn"
                 .parse()
                 .expect("compile-time constant directive"),
+        )
+        // `sspi` logs the encoded CredSSP TSRequest at debug level, and field [2]
+        // of TSPasswordCreds is the password as plain UTF-16LE. So
+        // `RUST_LOG=debug` put the RDP account password in the log as a decodable
+        // byte array — in the same line whose span fields politely print
+        // `password: Secret`, which is what made it easy to miss. That log is
+        // exactly what gets attached to a bug report.
+        //
+        // Deliberately not overridable: this is added after
+        // `from_default_env()`, so it wins over an `sspi=debug` in RUST_LOG
+        // rather than letting anyone re-enable a credential leak by accident.
+        .add_directive(
+            "sspi=warn"
+                .parse()
+                .expect("compile-time constant directive"),
         );
 
     tracing_subscriber::fmt().with_env_filter(filter).init();

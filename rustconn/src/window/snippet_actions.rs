@@ -30,7 +30,29 @@ impl MainWindow {
         });
         window.add_action(&manage_snippets_action);
 
-        // Execute snippet action
+        // Execute snippet action — opens the picker for the focused session.
+        //
+        // Deliberately absent from the Tools menu, and it should stay absent. The
+        // picker sends to whatever terminal currently has focus, resolved through
+        // `send_text_to_focused` and the active tab's split bridge. That target is
+        // only unambiguous while the user is looking at it. The app menu hangs off
+        // the main window, so activating from there against a detached session
+        // window — or against a split whose focused pane changed while the menu was
+        // open — sends the command to a session the user did not mean. A snippet is
+        // not an idempotent request; delivering it to the wrong host is the whole
+        // class of accident issue #315 exists to reduce.
+        //
+        // The reachable routes are all ones where the target is chosen in the same
+        // gesture. This action itself is reached from the terminal's own
+        // right-click menu, as the "Execute Snippet…" entry that replaces the
+        // inline list once there are more than five snippets — see
+        // `terminal/config.rs`. Alongside it: `run-snippet-direct` for the inline
+        // entries, `run-snippet-for-connection` from the connection context menu,
+        // and the snippets manager, which checks for an active terminal first.
+        //
+        // Not the command palette, which is worth stating because the palette
+        // hangs off the main window the same way the app menu does and would carry
+        // the same ambiguity.
         let execute_snippet_action = gio::SimpleAction::new("execute-snippet", None);
         let window_weak = window.downgrade();
         let state_clone = state.clone();
@@ -51,11 +73,13 @@ impl MainWindow {
         // Run snippet directly by ID (from inline context menu items)
         let run_snippet_direct_action =
             gio::SimpleAction::new("run-snippet-direct", Some(glib::VariantTy::STRING));
+        let window_weak = window.downgrade();
         let state_clone = state.clone();
         let notebook_clone = terminal_notebook.clone();
         let bridges_clone = self.session_split_bridges.clone();
         run_snippet_direct_action.connect_activate(move |_, param| {
-            if let Some(param) = param
+            if let Some(win) = window_weak.upgrade()
+                && let Some(param) = param
                 && let Some(id_str) = param.get::<String>()
                 && let Ok(id) = Uuid::parse_str(&id_str)
             {
@@ -63,6 +87,7 @@ impl MainWindow {
                 if let Some(snippet) = state_ref.get_snippet(id).cloned() {
                     drop(state_ref);
                     crate::window::snippets::execute_snippet_direct(
+                        win.upcast_ref::<gtk4::Window>(),
                         &notebook_clone,
                         &bridges_clone,
                         &snippet,

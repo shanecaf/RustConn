@@ -7,13 +7,24 @@
 //! # Detection Strategy
 //!
 //! 1. Check `XKB_DEFAULT_LAYOUT` environment variable
-//! 2. Parse `localectl status` output
+//! 2. Parse `localectl status` output, preferring `X11 Layout` over `VC Keymap`
 //! 3. Fall back to US English (`0x0409`)
+//!
+//! Both sources carry the full group list of a machine that toggles between
+//! layouts (`us,ua`), so each is walked in order rather than read as one name.
 
 use std::process::Command;
 
 /// US English keyboard layout (fallback default)
 pub const LAYOUT_US_ENGLISH: u32 = 0x0409;
+
+/// Values `localectl` prints for a setting that is not configured.
+///
+/// Current systemd prints `(unset)`, older releases print `n/a`. Telling these
+/// apart from a real layout name is not cosmetic: on a desktop `VC Keymap` is
+/// almost always one of them, and `localectl status` prints it *above*
+/// `X11 Layout`.
+const LOCALECTL_PLACEHOLDERS: [&str; 2] = ["(unset)", "n/a"];
 
 /// Detects the system keyboard layout and returns the Windows KLID.
 ///
@@ -25,36 +36,60 @@ pub const LAYOUT_US_ENGLISH: u32 = 0x0409;
 /// Windows keyboard layout identifier (e.g. `0x0407` for German).
 #[must_use]
 pub fn detect_keyboard_layout() -> u32 {
-    // 1. Check XKB_DEFAULT_LAYOUT (set by Wayland compositors)
-    if let Ok(layout) = std::env::var("XKB_DEFAULT_LAYOUT") {
-        let name = layout.split(',').next().unwrap_or(&layout).trim();
-        if let Some(klid) = xkb_name_to_klid(name) {
-            tracing::debug!(
-                "Keyboard layout from XKB_DEFAULT_LAYOUT: {} -> 0x{:04X}",
-                name,
-                klid
-            );
-            return klid;
-        }
-    }
-
-    // 2. Try localectl status
-    if let Some(layout) = detect_from_localectl()
-        && let Some(klid) = xkb_name_to_klid(&layout)
+    // 1. XKB_DEFAULT_LAYOUT, which some Wayland compositors set
+    let from_env = std::env::var("XKB_DEFAULT_LAYOUT").ok();
+    if let Some(list) = from_env.as_deref()
+        && let Some((name, klid)) = first_known_layout(list)
     {
         tracing::debug!(
-            "Keyboard layout from localectl: {} -> 0x{:04X}",
-            layout,
-            klid
+            source = "XKB_DEFAULT_LAYOUT",
+            layout = name,
+            klid = format!("0x{klid:04X}"),
+            "keyboard layout detected"
         );
         return klid;
     }
 
-    tracing::debug!("Keyboard layout detection failed, using US English (0x0409)");
+    // 2. localectl status
+    let from_localectl = detect_from_localectl();
+    if let Some(list) = from_localectl.as_deref()
+        && let Some((name, klid)) = first_known_layout(list)
+    {
+        tracing::debug!(
+            source = "localectl",
+            layout = name,
+            klid = format!("0x{klid:04X}"),
+            "keyboard layout detected"
+        );
+        return klid;
+    }
+
+    // US English here is a guess, and a wrong guess makes the server interpret
+    // every scancode against the wrong table — the symptom is that typing
+    // produces the wrong characters, with nothing pointing at the layout. So
+    // record what each source actually answered, and name the override.
+    tracing::info!(
+        xkb_default_layout = from_env.as_deref().unwrap_or("<unset>"),
+        localectl = from_localectl.as_deref().unwrap_or("<no usable value>"),
+        "no known keyboard layout found, sending US English (0x0409); set the connection's \
+         keyboard layout explicitly if that is wrong"
+    );
     LAYOUT_US_ENGLISH
 }
 
-/// Parses `localectl status` to extract the XKB layout name.
+/// Returns the first layout in a comma-separated list that maps to a KLID.
+///
+/// Both sources report the whole group list of a machine that toggles between
+/// layouts, e.g. `us,ua`. The first entry is the primary one, but it may be a
+/// layout [`xkb_name_to_klid`] does not know — and then a later entry is a
+/// better answer than the US English fallback.
+fn first_known_layout(list: &str) -> Option<(&str, u32)> {
+    list.split(',')
+        .map(str::trim)
+        .find_map(|name| xkb_name_to_klid(name).map(|klid| (name, klid)))
+}
+
+/// Reads `localectl status` and returns the layout list it reports.
 fn detect_from_localectl() -> Option<String> {
     let output = Command::new("localectl").arg("status").output().ok()?;
 
@@ -62,19 +97,51 @@ fn detect_from_localectl() -> Option<String> {
         return None;
     }
 
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    parse_localectl_status(&String::from_utf8_lossy(&output.stdout))
+}
+
+/// Extracts the layout list from `localectl status` output.
+///
+/// `X11 Layout` wins over `VC Keymap` wherever it appears, and the placeholders
+/// systemd prints for an unset value are ignored. Reading the first of the two
+/// lines instead is what silently sent US English to the server on any machine
+/// whose console keymap was unconfigured — which is the normal state of a
+/// desktop, and it is printed first.
+///
+/// The value is returned as printed and may be a comma-separated list.
+fn parse_localectl_status(stdout: &str) -> Option<String> {
+    let mut vc_keymap = None;
+
     for line in stdout.lines() {
         let trimmed = line.trim();
-        if trimmed.starts_with("X11 Layout:") || trimmed.starts_with("VC Keymap:") {
-            let value = trimmed.split(':').nth(1)?.trim();
-            // Take first layout if comma-separated
-            let name = value.split(',').next().unwrap_or(value).trim();
-            if !name.is_empty() {
-                return Some(name.to_string());
-            }
+
+        if let Some(value) = trimmed.strip_prefix("X11 Layout:")
+            && let Some(layout) = usable_localectl_value(value)
+        {
+            return Some(layout);
+        }
+
+        if vc_keymap.is_none()
+            && let Some(value) = trimmed.strip_prefix("VC Keymap:")
+        {
+            vc_keymap = usable_localectl_value(value);
         }
     }
-    None
+
+    vc_keymap
+}
+
+/// Trims a `localectl` field value, rejecting empties and placeholders.
+fn usable_localectl_value(value: &str) -> Option<String> {
+    let value = value.trim();
+    if value.is_empty()
+        || LOCALECTL_PLACEHOLDERS
+            .iter()
+            .any(|placeholder| value.eq_ignore_ascii_case(placeholder))
+    {
+        return None;
+    }
+    Some(value.to_string())
 }
 
 /// Maps an XKB layout name to a Windows keyboard layout identifier (KLID).
@@ -172,5 +239,69 @@ mod tests {
         let klid = detect_keyboard_layout();
         // Should always return a valid KLID (at minimum the US fallback)
         assert!(klid > 0);
+    }
+
+    /// The defect this parser was rewritten for.
+    ///
+    /// `localectl status` prints `VC Keymap` above `X11 Layout`, and on a
+    /// desktop the console keymap is normally unconfigured. Reading whichever
+    /// of the two lines came first therefore answered `(unset)`, which maps to
+    /// no KLID, and the German machine got US English sent to the server with
+    /// nothing but a debug line about "detection failed" to show for it.
+    #[test]
+    fn an_unset_console_keymap_does_not_mask_the_graphical_layout() {
+        let status = "\
+   System Locale: LANG=de_DE.UTF-8
+       VC Keymap: (unset)
+      X11 Layout: de
+       X11 Model: pc105
+";
+        assert_eq!(parse_localectl_status(status).as_deref(), Some("de"));
+    }
+
+    #[test]
+    fn the_older_placeholder_spelling_is_rejected_too() {
+        // systemd printed `n/a` before it printed `(unset)`.
+        let status = "    VC Keymap: n/a\n   X11 Layout: fr\n";
+        assert_eq!(parse_localectl_status(status).as_deref(), Some("fr"));
+    }
+
+    #[test]
+    fn a_console_keymap_is_used_when_there_is_no_graphical_one() {
+        // A headless or console-only machine reports no X11 layout at all.
+        let status = "   System Locale: LANG=C\n       VC Keymap: pl\n";
+        assert_eq!(parse_localectl_status(status).as_deref(), Some("pl"));
+    }
+
+    #[test]
+    fn both_sources_unset_yields_nothing_to_go_on() {
+        let status = "       VC Keymap: (unset)\n      X11 Layout: (unset)\n";
+        assert_eq!(parse_localectl_status(status), None);
+    }
+
+    #[test]
+    fn the_group_list_is_returned_whole() {
+        // The real output of a machine toggling between two layouts.
+        let status = "\
+   System Locale: LANG=uk_UA.UTF-8
+       VC Keymap: (unset)
+      X11 Layout: us,ua
+     X11 Variant: ,
+";
+        assert_eq!(parse_localectl_status(status).as_deref(), Some("us,ua"));
+    }
+
+    #[test]
+    fn the_primary_layout_wins_when_it_is_known() {
+        assert_eq!(first_known_layout("us,ua"), Some(("us", 0x0409)));
+        assert_eq!(first_known_layout("ua,us"), Some(("ua", 0x0422)));
+    }
+
+    #[test]
+    fn an_unknown_primary_falls_through_to_the_next_group() {
+        // Better than answering US English for a machine that named a layout.
+        assert_eq!(first_known_layout("apl, de"), Some(("de", 0x0407)));
+        assert_eq!(first_known_layout("apl,epo"), None);
+        assert_eq!(first_known_layout(""), None);
     }
 }

@@ -132,10 +132,44 @@ impl MainWindow {
                         state_ref.settings_mut().global_variables = vars_to_save.clone();
 
                         // Persist to disk
-                        if let Err(e) = state_ref.config_manager().save_variables(&vars_to_save) {
-                            tracing::error!("Failed to save variables: {e}");
-                        } else {
-                            tracing::info!("Saved {} global variables", vars_to_save.len());
+                        let save_error = match state_ref
+                            .config_manager()
+                            .save_variables(&vars_to_save)
+                        {
+                            Ok(()) => {
+                                tracing::info!("Saved {} global variables", vars_to_save.len());
+                                None
+                            }
+                            Err(e) => {
+                                tracing::error!("Failed to save variables: {e}");
+                                Some(e.to_string())
+                            }
+                        };
+                        // Release the borrow before presenting anything: the
+                        // dialog's response runs as a GTK callback and must not
+                        // find this still held (window-guide.md).
+                        drop(state_ref);
+
+                        // This is a save failure on user data, so it gets a
+                        // dialog, not a toast. Settings in memory were already
+                        // updated, so without this the edits look saved and are
+                        // gone on the next start — the same data-loss reasoning
+                        // the vault write above already follows.
+                        if let Some(reason) = save_error {
+                            if let Some(win) = win_weak_for_save.upgrade() {
+                                crate::alert::show_error(
+                                    &win,
+                                    &crate::i18n::i18n("Variables Not Saved"),
+                                    &crate::i18n::i18n_f(
+                                        "Your changes could not be written to disk and will be lost when RustConn closes: {}",
+                                        &[&reason],
+                                    ),
+                                );
+                            } else {
+                                toast_for_save.show_error(&crate::i18n::i18n(
+                                    "Global variables could not be saved to disk.",
+                                ));
+                            }
                         }
                     }
                 });

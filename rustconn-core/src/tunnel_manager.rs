@@ -32,6 +32,31 @@ pub enum TunnelManagerError {
     /// Failed to spawn the SSH process
     #[error("Failed to spawn SSH tunnel: {0}")]
     SpawnFailed(#[from] std::io::Error),
+    /// The program that carries the tunnel is not installed.
+    ///
+    /// Separate from `SpawnFailed` because it is the one spawn failure with an
+    /// obvious remedy, and because the caller cannot otherwise tell *which*
+    /// program is missing: an MPTCP-enabled connection runs `mptcpize`, not
+    /// `ssh`, so a message naming `ssh` would send the user to install something
+    /// they already have.
+    #[error("{program} was not found")]
+    ProgramNotFound {
+        /// Name of the executable that could not be found on `PATH`.
+        program: String,
+    },
+}
+
+/// A tunnel that exited on its own, with the diagnosis of why.
+///
+/// `health_check` used to build this message, assign it to the tunnel's status
+/// and then drop the whole record in the same call, so the captured stderr never
+/// reached a caller. Returning it is what makes the failure reportable.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TunnelFailure {
+    /// The tunnel that exited.
+    pub id: Uuid,
+    /// Exit status, and the process's stderr when it wrote any.
+    pub reason: String,
 }
 
 /// Result type for tunnel manager operations
@@ -57,6 +82,13 @@ pub struct TunnelManager {
     running: HashMap<Uuid, RunningTunnel>,
     /// Consecutive reconnect failure count per tunnel (reset on manual start/stop)
     reconnect_failures: HashMap<Uuid, u32>,
+    /// Why each tunnel last exited on its own, kept after the process record is
+    /// gone so `status` can still answer `Failed`.
+    ///
+    /// Without this, a tunnel that died reported `Stopped` — indistinguishable
+    /// from one the user stopped on purpose — and the `TunnelStatus::Failed`
+    /// branch that `tunnel_builder::path_diagram` already draws was unreachable.
+    last_failure: HashMap<Uuid, String>,
 }
 
 impl TunnelManager {
@@ -66,6 +98,7 @@ impl TunnelManager {
         Self {
             running: HashMap::new(),
             reconnect_failures: HashMap::new(),
+            last_failure: HashMap::new(),
         }
     }
 
@@ -93,8 +126,11 @@ impl TunnelManager {
             return Err(TunnelManagerError::AlreadyRunning(tunnel.id));
         }
 
-        // Reset reconnect failure counter on manual start
+        // Reset reconnect failure counter on manual start, and clear any
+        // recorded exit reason so a restarted tunnel does not keep reporting the
+        // failure it recovered from.
         self.reconnect_failures.remove(&tunnel.id);
+        self.last_failure.remove(&tunnel.id);
 
         let ProtocolConfig::Ssh(ref ssh_config) = connection.protocol_config else {
             return Err(TunnelManagerError::NotSshConnection(tunnel.connection_id));
@@ -102,6 +138,7 @@ impl TunnelManager {
 
         // Build SSH command: ssh -N [-L ...] [-R ...] [-D ...] [options] user@host
         // Wrap with mptcpize if MPTCP is enabled for this connection.
+        let program = tunnel_program(ssh_config.mptcp);
         let mut cmd = if ssh_config.mptcp {
             let mut c = Command::new("mptcpize");
             c.args(["run", "ssh"]);
@@ -188,7 +225,7 @@ impl TunnelManager {
             "Starting standalone SSH tunnel"
         );
 
-        let mut child = cmd.spawn()?;
+        let mut child = cmd.spawn().map_err(|e| classify_spawn_error(e, program))?;
 
         // Capture stderr in background thread
         let stderr_output = Arc::new(Mutex::new(String::new()));
@@ -240,8 +277,11 @@ impl TunnelManager {
         if let Some(mut running) = self.running.remove(&tunnel_id) {
             let _ = running.child.kill();
             let _ = running.child.wait();
-            // Reset reconnect failure counter on manual stop
+            // Reset reconnect failure counter on manual stop, and forget any
+            // recorded exit reason: a tunnel the user stopped is `Stopped`, not
+            // `Failed`, whatever it did before.
             self.reconnect_failures.remove(&tunnel_id);
+            self.last_failure.remove(&tunnel_id);
             tracing::info!(tunnel_id = %tunnel_id, "Stopped standalone SSH tunnel");
             Ok(())
         } else {
@@ -257,12 +297,29 @@ impl TunnelManager {
         }
     }
 
-    /// Returns the status of a tunnel
+    /// Returns the status of a tunnel.
+    ///
+    /// A tunnel that is not running reports `Failed` when it exited on its own
+    /// and `health_check` recorded why, and `Stopped` only when it was never
+    /// started or the user stopped it. Both used to report `Stopped`.
     #[must_use]
     pub fn status(&self, tunnel_id: Uuid) -> TunnelStatus {
-        self.running
+        if let Some(running) = self.running.get(&tunnel_id) {
+            return running.status.clone();
+        }
+        self.last_failure
             .get(&tunnel_id)
-            .map_or(TunnelStatus::Stopped, |r| r.status.clone())
+            .map_or(TunnelStatus::Stopped, |reason| {
+                TunnelStatus::Failed(reason.clone())
+            })
+    }
+
+    /// Returns why a tunnel last exited on its own, if it did.
+    ///
+    /// Cleared when the tunnel is started or stopped deliberately.
+    #[must_use]
+    pub fn last_failure(&self, tunnel_id: Uuid) -> Option<&str> {
+        self.last_failure.get(&tunnel_id).map(String::as_str)
     }
 
     /// Returns true if the tunnel is currently running
@@ -290,10 +347,16 @@ impl TunnelManager {
 
     /// Performs a health check on all running tunnels.
     ///
-    /// Returns a list of tunnel IDs that have exited unexpectedly.
-    /// Updates internal status to `Failed` for crashed tunnels and
-    /// increments the reconnect failure counter for each failed tunnel.
-    pub fn health_check(&mut self) -> Vec<Uuid> {
+    /// Returns the tunnels that have exited unexpectedly, each with the exit
+    /// status and whatever the process wrote to stderr. Increments the reconnect
+    /// failure counter for each, and records the reason so a later `status` call
+    /// still reports `Failed` rather than `Stopped`.
+    ///
+    /// The reason is returned rather than only stored because the caller is the
+    /// only thing that can put it in front of the user; an earlier version built
+    /// this message, assigned it to the process record and then removed that
+    /// record in the same call, which discarded it.
+    pub fn health_check(&mut self) -> Vec<TunnelFailure> {
         let mut failed = Vec::new();
 
         for (id, running) in &mut self.running {
@@ -314,11 +377,14 @@ impl TunnelManager {
                         %status,
                         "Standalone tunnel exited unexpectedly"
                     );
-                    running.status = TunnelStatus::Failed(msg);
+                    running.status = TunnelStatus::Failed(msg.clone());
                     // Increment reconnect failure counter
                     let count = self.reconnect_failures.entry(*id).or_insert(0);
                     *count += 1;
-                    failed.push(*id);
+                    failed.push(TunnelFailure {
+                        id: *id,
+                        reason: msg,
+                    });
                 }
                 Ok(None) => {
                     // Still running — mark as Running if it was Starting
@@ -332,9 +398,11 @@ impl TunnelManager {
             }
         }
 
-        // Remove failed tunnels from the running set
-        for id in &failed {
-            self.running.remove(id);
+        // Remove failed tunnels from the running set, keeping the reason behind
+        // so the tunnel does not silently read as "Stopped" afterwards.
+        for failure in &failed {
+            self.running.remove(&failure.id);
+            self.last_failure.insert(failure.id, failure.reason.clone());
         }
 
         failed
@@ -365,6 +433,29 @@ impl Default for TunnelManager {
 impl Drop for TunnelManager {
     fn drop(&mut self) {
         self.stop_all();
+    }
+}
+
+/// Returns the program that carries the tunnel.
+///
+/// `mptcpize run ssh` rather than plain `ssh` when the connection asks for
+/// Multipath TCP. Split out from `start` so the choice can be asserted without
+/// spawning anything, and because `ProgramNotFound` reports this name.
+const fn tunnel_program(mptcp: bool) -> &'static str {
+    if mptcp { "mptcpize" } else { "ssh" }
+}
+
+/// Turns a spawn failure into the most specific error variant available.
+///
+/// `NotFound` means the executable is absent, which is the one spawn failure
+/// with an obvious remedy, so it does not get lumped in with the rest.
+fn classify_spawn_error(error: std::io::Error, program: &str) -> TunnelManagerError {
+    if error.kind() == std::io::ErrorKind::NotFound {
+        TunnelManagerError::ProgramNotFound {
+            program: program.to_string(),
+        }
+    } else {
+        TunnelManagerError::SpawnFailed(error)
     }
 }
 
@@ -402,4 +493,308 @@ fn create_askpass_script() -> Result<std::path::PathBuf, String> {
     }
 
     Ok(path)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::Connection;
+
+    /// The obvious way to test the spawn paths — drop a stub `ssh` in a temp
+    /// directory and prepend it to `PATH` — is not available here: the workspace
+    /// forbids `std::env::set_var`, which is `unsafe` in Rust 2024 and permitted
+    /// only in `rustconn-env-sys` from `main()`. So the spawn paths are covered
+    /// by making the real `ssh` fail immediately and offline instead (see
+    /// `a_tunnel_that_exits_on_its_own_...`), and everything that does not need a
+    /// process is asserted directly.
+    fn ssh_is_installed() -> bool {
+        // Not `which` — the workspace deliberately does not spawn it (issue #303).
+        std::env::var_os("PATH")
+            .is_some_and(|paths| std::env::split_paths(&paths).any(|dir| dir.join("ssh").is_file()))
+    }
+
+    fn ssh_connection() -> Connection {
+        Connection::new_ssh("jump".to_string(), "127.0.0.1".to_string(), 22)
+    }
+
+    fn tunnel_for(connection: &Connection) -> StandaloneTunnel {
+        StandaloneTunnel::new("mysql prod", connection.id)
+    }
+
+    #[test]
+    fn a_fresh_manager_reports_nothing_running_and_no_failures() {
+        let manager = TunnelManager::new();
+        let id = Uuid::new_v4();
+
+        assert_eq!(manager.active_count(), 0);
+        assert!(!manager.is_running(id));
+        assert_eq!(manager.status(id), TunnelStatus::Stopped);
+        assert_eq!(manager.last_failure(id), None);
+        assert_eq!(manager.reconnect_failure_count(id), 0);
+        assert!(!manager.exceeded_max_reconnects(id));
+    }
+
+    #[test]
+    fn starting_a_non_ssh_connection_is_refused_before_anything_is_spawned() {
+        let mut manager = TunnelManager::new();
+        let connection = Connection::new_rdp("desktop".to_string(), "10.0.0.5".to_string(), 3389);
+        let tunnel = tunnel_for(&connection);
+
+        let error = manager
+            .start(&tunnel, &connection, None, &[])
+            .expect_err("an RDP connection cannot carry a port forward");
+
+        assert!(matches!(error, TunnelManagerError::NotSshConnection(_)));
+        // The point of checking first is that no process was created.
+        assert_eq!(manager.active_count(), 0);
+        assert!(!manager.is_running(tunnel.id));
+    }
+
+    #[test]
+    fn stopping_a_tunnel_that_is_not_running_is_an_error() {
+        let mut manager = TunnelManager::new();
+        let id = Uuid::new_v4();
+
+        let error = manager.stop(id).expect_err("nothing is running");
+        assert!(matches!(error, TunnelManagerError::TunnelNotFound(_)));
+    }
+
+    #[test]
+    fn stop_all_is_harmless_when_nothing_is_running() {
+        let mut manager = TunnelManager::new();
+        manager.stop_all();
+        assert_eq!(manager.active_count(), 0);
+    }
+
+    #[test]
+    fn the_program_is_mptcpize_only_when_the_connection_asks_for_it() {
+        // ProgramNotFound reports this name, so getting it wrong would tell the
+        // user to install the wrong package.
+        assert_eq!(tunnel_program(false), "ssh");
+        assert_eq!(tunnel_program(true), "mptcpize");
+    }
+
+    #[test]
+    fn a_missing_program_is_classified_apart_from_other_spawn_failures() {
+        let missing = classify_spawn_error(
+            std::io::Error::from(std::io::ErrorKind::NotFound),
+            "mptcpize",
+        );
+        match missing {
+            TunnelManagerError::ProgramNotFound { ref program } => {
+                assert_eq!(program, "mptcpize");
+                // The name has to reach the message, not just the variant.
+                assert!(missing.to_string().contains("mptcpize"));
+            }
+            other => panic!("expected ProgramNotFound, got {other:?}"),
+        }
+
+        let denied = classify_spawn_error(
+            std::io::Error::from(std::io::ErrorKind::PermissionDenied),
+            "ssh",
+        );
+        assert!(matches!(denied, TunnelManagerError::SpawnFailed(_)));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn the_askpass_script_is_readable_only_by_its_owner() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let path = create_askpass_script().expect("temp dir should be writable");
+        let mode = std::fs::metadata(&path)
+            .expect("script was just created")
+            .permissions()
+            .mode();
+
+        // It echoes a password, so group and other must have nothing.
+        assert_eq!(mode & 0o777, 0o700, "mode was {:o}", mode & 0o777);
+
+        let body = std::fs::read_to_string(&path).expect("script is readable");
+        assert!(body.starts_with("#!/bin/sh"));
+        // The password travels in the environment, never in the file.
+        assert!(body.contains(ASKPASS_ENV_VAR));
+        assert!(!body.contains("hunter2"));
+
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn each_askpass_script_gets_its_own_path() {
+        // Two concurrent tunnels sharing one path means the second File::create
+        // truncates the script while the first ssh is still reading it.
+        let first = create_askpass_script().expect("temp dir should be writable");
+        let second = create_askpass_script().expect("temp dir should be writable");
+
+        assert_ne!(first, second);
+
+        let _ = std::fs::remove_file(&first);
+        let _ = std::fs::remove_file(&second);
+    }
+
+    /// Exercises the path the visibility fix is about: a tunnel that starts and
+    /// then exits on its own must be reported, and must keep saying so.
+    ///
+    /// `ssh` is made to fail offline and immediately by handing it a
+    /// configuration option that does not exist, so this touches no network and
+    /// does not wait for a connect timeout.
+    #[test]
+    fn a_tunnel_that_exits_on_its_own_is_reported_and_keeps_saying_so() {
+        if !ssh_is_installed() {
+            return;
+        }
+
+        let mut manager = TunnelManager::new();
+        let connection = ssh_connection();
+        let tunnel = tunnel_for(&connection);
+
+        manager
+            .start(
+                &tunnel,
+                &connection,
+                None,
+                &["-o".to_string(), "ThisOptionDoesNotExist=yes".to_string()],
+            )
+            .expect("ssh exists, so the spawn itself succeeds");
+        assert!(
+            manager.is_running(tunnel.id),
+            "the process was just spawned"
+        );
+
+        // Poll rather than assume: the child has to be scheduled and exit first.
+        let mut failures = Vec::new();
+        for _ in 0..100 {
+            failures = manager.health_check();
+            if !failures.is_empty() {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        }
+
+        let failure = failures
+            .first()
+            .expect("ssh rejects an unknown option and exits");
+        assert_eq!(failure.id, tunnel.id);
+        // The reason is what reaches the user, so it must carry ssh's own words
+        // rather than only an exit code.
+        assert!(
+            failure.reason.to_lowercase().contains("option"),
+            "reason lost ssh's stderr: {}",
+            failure.reason
+        );
+
+        // This is the regression the fix is for: the record is gone from the
+        // running set, but the tunnel must not read as a deliberate stop.
+        assert!(!manager.is_running(tunnel.id));
+        assert_eq!(
+            manager.status(tunnel.id),
+            TunnelStatus::Failed(failure.reason.clone())
+        );
+        assert_eq!(
+            manager.last_failure(tunnel.id),
+            Some(failure.reason.as_str())
+        );
+        assert_eq!(manager.reconnect_failure_count(tunnel.id), 1);
+    }
+
+    #[test]
+    fn a_recorded_reason_is_what_turns_status_from_stopped_into_failed() {
+        // The distinction the fix introduced: not running plus a recorded reason
+        // is Failed, not running with no reason is Stopped. Driven through the
+        // private map because producing it otherwise needs a live child, which
+        // the ssh-backed tests above cover end to end.
+        let mut manager = TunnelManager::new();
+        let id = Uuid::new_v4();
+
+        assert_eq!(manager.status(id), TunnelStatus::Stopped);
+
+        manager
+            .last_failure
+            .insert(id, "Process exited with 255".to_string());
+
+        assert_eq!(
+            manager.status(id),
+            TunnelStatus::Failed("Process exited with 255".to_string())
+        );
+        // Still not running: Failed describes how it ended, not a live process.
+        assert!(!manager.is_running(id));
+        assert_eq!(manager.active_count(), 0);
+    }
+
+    #[test]
+    fn a_deliberate_stop_clears_the_recorded_reason() {
+        if !ssh_is_installed() {
+            return;
+        }
+
+        // A tunnel the user stopped is Stopped whatever it did before, so the
+        // warning icon must not survive a deliberate stop. This goes through the
+        // real `stop`, which only reaches its clearing code when something was
+        // actually running.
+        let mut manager = TunnelManager::new();
+        let connection = ssh_connection();
+        let tunnel = tunnel_for(&connection);
+
+        manager
+            .start(&tunnel, &connection, None, &[])
+            .expect("ssh exists, so the spawn itself succeeds");
+        manager
+            .last_failure
+            .insert(tunnel.id, "Process exited with 255".to_string());
+
+        manager.stop(tunnel.id).expect("it is running");
+
+        assert_eq!(manager.last_failure(tunnel.id), None);
+        assert_eq!(manager.status(tunnel.id), TunnelStatus::Stopped);
+    }
+
+    #[test]
+    fn restarting_clears_a_recorded_failure_before_it_can_be_shown_again() {
+        if !ssh_is_installed() {
+            return;
+        }
+
+        let mut manager = TunnelManager::new();
+        let connection = ssh_connection();
+        let tunnel = tunnel_for(&connection);
+        manager
+            .last_failure
+            .insert(tunnel.id, "Process exited with 255".to_string());
+        manager.reconnect_failures.insert(tunnel.id, 3);
+
+        manager
+            .start(&tunnel, &connection, None, &[])
+            .expect("ssh exists, so the spawn itself succeeds");
+
+        assert_eq!(manager.last_failure(tunnel.id), None);
+        assert_eq!(manager.reconnect_failure_count(tunnel.id), 0);
+
+        let _ = manager.stop(tunnel.id);
+    }
+
+    #[test]
+    fn a_running_tunnel_refuses_a_second_start() {
+        if !ssh_is_installed() {
+            return;
+        }
+
+        let mut manager = TunnelManager::new();
+        let connection = ssh_connection();
+        let tunnel = tunnel_for(&connection);
+
+        manager
+            .start(&tunnel, &connection, None, &[])
+            .expect("ssh exists, so the spawn itself succeeds");
+
+        let error = manager
+            .start(&tunnel, &connection, None, &[])
+            .expect_err("one tunnel is one process");
+        assert!(matches!(error, TunnelManagerError::AlreadyRunning(_)));
+        assert_eq!(manager.active_count(), 1);
+
+        manager.stop(tunnel.id).expect("it is running");
+        assert_eq!(manager.active_count(), 0);
+        assert_eq!(manager.status(tunnel.id), TunnelStatus::Stopped);
+    }
 }

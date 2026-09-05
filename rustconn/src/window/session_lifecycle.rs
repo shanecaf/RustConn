@@ -667,8 +667,28 @@ impl MainWindow {
             // must not: cancel polling and scrub resolved responses immediately.
             notebook_clone.clear_automation_session(session_id);
 
-            // Execute post-disconnect task if configured
-            if let Some(ref task) = post_disconnect_task {
+            // Execute post-disconnect task if configured.
+            //
+            // Not on the way out. The task runs on a detached worker thread and
+            // reports back through a 16 ms `glib::timeout_add_local`, so during
+            // shutdown both ends are already gone: the process exits from under
+            // the thread mid-command, and the main loop that would deliver the
+            // result is stopped, so neither the success nor the failure arm can
+            // ever log. Starting an arbitrary user command that cannot finish and
+            // cannot be reported is worse than not starting it — a cleanup script
+            // interrupted halfway is a state nobody asked for. Said out loud,
+            // because a task that silently did not run is the same puzzle from the
+            // other side.
+            if crate::app::is_shutting_down()
+                && let Some(ref task) = post_disconnect_task
+            {
+                tracing::info!(
+                    %connection_id,
+                    command = %task.command,
+                    "Skipping post-disconnect task: the application is shutting down and the \
+                     task could neither complete nor report"
+                );
+            } else if let Some(ref task) = post_disconnect_task {
                 tracing::info!(
                     %connection_id,
                     command = %task.command,
@@ -774,8 +794,8 @@ impl MainWindow {
             {
                 // "Session not found" here is the expected end of a race rather
                 // than a fault, and it arrives by two routes. At shutdown
-                // close_all_control_sockets() kills the connections and the child
-                // is reaped before we ask the manager to terminate. On tab close
+                // `shutdown_sessions_for_exit` signals this child itself and it is
+                // reaped before we ask the manager to terminate. On tab close
                 // the widget side tears the session down first — that is the
                 // `Killed VTE child process group on tab close` line — and this
                 // handler, reacting to the exit that caused, arrives second. Only
@@ -808,8 +828,12 @@ impl MainWindow {
                 return;
             }
 
-            // If the app is shutting down, suppress failure handling — the session
-            // exits are expected because close_all_control_sockets() kills SSH connections.
+            // If the app is shutting down, suppress failure handling — the exit
+            // is expected, because `shutdown_sessions_for_exit` signalled this
+            // child on the way out. Until the flag moved to the top of that
+            // function this was unreachable on the quit path: it was set in
+            // `connect_shutdown`, which runs from the `app.quit()` that follows
+            // the teardown, so every guard asking the question got `false`.
             if crate::app::is_shutting_down() {
                 sidebar_clone.decrement_session_count(&connection_id_str, false);
                 return;
