@@ -608,24 +608,20 @@ pub fn save_password_to_vault(
         // so that store and resolve are consistent.
         let backend_type = select_backend_for_load(&settings.secrets);
         // For LibSecret, include group path to prevent name collisions (issue #264).
-        // When a connection exists, always use the "RustConn/" prefix (matching
-        // the resolver's generate_keyring_key_with_hierarchy); when no connection
-        // is available (e.g. quick-connect), fall back to the flat legacy format.
-        let group_path: Option<String> = conn.map(|c| {
-            c.group_id
-                .map(|gid| {
-                    rustconn_core::secret::KeePassHierarchy::resolve_group_path(gid, groups)
-                        .join("/")
-                })
-                .unwrap_or_default()
-        });
-        let lookup_key = generate_store_key_with_group(
-            conn_name,
-            conn_host,
-            &protocol_str,
-            backend_type,
-            group_path.as_deref(),
-        );
+        // A connection always gets the "RustConn/" prefix, grouped or not, which is
+        // what `generate_store_key_for_connection` is for; quick-connect has no
+        // connection to take a group from, so it keeps the flat legacy format.
+        let lookup_key = match conn {
+            Some(c) => generate_store_key_for_connection(
+                conn_name,
+                conn_host,
+                &protocol_str,
+                backend_type,
+                c.group_id,
+                groups,
+            ),
+            None => generate_store_key(conn_name, conn_host, &protocol_str, backend_type),
+        };
         tracing::debug!(
             %lookup_key,
             ?backend_type,
@@ -1718,26 +1714,18 @@ fn vault_keys_for_connection(
         backend_type,
         SecretBackendType::LibSecret | SecretBackendType::MacOsKeychain
     ) {
-        // Always `Some`, empty for an ungrouped connection — this mirrors
-        // `save_password_to_vault`, which passes `Some("")` in that case so the
-        // key still carries the `RustConn/` prefix. Passing `None` here instead
-        // would yield the bare legacy key and miss the real entry.
-        let group_path = Some(
-            connection
-                .group_id
-                .map(|gid| {
-                    rustconn_core::secret::KeePassHierarchy::resolve_group_path(gid, groups)
-                        .join("/")
-                })
-                .unwrap_or_default(),
-        );
-        // Primary: exactly what `save_password_to_vault` writes.
-        keys.push(generate_store_key_with_group(
+        // Primary: exactly what `save_password_to_vault` writes. The ungrouped
+        // case — the `RustConn/` prefix with no group segment — is decided inside
+        // `generate_store_key_for_connection`; this call site used to make it
+        // itself, which is how the two sites that made it differently went
+        // unnoticed (issue #316).
+        keys.push(generate_store_key_for_connection(
             &connection.name,
             &connection.host,
             protocol_str,
             backend_type,
-            group_path.as_deref(),
+            connection.group_id,
+            groups,
         ));
         // The resolver builds the same shape but additionally runs the name
         // through `sanitize_imported_value`, so an imported name with trailing
@@ -2949,6 +2937,15 @@ pub fn generate_store_key(
 
 /// Generates a store key that includes the group path for keyring backends.
 ///
+/// Prefer [`generate_store_key_for_connection`] whenever a connection's group is
+/// what decides the key. This function's `group_path` has three meanings, not
+/// two, and getting the third wrong is issue
+/// [#316](https://github.com/totoshko88/RustConn/issues/316): `Some("Prod")` is a
+/// grouped connection, `Some("")` is an ungrouped *connection*, and `None` is the
+/// pre-0.19.18 flat key that belongs to no connection at all. `Some("")` and
+/// `None` differ by the `RustConn/` prefix, which is exactly what an ungrouped
+/// connection's entry is written with.
+///
 /// `group_path` is the `/`-separated group hierarchy (e.g. `"Production/Web"`).
 /// When provided and the backend is LibSecret or the macOS Keychain, the key is
 /// `"RustConn/{group_path}/{name} ({protocol})"`.
@@ -2988,6 +2985,48 @@ pub fn generate_store_key_with_group(
         };
         format!("rustconn/{identifier}")
     }
+}
+
+/// Generates the vault key for a connection, from the group it is in.
+///
+/// The form to use wherever a connection decides the key, and the reason it
+/// exists is issue [#316](https://github.com/totoshko88/RustConn/issues/316).
+/// Four call sites built the `Option<&str>` group path for
+/// [`generate_store_key_with_group`] themselves, and they did not agree about the
+/// ungrouped case: saving and deleting passed `Some("")`, while resolving and the
+/// connection dialog's 📂 load and ✓ test buttons wrote
+/// `connection.group_id.map(…)`, which is `None` when there is no group. With
+/// LibSecret that meant a password on an ungrouped connection was written to
+/// `RustConn/{name} ({protocol})` and looked for at `{name} ({protocol})`. The
+/// Secret Service matches attributes exactly, so the two never met: connecting
+/// prompted for a password that was sitting in the keyring, and both buttons
+/// reported it missing. Putting the connection into a group fixed it, because
+/// then the two keys differed *and* the resolver's second, legacy key happened to
+/// cover the miss.
+///
+/// `group_id` of `None` means the connection is ungrouped — it does not mean the
+/// key should drop the `RustConn/` prefix. That decision is made here now, once,
+/// instead of at each caller.
+pub fn generate_store_key_for_connection(
+    conn_name: &str,
+    conn_host: &str,
+    protocol_str: &str,
+    backend_type: rustconn_core::config::SecretBackendType,
+    group_id: Option<uuid::Uuid>,
+    groups: &[rustconn_core::models::ConnectionGroup],
+) -> String {
+    let group_path = group_id
+        .map(|gid| {
+            rustconn_core::secret::KeePassHierarchy::resolve_group_path(gid, groups).join("/")
+        })
+        .unwrap_or_default();
+    generate_store_key_with_group(
+        conn_name,
+        conn_host,
+        protocol_str,
+        backend_type,
+        Some(&group_path),
+    )
 }
 
 #[cfg(test)]
@@ -3183,6 +3222,92 @@ mod tests {
     fn store_key_pass_format() {
         let key = generate_store_key("DB Server", "db.local", "ssh", SecretBackendType::Pass);
         assert_eq!(key, "rustconn/DB Server");
+    }
+
+    /// Issue #316, as the invariant that was missing.
+    ///
+    /// Nothing compared the key the GUI writes against the key the resolver
+    /// reads, so the two drifted apart for exactly one case — a connection in no
+    /// group — and every existing test used a grouped one. This asserts they are
+    /// the same string, which is the only thing the Secret Service cares about:
+    /// it matches attributes exactly, so a one-character difference is a miss.
+    #[test]
+    fn an_ungrouped_connection_is_stored_where_the_resolver_looks() {
+        let conn = ssh_connection("admin", None);
+        let ours = generate_store_key_for_connection(
+            &conn.name,
+            &conn.host,
+            "ssh",
+            SecretBackendType::LibSecret,
+            conn.group_id,
+            &[],
+        );
+        assert_eq!(ours, "RustConn/admin (ssh)");
+        assert_eq!(
+            ours,
+            rustconn_core::secret::CredentialResolver::generate_keyring_key_with_hierarchy(
+                &conn,
+                &[]
+            ),
+            "the store key and the resolver's lookup key must be one string"
+        );
+    }
+
+    #[test]
+    fn a_grouped_connection_still_is() {
+        // The case that worked, so the fix cannot have been a swap.
+        let group = ConnectionGroup::new("oracle".to_string());
+        let conn = ssh_connection("admin", Some(group.id));
+        let groups = std::slice::from_ref(&group);
+        let ours = generate_store_key_for_connection(
+            &conn.name,
+            &conn.host,
+            "ssh",
+            SecretBackendType::LibSecret,
+            conn.group_id,
+            groups,
+        );
+        assert_eq!(ours, "RustConn/oracle/admin (ssh)");
+        assert_eq!(
+            ours,
+            rustconn_core::secret::CredentialResolver::generate_keyring_key_with_hierarchy(
+                &conn, groups
+            )
+        );
+    }
+
+    /// The distinction the bug turned on, pinned so it cannot be "simplified".
+    ///
+    /// `Some("")` is an ungrouped connection and keeps the prefix; `None` is the
+    /// pre-0.19.18 flat key and belongs to no connection. They are not
+    /// interchangeable, and reading them as if they were is issue #316.
+    #[test]
+    fn an_empty_group_path_is_not_the_same_as_no_group_path() {
+        let with_prefix = generate_store_key_with_group(
+            "admin",
+            "10.0.0.1",
+            "ssh",
+            SecretBackendType::LibSecret,
+            Some(""),
+        );
+        let legacy = generate_store_key_with_group(
+            "admin",
+            "10.0.0.1",
+            "ssh",
+            SecretBackendType::LibSecret,
+            None,
+        );
+        assert_eq!(with_prefix, "RustConn/admin (ssh)");
+        assert_eq!(legacy, "admin (ssh)");
+        assert_ne!(with_prefix, legacy);
+    }
+
+    /// Quick-connect keeps the flat key: it has no connection, so it has no group
+    /// and no entry under a prefixed key either.
+    #[test]
+    fn a_connectionless_save_still_uses_the_flat_key() {
+        let key = generate_store_key("admin", "10.0.0.1", "ssh", SecretBackendType::LibSecret);
+        assert_eq!(key, "admin (ssh)");
     }
 
     #[test]

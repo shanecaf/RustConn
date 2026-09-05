@@ -1158,16 +1158,20 @@ impl AppState {
             // whole time. Same defect the doc comment on
             // `generate_store_key_with_group` records for the macOS Keychain in
             // 0.19.19 — the load side of it was left behind.
-            let group_path = connection.group_id.map(|group_id| {
-                rustconn_core::secret::KeePassHierarchy::resolve_group_path(group_id, groups)
-                    .join("/")
-            });
-            let hierarchical_key = generate_store_key_with_group(
+            //
+            // Fixing it in 0.21.0 left half of it in place, and that half is issue
+            // #316: this built the group path with `connection.group_id.map(…)`,
+            // which is `None` for an ungrouped connection, and `None` means the
+            // *flat* key rather than the prefixed one an ungrouped connection is
+            // saved under. So a grouped connection resolved and an ungrouped one
+            // never did. The ungrouped decision now lives in one function.
+            let hierarchical_key = generate_store_key_for_connection(
                 &connection.name,
                 &connection.host,
                 &protocol_str,
                 backend_type,
-                group_path.as_deref(),
+                connection.group_id,
+                groups,
             );
             // Tried second so credentials written by a release that stored flat
             // keep resolving, exactly as `resolve_from_keyring_hierarchical`

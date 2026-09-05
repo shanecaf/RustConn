@@ -212,10 +212,12 @@ impl ConnectionDialog {
                 }
             };
 
-            // Flat lookup key — must match the format used by
-            // `generate_store_key_with_group` so that store and retrieve are consistent.
-            // LibSecret uses "RustConn/{group}/{name} ({protocol})", while Bitwarden
-            // and other backends use "rustconn/{name}".
+            // The lookup key the save path writes. LibSecret and the macOS Keychain
+            // use "RustConn/{group}/{name} ({protocol})" — with no group segment
+            // when the connection is in no group, which is the part this used to
+            // get wrong: it passed `None` for an ungrouped connection, and `None`
+            // asks for the flat pre-0.19.18 key instead (issue #316). Bitwarden and
+            // the rest use "rustconn/{name}".
             let flat_lookup_key = {
                 let backend_type =
                     crate::state::select_backend_for_load(&secret_settings);
@@ -227,16 +229,13 @@ impl ConnectionDialog {
                     None
                 };
                 drop(groups_data_ref);
-                let group_path = group_id.map(|gid| {
-                    rustconn_core::secret::KeePassHierarchy::resolve_group_path(gid, &groups)
-                        .join("/")
-                });
-                crate::state::generate_store_key_with_group(
+                crate::state::generate_store_key_for_connection(
                     &conn_name,
                     &conn_host,
                     protocol_suffix,
                     backend_type,
-                    group_path.as_deref(),
+                    group_id,
+                    &groups,
                 )
             };
 
@@ -586,6 +585,9 @@ impl ConnectionDialog {
                 }
             };
 
+            // Same key as the 📂 load button above, and the same issue #316 fix:
+            // an ungrouped connection is `RustConn/{name} ({protocol})`, not the
+            // bare legacy key its `None` group path used to ask for.
             let flat_lookup_key = {
                 let backend_type = crate::state::select_backend_for_load(&secret_settings);
                 let selected_group_idx = group_dropdown.selected() as usize;
@@ -596,16 +598,13 @@ impl ConnectionDialog {
                     None
                 };
                 drop(groups_data_ref);
-                let group_path = group_id.map(|gid| {
-                    rustconn_core::secret::KeePassHierarchy::resolve_group_path(gid, &groups)
-                        .join("/")
-                });
-                crate::state::generate_store_key_with_group(
+                crate::state::generate_store_key_for_connection(
                     &conn_name,
                     &conn_host,
                     protocol_suffix,
                     backend_type,
-                    group_path.as_deref(),
+                    group_id,
+                    &groups,
                 )
             };
 
