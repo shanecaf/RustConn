@@ -225,6 +225,16 @@ pub fn present_close_confirmation(
 /// Must be called *after* `flush_active_recordings` — see
 /// [`crate::terminal::TerminalNotebook::shutdown_sessions`].
 pub fn shutdown_sessions_for_exit(notebook: &SharedNotebook) {
+    // First, before anything is signalled. Every session child is about to exit
+    // because this function is about to kill it, and the exit callbacks decide
+    // whether that is a fault by asking `is_shutting_down()`. The flag was only
+    // set in `connect_shutdown`, which GTK runs from `app.quit()` — and `do_quit`
+    // calls `app.quit()` *after* this, so the answer was still `false` for
+    // exactly the exits it exists to explain. A tray-minimize never reaches here,
+    // which is what makes this the right place: the flag cannot be set by a close
+    // that leaves the application running.
+    crate::app::mark_shutting_down();
+
     // Issue #209: kill owned viewer children so they do not become orphans, and
     // close their open history entries. Detaching viewers keep running.
     if let Some(registry) = external_session_registry() {

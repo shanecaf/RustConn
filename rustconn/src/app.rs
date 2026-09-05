@@ -22,14 +22,33 @@ use crate::tray::{TrayManager, TrayMessage};
 use crate::window::MainWindow;
 
 /// Global flag indicating the application is shutting down.
-/// When set, session exit callbacks should suppress error logging
-/// and reconnect overlays — the exits are expected because
-/// `close_all_control_sockets()` kills SSH connections during shutdown.
+///
+/// When set, session exit callbacks should suppress error logging and reconnect
+/// overlays: the exits are expected, because
+/// [`crate::window::shutdown_sessions_for_exit`] signalled the children itself.
+/// (`close_all_control_sockets()` in `connect_shutdown` closes the SSH
+/// ControlMaster sockets, but that runs later — it is not what ends the
+/// sessions, and naming it here sent two comments looking at the wrong cause.)
 static APP_SHUTTING_DOWN: AtomicBool = AtomicBool::new(false);
 
 /// Returns `true` if the application is in the process of shutting down.
 pub fn is_shutting_down() -> bool {
     APP_SHUTTING_DOWN.load(Ordering::Relaxed)
+}
+
+/// Records that the application has begun shutting down.
+///
+/// Called at the top of [`crate::window::shutdown_sessions_for_exit`], which is
+/// the point the flag has to be true from. It used to be set only in
+/// `connect_shutdown`, and `connect_shutdown` runs from `app.quit()` — which
+/// `do_quit` calls *after* the teardown has already signalled every session
+/// child. So the flag that exists to tell exit callbacks "we caused this" was
+/// set after the exits it was meant to explain.
+///
+/// Idempotent, like the teardown it belongs to; `connect_shutdown` still sets it
+/// as well, for an exit that never reaches the helper.
+pub fn mark_shutting_down() {
+    APP_SHUTTING_DOWN.store(true, Ordering::Relaxed);
 }
 
 /// Applies a color scheme to GTK/libadwaita settings
