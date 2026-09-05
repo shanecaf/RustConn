@@ -1466,12 +1466,23 @@ fn setup_app_actions(
                 .and_then(|app| focused_application_window(&app))
                 .or_else(|| window_for_quit.upgrade().map(Cast::upcast));
             if let Some(parent) = parent {
-                let dialog = crate::window::MainWindow::close_confirmation_dialog(open_sessions);
-                dialog.connect_response(Some("close"), move |_, _| do_quit());
-                dialog.present(Some(&parent));
+                // `None` means the question is already on screen and has just
+                // been raised — a second Quit must not stack another copy of it,
+                // and must not quit either. Returning without a dialog is
+                // therefore correct: the pending one owns the decision.
+                if let Some(dialog) =
+                    crate::window::present_close_confirmation(&parent, open_sessions)
+                {
+                    dialog.connect_response(Some("close"), move |_, _| do_quit());
+                }
                 return;
             }
+            tracing::warn!(
+                open_sessions,
+                "quitting with open sessions but no window to confirm in"
+            );
         }
+        tracing::debug!(open_sessions, "quitting without confirmation");
         do_quit();
     });
     app.add_action(&quit_action);

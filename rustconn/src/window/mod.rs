@@ -140,6 +140,69 @@ pub const fn open_session_count(tabbed: usize, detached: usize, external: usize)
     tabbed + detached + external
 }
 
+// The close confirmation currently on screen, if any.
+//
+// Two independent call sites raise this dialog — the main window's
+// `close_request` and the `app.quit` action that Ctrl+Q, the primary menu and
+// the tray's Quit item all go through — and each built a fresh one on every
+// activation. Asking to quit twice therefore produced two stacked copies of the
+// same question, which is what a tray Quit that "did nothing" looks like from
+// the outside: the log records two `Quit` messages ten seconds apart with the
+// teardown only after the second was answered.
+//
+// Held weakly on purpose. A strong handle has to be released by the `closed`
+// signal, and a guard that can outlive the thing it guards is how a control ends
+// up permanently dead — the failure mode that took the click guard back off Add
+// Key. A destroyed dialog upgrades to `None`, so the worst case here is asking
+// again, never being unable to ask.
+thread_local! {
+    static OPEN_CLOSE_CONFIRMATION: RefCell<Option<glib::WeakRef<adw::AlertDialog>>> =
+        const { RefCell::new(None) };
+}
+
+/// Raises the close confirmation, or the one already on screen.
+///
+/// Returns the new dialog for the caller to wire a `close` response onto, or
+/// `None` when a confirmation was already up — in which case the window carrying
+/// it has been presented and the caller must not build a second one, nor treat
+/// the absence of a dialog as consent to proceed.
+///
+/// Shared by the main window's `close_request` and the `app.quit` action so all
+/// four ways of asking to quit ask once.
+#[must_use]
+pub fn present_close_confirmation(
+    parent: &impl IsA<gtk4::Widget>,
+    open_sessions: usize,
+) -> Option<adw::AlertDialog> {
+    let already_open = OPEN_CLOSE_CONFIRMATION
+        .with(|cell| cell.borrow().as_ref().and_then(glib::WeakRef::upgrade));
+
+    if let Some(existing) = already_open {
+        tracing::debug!(
+            open_sessions,
+            "close confirmation already on screen — raising it instead of asking twice"
+        );
+        // An AdwDialog is drawn inside its host window, so raising that window
+        // is what puts the question back in front of the user. This is the case
+        // where the first ask went to a window that was behind, on another
+        // workspace, or hidden to the tray.
+        if let Some(window) = existing.root().and_downcast::<gtk4::Window>() {
+            window.present();
+        }
+        return None;
+    }
+
+    let dialog = MainWindow::close_confirmation_dialog(open_sessions);
+    OPEN_CLOSE_CONFIRMATION.with(|cell| *cell.borrow_mut() = Some(dialog.downgrade()));
+    dialog.connect_closed(|_| {
+        OPEN_CLOSE_CONFIRMATION.with(|cell| cell.borrow_mut().take());
+    });
+
+    tracing::debug!(open_sessions, "close confirmation presented");
+    dialog.present(Some(parent));
+    Some(dialog)
+}
+
 /// Ends every live session so none of them outlives the process.
 ///
 /// The single teardown for every way RustConn can exit, and it is one function
@@ -1708,16 +1771,20 @@ impl MainWindow {
                 external_open,
             );
             if !minimize_to_tray && !force_close.get() && open_sessions > 0 {
-                let dialog = Self::close_confirmation_dialog(open_sessions);
-                let force_close_confirm = force_close.clone();
-                let win_weak = win.downgrade();
-                dialog.connect_response(Some("close"), move |_, _| {
-                    force_close_confirm.set(true);
-                    if let Some(w) = win_weak.upgrade() {
-                        w.close();
-                    }
-                });
-                dialog.present(Some(win));
+                // `None` means a confirmation raised elsewhere — the quit action,
+                // which is where Ctrl+Q and the tray's Quit item arrive — is
+                // already asking. Either way the close is stopped here and the
+                // window goes only once that question is answered.
+                if let Some(dialog) = present_close_confirmation(win, open_sessions) {
+                    let force_close_confirm = force_close.clone();
+                    let win_weak = win.downgrade();
+                    dialog.connect_response(Some("close"), move |_, _| {
+                        force_close_confirm.set(true);
+                        if let Some(w) = win_weak.upgrade() {
+                            w.close();
+                        }
+                    });
+                }
                 return glib::Propagation::Stop;
             }
 
