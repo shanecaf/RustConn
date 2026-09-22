@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.22.4] - 2026-09-23
+
 ### Fixed
 
 - **The Snap Store listing lost its Donations, Source code and Report-a-bug links after a release** — the snap's store links are declared as top-level `website` / `source-code` / `issues` / `donation` / `contact` fields, which snapd copies into the built `snap.yaml` `links:` block and the store shows on the listing. The `contact` field held a bare e-mail address (`totoshko88@gmail.com`); the metadata spec requires a contact e-mail to be `mailto:`-prefixed, so the bare value was an invalid link entry and the store dropped the whole `links:` block when the "Update metadata on release" sync ran on promotion — which is why every link vanished, not just the contact one. The five fields are now lists (the spec allows several links per field), the contact e-mail carries a `mailto:` prefix, and `contact` also points at the issue tracker so "Report a bug" resolves to the right place.

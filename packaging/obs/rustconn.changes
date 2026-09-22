@@ -1,4 +1,30 @@
 -------------------------------------------------------------------
+Wed Sep 23 2026 Anton Isaiev <totoshko88@gmail.com> - 0.22.4
+
+- Version bump to 0.22.4
+- Fixed: the Snap Store listing lost its Donations, Source code and Report-a-bug
+  links after a release; the contact field held a bare e-mail, which the
+  metadata spec treats as an invalid link entry, so the store dropped the whole
+  links block on the metadata sync. The link fields are now lists and the
+  contact e-mail carries a mailto: prefix
+- Fixed: a saved password could be missed on the first connect right after
+  startup, needlessly prompting, because the secret backend was not yet warm;
+  the resolver now retries a transient backend read a few times with a short
+  backoff before reporting a miss
+- Fixed: a Web/SOCKS tunnel through a dead SSH host froze the window and
+  mis-warned about a password; SSH tunnels now default to ConnectTimeout=8 and
+  the proxy is raised on a background thread
+- Fixed: a Web bookmark wrongly warned it would prompt for a password;
+  expects_password_prompt now returns false for Web connections
+- Fixed: jump-host connections to an unreachable host hung and were shown as
+  connected; a jump-host session is now treated as connected only once its
+  terminal shows an interactive shell prompt
+- Fixed: external RDP surfaced a cryptic "Unexpected keyword" with no way to
+  diagnose it (issue #339); the failure is now reported as a client/argument
+  mismatch and the launch path logs its argument vector at debug level
+- Improved: external VNC and SPICE viewers now log the exact command they
+  launch, so a rejected option is diagnosable from a log
+-------------------------------------------------------------------
 Tue Sep 22 2026 Anton Isaiev <totoshko88@gmail.com> - 0.22.3
 
 - Version bump to 0.22.3
