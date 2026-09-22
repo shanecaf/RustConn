@@ -276,6 +276,30 @@ fn spawn_tunnel(
         cmd.arg(arg);
     }
 
+    // Bound the initial connect so a dead jump host fails in seconds instead of
+    // hanging on the OS TCP timeout. Without this a SOCKS/Web tunnel (or an
+    // RDP/VNC/SPICE `-L` tunnel) to an unreachable bastion left `ssh` blocked
+    // for minutes.
+    //
+    // The value MUST stay below the readiness poll's own budget, or it never
+    // helps: the Web/SOCKS callers poll `wait_for_tunnel_ready` 40 × 250 ms =
+    // 10 s and then fail with "not ready after 40 attempts". If `ssh` only gives
+    // up *after* that — which a 15 s ConnectTimeout did — the poll returns its
+    // generic timeout while the process is still alive, so the liveness check
+    // never fires and the real reason (the bastion is down) is lost. Eight
+    // seconds is the value the SFTP
+    // reachability probe already uses for the same reason: `ssh` dies at ~8 s,
+    // the next poll attempt sees `is_alive() == false`, and the failure is
+    // reported at once carrying the bastion's own stderr. Skipped if the caller
+    // already supplied a ConnectTimeout via `extra_args`.
+    let has_connect_timeout = params
+        .extra_args
+        .iter()
+        .any(|a| a.eq_ignore_ascii_case("ConnectTimeout") || a.starts_with("ConnectTimeout="));
+    if !has_connect_timeout {
+        cmd.arg("-o").arg("ConnectTimeout=8");
+    }
+
     // Flatpak writable known_hosts
     if let Some(kh_path) = crate::get_flatpak_known_hosts_path() {
         cmd.arg("-o")
@@ -323,10 +347,18 @@ fn spawn_tunnel(
         .stdout(Stdio::null())
         .stderr(Stdio::piped());
 
+    // Log the assembled flags (not the env — the askpass password lives there).
+    // Without this the "not ready" failures could not be told apart from a
+    // missing ConnectTimeout, which cost a round of diagnosis.
+    let args_for_log: Vec<String> = cmd
+        .get_args()
+        .map(|a| a.to_string_lossy().into_owned())
+        .collect();
     tracing::info!(
         local_port,
         remote = %remote_desc,
         jump_host = %params.jump_host,
+        args = ?args_for_log,
         "Starting SSH tunnel"
     );
 

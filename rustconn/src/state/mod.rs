@@ -230,6 +230,13 @@ pub struct AppState {
 /// Bundles the parameters needed for blocking credential resolution.
 ///
 /// This avoids `clippy::too_many_arguments` on `resolve_credentials_blocking`.
+///
+/// `Clone` is derived so [`AppState::resolve_credentials_blocking`] can re-run a
+/// resolution attempt against a warming secret backend. A clone copies the KDBX
+/// master password plaintext into a fresh allocation, so it is taken only on the
+/// retry path (a genuine transient failure), never on the common first-attempt
+/// success.
+#[derive(Clone)]
 struct CredentialResolutionContext {
     connection: Connection,
     groups: Vec<ConnectionGroup>,
@@ -846,7 +853,12 @@ impl AppState {
             global_variables: self.settings.global_variables.clone(),
         };
 
-        match Self::resolve_credentials_blocking(ctx) {
+        // The single-attempt resolver, deliberately not the retrying wrapper:
+        // this runs synchronously on the GTK thread during SSH launch, so a
+        // backoff sleep here would freeze the window. A cold-backend miss for a
+        // bastion password degrades gracefully to the prompt-aware askpass path,
+        // where the retrying connect resolution has already warmed the backend.
+        match Self::resolve_credentials_blocking_once(ctx) {
             Ok(CredentialResolutionResult::Resolved(creds)) => {
                 creds.password.filter(|p| !p.expose_secret().is_empty())
             }
@@ -948,6 +960,70 @@ impl AppState {
     /// the appropriate dialog (variable setup, backend missing, etc.) instead
     /// of silently returning `None`.
     fn resolve_credentials_blocking(
+        ctx: CredentialResolutionContext,
+    ) -> Result<rustconn_core::sync::CredentialResolutionResult, String> {
+        use rustconn_core::sync::CredentialResolutionResult;
+
+        // How many times a transient backend failure is retried before it is
+        // reported to the user, and the pause between attempts.
+        //
+        // The bug: on the first connect right after startup (or immediately
+        // after saving a password) the secret backend may still be cold — the
+        // encrypted Secret Service session is still being set up, `keepassxc-cli`
+        // is paying its first process start, or a Bitwarden unlock spawned at
+        // startup has not warmed the process-global session yet. A read against a
+        // not-yet-ready backend fails, and a single failure used to collapse
+        // straight into `BackendNotConfigured` / a password prompt with the
+        // secret sitting in the vault the whole time. A short bounded retry gives
+        // the backend the fraction of a second it needs to answer.
+        //
+        // Only a *transient* outcome is retried (see `is_transient` below): a
+        // genuine miss (`VaultEntryMissing`), a real lockout (`KdbxLocked`), a
+        // resolved secret, or "no password needed" are all final on the first
+        // pass. A permanently absent backend simply exhausts the retries and
+        // reports the same `BackendNotConfigured` it would have, delayed by at
+        // most `RETRY_ATTEMPTS * RETRY_BACKOFF`.
+        const RETRY_ATTEMPTS: u32 = 3;
+        const RETRY_BACKOFF: std::time::Duration = std::time::Duration::from_millis(400);
+
+        // A `BackendNotConfigured` or a hard `Err` is the only signal we have that
+        // the backend could not be *read*, as opposed to answering "not here".
+        // Both are what a cold backend produces, so both are worth another try.
+        fn is_transient(outcome: &Result<CredentialResolutionResult, String>) -> bool {
+            matches!(
+                outcome,
+                Err(_) | Ok(CredentialResolutionResult::BackendNotConfigured { .. })
+            )
+        }
+
+        let mut attempt = 0;
+        loop {
+            // Clone only when a further attempt is actually possible; the final
+            // attempt (and the common first-attempt success) moves the context in
+            // without copying the master password.
+            let outcome = if attempt + 1 < RETRY_ATTEMPTS {
+                Self::resolve_credentials_blocking_once(ctx.clone())
+            } else {
+                return Self::resolve_credentials_blocking_once(ctx);
+            };
+
+            if !is_transient(&outcome) {
+                return outcome;
+            }
+
+            attempt += 1;
+            tracing::debug!(
+                attempt,
+                "[resolve_credentials_blocking] backend not ready, retrying after backoff"
+            );
+            std::thread::sleep(RETRY_BACKOFF);
+        }
+    }
+
+    /// One attempt at blocking credential resolution — see
+    /// [`Self::resolve_credentials_blocking`], which wraps this in a bounded
+    /// retry for a cold backend.
+    fn resolve_credentials_blocking_once(
         ctx: CredentialResolutionContext,
     ) -> Result<rustconn_core::sync::CredentialResolutionResult, String> {
         use rustconn_core::secret::{KeePassHierarchy, KeePassStatus};

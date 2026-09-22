@@ -834,6 +834,68 @@ pub(super) fn contains_ssh_failure(text: &str) -> bool {
         .any(|p| lower.contains(&p.to_lowercase()))
 }
 
+/// The cursor row past which a *direct* SSH session is treated as established.
+///
+/// A direct connection either reaches the host or the pre-connect port check
+/// already failed it, so the first prompt-height output is enough. The value is
+/// the historical threshold (`row > 2`).
+const SSH_ESTABLISHED_MIN_ROW: i64 = 2;
+
+/// Returns `true` if the terminal text ends on what looks like an interactive
+/// shell prompt.
+///
+/// A bastion prints a static MOTD/banner the instant the *first* hop connects,
+/// long before the final hop is even attempted, and that banner alone can push
+/// the cursor several rows down — so cursor position cannot tell a live target
+/// from a dead one behind a jump host. A shell prompt can: it only appears once
+/// the *final* host has accepted the login and handed over a shell. A failed
+/// target prints the bastion banner and then the ProxyCommand's
+/// `Connection timed out during banner exchange`, and never a prompt.
+///
+/// The heuristic is deliberately loose — the last non-blank line ending in one of
+/// the common prompt terminators (`$`, `#`, `%`, `>`), optionally followed by a
+/// space or cursor. It is only ever consulted for jump-host connections (a direct
+/// connection is already gated by the pre-connect port check) and only alongside
+/// a failure-pattern scan, so a false positive is bounded by that scan and a false
+/// negative simply defers the decision to the next output line.
+fn ends_with_shell_prompt(text: &str) -> bool {
+    let Some(last) = text.lines().rev().find(|l| !l.trim().is_empty()) else {
+        return false;
+    };
+    let trimmed = last.trim_end();
+    matches!(trimmed.chars().last(), Some('$' | '#' | '%' | '>'))
+}
+
+/// Whether an SSH session should be treated as established from its terminal
+/// state, given whether it is routed through a jump host.
+///
+/// This is the single decision shared by the sidebar "connected" flip and the
+/// deferred monitoring start; both used to inline the same `row > 2` +
+/// [`contains_ssh_failure`] check, and a fix to one that missed the other is
+/// exactly how a jump-host session came up green while monitoring showed a
+/// timeout (and vice versa). Keep it here so the two callers cannot drift.
+///
+/// - Direct connection: established once output passes [`SSH_ESTABLISHED_MIN_ROW`].
+///   The pre-connect port check has already rejected an unreachable direct host,
+///   so the first prompt-height output is trustworthy.
+/// - Jump-host connection: the port check is skipped (the target is not directly
+///   reachable), so cursor height alone is meaningless — a bastion banner reaches
+///   it while the final host is still timing out. Established only once the buffer
+///   holds **no** known SSH failure pattern **and** shows an interactive shell
+///   prompt (proof the *final* hop handed over a shell). `text` is the current
+///   terminal buffer; `None` (unreadable) fails closed, and the caller's closure
+///   re-runs on the next output.
+pub(super) fn ssh_connection_established(
+    cursor_row: i64,
+    uses_jump_host: bool,
+    text: Option<&str>,
+) -> bool {
+    if !uses_jump_host {
+        return cursor_row > SSH_ESTABLISHED_MIN_ROW;
+    }
+    text.is_some_and(|t| !contains_ssh_failure(t) && ends_with_shell_prompt(t))
+}
+
 /// Delegates to [`rustconn_core::ssh_tunnel::append_proxy_command_destination`].
 pub(super) fn append_proxy_command_destination(proxy_parts: &mut Vec<String>, jump_host: &str) {
     rustconn_core::ssh_tunnel::append_proxy_command_destination(proxy_parts, jump_host);
@@ -3144,5 +3206,83 @@ mod tests {
             .find(|v| v.name == "host")
             .expect("host is present");
         assert_eq!(last.value, "real.example");
+    }
+}
+
+#[cfg(test)]
+mod established_tests {
+    //! The shared SSH-established verdict (issue: jump-host sessions to
+    //! unreachable targets shown as connected + monitoring started). No GTK
+    //! widgets: the helper is pure, driven by cursor row + terminal text.
+    use super::{ends_with_shell_prompt, ssh_connection_established};
+
+    #[test]
+    fn direct_connection_established_past_threshold() {
+        // A direct connection is gated upstream by the port check, so cursor
+        // height alone is trusted and terminal text is irrelevant.
+        assert!(ssh_connection_established(3, false, None));
+        assert!(ssh_connection_established(7, false, Some("anything")));
+    }
+
+    #[test]
+    fn direct_connection_not_established_at_or_below_threshold() {
+        assert!(!ssh_connection_established(0, false, None));
+        assert!(!ssh_connection_established(2, false, Some("banner")));
+    }
+
+    #[test]
+    fn jump_host_banner_alone_is_not_established() {
+        // The exact repro: the bastion MOTD pushes the cursor to row 7 while the
+        // final host is still timing out. No prompt yet, no failure yet — must
+        // NOT latch connected.
+        let banner = "Welcome to Ubuntu 22.04\n\n  System information as of ...\n\n";
+        assert!(!ssh_connection_established(7, true, Some(banner)));
+    }
+
+    #[test]
+    fn jump_host_late_banner_timeout_is_not_established() {
+        // The failure line the ProxyCommand's own ssh prints a beat after the
+        // banner. "Connection timed out" is a contains_ssh_failure pattern and a
+        // substring of the banner-exchange message from the logs.
+        let text = "Welcome to Ubuntu\n\nConnection timed out during banner exchange\n";
+        assert!(!ssh_connection_established(9, true, Some(text)));
+    }
+
+    #[test]
+    fn jump_host_unreadable_buffer_fails_closed() {
+        assert!(!ssh_connection_established(9, true, None));
+    }
+
+    #[test]
+    fn jump_host_established_once_shell_prompt_appears() {
+        // The final host handed over a shell — a prompt line appears and no
+        // failure pattern is present. Now (and only now) it is established.
+        let text = "Welcome to Ubuntu\nLast login: ...\nubuntu@target:~$ ";
+        assert!(ssh_connection_established(9, true, Some(text)));
+    }
+
+    #[test]
+    fn jump_host_prompt_but_failure_present_is_not_established() {
+        // A failure anywhere in the buffer wins over a prompt-looking line, so a
+        // stale prompt from a prior session cannot mask a fresh timeout.
+        let text = "user@bastion:~$ ssh target\nConnection refused\nuser@bastion:~$ ";
+        assert!(!ssh_connection_established(9, true, Some(text)));
+    }
+
+    #[test]
+    fn shell_prompt_terminators_are_recognised() {
+        assert!(ends_with_shell_prompt("ubuntu@host:~$ "));
+        assert!(ends_with_shell_prompt("root@host:~# "));
+        assert!(ends_with_shell_prompt("zsh %"));
+        assert!(ends_with_shell_prompt("PS>"));
+        // Trailing blank lines are ignored — the last non-blank line decides.
+        assert!(ends_with_shell_prompt("user@host:~$ \n\n"));
+    }
+
+    #[test]
+    fn banner_text_is_not_a_shell_prompt() {
+        assert!(!ends_with_shell_prompt("Welcome to Ubuntu 22.04"));
+        assert!(!ends_with_shell_prompt("System information as of now"));
+        assert!(!ends_with_shell_prompt(""));
     }
 }
