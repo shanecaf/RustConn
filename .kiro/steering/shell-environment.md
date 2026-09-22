@@ -111,6 +111,12 @@ terminal buffer is **not** proof of completion — never treat it as one, and ne
 send a follow-up command on that assumption. When in doubt, read the log/`.rc`
 file; do not poke the terminal.
 
+Waiting on a background PID with `tail --pid=<pid> -f /dev/null` (or `wait`) is
+**not** a way around the 120 s tool cap: the call still returns `Exit Code: -1`
+with an empty body at 120 s while the process runs on. It is no better than
+option 1 and burns a call per 120 s. The `.rc` sentinel is the only completion
+signal — read it (option 2), do not spin on the PID.
+
 Three ways out, cheapest first.
 
 **1. Wait inside the one tool call.** Almost always right.
