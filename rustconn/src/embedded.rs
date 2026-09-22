@@ -390,6 +390,22 @@ impl RdpLauncher {
         if let Some(password) = password {
             secret_args.push(("p", password));
         }
+        // Log the binary and the full plain argument vector. The password is
+        // written to the args file, never into `plain_args`, so this is safe to
+        // log — and it is the only record of exactly which options FreeRDP was
+        // asked to parse. Without it, a client that rejects one option leaves
+        // nothing but the opaque "Unexpected keyword" in the log, and no way to
+        // tell which option (issue #339). The embedded-widget launcher already
+        // logs its argv; this tabless path did not.
+        tracing::debug!(
+            protocol = "rdp",
+            binary = %binary,
+            host = %host,
+            port = config.port,
+            args = ?plain_args,
+            "[FreeRDP] Launching external client (tabless)"
+        );
+
         let prepared_args = crate::embedded_rdp::SafeFreeRdpLauncher::prepare_args_file(
             &binary,
             &plain_args,
@@ -584,6 +600,24 @@ impl RdpLauncher {
 
     /// Parses FreeRDP stderr output to extract a user-friendly error message
     fn parse_freerdp_error(stderr: &str) -> String {
+        // FreeRDP's command-line parser (winpr) rejects an option it does not
+        // recognise with "Unexpected keyword", printed before it ever reaches
+        // the server. The bare string is meaningless to a user, and it names a
+        // client/argument mismatch rather than anything about the connection —
+        // so it gets its own, actionable message that points at the installed
+        // FreeRDP version and names the rejected option when winpr reported it
+        // (issue #339). The debug log in `start` carries the full argument list.
+        if stderr.contains("Unexpected keyword") {
+            return match Self::rejected_freerdp_option(stderr) {
+                Some(option) => i18n_f(
+                    "The installed FreeRDP client rejected the option '{}'. Your FreeRDP version may be too old for it; update FreeRDP or report this at the RustConn issue tracker.",
+                    &[&option],
+                ),
+                None => i18n(
+                    "The installed FreeRDP client rejected one of the connection options. Your FreeRDP version may be too old; update FreeRDP or report this at the RustConn issue tracker.",
+                ),
+            };
+        }
         if stderr.contains("certificate not trusted")
             || stderr.contains("ERRCONNECT_TLS_CONNECT_FAILED")
         {
@@ -614,5 +648,82 @@ impl RdpLauncher {
                 line.rsplit("]: ").next().unwrap_or(line).trim().to_string()
             })
             .unwrap_or_else(|| "FreeRDP exited with error (exit code non-zero)".to_string())
+    }
+
+    /// Extracts the option winpr rejected from an "Unexpected keyword" line.
+    ///
+    /// FreeRDP prints `Failed at index N [-<option>]: Unexpected keyword`. The
+    /// offending option is in the *last* `[...]` on the line — the wLog prefix
+    /// contributes earlier brackets — carried with a leading `-`, `+`, or `/`.
+    /// Returns the option name without that sigil, or `None` when the line does
+    /// not carry the bracketed form (older wLog builds omit it).
+    fn rejected_freerdp_option(stderr: &str) -> Option<String> {
+        let line = stderr
+            .lines()
+            .find(|line| line.contains("Unexpected keyword"))?;
+        // Take the content of the last `[...]` pair: split on the final `[`,
+        // then keep everything before the closing `]`.
+        let after_last_open = line.rsplit_once('[')?.1;
+        let inner = after_last_open.split(']').next()?;
+        // Treat it as an option only when it carries an option sigil; otherwise
+        // the last bracket is the wLog component tag (e.g. `com.winpr.commandline`).
+        if !inner.starts_with(['-', '+', '/']) {
+            return None;
+        }
+        let name = inner.trim_start_matches(['-', '+', '/']).trim();
+        (!name.is_empty()).then(|| name.to_string())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::RdpLauncher;
+
+    /// The winpr command-line parser prints this shape when it rejects an
+    /// option token; the offending option is in the last `[...]` pair, after a
+    /// wLog prefix that carries its own brackets (issue #339).
+    const WINPR_UNEXPECTED_KEYWORD: &str = "[13:12:10] [1234:5678] [ERROR][com.winpr.commandline] - [log_error]: Failed at index 6 [-glyph-cache]: Unexpected keyword";
+
+    #[test]
+    fn unexpected_keyword_names_the_rejected_option() {
+        let message = RdpLauncher::parse_freerdp_error(WINPR_UNEXPECTED_KEYWORD);
+        // The bare winpr string never reaches the user: the message explains it
+        // is a client/argument mismatch and names the option winpr flagged.
+        assert!(message.contains("glyph-cache"), "{message}");
+        assert!(message.contains("FreeRDP"), "{message}");
+        assert!(
+            !message.trim().eq_ignore_ascii_case("Unexpected keyword"),
+            "the opaque winpr string must be replaced: {message}"
+        );
+    }
+
+    #[test]
+    fn extracts_option_from_the_last_bracket_not_the_log_prefix() {
+        assert_eq!(
+            RdpLauncher::rejected_freerdp_option(WINPR_UNEXPECTED_KEYWORD).as_deref(),
+            Some("glyph-cache"),
+        );
+    }
+
+    #[test]
+    fn unexpected_keyword_without_bracketed_option_still_explains_it() {
+        // Older wLog builds omit the `[-option]` token; the message must still
+        // steer the user rather than fall through to the raw string.
+        let stderr = "[ERROR][com.winpr.commandline]: Unexpected keyword";
+        let message = RdpLauncher::parse_freerdp_error(stderr);
+        assert!(message.contains("FreeRDP"), "{message}");
+        assert!(
+            RdpLauncher::rejected_freerdp_option(stderr).is_none(),
+            "no bracketed option means no name to quote"
+        );
+    }
+
+    /// A genuine connection failure must not be mistaken for an argument
+    /// mismatch — the "Unexpected keyword" branch is checked first, so this
+    /// guards that ordering does not swallow the real classifiers.
+    #[test]
+    fn connection_errors_are_unaffected_by_the_new_branch() {
+        let dns = "[ERROR][com.freerdp.core] ERRCONNECT_DNS_NAME_NOT_FOUND [0x0002000C]";
+        assert!(RdpLauncher::parse_freerdp_error(dns).contains("Host not found"));
     }
 }

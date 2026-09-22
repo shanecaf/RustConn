@@ -358,6 +358,23 @@ impl VncSessionWidget {
         let (program, args) =
             VncProtocol::build_external_viewer_command(viewer, host, port, config);
 
+        // Log the program and its full argument vector. The password is handled
+        // by the viewer, never placed on the command line, so this is safe to
+        // log — and with stdout/stderr nulled below it is the only record of
+        // what the viewer was asked to do. Without it, a viewer that rejects an
+        // option (a stale `custom_args` entry, or a flag an older viewer does
+        // not know, e.g. `-SecurityTypes`) flashes and dies with nothing in the
+        // log to explain it — the same undiagnosable failure fixed for external
+        // RDP in issue #339.
+        tracing::debug!(
+            protocol = "vnc",
+            program = %program,
+            host,
+            port,
+            args = ?args,
+            "[VNC] Launching external viewer"
+        );
+
         let mut cmd = Command::new(&program);
         cmd.args(&args);
 

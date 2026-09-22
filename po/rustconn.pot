@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: rustconn 0.22.3\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-20 14:13+0300\n"
+"POT-Creation-Date: 2026-09-22 13:47+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -154,7 +154,7 @@ msgstr ""
 #: rustconn/src/embedded_rdp/mod.rs:2037
 #: rustconn/src/embedded_rdp/polling_handlers.rs:69
 #: rustconn/src/embedded_vnc/ui.rs:142
-#: rustconn/src/terminal/session_lifecycle.rs:352
+#: rustconn/src/terminal/session_lifecycle.rs:390
 msgid "Session disconnected"
 msgstr ""
 
@@ -9020,12 +9020,26 @@ msgstr ""
 msgid "Session running in separate window"
 msgstr ""
 
-#: rustconn/src/embedded.rs:446
+#: rustconn/src/embedded.rs:462
 msgid "Connecting to {}…"
 msgstr ""
 
-#: rustconn/src/embedded.rs:573
+#: rustconn/src/embedded.rs:589
 msgid "Connected to {}"
+msgstr ""
+
+#: rustconn/src/embedded.rs:613
+msgid ""
+"The installed FreeRDP client rejected the option '{}'. Your FreeRDP version "
+"may be too old for it; update FreeRDP or report this at the RustConn issue "
+"tracker."
+msgstr ""
+
+#: rustconn/src/embedded.rs:617
+msgid ""
+"The installed FreeRDP client rejected one of the connection options. Your "
+"FreeRDP version may be too old; update FreeRDP or report this at the "
+"RustConn issue tracker."
 msgstr ""
 
 #: rustconn/src/embedded_rdp/autotype.rs:56
@@ -9345,14 +9359,14 @@ msgstr ""
 
 #: rustconn/src/embedded_rdp/mod.rs:764 rustconn/src/embedded_vnc/ui.rs:145
 #: rustconn/src/split_view/adapter.rs:1432 rustconn/src/terminal/mod.rs:1323
-#: rustconn/src/terminal/session_lifecycle.rs:365
+#: rustconn/src/terminal/session_lifecycle.rs:403
 #: rustconn/src/terminal/tab_menu.rs:826
 msgid "Reconnect"
 msgstr ""
 
 #: rustconn/src/embedded_rdp/mod.rs:766 rustconn/src/embedded_vnc/ui.rs:147
 #: rustconn/src/terminal/mod.rs:1325
-#: rustconn/src/terminal/session_lifecycle.rs:367
+#: rustconn/src/terminal/session_lifecycle.rs:405
 msgid "Reconnect to this session"
 msgstr ""
 
@@ -10353,17 +10367,17 @@ msgstr ""
 msgid "●REC"
 msgstr ""
 
-#: rustconn/src/terminal/session_lifecycle.rs:142
+#: rustconn/src/terminal/session_lifecycle.rs:180
 msgid "Reconnected at {}"
 msgstr ""
 
-#: rustconn/src/terminal/session_lifecycle.rs:359
-#: rustconn/src/terminal/session_lifecycle.rs:414
+#: rustconn/src/terminal/session_lifecycle.rs:397
+#: rustconn/src/terminal/session_lifecycle.rs:452
 msgid "Auto-reconnecting…"
 msgstr ""
 
-#: rustconn/src/terminal/session_lifecycle.rs:454
-#: rustconn/src/terminal/session_lifecycle.rs:464
+#: rustconn/src/terminal/session_lifecycle.rs:492
+#: rustconn/src/terminal/session_lifecycle.rs:502
 msgid "Auto-reconnecting (attempt {}/{})"
 msgstr ""
 
@@ -11733,24 +11747,24 @@ msgstr ""
 msgid "Reconnecting sessions after sleep"
 msgstr ""
 
-#: rustconn/src/window/session_lifecycle.rs:335
+#: rustconn/src/window/session_lifecycle.rs:388
 msgid "Session log could not be created: {}"
 msgstr ""
 
-#: rustconn/src/window/session_lifecycle.rs:541
+#: rustconn/src/window/session_lifecycle.rs:594
 msgid "Activity detected: {}"
 msgstr ""
 
-#: rustconn/src/window/session_lifecycle.rs:545
+#: rustconn/src/window/session_lifecycle.rs:598
 msgid "Silence detected: {}"
 msgstr ""
 
-#: rustconn/src/window/session_lifecycle.rs:558
-#: rustconn/src/window/session_lifecycle.rs:571
+#: rustconn/src/window/session_lifecycle.rs:611
+#: rustconn/src/window/session_lifecycle.rs:624
 msgid "Command finished: {}"
 msgstr ""
 
-#: rustconn/src/window/session_lifecycle.rs:565
+#: rustconn/src/window/session_lifecycle.rs:618
 msgid "Command failed with status {}: {}"
 msgstr ""
 

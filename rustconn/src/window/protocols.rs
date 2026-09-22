@@ -723,6 +723,22 @@ pub(super) fn spawn_and_register_external_viewer(
     launch_args.extend(args.iter().cloned());
     let viewer_name = external_viewer_name(program);
 
+    // Log the launcher and its full argument vector before spawning. A SPICE
+    // password travels in the single-use `.vv` file, never on the command
+    // line, so this is safe to log — and with stdout/stderr nulled below it is
+    // the only record of what the viewer was asked to do. Without it, a viewer
+    // that rejects an option (a version-sensitive `--spice-*` flag, or the
+    // "connection type cannot be detected from URI" case in issue #308) exits
+    // silently with nothing in the log to explain it — the same undiagnosable
+    // failure fixed for external RDP in issue #339.
+    tracing::debug!(
+        program,
+        launcher = %launcher,
+        connection = %conn.name,
+        args = ?launch_args,
+        "Launching external viewer"
+    );
+
     // Run the viewer independently: don't capture stdout/stderr.
     let child = match std::process::Command::new(&launcher)
         .args(&launch_args)

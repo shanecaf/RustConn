@@ -590,15 +590,34 @@ impl EmbeddedVncWidget {
                                     Some((viewer, server, cfg.accept_certificate))
                                 })
                                 .and_then(|(viewer, server, accept_cert)| {
-                                    let mut cmd = Command::new(&viewer);
-                                    // Pass VeNCrypt security types if accept_certificate is set
+                                    // Assemble the argument vector first so it
+                                    // can be logged: this fallback is entered
+                                    // only after an unsupported-encryption
+                                    // error, and it forces VeNCrypt security
+                                    // types the embedded client could not do —
+                                    // exactly the kind of viewer-specific flag
+                                    // an older viewer may reject, so it must be
+                                    // visible in the log (issue #339). The
+                                    // password is never on argv.
+                                    let mut args: Vec<String> = Vec::new();
                                     if accept_cert
                                         && (viewer == "vncviewer" || viewer == "xvnc4viewer")
                                     {
-                                        cmd.arg("-SecurityTypes");
-                                        cmd.arg("VeNCrypt,TLSVnc,X509Vnc,VncAuth,None");
+                                        args.push("-SecurityTypes".to_string());
+                                        args.push(
+                                            "VeNCrypt,TLSVnc,X509Vnc,VncAuth,None".to_string(),
+                                        );
                                     }
-                                    cmd.arg(&server);
+                                    args.push(server.clone());
+                                    tracing::debug!(
+                                        protocol = "vnc",
+                                        viewer = %viewer,
+                                        server = %server,
+                                        args = ?args,
+                                        "[EmbeddedVNC] Launching external viewer (encryption fallback)"
+                                    );
+                                    let mut cmd = Command::new(&viewer);
+                                    cmd.args(&args);
                                     match cmd.spawn() {
                                         Ok(child) => {
                                             tracing::info!(
@@ -747,9 +766,7 @@ impl EmbeddedVncWidget {
             )
         })?;
 
-        let mut cmd = Command::new(&binary);
-
-        // Build server address based on port
+        // Build server address based on port.
         let server = if config.port == 5900 {
             format!("{}:0", config.host)
         } else if config.port > 5900 && config.port < 6000 {
@@ -759,63 +776,72 @@ impl EmbeddedVncWidget {
             format!("{}::{}", config.host, config.port)
         };
 
-        // Add viewer-specific arguments based on detected binary
+        // Assemble the argument vector first so it can be logged. This used to
+        // push straight onto `cmd`, which left no `args` vector to record; a
+        // viewer that rejects an option (a stale `extra_args` entry, or a flag
+        // an older viewer does not know, e.g. `-SecurityTypes`) would then die
+        // with nothing in the log to explain it — the same undiagnosable
+        // failure fixed for external RDP in issue #339. The password is never
+        // placed on the command line.
+        let mut args: Vec<String> = Vec::new();
         match binary.as_str() {
             "vncviewer" | "xvnc4viewer" => {
-                // TigerVNC/TightVNC/RealVNC style arguments
+                // TigerVNC/TightVNC/RealVNC style arguments.
                 if let Some(ref encoding) = config.encoding {
-                    cmd.arg("-PreferredEncoding");
-                    cmd.arg(encoding);
+                    args.push("-PreferredEncoding".to_string());
+                    args.push(encoding.clone());
                 }
-
                 if let Some(quality) = config.quality {
-                    cmd.arg("-QualityLevel");
-                    cmd.arg(quality.to_string());
+                    args.push("-QualityLevel".to_string());
+                    args.push(quality.to_string());
                 }
-
                 if let Some(compression) = config.compression {
-                    cmd.arg("-CompressLevel");
-                    cmd.arg(compression.to_string());
+                    args.push("-CompressLevel".to_string());
+                    args.push(compression.to_string());
                 }
-
                 if config.view_only {
-                    cmd.arg("-ViewOnly");
+                    args.push("-ViewOnly".to_string());
                 }
-
-                // Accept untrusted TLS certificates (VeNCrypt)
+                // Accept untrusted TLS certificates (VeNCrypt).
                 if config.accept_certificate {
-                    cmd.arg("-SecurityTypes");
-                    cmd.arg("VeNCrypt,TLSVnc,X509Vnc,VncAuth,None");
+                    args.push("-SecurityTypes".to_string());
+                    args.push("VeNCrypt,TLSVnc,X509Vnc,VncAuth,None".to_string());
                 }
-
-                // Password file handling would go here
-                // For security, we don't pass password on command line
-
-                cmd.arg(&server);
+                args.push(server);
             }
             "gvncviewer" => {
-                // GTK-VNC viewer arguments
-                cmd.arg(&server);
+                // GTK-VNC viewer arguments.
+                args.push(server);
             }
             "remmina" => {
-                // Remmina uses a different connection format
-                cmd.arg("-c");
-                cmd.arg(format!("vnc://{}", server.replace(':', "/")));
+                // Remmina uses a different connection format.
+                args.push("-c".to_string());
+                args.push(format!("vnc://{}", server.replace(':', "/")));
             }
             "krdc" => {
-                // KDE Remote Desktop Client
-                cmd.arg(format!("vnc://{}", config.host));
+                // KDE Remote Desktop Client.
+                args.push(format!("vnc://{}", config.host));
             }
             _ => {
-                // Generic fallback
-                cmd.arg(&server);
+                // Generic fallback.
+                args.push(server);
             }
         }
-
-        // Add extra arguments
         for arg in &config.extra_args {
-            cmd.arg(arg);
+            args.push(arg.clone());
         }
+
+        tracing::debug!(
+            protocol = "vnc",
+            binary = %binary,
+            host = %config.host,
+            port = config.port,
+            args = ?args,
+            "[EmbeddedVNC] Launching external viewer"
+        );
+
+        let mut cmd = Command::new(&binary);
+        cmd.args(&args);
 
         // Spawn the process
         match cmd.spawn() {

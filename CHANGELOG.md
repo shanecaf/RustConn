@@ -5,6 +5,16 @@ All notable changes to RustConn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **External RDP surfaced a cryptic "Unexpected keyword" with no way to diagnose it (issue #339)** — when the external FreeRDP client rejects one of the command-line options RustConn passes, its parser aborts before connecting and prints the bare winpr string "Unexpected keyword". The tabless external-session path (used when a connection runs in an external window) showed that string verbatim as the failure, which tells the user nothing and misattributes an argument mismatch to the connection. Two changes: the failure is now recognised for what it is — a client/argument mismatch — and reported as such, naming the exact option FreeRDP flagged when its log carries it and pointing at the FreeRDP version and the issue tracker; and this launch path now logs the full argument vector at debug level (the password travels in the single-use args file, never on the command line, so the log is safe), which it previously did not, so the rejected option can be identified from a log. The connection's generated options are all valid on current FreeRDP 3.x, so the mismatch points at an older or atypical client build.
+
+### Improved
+
+- **External VNC and SPICE viewers now log the exact command they launch (follow-up to issue #339)** — the external RDP path was not the only launcher that spawned a client with its output discarded and no record of the arguments passed. The VNC session viewer, the SPICE / generic external viewer, and both embedded-VNC external fallbacks all did the same, so a viewer that rejected an option (a stale custom argument, a flag an older viewer does not know such as `-SecurityTypes`, or a version-sensitive `--spice-*` option) simply flashed and died with nothing in the log to explain it. Each of these paths now logs its full argument vector at debug level before spawning. No password is ever on that command line — VNC leaves it to the viewer and SPICE passes it in the single-use `.vv` file — so the log is safe. Behaviour is otherwise unchanged; this only makes the next such failure diagnosable from a log.
+
 ## [0.22.3] - 2026-09-22
 
 ### Fixed
