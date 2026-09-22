@@ -60,11 +60,25 @@ grade: stable
 confinement: strict
 icon: rustconn/assets/icons/hicolor/256x256/apps/io.github.totoshko88.RustConn.png
 license: GPL-3.0-or-later
-website: https://github.com/totoshko88/RustConn
-source-code: https://github.com/totoshko88/RustConn
-issues: https://github.com/totoshko88/RustConn/issues
-donation: https://donatello.to/totoshko88
-contact: totoshko88@gmail.com
+# Store-listing links. snapd copies these into the built snap.yaml `links:`
+# block and the Snap Store shows them on the listing (Website, Source code,
+# Report a bug, Donations). Each field is a list because the metadata spec lets
+# a field carry several links, and — crucially — an e-mail contact MUST be
+# `mailto:`-prefixed: a bare address is an invalid link entry and the store
+# drops the whole `links:` block on the "Update metadata on release" sync,
+# which is why the Donations / Source code / Report-a-bug links vanished after
+# a release (issue: links disappear on Snapcraft after release).
+website:
+  - https://github.com/totoshko88/RustConn
+source-code:
+  - https://github.com/totoshko88/RustConn
+issues:
+  - https://github.com/totoshko88/RustConn/issues
+donation:
+  - https://donatello.to/totoshko88
+contact:
+  - https://github.com/totoshko88/RustConn/issues
+  - mailto:totoshko88@gmail.com
 
 platforms:
   amd64:
