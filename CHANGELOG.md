@@ -27,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **README demo video is now centred, and the GitHub project description and topics were filled in** — the demo-video thumbnail sat left-aligned while every other header element is centred; it is now wrapped in a centred block like the badges and screenshots. The GitHub repository had no topics and a Linux-only one-line description that undersold the project; the description now names the cross-platform reach (Linux, macOS, FreeBSD, Windows/WSLg) and the full protocol set, the homepage points at the Flathub listing, and a set of discovery topics (rust, gtk4, libadwaita, ssh, rdp, vnc, spice, connection-manager, remote-desktop, kubernetes, zero-trust, wayland, and more) was added.
 
+### Dependencies
+
+- **Updated (macOS tray, behind `tray-macos`)**: tray-icon 0.24→0.25, muda 0.19→0.20 (pulling keyboard-types 0.7→0.8). These crates are only compiled into the macOS tray; the Linux packages do not build them. The 0.22.3 changelog listed the same bump, but the manifest was never actually moved off 0.24/0.19 — this release applies it for real.
+
 ## [0.22.3] - 2026-09-22
 
 ### Fixed

@@ -398,6 +398,7 @@ done
 - Fixed: jump-host connections to an unreachable host hung and were shown as connected; a jump-host session is now treated as connected only once its terminal shows an interactive shell prompt
 - Fixed: external RDP surfaced a cryptic "Unexpected keyword" with no way to diagnose it (issue #339); the failure is now reported as a client/argument mismatch and the launch path logs its argument vector at debug level
 - Improved: external VNC and SPICE viewers now log the exact command they launch, so a rejected option is diagnosable from a log
+- Dependencies: updated the macOS tray crates tray-icon 0.24->0.25 and muda 0.19->0.20 (behind the tray-macos feature; not built in the Linux packages)
 * Tue Sep 22 2026 Anton Isaiev <totoshko88@gmail.com> - 0.22.3-0
 - Version bump to 0.22.3
 - Fixed: the window could livelock at 100% CPU on a session emitting a very long line with no newline (issue #338); the transcript writer now scans only the new bytes for a newline, looks for a prompt only in the buffer tail, and flushes an un-terminated run as a partial record at a byte cap, so the per-chunk work is bounded and the transcript stays complete
