@@ -1134,6 +1134,19 @@ impl SshConfig {
         /// Default `ServerAliveCountMax` — give up after 3 unanswered probes,
         /// so a dead peer is noticed in ~45 s.
         const DEFAULT_SERVER_ALIVE_COUNT_MAX: u32 = 3;
+        /// Default `ConnectTimeout` in seconds for the initial TCP/banner phase.
+        ///
+        /// `ServerAliveInterval`/`CountMax` above only bound a stall *after* the
+        /// connection is up; they do nothing while ssh is still opening the
+        /// socket or waiting for the SSH banner. Without a `ConnectTimeout` a
+        /// session to a dead host — or, for a jump-host connection whose port
+        /// check is skipped, a dead bastion or target — waits on the OS TCP
+        /// timeout, which can be minutes, and the tab just sits on "Connecting…".
+        /// Fifteen seconds is generous for a reachable host on a slow link and
+        /// short enough that a dead one fails while the user is still watching,
+        /// after which the terminal shows "Connection timed out" and the session
+        /// is treated as failed rather than established.
+        const DEFAULT_CONNECT_TIMEOUT: u32 = 15;
 
         let mut args = Vec::new();
 
@@ -1274,6 +1287,19 @@ impl SshConfig {
                 .unwrap_or(DEFAULT_SERVER_ALIVE_COUNT_MAX);
             args.push("-o".to_string());
             args.push(format!("ServerAliveCountMax={count}"));
+        }
+
+        // Bound the initial connect so a dead host fails fast instead of hanging
+        // the tab on "Connecting…" (see DEFAULT_CONNECT_TIMEOUT). A value in
+        // custom_options wins and suppresses this default, matching how the
+        // keep-alive defaults above defer to the user.
+        let user_set_connect_timeout = self
+            .custom_options
+            .keys()
+            .any(|k| k.eq_ignore_ascii_case("ConnectTimeout"));
+        if !user_set_connect_timeout {
+            args.push("-o".to_string());
+            args.push(format!("ConnectTimeout={DEFAULT_CONNECT_TIMEOUT}"));
         }
 
         // Add custom options (filter out dangerous directives)
@@ -4897,6 +4923,37 @@ mod keep_alive_default_tests {
         assert!(
             !args.iter().any(|a| a == "Ciphers="),
             "an empty assignment would make ssh refuse to start"
+        );
+    }
+
+    /// A default `ConnectTimeout` is emitted so a dead host fails fast instead
+    /// of hanging the tab on the OS TCP timeout (the "jump-host connections
+    /// hang" report). The keep-alive pair only bounds a stall after connect.
+    #[test]
+    fn build_command_args_emits_connect_timeout_default() {
+        let args = SshConfig::default().build_command_args();
+        assert!(
+            args.windows(2)
+                .any(|w| w[0] == "-o" && w[1] == "ConnectTimeout=15"),
+            "a default ConnectTimeout must bound the initial connect"
+        );
+    }
+
+    /// A user's own `ConnectTimeout` in custom_options wins and suppresses the
+    /// default, the same way the keep-alive defaults defer.
+    #[test]
+    fn build_command_args_defers_connect_timeout_to_custom_options() {
+        let mut custom = std::collections::HashMap::new();
+        custom.insert("ConnectTimeout".to_string(), "3".to_string());
+        let config = SshConfig {
+            custom_options: custom,
+            ..SshConfig::default()
+        };
+        let args = config.build_command_args();
+        assert!(args.iter().any(|a| a == "ConnectTimeout=3"));
+        assert!(
+            !args.iter().any(|a| a == "ConnectTimeout=15"),
+            "the default must not be emitted alongside the user's value"
         );
     }
 }

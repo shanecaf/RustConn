@@ -29,6 +29,18 @@ Report results as a short pass/fail summary, no verbose output.
 Rules:
 - Do NOT explain what the commands do.
 - Do NOT provide general Rust advice.
-- Do NOT modify any source files except through `cargo fmt` and `cargo clippy --fix`.
+- Do NOT modify any source files except through `cargo fmt` and `cargo clippy
+  --fix`. This is not a style preference — it is the safety contract that lets
+  this agent run on the cheapest model: clippy is the arbiter, so a fix it
+  produces is machine-checked by the very next run. A hand-written source edit
+  has no such arbiter. **Never** edit a file by hand, never apply a patch, never
+  run `sed`/`awk`/`git apply`/`patch`, never write a `str_replace`. If a clippy
+  warning or a test failure needs a change that `cargo clippy --fix` cannot make
+  on its own, STOP and report it as a failure with the exact error and the file
+  involved — do not attempt the edit. On 2026-09-22 an attempt to hand-add a
+  trait impl to make a caller compile left the file corrupt with `.rej`/`.orig`
+  litter and a parse error caught only minutes later.
+- Never leave `.rej` or `.orig` files behind. If you ever see one, you have
+  violated the rule above.
 - Target completion in under 60 seconds for fmt+clippy, under 3 minutes with tests.
 - Be terse. No preamble, no sign-off, just the result.

@@ -11,7 +11,7 @@ use uuid::Uuid;
 
 use super::MainWindow;
 use super::protocols::{
-    SharedNotebook, SharedSidebar, append_proxy_command_destination, contains_ssh_failure,
+    SharedNotebook, SharedSidebar, append_proxy_command_destination,
     resolve_automation_for_connection, substitute_variables,
 };
 use crate::state::SharedAppState;
@@ -975,6 +975,15 @@ fn build_ssh_command_args(
             proxy_parts.push("-W".to_string());
             proxy_parts.push("%h:%p".to_string());
 
+            // Bound the bastion connect the same way the target ssh is bounded
+            // (see SshConfig::build_command_args). This ProxyCommand ssh dials
+            // the jump host directly, and its port check is always skipped, so
+            // without a ConnectTimeout a dead bastion hangs the whole session on
+            // the OS TCP timeout — the "connections through jump hang" report.
+            // Kept in step with DEFAULT_CONNECT_TIMEOUT in rustconn-core.
+            proxy_parts.push("-o".to_string());
+            proxy_parts.push("ConnectTimeout=15".to_string());
+
             // First hop reached via forced askpass (its own password, no TTY)
             // must accept a first-seen host key non-interactively: otherwise the
             // "yes/no/[fingerprint]" prompt is routed to the askpass helper,
@@ -1672,37 +1681,30 @@ fn start_ssh_connection_internal(
             if session_connected_clone.get() {
                 return;
             }
-            if let Some(row) = notebook_clone.get_terminal_cursor_row(session_id) {
-                tracing::debug!(
-                    protocol = "ssh",
+            let Some(row) = notebook_clone.get_terminal_cursor_row(session_id) else {
+                return;
+            };
+            tracing::debug!(
+                protocol = "ssh",
+                cursor_row = row,
+                uses_jump_host,
+                "SSH status detection: checking cursor row"
+            );
+            // Single shared verdict — see `ssh_connection_established`. For a
+            // jump host it requires more output and a failure-free buffer, so a
+            // bastion banner alone no longer latches the session green over a
+            // target that never came up.
+            let text = uses_jump_host
+                .then(|| notebook_clone.get_terminal_text(session_id))
+                .flatten();
+            if super::protocols::ssh_connection_established(row, uses_jump_host, text.as_deref()) {
+                sidebar_clone.increment_session_count(&connection_id_str);
+                session_connected_clone.set(true);
+                tracing::info!(
+                    protocol = %protocol_str,
                     cursor_row = row,
-                    threshold = 2,
-                    "SSH status detection: checking cursor row"
+                    "Terminal connection detected as established"
                 );
-                if row > 2 {
-                    // When using a jump host, the cursor may advance past row 2
-                    // due to jump host banners or SSH error output even if the
-                    // final destination is unreachable. Check terminal text for
-                    // known SSH failure patterns before marking as connected.
-                    if uses_jump_host
-                        && let Some(text) = notebook_clone.get_terminal_text(session_id)
-                        && contains_ssh_failure(&text)
-                    {
-                        tracing::debug!(
-                            protocol = "ssh",
-                            cursor_row = row,
-                            "Jump host connection: SSH failure detected in terminal"
-                        );
-                        return;
-                    }
-                    sidebar_clone.increment_session_count(&connection_id_str);
-                    session_connected_clone.set(true);
-                    tracing::info!(
-                        protocol = %protocol_str,
-                        cursor_row = row,
-                        "Terminal connection detected as established"
-                    );
-                }
             }
         });
     }
@@ -1790,22 +1792,23 @@ fn start_ssh_connection_internal(
                 let Some(row) = notebook_clone.get_terminal_cursor_row(session_id) else {
                     return;
                 };
-                if row <= 2 {
-                    return;
-                }
-                // Same guard as the sidebar "connected" detection above: a jump
-                // chain can push the cursor past row 2 with a bastion banner or
-                // an SSH error even when the FINAL host never came up. Starting
-                // monitoring then opens the bar for a session that failed — and
-                // because the monitoring probe uses accept-new + its own
-                // ControlMaster, it can even reach the target and show live data
-                // for a session the user saw fail. Don't start until the output
-                // is free of known SSH failure patterns; the closure runs again
-                // on the next output, so a later successful prompt still starts it.
-                if mon_uses_jump_host
-                    && let Some(text) = notebook_clone.get_terminal_text(session_id)
-                    && contains_ssh_failure(&text)
-                {
+                // Exactly the sidebar "connected" verdict — see
+                // `ssh_connection_established`. A jump chain can push the cursor
+                // past the direct threshold with a bastion banner or an SSH error
+                // even when the FINAL host never came up. Starting monitoring then
+                // opens the bar for a session that failed — and because the
+                // monitoring probe uses accept-new + its own ControlMaster, it can
+                // even reach the target and show live data for a session the user
+                // saw fail. The closure runs again on the next output, so a later
+                // successful prompt still starts it.
+                let text = mon_uses_jump_host
+                    .then(|| notebook_clone.get_terminal_text(session_id))
+                    .flatten();
+                if !super::protocols::ssh_connection_established(
+                    row,
+                    mon_uses_jump_host,
+                    text.as_deref(),
+                ) {
                     return;
                 }
                 monitoring_started_clone.set(true);
@@ -2062,15 +2065,13 @@ pub fn reconnect_ssh_in_place(
             if session_connected_clone.get() {
                 return;
             }
-            if let Some(row) = notebook_clone.get_terminal_cursor_row(session_id)
-                && row > 2
-            {
-                if uses_jump_host
-                    && let Some(text) = notebook_clone.get_terminal_text(session_id)
-                    && contains_ssh_failure(&text)
-                {
-                    return;
-                }
+            let Some(row) = notebook_clone.get_terminal_cursor_row(session_id) else {
+                return;
+            };
+            let text = uses_jump_host
+                .then(|| notebook_clone.get_terminal_text(session_id))
+                .flatten();
+            if super::protocols::ssh_connection_established(row, uses_jump_host, text.as_deref()) {
                 sidebar_clone.increment_session_count(&connection_id_str);
                 session_connected_clone.set(true);
             }
@@ -2125,17 +2126,18 @@ pub fn reconnect_ssh_in_place(
                 let Some(row) = notebook_clone.get_terminal_cursor_row(session_id) else {
                     return;
                 };
-                if row <= 2 {
-                    return;
-                }
-                // See the initial-connect path: don't open the monitor for a
-                // jump-chain session whose terminal shows an SSH failure — the
-                // accept-new probe could otherwise show live data for a session
-                // that never established.
-                if mon_uses_jump_host
-                    && let Some(text) = notebook_clone.get_terminal_text(session_id)
-                    && contains_ssh_failure(&text)
-                {
+                // See the initial-connect path and `ssh_connection_established`:
+                // don't open the monitor for a jump-chain session whose terminal
+                // has not really established — the accept-new probe could
+                // otherwise show live data for a session that never came up.
+                let text = mon_uses_jump_host
+                    .then(|| notebook_clone.get_terminal_text(session_id))
+                    .flatten();
+                if !super::protocols::ssh_connection_established(
+                    row,
+                    mon_uses_jump_host,
+                    text.as_deref(),
+                ) {
                     return;
                 }
                 monitoring_started_clone.set(true);

@@ -1,6 +1,6 @@
 # AI-Assisted Development Architecture
 
-**Version 0.22.3** | Last updated: August 2026
+**Version 0.22.4** | Last updated: August 2026
 
 This document describes the Kiro AI agent infrastructure used to automate
 development workflows, enforce architectural constraints, and streamline the
@@ -121,7 +121,7 @@ enough that the number was off by thirteen.
 
 ## Hooks
 
-`.kiro/hooks/` currently holds **18** hooks, one JSON file each, in the v2 format
+`.kiro/hooks/` currently holds **19** hooks, one JSON file each, in the v2 format
 the agent executes directly. Triggers are PascalCase.
 
 | Trigger | Hooks | What the group is for |

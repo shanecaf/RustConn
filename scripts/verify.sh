@@ -178,7 +178,33 @@ else
         "$CARGO" clean "${clean_args[@]}" >>"$log" 2>&1 || true
     fi
 
-    run_gate 'cargo fmt --check' "$CARGO" fmt --all -- --check
+    # fmt is captured to its own file, not just recorded pass/fail, so the
+    # parse-error preflight below can read it. A `cargo fmt --check` failure has
+    # two very different meanings: a formatting *diff* (rustfmt would restyle
+    # some lines) versus rustfmt being unable to *parse* the file at all
+    # ("error: expected item" / "cannot parse"), which means the tree does not
+    # compile. Continuing to a ~2.5 min `cargo test --workspace` against code
+    # that cannot parse wastes that time for a guaranteed failure — the exact
+    # trap hit on 2026-09-22, when a corrupted file (an `impl` nested in another)
+    # sent verify.sh into a full test run it could never pass. clippy still runs
+    # (it pinpoints the parse error far better than fmt), only the long test
+    # phase is skipped.
+    fmt_parse_error=0
+    fmt_log="target/verify-fmt.log"
+    printf '\n===== %s =====\n' 'cargo fmt --check' >>"$log"
+    if "$CARGO" fmt --all -- --check >"$fmt_log" 2>&1; then
+        say '  ok    cargo fmt --check'
+        record 'cargo fmt --check' OK
+    else
+        say '  FAIL  cargo fmt --check'
+        record 'cargo fmt --check' FAIL
+        # A parse failure prints an `error:` line; a mere formatting diff does
+        # not (rustfmt emits a unified diff with no `error:` prefix).
+        if grep -qE '^error(\[|:)|cannot parse|expected item, found' "$fmt_log"; then
+            fmt_parse_error=1
+        fi
+    fi
+    cat "$fmt_log" >>"$log"
 
     if "$CARGO" machete --version >/dev/null 2>&1; then
         run_gate 'cargo machete' "$CARGO" machete
@@ -293,7 +319,15 @@ else
     run_gate 'cargo clippy -p rustconn-cli --features full' \
         "$CARGO" clippy -p rustconn-cli --features full --all-targets -- -D warnings
 
-    if [ "$tests" -eq 1 ]; then
+    if [ "$tests" -eq 1 ] && [ "$fmt_parse_error" -eq 1 ]; then
+        # See the preflight note at the fmt gate: the tree does not parse, so a
+        # ~2.5 min test run is a guaranteed, expensive failure. clippy above has
+        # already recorded the real fault; skip the tests rather than burn the
+        # wall time. This is the one place the "collect every failure" design
+        # bends, and only for the long phase — the parse error is still a FAIL in
+        # the summary via the fmt gate.
+        skip_gate 'cargo test (workspace + cli)' 'tree does not parse — see cargo fmt --check'
+    elif [ "$tests" -eq 1 ]; then
         say '  ...  cargo test --workspace (~2.5 min)'
         if [ "${#clippy_features[@]}" -gt 0 ]; then
             # Same reason the clippy gate above substitutes a feature set on

@@ -536,6 +536,15 @@ impl Connection {
     pub fn expects_password_prompt(&self) -> bool {
         let ssh = match &self.protocol_config {
             ProtocolConfig::Ssh(cfg) | ProtocolConfig::Sftp(cfg) => cfg,
+            // A Web bookmark never prompts for an account password the way a
+            // shell or remote-desktop session does: the browser (embedded or
+            // external) collects any credentials the page itself asks for, and a
+            // configured SOCKS tunnel authenticates to its *jump host*, not to
+            // the site. So "no vault entry, you will be prompted for a password"
+            // is meaningless here — and, when the tunnel's bastion is down, it
+            // fires before the connection has even failed. Never announce it for
+            // Web.
+            ProtocolConfig::Web(_) => return false,
             _ => return true,
         };
 
@@ -1316,10 +1325,22 @@ mod tests {
 
     #[test]
     fn a_non_ssh_connection_always_expects_the_prompt() {
-        // RDP, VNC and the rest have no key configuration to reason about, so
-        // the notice stays. Erring towards showing it is deliberate.
+        // RDP, VNC and the rest (except Web, tested below) have no key
+        // configuration to reason about, so the notice stays. Erring towards
+        // showing it is deliberate.
         let conn = Connection::new_rdp("Win".to_string(), "example.com".to_string(), 3389);
         assert!(conn.expects_password_prompt());
+    }
+
+    #[test]
+    fn a_web_connection_never_expects_the_prompt() {
+        // A Web bookmark's browser handles any page credential itself, and a
+        // SOCKS tunnel authenticates to the jump host, not the site — so the
+        // "you will be prompted for a password" notice is meaningless and was
+        // firing before a dead-bastion tunnel had even failed.
+        let mut conn = Connection::new_ssh("2ip".to_string(), "https://2ip.io".to_string(), 443);
+        conn.protocol_config = ProtocolConfig::Web(crate::models::WebConfig::default());
+        assert!(!conn.expects_password_prompt());
     }
 
     #[test]

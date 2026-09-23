@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.22.3
+Version:        0.22.4
 Release:        0
 # rpmlint caps Summary at 79 characters (summary-too-long, badness 200); the
 # protocol list belongs in %description, which has room for all of it. Kept in
@@ -389,6 +389,16 @@ done
 %{_datadir}/icons/hicolor/*/apps/io.github.totoshko88.RustConn.*
 
 %changelog
+* Wed Sep 23 2026 Anton Isaiev <totoshko88@gmail.com> - 0.22.4-0
+- Version bump to 0.22.4
+- Fixed: the Snap Store listing lost its Donations, Source code and Report-a-bug links after a release; the contact field held a bare e-mail, which the metadata spec treats as an invalid link entry, so the store dropped the whole links block on the metadata sync. The link fields are now lists and the contact e-mail carries a mailto: prefix
+- Fixed: a saved password could be missed on the first connect right after startup, needlessly prompting, because the secret backend was not yet warm; the resolver now retries a transient backend read a few times with a short backoff before reporting a miss
+- Fixed: a Web/SOCKS tunnel through a dead SSH host froze the window and mis-warned about a password; SSH tunnels now default to ConnectTimeout=8 and the proxy is raised on a background thread
+- Fixed: a Web bookmark wrongly warned it would prompt for a password; expects_password_prompt now returns false for Web connections
+- Fixed: jump-host connections to an unreachable host hung and were shown as connected; a jump-host session is now treated as connected only once its terminal shows an interactive shell prompt
+- Fixed: external RDP surfaced a cryptic "Unexpected keyword" with no way to diagnose it (issue #339); the failure is now reported as a client/argument mismatch and the launch path logs its argument vector at debug level
+- Improved: external VNC and SPICE viewers now log the exact command they launch, so a rejected option is diagnosable from a log
+- Dependencies: updated the macOS tray crates tray-icon 0.24->0.25 and muda 0.19->0.20 (behind the tray-macos feature; not built in the Linux packages)
 * Tue Sep 22 2026 Anton Isaiev <totoshko88@gmail.com> - 0.22.3-0
 - Version bump to 0.22.3
 - Fixed: the window could livelock at 100% CPU on a session emitting a very long line with no newline (issue #338); the transcript writer now scans only the new bytes for a newline, looks for a prompt only in the buffer tail, and flushes an un-terminated run as a partial record at a byte cap, so the per-chunk work is bounded and the transcript stays complete

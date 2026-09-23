@@ -140,6 +140,21 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.22.4" date="2026-09-23">
+      <description>
+        <p>Version 0.22.4 - connection and packaging fixes:</p>
+        <ul>
+          <li>Fixed: the Snap Store listing lost its Donations, Source code and Report-a-bug links after a release; the link fields are now lists and the contact e-mail carries a mailto: prefix</li>
+          <li>Fixed: a saved password could be missed on the first connect right after startup; the resolver now retries a transient backend read before reporting a miss</li>
+          <li>Fixed: a Web/SOCKS tunnel through a dead SSH host froze the window and mis-warned about a password; SSH tunnels now default to an 8-second connect timeout and the proxy is raised on a background thread</li>
+          <li>Fixed: a Web bookmark wrongly warned it would prompt for a password</li>
+          <li>Fixed: jump-host connections to an unreachable host hung and were shown as connected; a session is now connected only once its terminal shows a shell prompt</li>
+          <li>Fixed: external RDP surfaced a cryptic "Unexpected keyword" with no way to diagnose it (issue #339); it is now reported as a client/argument mismatch and logged at debug level</li>
+          <li>Improved: external VNC and SPICE viewers now log the exact command they launch, so a rejected option is diagnosable from a log</li>
+          <li>Updated the macOS tray dependencies (tray-icon, muda); the Linux packages are unaffected</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.22.3" date="2026-09-22">
       <description>
         <p>Version 0.22.3 - transcript livelock and KeePass inheritance fixes:</p>

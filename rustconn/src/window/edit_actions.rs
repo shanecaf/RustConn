@@ -1070,24 +1070,6 @@ impl MainWindow {
         window.add_action(&obt_action);
     }
 
-    /// Raises the dynamic SOCKS tunnel a Web connection browses through.
-    ///
-    /// Returns `Ok(None)` when the connection has no `tunnel_via` set (browse
-    /// directly), `Ok(Some(tunnel))` once the `ssh -N -D` proxy is up and
-    /// accepting connections, or `Err(message)` when the referenced SSH
-    /// connection is missing or the tunnel could not be established. The tunnel
-    /// is returned to the caller, which hands it to the embedded widget (whose
-    /// lifetime it then matches) or parks it behind an external browser.
-    fn raise_web_socks_tunnel(
-        state: &SharedAppState,
-        web_config: &rustconn_core::models::WebConfig,
-    ) -> Result<Option<rustconn_core::ssh_tunnel::SshTunnel>, String> {
-        let Some(jump_id) = web_config.tunnel_via else {
-            return Ok(None);
-        };
-        Self::raise_socks_tunnel_for(state, jump_id).map(Some)
-    }
-
     /// Raises a dynamic SOCKS proxy (`ssh -N -D`) to the given SSH connection and
     /// waits for it to accept connections.
     ///
@@ -1104,47 +1086,81 @@ impl MainWindow {
         state: &SharedAppState,
         jump_id: Uuid,
     ) -> Result<rustconn_core::ssh_tunnel::SshTunnel, String> {
-        let params = {
-            let state_ref = state
-                .try_borrow()
-                .map_err(|_| crate::i18n::i18n("application is busy"))?;
-            let jump_conn = state_ref.get_connection(jump_id).ok_or_else(|| {
-                crate::i18n::i18n("the SSH connection it tunnels through is gone")
-            })?;
+        let params = Self::socks_tunnel_params_for(state, jump_id)?;
+        Self::spawn_socks_tunnel(&params)
+    }
 
-            let mut jump_dest = jump_conn.host.clone();
-            if let Some(user) = &jump_conn.username {
-                jump_dest = format!("{user}@{jump_dest}");
-            }
-            let groups = state_ref.list_groups_owned();
-            let identity_file = rustconn_core::connection::ssh_inheritance::resolve_ssh_key_path(
-                jump_conn, &groups,
-            )
-            .and_then(|p| rustconn_core::resolve_key_path(&p))
-            .map(|p| p.to_string_lossy().to_string());
-            let extra_args = super::protocols::resolve_jump_chain_for_tunnel(&state_ref, jump_conn);
-            let password = state_ref
-                .get_cached_credentials(jump_id)
-                .filter(|c| {
-                    use secrecy::ExposeSecret;
-                    !c.password.expose_secret().is_empty()
-                })
-                .map(|c| c.password.clone());
+    /// Builds the [`SshTunnelParams`] for a SOCKS tunnel to `jump_id`, reading
+    /// everything the spawn needs from `AppState`.
+    ///
+    /// Split from [`Self::spawn_socks_tunnel`] so the spawn — which blocks while
+    /// `ssh` connects and the port comes up — can run off the GTK thread while
+    /// this cheap, borrow-only half stays on it. See
+    /// [`Self::raise_web_socks_tunnel_async`].
+    ///
+    /// # Errors
+    ///
+    /// Returns a human-readable message when the connection is gone or the state
+    /// is momentarily busy.
+    fn socks_tunnel_params_for(
+        state: &SharedAppState,
+        jump_id: Uuid,
+    ) -> Result<rustconn_core::ssh_tunnel::SshTunnelParams, String> {
+        let state_ref = state
+            .try_borrow()
+            .map_err(|_| crate::i18n::i18n("application is busy"))?;
+        let jump_conn = state_ref
+            .get_connection(jump_id)
+            .ok_or_else(|| crate::i18n::i18n("the SSH connection it tunnels through is gone"))?;
 
-            rustconn_core::ssh_tunnel::SshTunnelParams {
-                jump_host: jump_dest,
-                jump_port: jump_conn.port,
-                // Unused for a SOCKS (`-D`) tunnel, but the struct requires them.
-                remote_host: String::new(),
-                remote_port: 0,
-                identity_file,
-                password,
-                extra_args,
-            }
-        };
+        let mut jump_dest = jump_conn.host.clone();
+        if let Some(user) = &jump_conn.username {
+            jump_dest = format!("{user}@{jump_dest}");
+        }
+        let groups = state_ref.list_groups_owned();
+        let identity_file =
+            rustconn_core::connection::ssh_inheritance::resolve_ssh_key_path(jump_conn, &groups)
+                .and_then(|p| rustconn_core::resolve_key_path(&p))
+                .map(|p| p.to_string_lossy().to_string());
+        let extra_args = super::protocols::resolve_jump_chain_for_tunnel(&state_ref, jump_conn);
+        let password = state_ref
+            .get_cached_credentials(jump_id)
+            .filter(|c| {
+                use secrecy::ExposeSecret;
+                !c.password.expose_secret().is_empty()
+            })
+            .map(|c| c.password.clone());
 
+        Ok(rustconn_core::ssh_tunnel::SshTunnelParams {
+            jump_host: jump_dest,
+            jump_port: jump_conn.port,
+            // Unused for a SOCKS (`-D`) tunnel, but the struct requires them.
+            remote_host: String::new(),
+            remote_port: 0,
+            identity_file,
+            password,
+            extra_args,
+        })
+    }
+
+    /// Spawns the `ssh -N -D` SOCKS proxy from prebuilt `params` and waits for
+    /// its local port to accept connections.
+    ///
+    /// This blocks (the wait polls the port with `std::thread::sleep`), so it is
+    /// **not** to be called on the GTK thread — a dead jump host would otherwise
+    /// freeze the window until `ConnectTimeout` lapses. Callers on the UI thread
+    /// go through [`Self::raise_web_socks_tunnel_async`]; this synchronous form
+    /// is kept for the (already off-thread or short-lived) callers that build
+    /// params and spawn in one place.
+    ///
+    /// # Errors
+    ///
+    /// Returns a human-readable message when `ssh` fails to establish the proxy.
+    fn spawn_socks_tunnel(
+        params: &rustconn_core::ssh_tunnel::SshTunnelParams,
+    ) -> Result<rustconn_core::ssh_tunnel::SshTunnel, String> {
         let mut tunnel =
-            rustconn_core::ssh_tunnel::create_socks_tunnel(&params).map_err(|e| e.to_string())?;
+            rustconn_core::ssh_tunnel::create_socks_tunnel(params).map_err(|e| e.to_string())?;
         rustconn_core::ssh_tunnel::wait_for_tunnel_ready(
             &mut tunnel,
             40,
@@ -1153,6 +1169,39 @@ impl MainWindow {
         .map_err(|e| e.to_string())?;
         tracing::info!(socks_port = tunnel.local_port(), "SOCKS tunnel ready");
         Ok(tunnel)
+    }
+
+    /// Raises a Web connection's SOCKS tunnel **off the GTK thread**, delivering
+    /// the result to `on_ready` back on the GTK thread.
+    ///
+    /// `on_ready` receives `Ok(None)` when the connection browses directly (no
+    /// `tunnel_via`), `Ok(Some(tunnel))` once the proxy is up, or `Err(message)`
+    /// when it could not be built — the same shape [`Self::raise_web_socks_tunnel`]
+    /// returned synchronously, but without blocking the window while `ssh`
+    /// connects. The params are read from `AppState` here (cheap, on the GTK
+    /// thread); only the blocking spawn+wait moves to a worker.
+    fn raise_web_socks_tunnel_async<C>(
+        state: &SharedAppState,
+        web_config: &rustconn_core::models::WebConfig,
+        on_ready: C,
+    ) where
+        C: FnOnce(Result<Option<rustconn_core::ssh_tunnel::SshTunnel>, String>) + 'static,
+    {
+        let Some(jump_id) = web_config.tunnel_via else {
+            on_ready(Ok(None));
+            return;
+        };
+        let params = match Self::socks_tunnel_params_for(state, jump_id) {
+            Ok(params) => params,
+            Err(msg) => {
+                on_ready(Err(msg));
+                return;
+            }
+        };
+        crate::utils::spawn_blocking_with_callback(
+            move || Self::spawn_socks_tunnel(&params).map(Some),
+            on_ready,
+        );
     }
 
     /// Normalises the configured tunnel-browser start URL into something both
@@ -1710,188 +1759,211 @@ impl MainWindow {
             // Raise the SSH SOCKS tunnel this Web connection browses through, if
             // one is configured. A failure to bring it up aborts the launch
             // rather than silently browsing directly (which would defeat the
-            // point and could leak traffic the user meant to tunnel).
-            let socks_tunnel = match Self::raise_web_socks_tunnel(state, &web_config) {
-                Ok(tunnel) => tunnel,
-                Err(msg) => {
-                    tracing::error!(connection = %conn_name, error = %msg, "Web SOCKS tunnel failed");
-                    sidebar.update_connection_status(&connection_id.to_string(), "failed");
-                    crate::toast::show_error_toast_on_active_window(&crate::i18n::i18n_f(
-                        "Could not open the SSH tunnel: {}",
-                        &[&msg],
-                    ));
-                    return;
-                }
-            };
+            // point and could leak traffic the user meant to tunnel). The spawn
+            // runs off the GTK thread so a dead jump host cannot freeze the
+            // window; the widget is built in the callback once the tunnel is up.
+            sidebar.update_connection_status(&connection_id.to_string(), "connecting");
+            let notebook_cb = notebook.clone();
+            let sidebar_cb = sidebar.clone();
+            let state_cb = Rc::clone(state);
+            Self::raise_web_socks_tunnel_async(state, &web_config.clone(), move |result| {
+                let socks_tunnel = match result {
+                    Ok(tunnel) => tunnel,
+                    Err(msg) => {
+                        tracing::error!(connection = %conn_name, error = %msg, "Web SOCKS tunnel failed");
+                        sidebar_cb.update_connection_status(&connection_id.to_string(), "failed");
+                        crate::toast::show_error_toast_on_active_window(&crate::i18n::i18n_f(
+                            "Could not open the SSH tunnel: {}",
+                            &[&msg],
+                        ));
+                        return;
+                    }
+                };
 
-            let session_id = uuid::Uuid::new_v4();
-            match EmbeddedWebWidget::new(
-                connection_id,
-                &url,
-                &web_config,
-                credentials,
-                socks_tunnel,
-            ) {
-                Ok(widget) => {
-                    let widget = Rc::new(widget);
+                let session_id = uuid::Uuid::new_v4();
+                match EmbeddedWebWidget::new(
+                    connection_id,
+                    &url,
+                    &web_config,
+                    credentials,
+                    socks_tunnel,
+                ) {
+                    Ok(widget) => {
+                        let widget = Rc::new(widget);
 
-                    // Wire zoom persistence: save zoom level to connection config on change
-                    let state_for_zoom = Rc::clone(state);
-                    let conn_id_for_zoom = connection_id;
-                    widget.connect_zoom_changed(move |new_zoom| {
-                        if let Ok(mut state_mut) = state_for_zoom.try_borrow_mut() {
-                            state_mut.update_web_zoom_level(conn_id_for_zoom, new_zoom);
-                        }
-                    });
-
-                    // If the very first load never paints (bad host, DNS/SOCKS
-                    // `Name or service not known`), close the blank tab and toast
-                    // the reason instead of leaving an empty browser behind.
-                    {
-                        let notebook_for_fail = notebook.clone();
-                        let sidebar_for_fail = sidebar.clone();
-                        let conn_id_str = connection_id.to_string();
-                        widget.connect_initial_load_failed(move |message| {
-                            notebook_for_fail.close_session(session_id);
-                            sidebar_for_fail.update_connection_status(&conn_id_str, "");
-                            crate::toast::show_error_toast_on_active_window(&crate::i18n::i18n_f(
-                                "Could not open the page: {}",
-                                &[&message],
-                            ));
+                        // Wire zoom persistence: save zoom level to connection config on change
+                        let state_for_zoom = Rc::clone(&state_cb);
+                        let conn_id_for_zoom = connection_id;
+                        widget.connect_zoom_changed(move |new_zoom| {
+                            if let Ok(mut state_mut) = state_for_zoom.try_borrow_mut() {
+                                state_mut.update_web_zoom_level(conn_id_for_zoom, new_zoom);
+                            }
                         });
-                    }
 
-                    notebook.add_embedded_web_tab(session_id, connection_id, &conn_name, widget);
-                    if let Some(observer) = observer {
-                        observer.complete(session_id);
+                        // If the very first load never paints (bad host, DNS/SOCKS
+                        // `Name or service not known`), close the blank tab and toast
+                        // the reason instead of leaving an empty browser behind.
+                        {
+                            let notebook_for_fail = notebook_cb.clone();
+                            let sidebar_for_fail = sidebar_cb.clone();
+                            let conn_id_str = connection_id.to_string();
+                            widget.connect_initial_load_failed(move |message| {
+                                notebook_for_fail.close_session(session_id);
+                                sidebar_for_fail.update_connection_status(&conn_id_str, "");
+                                crate::toast::show_error_toast_on_active_window(
+                                    &crate::i18n::i18n_f(
+                                        "Could not open the page: {}",
+                                        &[&message],
+                                    ),
+                                );
+                            });
+                        }
+
+                        notebook_cb.add_embedded_web_tab(
+                            session_id,
+                            connection_id,
+                            &conn_name,
+                            widget,
+                        );
+                        if let Some(observer) = observer {
+                            observer.complete(session_id);
+                        }
+                        sidebar_cb
+                            .update_connection_status(&connection_id.to_string(), "connected");
+                        tracing::info!(
+                            connection = %conn_name,
+                            %connection_id,
+                            "Embedded web session started"
+                        );
                     }
-                    sidebar.update_connection_status(&connection_id.to_string(), "connected");
-                    tracing::info!(
-                        connection = %conn_name,
-                        %connection_id,
-                        "Embedded web session started"
-                    );
+                    Err(e) => {
+                        tracing::error!(
+                            connection = %conn_name,
+                            error = %e,
+                            "Failed to create embedded web widget"
+                        );
+                        sidebar_cb.update_connection_status(&connection_id.to_string(), "failed");
+                        crate::toast::show_error_toast_on_active_window(&crate::i18n::i18n_f(
+                            "Failed to open URL: {}",
+                            &[&e.to_string()],
+                        ));
+                    }
                 }
-                Err(e) => {
-                    tracing::error!(
-                        connection = %conn_name,
-                        error = %e,
-                        "Failed to create embedded web widget"
-                    );
-                    sidebar.update_connection_status(&connection_id.to_string(), "failed");
-                    crate::toast::show_error_toast_on_active_window(&crate::i18n::i18n_f(
-                        "Failed to open URL: {}",
-                        &[&e.to_string()],
-                    ));
-                }
-            }
+            });
             return;
         }
 
         // Custom mode: launch user-specified browser as a subprocess
         if web_config.browser_mode == rustconn_core::models::WebBrowserMode::Custom
-            && let Some(ref browser) = web_config.browser
+            && let Some(browser) = web_config.browser.clone()
         {
-            // Raise the SOCKS tunnel first, if configured. A failure aborts the
-            // launch rather than browsing directly, matching the embedded path.
-            let socks_tunnel = match Self::raise_web_socks_tunnel(state, &web_config) {
-                Ok(tunnel) => tunnel,
-                Err(msg) => {
-                    tracing::error!(connection = %conn_name, error = %msg, "Web SOCKS tunnel failed");
-                    sidebar.update_connection_status(&connection_id.to_string(), "failed");
-                    crate::toast::show_error_toast_on_active_window(&crate::i18n::i18n_f(
-                        "Could not open the SSH tunnel: {}",
-                        &[&msg],
-                    ));
-                    return;
+            // Raise the SOCKS tunnel first, if configured, off the GTK thread so
+            // a dead jump host cannot freeze the window; the browser is launched
+            // in the callback once the tunnel is up. A failure aborts the launch
+            // rather than browsing directly, matching the embedded path.
+            sidebar.update_connection_status(&connection_id.to_string(), "connecting");
+            let notebook_cb = notebook.clone();
+            let sidebar_cb = sidebar.clone();
+            Self::raise_web_socks_tunnel_async(state, &web_config.clone(), move |result| {
+                let socks_tunnel = match result {
+                    Ok(tunnel) => tunnel,
+                    Err(msg) => {
+                        tracing::error!(connection = %conn_name, error = %msg, "Web SOCKS tunnel failed");
+                        sidebar_cb.update_connection_status(&connection_id.to_string(), "failed");
+                        crate::toast::show_error_toast_on_active_window(&crate::i18n::i18n_f(
+                            "Could not open the SSH tunnel: {}",
+                            &[&msg],
+                        ));
+                        return;
+                    }
+                };
+
+                let mut cmd = std::process::Command::new(&browser);
+                let browser_lower = browser.to_lowercase();
+                let is_chromium = browser_lower.contains("chrom")
+                    || browser_lower.contains("brave")
+                    || browser_lower.contains("vivaldi")
+                    || browser_lower.contains("edge")
+                    || browser_lower.contains("opera");
+
+                // Route the browser through the tunnel's SOCKS proxy. Only the
+                // Chromium family takes a `--proxy-server` flag; Firefox reads proxy
+                // settings from its profile, which a one-shot launch cannot set
+                // safely, so we surface that rather than pretend it worked.
+                let mut tunnelled_isolated = false;
+                if let Some(ref tunnel) = socks_tunnel {
+                    let port = tunnel.local_port();
+                    if is_chromium {
+                        // A throwaway `--user-data-dir` forces a separate instance:
+                        // a running Chrome would otherwise take over the launch and
+                        // ignore `--proxy-server`, loading the page un-tunnelled.
+                        cmd.arg(Self::chromium_isolated_profile_arg());
+                        cmd.arg("--no-first-run");
+                        cmd.arg("--no-default-browser-check");
+                        cmd.arg(format!("--proxy-server=socks5://127.0.0.1:{port}"));
+                        tunnelled_isolated = true;
+                    } else {
+                        crate::toast::show_error_toast_on_active_window(&crate::i18n::i18n(
+                            "This browser can't be tunnelled from the command line. Use a Chromium-based browser or the embedded browser for SSH tunnelling.",
+                        ));
+                    }
                 }
-            };
 
-            let mut cmd = std::process::Command::new(browser);
-            let browser_lower = browser.to_lowercase();
-            let is_chromium = browser_lower.contains("chrom")
-                || browser_lower.contains("brave")
-                || browser_lower.contains("vivaldi")
-                || browser_lower.contains("edge")
-                || browser_lower.contains("opera");
-
-            // Route the browser through the tunnel's SOCKS proxy. Only the
-            // Chromium family takes a `--proxy-server` flag; Firefox reads proxy
-            // settings from its profile, which a one-shot launch cannot set
-            // safely, so we surface that rather than pretend it worked.
-            let mut tunnelled_isolated = false;
-            if let Some(ref tunnel) = socks_tunnel {
-                let port = tunnel.local_port();
-                if is_chromium {
-                    // A throwaway `--user-data-dir` forces a separate instance:
-                    // a running Chrome would otherwise take over the launch and
-                    // ignore `--proxy-server`, loading the page un-tunnelled.
-                    cmd.arg(Self::chromium_isolated_profile_arg());
-                    cmd.arg("--no-first-run");
-                    cmd.arg("--no-default-browser-check");
-                    cmd.arg(format!("--proxy-server=socks5://127.0.0.1:{port}"));
-                    tunnelled_isolated = true;
-                } else {
-                    crate::toast::show_error_toast_on_active_window(&crate::i18n::i18n(
-                        "This browser can't be tunnelled from the command line. Use a Chromium-based browser or the embedded browser for SSH tunnelling.",
-                    ));
+                // Add private mode flag for known browsers. A Chromium instance
+                // already launched into its own throwaway profile above is clean,
+                // and `--incognito` there would rejoin the running process, so skip
+                // it in that case.
+                if web_config.private_mode {
+                    if browser_lower.contains("firefox") {
+                        cmd.arg("--private-window");
+                    } else if is_chromium && !tunnelled_isolated {
+                        cmd.arg("--incognito");
+                    }
                 }
-            }
 
-            // Add private mode flag for known browsers. A Chromium instance
-            // already launched into its own throwaway profile above is clean,
-            // and `--incognito` there would rejoin the running process, so skip
-            // it in that case.
-            if web_config.private_mode {
-                if browser_lower.contains("firefox") {
-                    cmd.arg("--private-window");
-                } else if is_chromium && !tunnelled_isolated {
-                    cmd.arg("--incognito");
-                }
-            }
+                cmd.arg(&url);
 
-            cmd.arg(&url);
-
-            match cmd.spawn() {
-                Ok(child) => {
-                    tracing::info!(browser = %browser, "Web bookmark opened in custom browser");
-                    sidebar.update_connection_status(&connection_id.to_string(), "");
-                    // Keep the tunnel alive behind the detached browser. There is
-                    // no tab to own it, so it is parked in the notebook tunnel map
-                    // under a synthetic session id and registered with the external
-                    // session registry; both are reclaimed at app exit. The child
-                    // is handed over so the registry reaps it — its exit is when
-                    // the tunnel could be dropped, though today that waits for exit
-                    // of RustConn (documented tradeoff, as for RDP/VNC viewers).
-                    if let Some(tunnel) = socks_tunnel {
-                        let session_id = uuid::Uuid::new_v4();
-                        notebook.store_ssh_tunnel(session_id, tunnel);
-                        if let Some(registry) = super::external_session_registry() {
-                            registry.register(session_id, connection_id, Some(child), None);
+                match cmd.spawn() {
+                    Ok(child) => {
+                        tracing::info!(browser = %browser, "Web bookmark opened in custom browser");
+                        sidebar_cb.update_connection_status(&connection_id.to_string(), "");
+                        // Keep the tunnel alive behind the detached browser. There is
+                        // no tab to own it, so it is parked in the notebook tunnel map
+                        // under a synthetic session id and registered with the external
+                        // session registry; both are reclaimed at app exit. The child
+                        // is handed over so the registry reaps it — its exit is when
+                        // the tunnel could be dropped, though today that waits for exit
+                        // of RustConn (documented tradeoff, as for RDP/VNC viewers).
+                        if let Some(tunnel) = socks_tunnel {
+                            let session_id = uuid::Uuid::new_v4();
+                            notebook_cb.store_ssh_tunnel(session_id, tunnel);
+                            if let Some(registry) = super::external_session_registry() {
+                                registry.register(session_id, connection_id, Some(child), None);
+                            }
+                        }
+                        if let Some(app) = gtk4::gio::Application::default()
+                            && let Some(gtk_app) = app.downcast_ref::<gtk4::Application>()
+                            && let Some(window) = gtk_app.active_window()
+                        {
+                            crate::toast::show_toast_on_window(
+                                &window,
+                                &crate::i18n::i18n("Opened in browser"),
+                                crate::toast::ToastType::Success,
+                            );
                         }
                     }
-                    if let Some(app) = gtk4::gio::Application::default()
-                        && let Some(gtk_app) = app.downcast_ref::<gtk4::Application>()
-                        && let Some(window) = gtk_app.active_window()
-                    {
-                        crate::toast::show_toast_on_window(
-                            &window,
-                            &crate::i18n::i18n("Opened in browser"),
-                            crate::toast::ToastType::Success,
-                        );
+                    Err(e) => {
+                        tracing::error!(browser = %browser, error = %e, "Failed to launch custom browser");
+                        sidebar_cb.update_connection_status(&connection_id.to_string(), "failed");
+                        // The tunnel (if any) drops here with `socks_tunnel`, killing
+                        // its ssh process — nothing is browsing through it.
+                        crate::toast::show_error_toast_on_active_window(&crate::i18n::i18n_f(
+                            "Failed to open URL: {}",
+                            &[&e.to_string()],
+                        ));
                     }
                 }
-                Err(e) => {
-                    tracing::error!(browser = %browser, error = %e, "Failed to launch custom browser");
-                    sidebar.update_connection_status(&connection_id.to_string(), "failed");
-                    // The tunnel (if any) drops here with `socks_tunnel`, killing
-                    // its ssh process — nothing is browsing through it.
-                    crate::toast::show_error_toast_on_active_window(&crate::i18n::i18n_f(
-                        "Failed to open URL: {}",
-                        &[&e.to_string()],
-                    ));
-                }
-            }
+            });
             return;
         }
 
