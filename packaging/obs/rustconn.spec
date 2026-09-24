@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.22.4
+Version:        0.22.5
 Release:        0
 # rpmlint caps Summary at 79 characters (summary-too-long, badness 200); the
 # protocol list belongs in %description, which has room for all of it. Kept in
@@ -389,6 +389,15 @@ done
 %{_datadir}/icons/hicolor/*/apps/io.github.totoshko88.RustConn.*
 
 %changelog
+* Thu Sep 24 2026 Anton Isaiev <totoshko88@gmail.com> - 0.22.5-0
+- Version bump to 0.22.5
+- Added: the external VNC viewer can now be chosen per connection (issue #340)
+- Added: the external FreeRDP client can now be chosen per connection (issue #340)
+- Added: dynamic resolution and smart sizing are now configurable for the external RDP client (issue #341)
+- Fixed: a TLS failure on a legacy RDP server no longer suggests a certificate setting that is already on; it points at the RDP security layer instead (issue #339)
+- Changed: the external RDP client-detection helper now prefers the SDL3 client over the deprecated wlfreerdp (issue #340)
+- Dependencies: thiserror 2.0.21, zerocopy 0.8.58
+
 * Wed Sep 23 2026 Anton Isaiev <totoshko88@gmail.com> - 0.22.4-0
 - Version bump to 0.22.4
 - Fixed: the Snap Store listing lost its Donations, Source code and Report-a-bug links after a release; the contact field held a bare e-mail, which the metadata spec treats as an invalid link entry, so the store dropped the whole links block on the metadata sync. The link fields are now lists and the contact e-mail carries a mailto: prefix

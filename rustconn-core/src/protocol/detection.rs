@@ -211,20 +211,25 @@ pub fn detect_ssh_client() -> ClientInfo {
 /// Detects the RDP client on the system
 ///
 /// Checks for FreeRDP 3.x, FreeRDP 2.x, or rdesktop binaries and extracts version information.
-/// Priority: wlfreerdp3 > sdl-freerdp3 > xfreerdp3 > wlfreerdp > xfreerdp > rdesktop
+/// Priority: sdl-freerdp3 > sdl-freerdp > wlfreerdp3 > xfreerdp3 > wlfreerdp > xfreerdp > rdesktop
+///
+/// SDL3 is preferred over the wlfreerdp client, which FreeRDP upstream has
+/// deprecated in favour of the SDL3 client (issue #340). This order mirrors the
+/// runtime launcher's `WAYLAND_FIRST_CANDIDATES` so the reported client is the
+/// one that actually gets launched.
 #[must_use]
 pub fn detect_rdp_client() -> ClientInfo {
     // Try FreeRDP 3.x first (preferred)
-    // wlfreerdp3 for Wayland-native
-    if let Some(info) = try_detect_client("FreeRDP 3", "wlfreerdp3", &["--version"]) {
-        return info.with_min_version("3.0.0");
-    }
     // sdl-freerdp3 — SDL3 client, versioned (distro packages)
     if let Some(info) = try_detect_client("FreeRDP 3", "sdl-freerdp3", &["--version"]) {
         return info.with_min_version("3.0.0");
     }
     // sdl-freerdp — SDL3 client, unversioned (Flatpak / upstream build)
     if let Some(info) = try_detect_client("FreeRDP 3", "sdl-freerdp", &["--version"]) {
+        return info.with_min_version("3.0.0");
+    }
+    // wlfreerdp3 — Wayland-native, deprecated upstream but still shipped
+    if let Some(info) = try_detect_client("FreeRDP 3", "wlfreerdp3", &["--version"]) {
         return info.with_min_version("3.0.0");
     }
     // xfreerdp3 for X11
@@ -439,6 +444,41 @@ pub fn detect_vnc_viewer_name() -> Option<String> {
             crate::which::find_macos_app(VNC_VIEWER_BUNDLES)
                 .and_then(|p| p.into_os_string().into_string().ok())
         })
+}
+
+/// Returns the VNC viewers that are actually installed, in preference order.
+///
+/// Seeds the connection editor's "VNC viewer" dropdown, so an unavailable
+/// choice is never offered. Only local `PATH` binaries are listed — the macOS
+/// `.app` bundles are resolved by name at launch, not enumerated here.
+#[must_use]
+pub fn available_vnc_viewers() -> Vec<String> {
+    VNC_VIEWERS
+        .iter()
+        .filter(|viewer| which_binary(viewer).is_some())
+        .map(|viewer| (*viewer).to_string())
+        .collect()
+}
+
+/// Resolves which VNC viewer to launch, honouring an explicit override.
+///
+/// When `override_name` is set and the named viewer is on the local `PATH`, it
+/// wins. An override that is not installed is dropped with a warning and the
+/// usual auto-detection ([`detect_vnc_viewer_name`]) takes over — mirroring the
+/// FreeRDP client override (issue #340).
+#[must_use]
+pub fn resolve_vnc_viewer(override_name: Option<&str>) -> Option<String> {
+    if let Some(name) = override_name.map(str::trim).filter(|name| !name.is_empty()) {
+        if which_binary(name).is_some() {
+            return Some(name.to_string());
+        }
+        tracing::warn!(
+            protocol = "vnc",
+            viewer = %name,
+            "Configured VNC viewer is not available — falling back to auto-detection"
+        );
+    }
+    detect_vnc_viewer_name()
 }
 
 // ============================================================================

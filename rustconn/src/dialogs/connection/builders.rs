@@ -108,6 +108,7 @@ pub(super) struct ConnectionDialogData<'a> {
     pub rdp_gateway_username_entry: &'a Entry,
     pub rdp_disable_nla_check: &'a adw::SwitchRow,
     pub rdp_security_layer_dropdown: &'a DropDown,
+    pub rdp_freerdp_client_dropdown: &'a DropDown,
     pub rdp_tls_security_level_spin: &'a SpinButton,
     pub rdp_ignore_certificate_check: &'a adw::SwitchRow,
     pub rdp_clipboard_check: &'a adw::SwitchRow,
@@ -117,11 +118,14 @@ pub(super) struct ConnectionDialogData<'a> {
     pub rdp_jiggler_interval_spin: &'a SpinButton,
     pub rdp_autotype_delay_spin: &'a SpinButton,
     pub rdp_autotype_initial_delay_spin: &'a SpinButton,
+    pub rdp_dynamic_resolution_check: &'a adw::SwitchRow,
+    pub rdp_smart_sizing_check: &'a adw::SwitchRow,
     pub rdp_reconnect_on_resize_check: &'a adw::SwitchRow,
     pub rdp_mptcp_check: &'a adw::SwitchRow,
     pub rdp_fido2_check: &'a adw::SwitchRow,
     pub rdp_jump_host_dropdown: &'a DropDown,
     pub rdp_connections_data: &'a Rc<RefCell<Vec<(Option<Uuid>, String)>>>,
+    pub rdp_freerdp_clients_data: &'a Rc<RefCell<Vec<String>>>,
     pub rdp_shared_folders: &'a Rc<RefCell<Vec<SharedFolder>>>,
     pub rdp_custom_args_entry: &'a Entry,
     pub rdp_keyboard_layout_dropdown: &'a DropDown,
@@ -130,6 +134,7 @@ pub(super) struct ConnectionDialogData<'a> {
     pub rdp_remote_app_name_entry: &'a Entry,
     pub rdp_graphics_mode_dropdown: &'a DropDown,
     pub vnc_client_mode_dropdown: &'a DropDown,
+    pub vnc_viewer_dropdown: &'a DropDown,
     pub vnc_performance_mode_dropdown: &'a DropDown,
     pub vnc_encoding_dropdown: &'a DropDown,
     pub vnc_compression_spin: &'a SpinButton,
@@ -145,6 +150,7 @@ pub(super) struct ConnectionDialogData<'a> {
     pub vnc_accept_certificate_check: &'a adw::SwitchRow,
     pub vnc_mptcp_check: &'a adw::SwitchRow,
     pub vnc_connections_data: &'a Rc<RefCell<Vec<(Option<Uuid>, String)>>>,
+    pub vnc_viewers_data: &'a Rc<RefCell<Vec<String>>>,
     pub spice_tls_check: &'a adw::SwitchRow,
     pub spice_ca_cert_entry: &'a Entry,
     pub spice_skip_verify_check: &'a adw::SwitchRow,
@@ -1640,6 +1646,14 @@ impl ConnectionDialogData<'_> {
             keyboard_layout: super::dialog::dropdown_index_to_klid(
                 self.rdp_keyboard_layout_dropdown.selected(),
             ),
+            freerdp_client_override: {
+                let idx = self.rdp_freerdp_client_dropdown.selected() as usize;
+                if idx == 0 {
+                    None
+                } else {
+                    self.rdp_freerdp_clients_data.borrow().get(idx - 1).cloned()
+                }
+            },
             scale_override: ScaleOverride::from_index(self.rdp_scale_override_dropdown.selected()),
             disable_nla: self.rdp_disable_nla_check.is_active(),
             security_layer: rustconn_core::models::RdpSecurityLayer::from_index(
@@ -1667,6 +1681,8 @@ impl ConnectionDialogData<'_> {
             },
             autotype_delay_ms: self.rdp_autotype_delay_spin.value() as u32,
             autotype_initial_delay_ms: self.rdp_autotype_initial_delay_spin.value() as u32,
+            dynamic_resolution: self.rdp_dynamic_resolution_check.is_active(),
+            smart_sizing: self.rdp_smart_sizing_check.is_active(),
             reconnect_on_resize: self.rdp_reconnect_on_resize_check.is_active(),
             mptcp: self.rdp_mptcp_check.is_active(),
             fido2_enabled: self.rdp_fido2_check.is_active(),
@@ -1739,6 +1755,14 @@ impl ConnectionDialogData<'_> {
             scaling: self.vnc_scaling_check.is_active(),
             clipboard_enabled: self.vnc_clipboard_check.is_active(),
             custom_args,
+            vnc_viewer_override: {
+                let idx = self.vnc_viewer_dropdown.selected() as usize;
+                if idx == 0 {
+                    None
+                } else {
+                    self.vnc_viewers_data.borrow().get(idx - 1).cloned()
+                }
+            },
             scale_override: ScaleOverride::from_index(self.vnc_scale_override_dropdown.selected()),
             show_local_cursor: self.vnc_show_local_cursor_check.is_active(),
             hide_floating_toolbar: !self.vnc_floating_toolbar_check.is_active(),

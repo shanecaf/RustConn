@@ -167,6 +167,7 @@ impl ConnectionDialog {
             rdp_gateway_username_entry,
             rdp_disable_nla_check,
             rdp_security_layer_dropdown,
+            rdp_freerdp_client_dropdown,
             rdp_tls_security_level_spin,
             ignore_certificate_check,
             rdp_clipboard_check,
@@ -176,6 +177,8 @@ impl ConnectionDialog {
             rdp_jiggler_interval_spin,
             rdp_autotype_delay_spin,
             rdp_autotype_initial_delay_spin,
+            rdp_dynamic_resolution_check,
+            rdp_smart_sizing_check,
             rdp_reconnect_on_resize_check,
             rdp_mptcp_check,
             rdp_fido2_check,
@@ -196,6 +199,7 @@ impl ConnectionDialog {
         let (
             vnc_box,
             vnc_client_mode_dropdown,
+            vnc_viewer_dropdown,
             vnc_performance_mode_dropdown,
             vnc_encoding_dropdown,
             vnc_compression_spin,
@@ -468,8 +472,14 @@ impl ConnectionDialog {
             Rc::new(RefCell::new(vec![(None, "(None)".to_string())]));
         let rdp_connections_data: Rc<RefCell<Vec<(Option<Uuid>, String)>>> =
             Rc::new(RefCell::new(vec![(None, "(None)".to_string())]));
+        let rdp_freerdp_clients_data: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(
+            crate::embedded_rdp::detect::available_freerdp_clients(),
+        ));
         let vnc_connections_data: Rc<RefCell<Vec<(Option<Uuid>, String)>>> =
             Rc::new(RefCell::new(vec![(None, "(None)".to_string())]));
+        let vnc_viewers_data: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(
+            rustconn_core::protocol::available_vnc_viewers(),
+        ));
         let spice_connections_data: Rc<RefCell<Vec<(Option<Uuid>, String)>>> =
             Rc::new(RefCell::new(vec![(None, "(None)".to_string())]));
         let web_connections_data: Rc<RefCell<Vec<(Option<Uuid>, String)>>> =
@@ -542,6 +552,7 @@ impl ConnectionDialog {
             &rdp_gateway_username_entry,
             &rdp_disable_nla_check,
             &rdp_security_layer_dropdown,
+            &rdp_freerdp_client_dropdown,
             &rdp_tls_security_level_spin,
             &ignore_certificate_check,
             &rdp_clipboard_check,
@@ -551,11 +562,14 @@ impl ConnectionDialog {
             &rdp_jiggler_interval_spin,
             &rdp_autotype_delay_spin,
             &rdp_autotype_initial_delay_spin,
+            &rdp_dynamic_resolution_check,
+            &rdp_smart_sizing_check,
             &rdp_reconnect_on_resize_check,
             &rdp_mptcp_check,
             &rdp_fido2_check,
             &rdp_jump_host_dropdown,
             &rdp_connections_data,
+            &rdp_freerdp_clients_data,
             &rdp_shared_folders,
             &rdp_custom_args_entry,
             &rdp_keyboard_layout_dropdown,
@@ -564,6 +578,7 @@ impl ConnectionDialog {
             &rdp_remote_app_name_entry,
             &rdp_graphics_mode_dropdown,
             &vnc_client_mode_dropdown,
+            &vnc_viewer_dropdown,
             &vnc_performance_mode_dropdown,
             &vnc_encoding_dropdown,
             &vnc_compression_spin,
@@ -579,6 +594,7 @@ impl ConnectionDialog {
             &vnc_accept_certificate_check,
             &vnc_mptcp_check,
             &vnc_connections_data,
+            &vnc_viewers_data,
             &spice_tls_check,
             &spice_ca_cert_entry,
             &spice_skip_verify_check,
@@ -787,6 +803,7 @@ impl ConnectionDialog {
             rdp_gateway_username_entry,
             rdp_disable_nla_check,
             rdp_security_layer_dropdown,
+            rdp_freerdp_client_dropdown,
             rdp_tls_security_level_spin,
             rdp_ignore_certificate_check: ignore_certificate_check,
             rdp_clipboard_check,
@@ -796,11 +813,14 @@ impl ConnectionDialog {
             rdp_jiggler_interval_spin,
             rdp_autotype_delay_spin,
             rdp_autotype_initial_delay_spin,
+            rdp_dynamic_resolution_check,
+            rdp_smart_sizing_check,
             rdp_reconnect_on_resize_check,
             rdp_mptcp_check,
             rdp_fido2_check,
             rdp_jump_host_dropdown,
             rdp_connections_data,
+            rdp_freerdp_clients_data,
             rdp_shared_folders,
             rdp_shared_folders_list,
             rdp_custom_args_entry,
@@ -810,6 +830,7 @@ impl ConnectionDialog {
             rdp_remote_app_name_entry,
             rdp_graphics_mode_dropdown,
             vnc_client_mode_dropdown,
+            vnc_viewer_dropdown,
             vnc_performance_mode_dropdown,
             vnc_encoding_dropdown,
             vnc_compression_spin,
@@ -825,6 +846,7 @@ impl ConnectionDialog {
             vnc_accept_certificate_check,
             vnc_mptcp_check,
             vnc_connections_data,
+            vnc_viewers_data,
             spice_tls_check,
             variables_list,
             variables_rows,

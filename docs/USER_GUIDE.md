@@ -1,6 +1,6 @@
 # RustConn User Guide
 
-**Version 0.22.4** | GTK4/libadwaita Connection Manager for Linux
+**Version 0.22.5** | GTK4/libadwaita Connection Manager for Linux
 
 RustConn is a modern connection manager designed for Linux with Wayland-first approach. It supports SSH, RDP, VNC, SPICE, MOSH, SFTP, Telnet, Serial, Kubernetes, Web protocols and Zero Trust integrations through a native GTK4/libadwaita interface.
 
@@ -667,7 +667,7 @@ Protocol-specific options are configured in the connection dialog's protocol tab
 | Protocol | Options |
 |----------|---------|
 | SSH | Auth method (password, publickey, keyboard-interactive, agent, security-key/FIDO2), key source (default/file/agent), PKCS#11 provider (hardware token/smart card), proxy jump (Jump Host), ProxyJump, IdentitiesOnly, ControlMaster, agent forwarding, Waypipe (Wayland forwarding), X11 forwarding, compression, startup command, verbose mode, backspace/delete key behavior, custom SSH options, port forwarding (local/remote/dynamic) |
-| RDP | Client mode (embedded/external), external window sizing (fit to screen/fullscreen/custom resolution/all monitors), performance mode (quality/balanced/speed), resolution, color depth, display scale override, audio redirection, RDP gateway (host, port, username), keyboard layout, disable NLA, clipboard sharing, shared folders, mouse jiggler (prevent idle disconnect, configurable interval 10–600s), autotype (send text as keystrokes, configurable inter-character and initial delay), custom FreeRDP arguments |
+| RDP | Client mode (embedded/external), FreeRDP client selection (auto/specific binary), external window sizing (fit to screen/fullscreen/custom resolution/all monitors), dynamic resolution and smart sizing for legacy servers, performance mode (quality/balanced/speed), resolution, color depth, display scale override, audio redirection, RDP gateway (host, port, username), keyboard layout, disable NLA, clipboard sharing, shared folders, mouse jiggler (prevent idle disconnect, configurable interval 10–600s), autotype (send text as keystrokes, configurable inter-character and initial delay), custom FreeRDP arguments |
 | VNC | Client mode (embedded/external), performance mode (quality/balanced/speed), encoding (Auto/Tight/ZRLE/Hextile/Raw/CopyRect), compression level, quality level, display scale override, view-only mode, scaling, clipboard sharing, custom arguments |
 | SPICE | TLS encryption, CA certificate (with inline validation), skip certificate verification, USB redirection, clipboard sharing, image compression (Auto/Off/GLZ/LZ/QUIC), proxy URL, shared folders |
 | MOSH | Predict mode (Adaptive/Always/Never), SSH port, UDP port range, server binary path, backspace/delete key behavior, custom arguments |
@@ -1092,6 +1092,45 @@ Before 0.20.9 there was no such setting. A separate window was sized from a fixe
 
 From the CLI: `--rdp-display-mode fit|fullscreen|custom|multimon` and `--rdp-resolution WIDTHxHEIGHT`.
 
+#### Resizing on Legacy Servers — Dynamic Resolution and Smart Sizing
+
+*New in 0.22.5.* Two Display-group switches control how an **external** FreeRDP
+session reacts to the window being resized. They do nothing for the embedded
+IronRDP viewer, which renegotiates its size over the Display Control Channel on
+every resize.
+
+- **Dynamic resolution** *(on by default)* asks the server to change the desktop
+  resolution to match the window (`/dynamic-resolution`). This needs MS-RDPEDISP,
+  which modern Windows supports but a legacy server (e.g. Windows 2008 R2) does
+  not. On such a server the session stays at its fixed resolution and, on a HiDPI
+  display, ends up small and hard to read.
+- **Smart sizing** *(off by default)* scales the remote framebuffer to fit the
+  window (`+smart-sizing`) instead of changing the server's resolution, so a
+  fixed-resolution session from a legacy server can be resized. The two are
+  mutually exclusive in FreeRDP; when both are on, smart sizing wins and dynamic
+  resolution is not sent.
+
+For a legacy server that opens too small on a HiDPI display, turn Dynamic
+resolution off and Smart sizing on. From the CLI: `--rdp-no-dynamic-resolution`
+and `--rdp-smart-sizing` on `add`; `--rdp-dynamic-resolution BOOL` and
+`--rdp-smart-sizing BOOL` on `update`.
+
+#### Choosing the FreeRDP Client
+
+*New in 0.22.5.* By default RustConn auto-detects the external FreeRDP client,
+preferring the actively maintained SDL3 client (`sdl-freerdp3`) over the
+deprecated `wlfreerdp` variant that FreeRDP upstream no longer develops. The
+**FreeRDP client** row in the Display group lets a connection pin a specific
+client instead: **Automatic** keeps auto-detection, and the list below it shows
+every FreeRDP client installed on the system (`sdl-freerdp3`, `xfreerdp3`,
+`wlfreerdp3`, and so on).
+
+A pinned client that is later uninstalled falls back to auto-detection with a
+warning in the log rather than failing the connection. A RemoteApp (RAIL) session
+always uses an X11 client regardless of this setting, because the `wl*`/`sdl*`
+clients cannot host individual application windows. From the CLI:
+`--rdp-freerdp-client NAME` (pass an empty string on `update` to clear it).
+
 #### Server Certificate Changes
 
 RDP servers almost always present a self-signed certificate. Like SSH's
@@ -1359,9 +1398,24 @@ Create the `freerdp` directory first if it does not exist, make sure the JSON is
 
 ### VNC
 
-VNC connections support embedded (vnc-rs) or external (TigerVNC) client modes. Configure encoding (Auto/Tight/ZRLE/Hextile/Raw/CopyRect), compression level, quality level, display scale override, view-only mode, scaling, and clipboard sharing in the VNC protocol tab.
+VNC connections support embedded (vnc-rs) or external (TigerVNC) client modes. Configure the external VNC viewer, encoding (Auto/Tight/ZRLE/Hextile/Raw/CopyRect), compression level, quality level, display scale override, view-only mode, scaling, and clipboard sharing in the VNC protocol tab.
 
 An embedded VNC session carries the same floating toolbar as RDP — Copy, Paste and Ctrl+Alt+Del behind an arrow indicator at the top centre — with the same **Session Toolbar** switch in the Features section to remove it entirely. See [Session Toolbar](#session-toolbar) under RDP for how the reveal works and what becomes unreachable when it is off.
+
+#### Choosing the VNC Viewer
+
+*New in 0.22.5.* When a VNC session opens in an external viewer, RustConn
+auto-detects one in order of preference: `vncviewer` (TigerVNC/TightVNC),
+`tigervnc`, `gvncviewer`, `xvnc4viewer`, `vinagre`, `remmina`, `krdc`. The
+**VNC viewer** row in the Display group lets a connection pin a specific viewer
+instead: **Automatic** keeps auto-detection, and the list below it shows every
+VNC viewer installed on the system. This matters because the viewers differ in
+capability — TigerVNC's `vncviewer` accepts the encoding, quality, compression
+and VeNCrypt options RustConn passes, while a lighter viewer ignores them.
+
+A pinned viewer that is later uninstalled falls back to auto-detection with a
+warning in the log rather than failing the connection. From the CLI:
+`--vnc-viewer NAME` (pass an empty string on `update` to clear it).
 
 ### SPICE
 

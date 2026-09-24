@@ -1272,7 +1272,9 @@ fn start_vnc_connection_internal(
     // viewer and register it so the sidebar surfaces it without a dead tab
     // (R1.1). The password is handled by the viewer, never on the command line.
     if conn.uses_external_viewer() {
-        let Some(viewer) = crate::session::VncSessionWidget::detect_vnc_viewer() else {
+        let Some(viewer) =
+            rustconn_core::protocol::resolve_vnc_viewer(vnc_config.vnc_viewer_override.as_deref())
+        else {
             tracing::error!(connection = %conn_name, "No external VNC viewer installed");
             crate::toast::show_error_toast_on_active_window(&i18n(
                 "No VNC viewer found. Install TigerVNC or Remmina.",

@@ -99,6 +99,7 @@ impl ConnectionDialog {
         rdp_gateway_username_entry: &Entry,
         rdp_disable_nla_check: &adw::SwitchRow,
         rdp_security_layer_dropdown: &DropDown,
+        rdp_freerdp_client_dropdown: &DropDown,
         rdp_tls_security_level_spin: &SpinButton,
         rdp_ignore_certificate_check: &adw::SwitchRow,
         rdp_clipboard_check: &adw::SwitchRow,
@@ -108,11 +109,14 @@ impl ConnectionDialog {
         rdp_jiggler_interval_spin: &SpinButton,
         rdp_autotype_delay_spin: &SpinButton,
         rdp_autotype_initial_delay_spin: &SpinButton,
+        rdp_dynamic_resolution_check: &adw::SwitchRow,
+        rdp_smart_sizing_check: &adw::SwitchRow,
         rdp_reconnect_on_resize_check: &adw::SwitchRow,
         rdp_mptcp_check: &adw::SwitchRow,
         rdp_fido2_check: &adw::SwitchRow,
         rdp_jump_host_dropdown: &DropDown,
         rdp_connections_data: &Rc<RefCell<Vec<(Option<Uuid>, String)>>>,
+        rdp_freerdp_clients_data: &Rc<RefCell<Vec<String>>>,
         rdp_shared_folders: &Rc<RefCell<Vec<SharedFolder>>>,
         rdp_custom_args_entry: &Entry,
         rdp_keyboard_layout_dropdown: &DropDown,
@@ -121,6 +125,7 @@ impl ConnectionDialog {
         rdp_remote_app_name_entry: &Entry,
         rdp_graphics_mode_dropdown: &DropDown,
         vnc_client_mode_dropdown: &DropDown,
+        vnc_viewer_dropdown: &DropDown,
         vnc_performance_mode_dropdown: &DropDown,
         vnc_encoding_dropdown: &DropDown,
         vnc_compression_spin: &SpinButton,
@@ -136,6 +141,7 @@ impl ConnectionDialog {
         vnc_accept_certificate_check: &adw::SwitchRow,
         vnc_mptcp_check: &adw::SwitchRow,
         vnc_connections_data: &Rc<RefCell<Vec<(Option<Uuid>, String)>>>,
+        vnc_viewers_data: &Rc<RefCell<Vec<String>>>,
         spice_tls_check: &adw::SwitchRow,
         spice_ca_cert_entry: &Entry,
         spice_skip_verify_check: &adw::SwitchRow,
@@ -316,6 +322,7 @@ impl ConnectionDialog {
         let rdp_gateway_username_entry = rdp_gateway_username_entry.clone();
         let rdp_disable_nla_check = rdp_disable_nla_check.clone();
         let rdp_security_layer_dropdown = rdp_security_layer_dropdown.clone();
+        let rdp_freerdp_client_dropdown = rdp_freerdp_client_dropdown.clone();
         let rdp_tls_security_level_spin = rdp_tls_security_level_spin.clone();
         let rdp_ignore_certificate_check = rdp_ignore_certificate_check.clone();
         let rdp_clipboard_check = rdp_clipboard_check.clone();
@@ -325,11 +332,14 @@ impl ConnectionDialog {
         let rdp_jiggler_interval_spin = rdp_jiggler_interval_spin.clone();
         let rdp_autotype_delay_spin = rdp_autotype_delay_spin.clone();
         let rdp_autotype_initial_delay_spin = rdp_autotype_initial_delay_spin.clone();
+        let rdp_dynamic_resolution_check = rdp_dynamic_resolution_check.clone();
+        let rdp_smart_sizing_check = rdp_smart_sizing_check.clone();
         let rdp_reconnect_on_resize_check = rdp_reconnect_on_resize_check.clone();
         let rdp_mptcp_check = rdp_mptcp_check.clone();
         let rdp_fido2_check = rdp_fido2_check.clone();
         let rdp_jump_host_dropdown = rdp_jump_host_dropdown.clone();
         let rdp_connections_data = rdp_connections_data.clone();
+        let rdp_freerdp_clients_data = rdp_freerdp_clients_data.clone();
         let rdp_shared_folders = rdp_shared_folders.clone();
         let rdp_custom_args_entry = rdp_custom_args_entry.clone();
         let rdp_keyboard_layout_dropdown = rdp_keyboard_layout_dropdown.clone();
@@ -339,6 +349,7 @@ impl ConnectionDialog {
         let rdp_performance_mode_dropdown = rdp_performance_mode_dropdown.clone();
         let rdp_graphics_mode_dropdown = rdp_graphics_mode_dropdown.clone();
         let vnc_client_mode_dropdown = vnc_client_mode_dropdown.clone();
+        let vnc_viewer_dropdown = vnc_viewer_dropdown.clone();
         let vnc_encoding_dropdown = vnc_encoding_dropdown.clone();
         let vnc_compression_spin = vnc_compression_spin.clone();
         let vnc_quality_spin = vnc_quality_spin.clone();
@@ -354,6 +365,7 @@ impl ConnectionDialog {
         let vnc_accept_certificate_check = vnc_accept_certificate_check.clone();
         let vnc_mptcp_check = vnc_mptcp_check.clone();
         let vnc_connections_data = vnc_connections_data.clone();
+        let vnc_viewers_data = vnc_viewers_data.clone();
         let spice_tls_check = spice_tls_check.clone();
         let spice_ca_cert_entry = spice_ca_cert_entry.clone();
         let spice_skip_verify_check = spice_skip_verify_check.clone();
@@ -548,6 +560,7 @@ impl ConnectionDialog {
                 rdp_gateway_username_entry: &rdp_gateway_username_entry,
                 rdp_disable_nla_check: &rdp_disable_nla_check,
                 rdp_security_layer_dropdown: &rdp_security_layer_dropdown,
+                rdp_freerdp_client_dropdown: &rdp_freerdp_client_dropdown,
                 rdp_tls_security_level_spin: &rdp_tls_security_level_spin,
                 rdp_ignore_certificate_check: &rdp_ignore_certificate_check,
                 rdp_clipboard_check: &rdp_clipboard_check,
@@ -557,11 +570,14 @@ impl ConnectionDialog {
                 rdp_jiggler_interval_spin: &rdp_jiggler_interval_spin,
                 rdp_autotype_delay_spin: &rdp_autotype_delay_spin,
                 rdp_autotype_initial_delay_spin: &rdp_autotype_initial_delay_spin,
+                rdp_dynamic_resolution_check: &rdp_dynamic_resolution_check,
+                rdp_smart_sizing_check: &rdp_smart_sizing_check,
                 rdp_reconnect_on_resize_check: &rdp_reconnect_on_resize_check,
                 rdp_mptcp_check: &rdp_mptcp_check,
                 rdp_fido2_check: &rdp_fido2_check,
                 rdp_jump_host_dropdown: &rdp_jump_host_dropdown,
                 rdp_connections_data: &rdp_connections_data,
+                rdp_freerdp_clients_data: &rdp_freerdp_clients_data,
                 rdp_shared_folders: &rdp_shared_folders,
                 rdp_custom_args_entry: &rdp_custom_args_entry,
                 rdp_keyboard_layout_dropdown: &rdp_keyboard_layout_dropdown,
@@ -570,6 +586,7 @@ impl ConnectionDialog {
                 rdp_remote_app_name_entry: &rdp_remote_app_name_entry,
                 rdp_graphics_mode_dropdown: &rdp_graphics_mode_dropdown,
                 vnc_client_mode_dropdown: &vnc_client_mode_dropdown,
+                vnc_viewer_dropdown: &vnc_viewer_dropdown,
                 vnc_encoding_dropdown: &vnc_encoding_dropdown,
                 vnc_compression_spin: &vnc_compression_spin,
                 vnc_quality_spin: &vnc_quality_spin,
@@ -584,6 +601,7 @@ impl ConnectionDialog {
                 vnc_accept_certificate_check: &vnc_accept_certificate_check,
                 vnc_mptcp_check: &vnc_mptcp_check,
                 vnc_connections_data: &vnc_connections_data,
+                vnc_viewers_data: &vnc_viewers_data,
                 spice_tls_check: &spice_tls_check,
                 spice_ca_cert_entry: &spice_ca_cert_entry,
                 spice_skip_verify_check: &spice_skip_verify_check,

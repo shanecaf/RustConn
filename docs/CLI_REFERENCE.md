@@ -1,6 +1,6 @@
 # RustConn CLI Reference
 
-**Version 0.22.4** | Command-line interface for RustConn connection management
+**Version 0.22.5** | Command-line interface for RustConn connection management
 
 The `rustconn-cli` binary provides headless connection management from the terminal. It shares the same configuration files as the GUI (`~/.config/rustconn/`), so changes made in either tool are immediately visible to the other. The default build is the minimal headless path; desktop/client-launch and secret-management commands are enabled with optional features.
 
@@ -197,6 +197,7 @@ Options:
 | `--vnc-no-clipboard` | — | Disable VNC clipboard sharing |
 | `--vnc-toolbar` | — | Floating session toolbar in the embedded viewer: `true` (default) or `false`; bare `--vnc-toolbar` = `false`. Off removes the toolbar, its reveal arrow and the split panel's corner buttons |
 | `--vnc-custom-arg` | — | Custom VNC client argument (repeatable) |
+| `--vnc-viewer` | — | Explicit VNC viewer binary for the external client, e.g. `vncviewer`, `remmina`, `gvncviewer` (VNC only). Default: auto-detect. An unavailable choice falls back to auto-detection; pass an empty string on `update` to clear it |
 | `--spice-tls` | — | Enable SPICE TLS encryption |
 | `--spice-ca-cert` | — | SPICE CA certificate path for TLS verification |
 | `--spice-skip-cert-verify` | — | Skip SPICE certificate verification (insecure) |
@@ -217,6 +218,10 @@ Options:
 | `--serial-custom-arg` | — | Custom serial client argument (repeatable) |
 | `--rdp-display-mode` | — | How an external RDP window is sized: `fit` (default, fills the monitor), `fullscreen`, `custom` (needs `--rdp-resolution`), `multimon` (span all monitors). Also governs the window an embedded session falls back to |
 | `--rdp-resolution` | — | Fixed RDP resolution as `WIDTHxHEIGHT`, e.g. `2560x1440`. Implies `--rdp-display-mode custom` |
+| `--rdp-no-dynamic-resolution` | — | Disable dynamic desktop resizing on the external client (RDP only, `add`). For legacy servers (e.g. Windows 2008 R2) that do not support MS-RDPEDISP |
+| `--rdp-dynamic-resolution` | — | Dynamic desktop resizing on the external client: `true` (default) or `false`; bare flag = `true` (RDP only, `update`) |
+| `--rdp-smart-sizing` | — | Scale the remote screen to the window on the external client (RDP only). Mutually exclusive with dynamic resolution; when both are set, smart sizing wins. On `update` takes an optional `true`/`false` |
+| `--rdp-freerdp-client` | — | Explicit FreeRDP client binary for the external client, e.g. `sdl-freerdp3`, `xfreerdp3` (RDP only). Default: auto-detect. An unavailable choice falls back to auto-detection; pass an empty string on `update` to clear it |
 | `--browser-mode` | — | Web browser mode: `embedded` (default on Linux), `system`, `custom` |
 | `--javascript` | — | Enable/disable JavaScript: `true` (default) or `false`; bare `--javascript` = `false` |
 | `--user-agent` | — | Custom user agent string (max 512 Unicode characters) |

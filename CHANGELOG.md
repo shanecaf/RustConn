@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.22.5] - 2026-09-24
+
+### Added
+
+- **The external VNC viewer can now be chosen per connection (issue #340)** — the same idea as the FreeRDP client selector, extended to VNC, the other protocol where RustConn auto-detects among several external clients. A new **VNC viewer** row in the VNC connection editor's Display group lets a connection force a specific installed viewer (`vncviewer`, `remmina`, `gvncviewer`, `xvnc4viewer`, `vinagre`, `krdc`) or keep **Automatic**. It matters because the viewers differ in capability — TigerVNC's `vncviewer` honours the encoding/quality/compression/VeNCrypt options RustConn passes, while lighter viewers ignore them. The dropdown lists only viewers present on the system; a pinned viewer that is later removed falls back to auto-detection with a log warning. Available from `rustconn-cli` (`--vnc-viewer NAME`). Stored as `vnc_viewer_override` on the VNC config; unset means auto-detect, so existing profiles are unaffected. The other protocols with an external client (SPICE, Telnet, Serial) launch a single fixed binary with no candidate list, so a selector there would offer nothing to choose — they were deliberately left unchanged.
+
+- **The external FreeRDP client can now be chosen per connection (issue #340)** — RustConn auto-detects the external FreeRDP client, and since it prefers the actively maintained SDL3 client over the deprecated wlfreerdp there was previously no way to pin a different one. A new **FreeRDP client** row in the RDP connection editor's Display group lets a connection force a specific installed client (`sdl-freerdp3`, `xfreerdp3`, `wlfreerdp3`, …) or keep **Automatic**. The dropdown only lists clients actually present on the system (probing the local `PATH` and, under Flatpak, the host); a pinned client that is later removed falls back to auto-detection with a log warning rather than failing the connection, and a RemoteApp session still uses an X11 client since the `wl*`/`sdl*` clients cannot host RAIL. Available from `rustconn-cli` too (`--rdp-freerdp-client NAME`). Stored as `freerdp_client_override` on the RDP config; unset means auto-detect, so existing profiles are unaffected.
+
+- **Dynamic resolution and smart sizing are now configurable for the external RDP client (issue #341)** — the external FreeRDP client was always launched with `/dynamic-resolution`, with no way to turn it off, and there was no supported way to enable smart sizing. On a legacy server that cannot do dynamic resolution (e.g. Windows 2008 R2), a fixed-resolution session stayed unreadably small on a HiDPI display and the window would not resize. Two connection options now cover this: **Dynamic resolution** (on by default, matching the previous behaviour) emits `/dynamic-resolution`; **Smart sizing** scales the remote framebuffer to the window and emits the flag form `+smart-sizing`. The two are mutually exclusive in FreeRDP, so smart sizing wins and suppresses dynamic resolution when both are set — previously a hand-written `/smart-sizing` custom argument was rejected with a parse error precisely because it collided with the always-present `/dynamic-resolution` and was passed in the value form FreeRDP 3.x does not accept. Both options are exposed in the RDP connection editor and in `rustconn-cli` (`--rdp-no-dynamic-resolution` / `--rdp-smart-sizing` on `add`, `--rdp-dynamic-resolution` / `--rdp-smart-sizing` on `update`). They apply only to the external client; the embedded viewer sizes itself from its widget.
+
+### Fixed
+
+- **A TLS failure on a legacy RDP server suggested a setting that was already on (follow-up to issue #339)** — when the external FreeRDP client failed the TLS handshake, the error always read "TLS certificate verification failed. Enable 'Ignore Certificate' in connection settings." — even when that setting was already enabled, which is misleading and unactionable. A legacy server (e.g. Windows 2008 R2) that only speaks the old RDP security layer surfaces the same TLS error, and switching the security layer to RDP is the real fix there. The classifier now knows the connection's current certificate setting: with the certificate already ignored it points at the legacy RDP security layer instead of telling the user to enable a toggle that is already on, and otherwise it names both the certificate toggle (by its real label, "Accept Certificate") and the RDP-security-layer option.
+
+### Changed
+
+- **The external RDP client now prefers the SDL3 FreeRDP client over the deprecated wlfreerdp (issue #340)** — FreeRDP upstream has deprecated the `wlfreerdp`/`wlfreerdp3` client in favour of its SDL3 client, and RustConn's launcher already auto-detected `sdl-freerdp3` ahead of `wlfreerdp3`. The informational client-detection helper (used to report which FreeRDP is installed) still listed `wlfreerdp3` first, so the reported client could differ from the one actually launched; its order now matches the launcher (`sdl-freerdp3` > `sdl-freerdp` > `wlfreerdp3` > `xfreerdp3`). The embedded viewer still uses `wlfreerdp` deliberately, since only a Wayland-native client embeds as a subsurface.
+
+### Dependencies
+
+- **Updated**: thiserror 2.0.20 → 2.0.21, zerocopy 0.8.57 → 0.8.58.
+
 ## [0.22.4] - 2026-09-23
 
 ### Fixed

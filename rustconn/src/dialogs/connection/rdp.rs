@@ -29,7 +29,7 @@ use crate::i18n::i18n;
 
 /// Creates the RDP options panel with all protocol-specific widgets.
 ///
-/// Returns a 36-element tuple matching the fields expected by `ConnectionDialog`.
+/// Returns a 37-element tuple matching the fields expected by `ConnectionDialog`.
 pub(super) fn create_rdp_options() -> (
     GtkBox,
     DropDown,
@@ -45,6 +45,7 @@ pub(super) fn create_rdp_options() -> (
     Entry,
     adw::SwitchRow,
     DropDown,
+    DropDown,
     SpinButton,
     adw::SwitchRow,
     adw::SwitchRow,
@@ -54,6 +55,8 @@ pub(super) fn create_rdp_options() -> (
     SpinButton,
     SpinButton,
     SpinButton,
+    adw::SwitchRow,
+    adw::SwitchRow,
     adw::SwitchRow,
     adw::SwitchRow,
     adw::SwitchRow,
@@ -404,6 +407,26 @@ pub(super) fn create_rdp_options() -> (
     autotype_initial_row.add_suffix(&rdp_autotype_initial_delay_spin);
     features_group.add(&autotype_initial_row);
 
+    // Dynamic resolution — request dynamic desktop resizing (external client)
+    let rdp_dynamic_resolution_check = adw::SwitchRow::builder()
+        .title(i18n("Dynamic resolution"))
+        .subtitle(i18n(
+            "Resize the remote desktop to match the window (External client). Turn off for legacy servers",
+        ))
+        .active(true)
+        .build();
+    features_group.add(&rdp_dynamic_resolution_check);
+
+    // Smart sizing — scale the remote framebuffer to the window
+    let rdp_smart_sizing_check = adw::SwitchRow::builder()
+        .title(i18n("Smart sizing"))
+        .subtitle(i18n(
+            "Scale the remote screen to fit the window (External client). For legacy servers on HiDPI displays. Overrides dynamic resolution",
+        ))
+        .active(false)
+        .build();
+    features_group.add(&rdp_smart_sizing_check);
+
     // Reconnect on Resize — force full reconnect instead of Display Control
     let rdp_reconnect_on_resize_check = adw::SwitchRow::builder()
         .title(i18n("Reconnect on Resize"))
@@ -463,6 +486,27 @@ pub(super) fn create_rdp_options() -> (
         .build();
     security_layer_row.add_suffix(&security_layer_dropdown);
     features_group.add(&security_layer_row);
+
+    // FreeRDP client selection (issue #340). "Automatic" plus every installed
+    // client; only the external client reads this.
+    let freerdp_clients = crate::embedded_rdp::detect::available_freerdp_clients();
+    let mut freerdp_client_labels: Vec<String> = vec![i18n("Automatic")];
+    freerdp_client_labels.extend(freerdp_clients.iter().cloned());
+    let freerdp_client_strs: Vec<&str> = freerdp_client_labels.iter().map(String::as_str).collect();
+    let freerdp_client_list = gtk4::StringList::new(&freerdp_client_strs);
+    let freerdp_client_dropdown = DropDown::new(Some(freerdp_client_list), gtk4::Expression::NONE);
+    freerdp_client_dropdown.set_selected(0);
+    freerdp_client_dropdown.set_valign(gtk4::Align::Center);
+    freerdp_client_dropdown
+        .update_property(&[gtk4::accessible::Property::Label(&i18n("FreeRDP client"))]);
+    let freerdp_client_row = adw::ActionRow::builder()
+        .title(i18n("FreeRDP client"))
+        .subtitle(i18n(
+            "External client binary. Automatic picks the best available",
+        ))
+        .build();
+    freerdp_client_row.add_suffix(&freerdp_client_dropdown);
+    features_group.add(&freerdp_client_row);
 
     // TLS Security Level spin (0–5, default hidden)
     let tls_level_adj = gtk4::Adjustment::new(2.0, 0.0, 5.0, 1.0, 1.0, 0.0);
@@ -799,6 +843,7 @@ pub(super) fn create_rdp_options() -> (
         gateway_username_entry,
         disable_nla_check,
         security_layer_dropdown,
+        freerdp_client_dropdown,
         tls_security_level_spin,
         ignore_certificate_check,
         clipboard_check,
@@ -808,6 +853,8 @@ pub(super) fn create_rdp_options() -> (
         rdp_jiggler_interval_spin,
         rdp_autotype_delay_spin,
         rdp_autotype_initial_delay_spin,
+        rdp_dynamic_resolution_check,
+        rdp_smart_sizing_check,
         rdp_reconnect_on_resize_check,
         rdp_mptcp_check,
         rdp_fido2_check,

@@ -139,6 +139,9 @@ pub struct VncConfig {
     pub show_local_cursor: bool,
     /// Accept untrusted TLS certificates (for VeNCrypt connections)
     pub accept_certificate: bool,
+    /// Explicit VNC viewer binary for external mode. `None` auto-detects.
+    /// An unavailable choice falls back to auto-detection (issue #340).
+    pub vnc_viewer_override: Option<String>,
     /// Enable Multipath TCP for the embedded VNC connection.
     /// Uses multiple network paths for seamless mobility and bandwidth aggregation.
     /// Requires kernel MPTCP support (Linux 5.6+). Falls back to regular TCP.
@@ -164,6 +167,7 @@ impl VncConfig {
             extra_args: Vec::new(),
             show_local_cursor: true,
             accept_certificate: false,
+            vnc_viewer_override: None,
             mptcp: false,
         }
     }

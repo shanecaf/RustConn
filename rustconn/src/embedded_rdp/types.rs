@@ -152,6 +152,9 @@ pub struct RdpConfig {
     pub polling_interval_ms: u32,
     /// Keyboard layout override (Windows KLID). None = auto-detect.
     pub keyboard_layout: Option<u32>,
+    /// Explicit FreeRDP client binary for external mode. `None` auto-detects.
+    /// An unavailable choice falls back to auto-detection (issue #340).
+    pub freerdp_client_override: Option<String>,
     /// Display scale override for embedded mode
     pub scale_override: rustconn_core::models::ScaleOverride,
     /// Show local mouse cursor over embedded viewer (disable to avoid double cursor)
@@ -192,6 +195,13 @@ pub struct RdpConfig {
     /// Force full reconnect on resize instead of Display Control Channel.
     /// Useful for legacy servers that don't support MS-RDPEDISP.
     pub reconnect_on_resize: bool,
+    /// Request dynamic desktop resizing on the external client
+    /// (`/dynamic-resolution`). Default true; turn off for legacy servers.
+    /// Mutually exclusive with [`Self::smart_sizing`] (issue #341).
+    pub dynamic_resolution: bool,
+    /// Scale the remote framebuffer to the external window (`+smart-sizing`).
+    /// Mutually exclusive with [`Self::dynamic_resolution`] (issue #341).
+    pub smart_sizing: bool,
     /// RemoteApp program path or alias (forces FreeRDP fallback).
     pub remote_app_program: Option<String>,
     /// RemoteApp command-line arguments.
@@ -246,6 +256,7 @@ impl Default for RdpConfig {
             remember_window_position: true,
             polling_interval_ms: 16, // ~60 FPS
             keyboard_layout: None,
+            freerdp_client_override: None,
             scale_override: rustconn_core::models::ScaleOverride::default(),
             show_local_cursor: true,
             gateway_hostname: None,
@@ -261,6 +272,8 @@ impl Default for RdpConfig {
             autotype_initial_delay_ms: 0,
             script_paste_via_clipboard: true,
             reconnect_on_resize: false,
+            dynamic_resolution: true,
+            smart_sizing: false,
             remote_app_program: None,
             remote_app_args: None,
             remote_app_name: None,

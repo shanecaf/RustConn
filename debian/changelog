@@ -1,3 +1,20 @@
+rustconn (0.22.5-1) unstable; urgency=medium
+
+  * Version bump to 0.22.5
+  * Added: the external VNC viewer can now be chosen per connection (issue #340)
+  * Added: the external FreeRDP client can now be chosen per connection
+    (issue #340)
+  * Added: dynamic resolution and smart sizing are now configurable for the
+    external RDP client, for legacy servers on HiDPI displays (issue #341)
+  * Fixed: a TLS failure on a legacy RDP server no longer suggests enabling a
+    certificate setting that is already on; it points at the RDP security layer
+    instead (issue #339)
+  * Changed: the external RDP client-detection helper now prefers the SDL3
+    client over the deprecated wlfreerdp, matching the launcher (issue #340)
+  * Dependencies: thiserror 2.0.21, zerocopy 0.8.58
+
+ -- Anton Isaiev <totoshko88@gmail.com>  Thu, 24 Sep 2026 18:10:21 +0300
+
 rustconn (0.22.4-1) unstable; urgency=medium
 
   * Version bump to 0.22.4

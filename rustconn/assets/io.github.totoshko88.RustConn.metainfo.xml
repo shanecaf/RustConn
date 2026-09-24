@@ -140,6 +140,18 @@
     <control>touch</control>
   </supports>
   <releases>
+    <release version="0.22.5" date="2026-09-24">
+      <description>
+        <p>Version 0.22.5 - external RDP/VNC client selection:</p>
+        <ul>
+          <li>Added: the external VNC viewer can now be chosen per connection — Automatic or a specific installed viewer (issue #340)</li>
+          <li>Added: the external FreeRDP client can now be chosen per connection — Automatic or a specific installed client (issue #340)</li>
+          <li>Added: dynamic resolution and smart sizing are now configurable for the external RDP client, for legacy servers on HiDPI displays (issue #341)</li>
+          <li>Fixed: a TLS failure on a legacy RDP server no longer suggests enabling a certificate setting that is already on; it points at the RDP security layer instead (issue #339)</li>
+          <li>Changed: the external RDP client-detection helper now prefers the SDL3 client over the deprecated wlfreerdp, matching the launcher (issue #340)</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.22.4" date="2026-09-23">
       <description>
         <p>Version 0.22.4 - connection and packaging fixes:</p>

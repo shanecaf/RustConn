@@ -1300,6 +1300,9 @@ impl ConnectionDialog {
             .set_value(f64::from(rdp.autotype_delay_ms));
         self.rdp_autotype_initial_delay_spin
             .set_value(f64::from(rdp.autotype_initial_delay_ms));
+        self.rdp_dynamic_resolution_check
+            .set_active(rdp.dynamic_resolution);
+        self.rdp_smart_sizing_check.set_active(rdp.smart_sizing);
         self.rdp_reconnect_on_resize_check
             .set_active(rdp.reconnect_on_resize);
         self.rdp_mptcp_check.set_active(rdp.mptcp);
@@ -1307,6 +1310,20 @@ impl ConnectionDialog {
         self.rdp_disable_nla_check.set_active(rdp.disable_nla);
         self.rdp_security_layer_dropdown
             .set_selected(rdp.security_layer.index());
+        // Select the stored FreeRDP client, or "Automatic" (0) if unset or the
+        // stored client is no longer available (issue #340).
+        let freerdp_idx = rdp
+            .freerdp_client_override
+            .as_deref()
+            .and_then(|name| {
+                self.rdp_freerdp_clients_data
+                    .borrow()
+                    .iter()
+                    .position(|c| c == name)
+                    .map(|i| (i + 1) as u32)
+            })
+            .unwrap_or(0);
+        self.rdp_freerdp_client_dropdown.set_selected(freerdp_idx);
         if let Some(level) = rdp.tls_security_level {
             self.rdp_tls_security_level_spin.set_value(f64::from(level));
         } else {
@@ -1429,6 +1446,21 @@ impl ConnectionDialog {
             .set_active(!vnc.hide_floating_toolbar);
         self.vnc_scale_override_dropdown
             .set_selected(vnc.scale_override.index());
+
+        // Select the stored VNC viewer, or "Automatic" (0) if unset or the stored
+        // viewer is no longer available (issue #340).
+        let vnc_viewer_idx = vnc
+            .vnc_viewer_override
+            .as_deref()
+            .and_then(|name| {
+                self.vnc_viewers_data
+                    .borrow()
+                    .iter()
+                    .position(|v| v == name)
+                    .map(|i| (i + 1) as u32)
+            })
+            .unwrap_or(0);
+        self.vnc_viewer_dropdown.set_selected(vnc_viewer_idx);
 
         if !vnc.custom_args.is_empty() {
             self.vnc_custom_args_entry

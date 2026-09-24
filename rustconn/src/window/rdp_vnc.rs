@@ -587,6 +587,15 @@ fn start_embedded_rdp_session(
     // Pass reconnect-on-resize preference (legacy server compatibility)
     embedded_config.reconnect_on_resize = rdp_config.reconnect_on_resize;
 
+    // Pass external-window sizing preferences (issue #341). Only the external
+    // FreeRDP client reads these; smart-sizing wins over dynamic-resolution.
+    embedded_config.dynamic_resolution = rdp_config.dynamic_resolution;
+    embedded_config.smart_sizing = rdp_config.smart_sizing;
+
+    // Pass the explicit FreeRDP client choice (issue #340). Only the external
+    // launch path reads it; auto-detection covers None.
+    embedded_config.freerdp_client_override = rdp_config.freerdp_client_override.clone();
+
     // Pass RemoteApp configuration (forces FreeRDP fallback — RAIL not supported by IronRDP)
     embedded_config.remote_app_program = rdp_config.remote_app_program.clone();
     embedded_config.remote_app_args = rdp_config.remote_app_args.clone();
@@ -952,6 +961,8 @@ fn start_external_rdp_session(
         security_layer: rdp_config.security_layer,
         tls_security_level: rdp_config.tls_security_level,
         disable_nla: rdp_config.disable_nla,
+        dynamic_resolution: rdp_config.dynamic_resolution,
+        smart_sizing: rdp_config.smart_sizing,
         extra_args: rdp_config.custom_args.clone(),
         // Issue #209: a tabless external session has no stored geometry to
         // restore, so the client places its own window.
@@ -959,6 +970,7 @@ fn start_external_rdp_session(
         remember_window_position: false,
         ignore_certificate: rdp_config.ignore_certificate,
         fido2_enabled: rdp_config.fido2_enabled,
+        client_override: rdp_config.freerdp_client_override.clone(),
     };
 
     // A tunnelled session's SshTunnel must outlive every launch attempt: a
@@ -1486,7 +1498,9 @@ fn start_vnc_session_internal(
     if let Some(ref conn_hist) = conn_for_history
         && conn_hist.uses_external_viewer()
     {
-        let Some(viewer) = crate::session::VncSessionWidget::detect_vnc_viewer() else {
+        let Some(viewer) =
+            rustconn_core::protocol::resolve_vnc_viewer(vnc_config.vnc_viewer_override.as_deref())
+        else {
             tracing::error!(connection = %conn_name, "No external VNC viewer installed");
             crate::toast::show_error_toast_on_active_window(&crate::i18n::i18n(
                 "No VNC viewer found. Install TigerVNC or Remmina.",

@@ -334,6 +334,14 @@ pub enum Commands {
         #[arg(long)]
         disable_nla: bool,
 
+        /// Disable dynamic resolution for external RDP (for legacy servers)
+        #[arg(long)]
+        rdp_no_dynamic_resolution: bool,
+
+        /// Enable smart sizing for external RDP (scale screen to window; for legacy servers on HiDPI)
+        #[arg(long)]
+        rdp_smart_sizing: bool,
+
         /// RDP keyboard layout override (Windows KLID, e.g. 0x00000409 for US)
         #[arg(long, value_name = "KLID")]
         keyboard_layout: Option<u32>,
@@ -394,6 +402,11 @@ pub enum Commands {
         /// Custom VNC client argument (repeatable)
         #[arg(long, value_name = "ARG")]
         vnc_custom_arg: Vec<String>,
+
+        /// Explicit VNC viewer binary for external mode (e.g. vncviewer, remmina, gvncviewer).
+        /// Default: auto-detect. An unavailable choice falls back to auto-detection.
+        #[arg(long, value_name = "NAME")]
+        vnc_viewer: Option<String>,
 
         // --- SPICE-specific flags ---
         /// Enable SPICE TLS encryption
@@ -480,6 +493,11 @@ pub enum Commands {
         /// Implies --rdp-display-mode custom
         #[arg(long, value_name = "WxH")]
         rdp_resolution: Option<String>,
+
+        /// Explicit FreeRDP client binary for external RDP (e.g. sdl-freerdp3, xfreerdp3).
+        /// Default: auto-detect. An unavailable choice falls back to auto-detection.
+        #[arg(long, value_name = "NAME")]
+        rdp_freerdp_client: Option<String>,
 
         // --- Web-specific flags ---
         /// Web browser mode: embedded (default on Linux), system, or custom
@@ -861,6 +879,14 @@ pub enum Commands {
         #[arg(long)]
         disable_nla: bool,
 
+        /// Dynamic resolution for external RDP. Bare flag enables; `false` disables.
+        #[arg(long, value_name = "BOOL", num_args = 0..=1, default_missing_value = "true")]
+        rdp_dynamic_resolution: Option<bool>,
+
+        /// Smart sizing for external RDP (scale screen to window). Bare flag enables; `false` disables.
+        #[arg(long, value_name = "BOOL", num_args = 0..=1, default_missing_value = "true")]
+        rdp_smart_sizing: Option<bool>,
+
         /// RDP keyboard layout override (Windows KLID, e.g. 0x00000409 for US)
         #[arg(long, value_name = "KLID")]
         keyboard_layout: Option<u32>,
@@ -921,6 +947,11 @@ pub enum Commands {
         /// Custom VNC client argument (repeatable)
         #[arg(long, value_name = "ARG")]
         vnc_custom_arg: Vec<String>,
+
+        /// Explicit VNC viewer binary for external mode (e.g. vncviewer, remmina, gvncviewer).
+        /// Default: auto-detect. An unavailable choice falls back to auto-detection.
+        #[arg(long, value_name = "NAME")]
+        vnc_viewer: Option<String>,
 
         // --- SPICE-specific flags ---
         /// Enable SPICE TLS encryption
@@ -1007,6 +1038,11 @@ pub enum Commands {
         /// Implies --rdp-display-mode custom
         #[arg(long, value_name = "WxH")]
         rdp_resolution: Option<String>,
+
+        /// Explicit FreeRDP client binary for external RDP (e.g. sdl-freerdp3, xfreerdp3).
+        /// Default: auto-detect. An unavailable choice falls back to auto-detection.
+        #[arg(long, value_name = "NAME")]
+        rdp_freerdp_client: Option<String>,
 
         // --- Web-specific flags ---
         /// Web browser mode: embedded (default on Linux), system, or custom

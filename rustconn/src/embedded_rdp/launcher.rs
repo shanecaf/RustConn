@@ -313,11 +313,13 @@ impl SafeFreeRdpLauncher {
             .as_ref()
             .is_some_and(|p| !p.is_empty());
 
-        let binary = if is_remote_app {
-            super::detect::detect_best_freerdp_for_remoteapp_with_cancel(cancellation)
-        } else {
-            super::detect::detect_best_freerdp_with_cancel(cancellation)
-        };
+        // Honour an explicit client choice, falling back to auto-detection when
+        // it is unavailable or unsuitable for RemoteApp (issue #340).
+        let binary = super::detect::resolve_freerdp_binary(
+            config.freerdp_client_override.as_deref(),
+            is_remote_app,
+            cancellation,
+        );
         Self::ensure_not_cancelled(cancellation)?;
         let binary = binary.ok_or_else(|| {
             EmbeddedRdpError::FreeRdpInit(
@@ -603,6 +605,8 @@ impl SafeFreeRdpLauncher {
             security_layer: config.security_layer,
             tls_security_level: config.tls_security_level,
             disable_nla: config.disable_nla,
+            dynamic_resolution: config.dynamic_resolution,
+            smart_sizing: config.smart_sizing,
             extra_args: config.extra_args.clone(),
             window_geometry: config.window_geometry.map(|(x, y, width, height)| {
                 rustconn_core::models::WindowGeometry::new(x, y, width, height)
@@ -610,6 +614,10 @@ impl SafeFreeRdpLauncher {
             remember_window_position: config.remember_window_position,
             ignore_certificate: config.ignore_certificate,
             fido2_enabled: config.fido2_enabled,
+            // Carried for completeness; the binary choice on this path is made
+            // by `launch_with_cancel` via `resolve_freerdp_binary`, not by the
+            // arg builder that consumes this struct.
+            client_override: config.freerdp_client_override.clone(),
         }
     }
 

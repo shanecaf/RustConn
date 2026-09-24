@@ -83,6 +83,8 @@ pub(super) struct AddParams<'a> {
     pub resolution: Option<&'a str>,
     pub color_depth: Option<u8>,
     pub disable_nla: bool,
+    pub rdp_no_dynamic_resolution: bool,
+    pub rdp_smart_sizing: bool,
     pub keyboard_layout: Option<u32>,
     pub audio_redirect: bool,
     pub audio_mode: Option<&'a str>,
@@ -99,6 +101,7 @@ pub(super) struct AddParams<'a> {
     pub vnc_no_clipboard: bool,
     pub vnc_toolbar: Option<bool>,
     pub vnc_custom_arg: &'a [String],
+    pub vnc_viewer: Option<&'a str>,
     // SPICE
     pub spice_tls: bool,
     pub spice_ca_cert: Option<&'a str>,
@@ -123,6 +126,7 @@ pub(super) struct AddParams<'a> {
     // RDP
     pub rdp_display_mode: Option<&'a str>,
     pub rdp_resolution: Option<&'a str>,
+    pub rdp_freerdp_client: Option<&'a str>,
     // Web
     pub browser_mode: Option<&'a str>,
     pub javascript: Option<bool>,
@@ -355,6 +359,9 @@ pub(super) fn cmd_add(config_path: Option<&Path>, params: AddParams<'_>) -> Resu
         || params.resolution.is_some()
         || params.color_depth.is_some()
         || params.disable_nla
+        || params.rdp_no_dynamic_resolution
+        || params.rdp_smart_sizing
+        || params.rdp_freerdp_client.is_some()
         || params.keyboard_layout.is_some()
         || params.audio_redirect
         || params.audio_mode.is_some()
@@ -384,6 +391,7 @@ pub(super) fn cmd_add(config_path: Option<&Path>, params: AddParams<'_>) -> Resu
         || params.vnc_no_clipboard
         || params.vnc_toolbar.is_some()
         || !params.vnc_custom_arg.is_empty()
+        || params.vnc_viewer.is_some()
     {
         if let rustconn_core::models::ProtocolConfig::Vnc(ref mut cfg) = connection.protocol_config
         {
@@ -1105,6 +1113,18 @@ pub(super) fn apply_rdp_fields(
         cfg.disable_nla = true;
     }
 
+    // Dynamic resolution / smart sizing (issue #341). Dynamic resolution
+    // defaults on, so only the disable flag is exposed on add.
+    if params.rdp_no_dynamic_resolution {
+        cfg.dynamic_resolution = false;
+    }
+    if params.rdp_smart_sizing {
+        cfg.smart_sizing = true;
+    }
+    if let Some(client) = params.rdp_freerdp_client {
+        cfg.freerdp_client_override = Some(client.to_string());
+    }
+
     // Keyboard layout
     if let Some(klid) = params.keyboard_layout {
         cfg.keyboard_layout = Some(klid);
@@ -1219,6 +1239,9 @@ pub(super) fn apply_vnc_fields(
     }
     for arg in params.vnc_custom_arg {
         cfg.custom_args.push(arg.clone());
+    }
+    if let Some(viewer) = params.vnc_viewer {
+        cfg.vnc_viewer_override = Some(viewer.to_string());
     }
     Ok(())
 }
