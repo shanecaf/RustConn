@@ -587,6 +587,11 @@ fn start_embedded_rdp_session(
     // Pass reconnect-on-resize preference (legacy server compatibility)
     embedded_config.reconnect_on_resize = rdp_config.reconnect_on_resize;
 
+    // Pass external-window sizing preferences (issue #341). Only the external
+    // FreeRDP client reads these; smart-sizing wins over dynamic-resolution.
+    embedded_config.dynamic_resolution = rdp_config.dynamic_resolution;
+    embedded_config.smart_sizing = rdp_config.smart_sizing;
+
     // Pass RemoteApp configuration (forces FreeRDP fallback — RAIL not supported by IronRDP)
     embedded_config.remote_app_program = rdp_config.remote_app_program.clone();
     embedded_config.remote_app_args = rdp_config.remote_app_args.clone();
@@ -952,6 +957,8 @@ fn start_external_rdp_session(
         security_layer: rdp_config.security_layer,
         tls_security_level: rdp_config.tls_security_level,
         disable_nla: rdp_config.disable_nla,
+        dynamic_resolution: rdp_config.dynamic_resolution,
+        smart_sizing: rdp_config.smart_sizing,
         extra_args: rdp_config.custom_args.clone(),
         // Issue #209: a tabless external session has no stored geometry to
         // restore, so the client places its own window.

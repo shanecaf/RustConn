@@ -83,6 +83,8 @@ pub(super) struct AddParams<'a> {
     pub resolution: Option<&'a str>,
     pub color_depth: Option<u8>,
     pub disable_nla: bool,
+    pub rdp_no_dynamic_resolution: bool,
+    pub rdp_smart_sizing: bool,
     pub keyboard_layout: Option<u32>,
     pub audio_redirect: bool,
     pub audio_mode: Option<&'a str>,
@@ -355,6 +357,8 @@ pub(super) fn cmd_add(config_path: Option<&Path>, params: AddParams<'_>) -> Resu
         || params.resolution.is_some()
         || params.color_depth.is_some()
         || params.disable_nla
+        || params.rdp_no_dynamic_resolution
+        || params.rdp_smart_sizing
         || params.keyboard_layout.is_some()
         || params.audio_redirect
         || params.audio_mode.is_some()
@@ -1103,6 +1107,15 @@ pub(super) fn apply_rdp_fields(
     // NLA
     if params.disable_nla {
         cfg.disable_nla = true;
+    }
+
+    // Dynamic resolution / smart sizing (issue #341). Dynamic resolution
+    // defaults on, so only the disable flag is exposed on add.
+    if params.rdp_no_dynamic_resolution {
+        cfg.dynamic_resolution = false;
+    }
+    if params.rdp_smart_sizing {
+        cfg.smart_sizing = true;
     }
 
     // Keyboard layout

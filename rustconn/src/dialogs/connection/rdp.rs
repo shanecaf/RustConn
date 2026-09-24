@@ -57,6 +57,8 @@ pub(super) fn create_rdp_options() -> (
     adw::SwitchRow,
     adw::SwitchRow,
     adw::SwitchRow,
+    adw::SwitchRow,
+    adw::SwitchRow,
     DropDown,
     Rc<RefCell<Vec<SharedFolder>>>,
     gtk4::ListBox,
@@ -403,6 +405,26 @@ pub(super) fn create_rdp_options() -> (
         .build();
     autotype_initial_row.add_suffix(&rdp_autotype_initial_delay_spin);
     features_group.add(&autotype_initial_row);
+
+    // Dynamic resolution — request dynamic desktop resizing (external client)
+    let rdp_dynamic_resolution_check = adw::SwitchRow::builder()
+        .title(i18n("Dynamic resolution"))
+        .subtitle(i18n(
+            "Resize the remote desktop to match the window (External client). Turn off for legacy servers",
+        ))
+        .active(true)
+        .build();
+    features_group.add(&rdp_dynamic_resolution_check);
+
+    // Smart sizing — scale the remote framebuffer to the window
+    let rdp_smart_sizing_check = adw::SwitchRow::builder()
+        .title(i18n("Smart sizing"))
+        .subtitle(i18n(
+            "Scale the remote screen to fit the window (External client). For legacy servers on HiDPI displays. Overrides dynamic resolution",
+        ))
+        .active(false)
+        .build();
+    features_group.add(&rdp_smart_sizing_check);
 
     // Reconnect on Resize — force full reconnect instead of Display Control
     let rdp_reconnect_on_resize_check = adw::SwitchRow::builder()
@@ -808,6 +830,8 @@ pub(super) fn create_rdp_options() -> (
         rdp_jiggler_interval_spin,
         rdp_autotype_delay_spin,
         rdp_autotype_initial_delay_spin,
+        rdp_dynamic_resolution_check,
+        rdp_smart_sizing_check,
         rdp_reconnect_on_resize_check,
         rdp_mptcp_check,
         rdp_fido2_check,

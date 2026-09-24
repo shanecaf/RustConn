@@ -178,6 +178,8 @@ pub(super) struct UpdateParams<'a> {
     pub resolution: Option<&'a str>,
     pub color_depth: Option<u8>,
     pub disable_nla: bool,
+    pub rdp_dynamic_resolution: Option<bool>,
+    pub rdp_smart_sizing: Option<bool>,
     pub keyboard_layout: Option<u32>,
     pub audio_redirect: bool,
     pub audio_mode: Option<&'a str>,
@@ -626,6 +628,8 @@ pub(super) fn cmd_update(
         || params.resolution.is_some()
         || params.color_depth.is_some()
         || params.disable_nla
+        || params.rdp_dynamic_resolution.is_some()
+        || params.rdp_smart_sizing.is_some()
         || params.keyboard_layout.is_some()
         || params.audio_redirect
         || params.audio_mode.is_some()
@@ -962,6 +966,14 @@ fn apply_rdp_fields_update(
     // NLA
     if params.disable_nla {
         cfg.disable_nla = true;
+    }
+
+    // Dynamic resolution / smart sizing (issue #341).
+    if let Some(value) = params.rdp_dynamic_resolution {
+        cfg.dynamic_resolution = value;
+    }
+    if let Some(value) = params.rdp_smart_sizing {
+        cfg.smart_sizing = value;
     }
 
     // Keyboard layout

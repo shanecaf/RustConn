@@ -603,6 +603,8 @@ impl SafeFreeRdpLauncher {
             security_layer: config.security_layer,
             tls_security_level: config.tls_security_level,
             disable_nla: config.disable_nla,
+            dynamic_resolution: config.dynamic_resolution,
+            smart_sizing: config.smart_sizing,
             extra_args: config.extra_args.clone(),
             window_geometry: config.window_geometry.map(|(x, y, width, height)| {
                 rustconn_core::models::WindowGeometry::new(x, y, width, height)

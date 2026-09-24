@@ -2278,6 +2278,25 @@ pub struct RdpConfig {
     #[serde(default)]
     pub reconnect_on_resize: bool,
 
+    /// Request dynamic desktop resizing on the external client
+    /// (`/dynamic-resolution`).
+    ///
+    /// Default: true — every external session asked for it before it became
+    /// configurable. Turn it off for legacy servers (e.g. Windows 2008 R2) that
+    /// do not support MS-RDPEDISP, which is a precondition for
+    /// [`Self::smart_sizing`] (issue #341). Only applies to External mode.
+    #[serde(default = "default_true")]
+    pub dynamic_resolution: bool,
+
+    /// Scale the remote framebuffer to the external window (`+smart-sizing`).
+    ///
+    /// Default: false. Makes a fixed-resolution session from a legacy server
+    /// resizable by scaling its content, so it stays readable on a HiDPI
+    /// display. Mutually exclusive with [`Self::dynamic_resolution`]; when both
+    /// are set, smart-sizing wins (issue #341). Only applies to External mode.
+    #[serde(default)]
+    pub smart_sizing: bool,
+
     /// Send scripts via clipboard paste (Ctrl+V) instead of character-by-character
     /// autotype. Clipboard paste is instant regardless of script length, while
     /// autotype at 5ms/char takes ~10s for a 2000-char script.
@@ -2362,6 +2381,8 @@ impl Default for RdpConfig {
             autotype_delay_ms: default_autotype_delay(),
             autotype_initial_delay_ms: 0,
             reconnect_on_resize: false,
+            dynamic_resolution: default_true(),
+            smart_sizing: false,
             script_paste_via_clipboard: default_true(),
             remote_app_program: None,
             remote_app_args: None,

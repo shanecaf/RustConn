@@ -173,6 +173,14 @@ fn print_json(
             if config.disable_nla {
                 map.insert("nla_disabled".to_string(), serde_json::Value::Bool(true));
             }
+            map.insert(
+                "dynamic_resolution".to_string(),
+                serde_json::Value::Bool(config.dynamic_resolution),
+            );
+            map.insert(
+                "smart_sizing".to_string(),
+                serde_json::Value::Bool(config.smart_sizing),
+            );
             if let Some(jump_id) = config.jump_host_id {
                 map.insert(
                     "jump_host".to_string(),
@@ -430,6 +438,12 @@ fn print_table(connection: &Connection, connections: &[Connection]) -> Result<()
             }
             if config.disable_nla {
                 println!("  NLA:      disabled");
+            }
+            if !config.dynamic_resolution {
+                println!("  Dynamic Resolution: disabled");
+            }
+            if config.smart_sizing {
+                println!("  Smart Sizing: enabled");
             }
             if !matches!(
                 config.security_layer,

@@ -334,6 +334,14 @@ pub enum Commands {
         #[arg(long)]
         disable_nla: bool,
 
+        /// Disable dynamic resolution for external RDP (for legacy servers)
+        #[arg(long)]
+        rdp_no_dynamic_resolution: bool,
+
+        /// Enable smart sizing for external RDP (scale screen to window; for legacy servers on HiDPI)
+        #[arg(long)]
+        rdp_smart_sizing: bool,
+
         /// RDP keyboard layout override (Windows KLID, e.g. 0x00000409 for US)
         #[arg(long, value_name = "KLID")]
         keyboard_layout: Option<u32>,
@@ -860,6 +868,14 @@ pub enum Commands {
         /// Disable Network Level Authentication for RDP
         #[arg(long)]
         disable_nla: bool,
+
+        /// Dynamic resolution for external RDP. Bare flag enables; `false` disables.
+        #[arg(long, value_name = "BOOL", num_args = 0..=1, default_missing_value = "true")]
+        rdp_dynamic_resolution: Option<bool>,
+
+        /// Smart sizing for external RDP (scale screen to window). Bare flag enables; `false` disables.
+        #[arg(long, value_name = "BOOL", num_args = 0..=1, default_missing_value = "true")]
+        rdp_smart_sizing: Option<bool>,
 
         /// RDP keyboard layout override (Windows KLID, e.g. 0x00000409 for US)
         #[arg(long, value_name = "KLID")]

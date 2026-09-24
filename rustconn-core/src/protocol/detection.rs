@@ -211,20 +211,25 @@ pub fn detect_ssh_client() -> ClientInfo {
 /// Detects the RDP client on the system
 ///
 /// Checks for FreeRDP 3.x, FreeRDP 2.x, or rdesktop binaries and extracts version information.
-/// Priority: wlfreerdp3 > sdl-freerdp3 > xfreerdp3 > wlfreerdp > xfreerdp > rdesktop
+/// Priority: sdl-freerdp3 > sdl-freerdp > wlfreerdp3 > xfreerdp3 > wlfreerdp > xfreerdp > rdesktop
+///
+/// SDL3 is preferred over the wlfreerdp client, which FreeRDP upstream has
+/// deprecated in favour of the SDL3 client (issue #340). This order mirrors the
+/// runtime launcher's `WAYLAND_FIRST_CANDIDATES` so the reported client is the
+/// one that actually gets launched.
 #[must_use]
 pub fn detect_rdp_client() -> ClientInfo {
     // Try FreeRDP 3.x first (preferred)
-    // wlfreerdp3 for Wayland-native
-    if let Some(info) = try_detect_client("FreeRDP 3", "wlfreerdp3", &["--version"]) {
-        return info.with_min_version("3.0.0");
-    }
     // sdl-freerdp3 — SDL3 client, versioned (distro packages)
     if let Some(info) = try_detect_client("FreeRDP 3", "sdl-freerdp3", &["--version"]) {
         return info.with_min_version("3.0.0");
     }
     // sdl-freerdp — SDL3 client, unversioned (Flatpak / upstream build)
     if let Some(info) = try_detect_client("FreeRDP 3", "sdl-freerdp", &["--version"]) {
+        return info.with_min_version("3.0.0");
+    }
+    // wlfreerdp3 — Wayland-native, deprecated upstream but still shipped
+    if let Some(info) = try_detect_client("FreeRDP 3", "wlfreerdp3", &["--version"]) {
         return info.with_min_version("3.0.0");
     }
     // xfreerdp3 for X11

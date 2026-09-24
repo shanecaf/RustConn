@@ -140,6 +140,13 @@ pub struct EmbeddedSessionTab {
     is_embedded: bool,
 }
 
+/// Parameters for the early failure watcher
+struct WatchParams {
+    host: String,
+    port: u16,
+    ignore_certificate: bool,
+}
+
 impl EmbeddedSessionTab {
     /// Creates a new embedded session tab
     ///
@@ -462,8 +469,11 @@ impl RdpLauncher {
                 tab.set_status(&i18n_f("Connecting to {}…", &[host]));
                 Self::watch_early_failure(
                     tab,
-                    host,
-                    config.port,
+                    WatchParams {
+                        host: host.to_string(),
+                        port: config.port,
+                        ignore_certificate: config.ignore_certificate,
+                    },
                     stdout_lines,
                     on_early_failure,
                     on_cert_changed,
@@ -491,8 +501,7 @@ impl RdpLauncher {
     /// tabless-path counterpart of the embedded widget's watchdog. (#324)
     fn watch_early_failure(
         tab: &EmbeddedSessionTab,
-        host: &str,
-        port: u16,
+        params: WatchParams,
         stdout_lines: crate::embedded_rdp::StdoutLines,
         on_early_failure: Box<dyn FnOnce(String) + 'static>,
         on_cert_changed: Box<dyn FnOnce(String, u16, String) + 'static>,
@@ -505,9 +514,10 @@ impl RdpLauncher {
 
         let process = tab.process_handle();
         let controls = tab.controls.clone();
-        let host = host.to_string();
+        let host = params.host;
         let mut on_failure = Some(on_early_failure);
         let mut on_cert = Some(on_cert_changed);
+        let ignore_certificate = params.ignore_certificate;
         let mut on_connected = Some(on_connected);
         let mut ticks = 0u32;
 
@@ -529,7 +539,7 @@ impl RdpLauncher {
                 tracing::info!(
                     protocol = "rdp",
                     %host,
-                    port,
+                    port = params.port,
                     "[FreeRDP] Server certificate changed — stopping the client and asking the user"
                 );
                 let message =
@@ -544,7 +554,7 @@ impl RdpLauncher {
                 }
                 drop(guard);
                 if let Some(callback) = on_cert.take() {
-                    callback(host.clone(), port, message);
+                    callback(host.clone(), params.port, message);
                 }
                 return glib::ControlFlow::Break;
             }
@@ -566,7 +576,7 @@ impl RdpLauncher {
                         .unwrap_or_default();
                     drop(guard);
 
-                    let user_error = Self::parse_freerdp_error(&error_msg);
+                    let user_error = Self::parse_freerdp_error(&error_msg, ignore_certificate);
                     if let Some(callback) = on_failure.take() {
                         callback(user_error);
                     }
@@ -598,8 +608,15 @@ impl RdpLauncher {
         });
     }
 
-    /// Parses FreeRDP stderr output to extract a user-friendly error message
-    fn parse_freerdp_error(stderr: &str) -> String {
+    /// Parses FreeRDP stderr output to extract a user-friendly error message.
+    ///
+    /// `ignore_certificate` is the connection's current setting: when it is
+    /// already on, a TLS failure is not about an untrusted certificate, so the
+    /// message must not tell the user to enable a toggle that is already set
+    /// (issue #339). A legacy server (e.g. Windows 2008 R2) that only speaks the
+    /// old RDP security layer surfaces the same TLS error, and switching the
+    /// security layer to RDP is the real fix there.
+    fn parse_freerdp_error(stderr: &str, ignore_certificate: bool) -> String {
         // FreeRDP's command-line parser (winpr) rejects an option it does not
         // recognise with "Unexpected keyword", printed before it ever reaches
         // the server. The bare string is meaningless to a user, and it names a
@@ -622,9 +639,23 @@ impl RdpLauncher {
             || stderr.contains("ERRCONNECT_TLS_CONNECT_FAILED")
         {
             if stderr.contains("NEW HOST IDENTIFICATION") || stderr.contains("has changed") {
-                return "RDP certificate has changed. Enable 'Ignore Certificate' or accept the new certificate.".to_string();
+                return i18n(
+                    "RDP certificate has changed. Enable 'Accept Certificate' or accept the new certificate.",
+                );
             }
-            return "TLS certificate verification failed. Enable 'Ignore Certificate' in connection settings.".to_string();
+            // With certificate checking already bypassed, a TLS failure is not
+            // about trust. A legacy server (e.g. Windows 2008 R2) that only
+            // offers the old RDP security layer fails the TLS handshake the same
+            // way, and setting the security layer to RDP is what fixes it. Do
+            // not tell the user to enable a setting that is already on (#339).
+            if ignore_certificate {
+                return i18n(
+                    "TLS handshake failed. For a legacy server (e.g. Windows 2008 R2), set the security layer to RDP in connection settings.",
+                );
+            }
+            return i18n(
+                "TLS certificate verification failed. Enable 'Accept Certificate' in connection settings, or set the security layer to RDP for a legacy server.",
+            );
         }
         if stderr.contains("ERRCONNECT_CONNECT_CANCELLED")
             || stderr.contains("nla_client_setup_identity")
@@ -686,7 +717,7 @@ mod tests {
 
     #[test]
     fn unexpected_keyword_names_the_rejected_option() {
-        let message = RdpLauncher::parse_freerdp_error(WINPR_UNEXPECTED_KEYWORD);
+        let message = RdpLauncher::parse_freerdp_error(WINPR_UNEXPECTED_KEYWORD, false);
         // The bare winpr string never reaches the user: the message explains it
         // is a client/argument mismatch and names the option winpr flagged.
         assert!(message.contains("glyph-cache"), "{message}");
@@ -710,7 +741,7 @@ mod tests {
         // Older wLog builds omit the `[-option]` token; the message must still
         // steer the user rather than fall through to the raw string.
         let stderr = "[ERROR][com.winpr.commandline]: Unexpected keyword";
-        let message = RdpLauncher::parse_freerdp_error(stderr);
+        let message = RdpLauncher::parse_freerdp_error(stderr, false);
         assert!(message.contains("FreeRDP"), "{message}");
         assert!(
             RdpLauncher::rejected_freerdp_option(stderr).is_none(),
@@ -724,6 +755,27 @@ mod tests {
     #[test]
     fn connection_errors_are_unaffected_by_the_new_branch() {
         let dns = "[ERROR][com.freerdp.core] ERRCONNECT_DNS_NAME_NOT_FOUND [0x0002000C]";
-        assert!(RdpLauncher::parse_freerdp_error(dns).contains("Host not found"));
+        assert!(RdpLauncher::parse_freerdp_error(dns, false).contains("Host not found"));
+    }
+
+    /// Issue #339 follow-up: when the certificate is already ignored, a TLS
+    /// failure must not tell the user to turn on a setting that is already on;
+    /// it points at the legacy RDP security layer instead.
+    #[test]
+    fn tls_failure_with_ignored_cert_suggests_legacy_security_layer() {
+        let tls = "[ERROR][com.freerdp.core] ERRCONNECT_TLS_CONNECT_FAILED";
+        let message = RdpLauncher::parse_freerdp_error(tls, true);
+        assert!(message.contains("RDP"), "{message}");
+        assert!(
+            !message.contains("Accept Certificate"),
+            "must not suggest a toggle that is already on: {message}"
+        );
+    }
+
+    #[test]
+    fn tls_failure_without_ignored_cert_still_mentions_accept_certificate() {
+        let tls = "[ERROR][com.freerdp.core] ERRCONNECT_TLS_CONNECT_FAILED";
+        let message = RdpLauncher::parse_freerdp_error(tls, false);
+        assert!(message.contains("Accept Certificate"), "{message}");
     }
 }

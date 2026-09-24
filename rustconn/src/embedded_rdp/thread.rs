@@ -713,6 +713,14 @@ impl FreeRdpThread {
         } else {
             plain_args.push("/cert:tofu".to_string());
         }
+        // Always requested here, unlike the external client, which reads
+        // `config.dynamic_resolution` / `config.smart_sizing` (issue #341). This
+        // is the embedded wlfreerdp widget: its size follows the DrawingArea
+        // geometry and the Display Control Channel, so external-window sizing
+        // options (`+smart-sizing`) do not apply, and `wlfreerdp` is hardcoded
+        // above because only a Wayland-native client embeds as a subsurface —
+        // the SDL3 client that is now preferred for external launches (#340)
+        // cannot.
         plain_args.push("/dynamic-resolution".to_string());
 
         if config.clipboard_enabled {

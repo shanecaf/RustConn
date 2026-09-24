@@ -203,6 +203,8 @@ pub struct ConnectionDialog {
     rdp_jiggler_interval_spin: gtk4::SpinButton,
     rdp_autotype_delay_spin: gtk4::SpinButton,
     rdp_autotype_initial_delay_spin: gtk4::SpinButton,
+    rdp_dynamic_resolution_check: adw::SwitchRow,
+    rdp_smart_sizing_check: adw::SwitchRow,
     rdp_reconnect_on_resize_check: adw::SwitchRow,
     rdp_mptcp_check: adw::SwitchRow,
     rdp_fido2_check: adw::SwitchRow,

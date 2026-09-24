@@ -108,6 +108,8 @@ impl ConnectionDialog {
         rdp_jiggler_interval_spin: &SpinButton,
         rdp_autotype_delay_spin: &SpinButton,
         rdp_autotype_initial_delay_spin: &SpinButton,
+        rdp_dynamic_resolution_check: &adw::SwitchRow,
+        rdp_smart_sizing_check: &adw::SwitchRow,
         rdp_reconnect_on_resize_check: &adw::SwitchRow,
         rdp_mptcp_check: &adw::SwitchRow,
         rdp_fido2_check: &adw::SwitchRow,
@@ -325,6 +327,8 @@ impl ConnectionDialog {
         let rdp_jiggler_interval_spin = rdp_jiggler_interval_spin.clone();
         let rdp_autotype_delay_spin = rdp_autotype_delay_spin.clone();
         let rdp_autotype_initial_delay_spin = rdp_autotype_initial_delay_spin.clone();
+        let rdp_dynamic_resolution_check = rdp_dynamic_resolution_check.clone();
+        let rdp_smart_sizing_check = rdp_smart_sizing_check.clone();
         let rdp_reconnect_on_resize_check = rdp_reconnect_on_resize_check.clone();
         let rdp_mptcp_check = rdp_mptcp_check.clone();
         let rdp_fido2_check = rdp_fido2_check.clone();
@@ -557,6 +561,8 @@ impl ConnectionDialog {
                 rdp_jiggler_interval_spin: &rdp_jiggler_interval_spin,
                 rdp_autotype_delay_spin: &rdp_autotype_delay_spin,
                 rdp_autotype_initial_delay_spin: &rdp_autotype_initial_delay_spin,
+                rdp_dynamic_resolution_check: &rdp_dynamic_resolution_check,
+                rdp_smart_sizing_check: &rdp_smart_sizing_check,
                 rdp_reconnect_on_resize_check: &rdp_reconnect_on_resize_check,
                 rdp_mptcp_check: &rdp_mptcp_check,
                 rdp_fido2_check: &rdp_fido2_check,

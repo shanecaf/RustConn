@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Dynamic resolution and smart sizing are now configurable for the external RDP client (issue #341)** — the external FreeRDP client was always launched with `/dynamic-resolution`, with no way to turn it off, and there was no supported way to enable smart sizing. On a legacy server that cannot do dynamic resolution (e.g. Windows 2008 R2), a fixed-resolution session stayed unreadably small on a HiDPI display and the window would not resize. Two connection options now cover this: **Dynamic resolution** (on by default, matching the previous behaviour) emits `/dynamic-resolution`; **Smart sizing** scales the remote framebuffer to the window and emits the flag form `+smart-sizing`. The two are mutually exclusive in FreeRDP, so smart sizing wins and suppresses dynamic resolution when both are set — previously a hand-written `/smart-sizing` custom argument was rejected with a parse error precisely because it collided with the always-present `/dynamic-resolution` and was passed in the value form FreeRDP 3.x does not accept. Both options are exposed in the RDP connection editor and in `rustconn-cli` (`--rdp-no-dynamic-resolution` / `--rdp-smart-sizing` on `add`, `--rdp-dynamic-resolution` / `--rdp-smart-sizing` on `update`). They apply only to the external client; the embedded viewer sizes itself from its widget.
+
+### Fixed
+
+- **A TLS failure on a legacy RDP server suggested a setting that was already on (follow-up to issue #339)** — when the external FreeRDP client failed the TLS handshake, the error always read "TLS certificate verification failed. Enable 'Ignore Certificate' in connection settings." — even when that setting was already enabled, which is misleading and unactionable. A legacy server (e.g. Windows 2008 R2) that only speaks the old RDP security layer surfaces the same TLS error, and switching the security layer to RDP is the real fix there. The classifier now knows the connection's current certificate setting: with the certificate already ignored it points at the legacy RDP security layer instead of telling the user to enable a toggle that is already on, and otherwise it names both the certificate toggle (by its real label, "Accept Certificate") and the RDP-security-layer option.
+
+### Changed
+
+- **The external RDP client now prefers the SDL3 FreeRDP client over the deprecated wlfreerdp (issue #340)** — FreeRDP upstream has deprecated the `wlfreerdp`/`wlfreerdp3` client in favour of its SDL3 client, and RustConn's launcher already auto-detected `sdl-freerdp3` ahead of `wlfreerdp3`. The informational client-detection helper (used to report which FreeRDP is installed) still listed `wlfreerdp3` first, so the reported client could differ from the one actually launched; its order now matches the launcher (`sdl-freerdp3` > `sdl-freerdp` > `wlfreerdp3` > `xfreerdp3`). The embedded viewer still uses `wlfreerdp` deliberately, since only a Wayland-native client embeds as a subsurface.
+
 ## [0.22.4] - 2026-09-23
 
 ### Fixed

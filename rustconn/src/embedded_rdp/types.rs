@@ -192,6 +192,13 @@ pub struct RdpConfig {
     /// Force full reconnect on resize instead of Display Control Channel.
     /// Useful for legacy servers that don't support MS-RDPEDISP.
     pub reconnect_on_resize: bool,
+    /// Request dynamic desktop resizing on the external client
+    /// (`/dynamic-resolution`). Default true; turn off for legacy servers.
+    /// Mutually exclusive with [`Self::smart_sizing`] (issue #341).
+    pub dynamic_resolution: bool,
+    /// Scale the remote framebuffer to the external window (`+smart-sizing`).
+    /// Mutually exclusive with [`Self::dynamic_resolution`] (issue #341).
+    pub smart_sizing: bool,
     /// RemoteApp program path or alias (forces FreeRDP fallback).
     pub remote_app_program: Option<String>,
     /// RemoteApp command-line arguments.
@@ -261,6 +268,8 @@ impl Default for RdpConfig {
             autotype_initial_delay_ms: 0,
             script_paste_via_clipboard: true,
             reconnect_on_resize: false,
+            dynamic_resolution: true,
+            smart_sizing: false,
             remote_app_program: None,
             remote_app_args: None,
             remote_app_name: None,

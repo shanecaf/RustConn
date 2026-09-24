@@ -87,6 +87,21 @@ pub struct FreeRdpConfig {
     pub tls_security_level: Option<u8>,
     /// Disable Network Level Authentication while keeping other methods
     pub disable_nla: bool,
+    /// Request dynamic desktop resizing (`/dynamic-resolution`).
+    ///
+    /// Mutually exclusive with [`Self::smart_sizing`]: FreeRDP rejects the two
+    /// together, and a server that ignores MS-RDPEDISP gains nothing from it.
+    /// [`Self::smart_sizing`] wins when both are set, so this argument is
+    /// dropped in that case (issue #341).
+    pub dynamic_resolution: bool,
+    /// Scale the remote framebuffer to the client window (`+smart-sizing`).
+    ///
+    /// Lets a fixed-resolution session from a legacy server (e.g. Windows
+    /// 2008 R2, which cannot do dynamic resolution) be resized by scaling its
+    /// content, instead of staying unreadably small on a HiDPI display. Passed
+    /// as the flag form `+smart-sizing`; the bare `/smart-sizing` with no value
+    /// is a parse error on FreeRDP 3.x (issue #341).
+    pub smart_sizing: bool,
     /// Additional `FreeRDP` arguments
     pub extra_args: Vec<String>,
     /// Window geometry for external mode
@@ -138,6 +153,10 @@ impl FreeRdpConfig {
             security_layer: RdpSecurityLayer::default(),
             tls_security_level: None,
             disable_nla: false,
+            // Preserves the historical default: every external session asked
+            // for dynamic resolution before it became configurable (issue #341).
+            dynamic_resolution: true,
+            smart_sizing: false,
             extra_args: Vec::new(),
             window_geometry: None,
             remember_window_position: true,
@@ -214,6 +233,20 @@ impl FreeRdpConfig {
     #[must_use]
     pub fn with_extra_args(mut self, args: Vec<String>) -> Self {
         self.extra_args = args;
+        self
+    }
+
+    /// Enables or disables dynamic desktop resizing (`/dynamic-resolution`)
+    #[must_use]
+    pub const fn with_dynamic_resolution(mut self, enabled: bool) -> Self {
+        self.dynamic_resolution = enabled;
+        self
+    }
+
+    /// Enables or disables framebuffer scaling to the window (`+smart-sizing`)
+    #[must_use]
+    pub const fn with_smart_sizing(mut self, enabled: bool) -> Self {
+        self.smart_sizing = enabled;
         self
     }
 
@@ -355,8 +388,16 @@ pub fn build_freerdp_args(config: &FreeRdpConfig) -> Vec<String> {
         args.push("/cert:tofu".to_string());
     }
 
-    // Dynamic resolution
-    args.push("/dynamic-resolution".to_string());
+    // Sizing behaviour. `/dynamic-resolution` and `+smart-sizing` are mutually
+    // exclusive in FreeRDP — passing both is a parse error — so smart-sizing
+    // wins and suppresses dynamic resolution when both are asked for (issue
+    // #341). Smart-sizing must be the flag form `+smart-sizing`; the bare
+    // `/smart-sizing` with no value is rejected on FreeRDP 3.x.
+    if config.smart_sizing {
+        args.push("+smart-sizing".to_string());
+    } else if config.dynamic_resolution {
+        args.push("/dynamic-resolution".to_string());
+    }
 
     // Decorations flag for window controls. Kept for every display mode: the
     // fullscreen and multi-monitor modes drop decorations themselves, and a
@@ -588,6 +629,10 @@ mod tests {
         assert!(!args.iter().any(|arg| arg.starts_with("/w:")));
         assert!(args.contains(&"/decorations".to_string()));
         assert!(args.contains(&"/v:server.example.com".to_string()));
+        // Dynamic resolution is on by default (the historical behaviour), and
+        // smart-sizing is off (issue #341).
+        assert!(args.contains(&"/dynamic-resolution".to_string()));
+        assert!(!args.contains(&"+smart-sizing".to_string()));
     }
 
     #[test]
@@ -845,6 +890,42 @@ mod tests {
 
         // Non-existent paths should be skipped
         assert!(!args.iter().any(|a| a.starts_with("/drive:")));
+    }
+
+    #[test]
+    fn dynamic_resolution_can_be_disabled() {
+        let config = FreeRdpConfig::new("server.example.com").with_dynamic_resolution(false);
+        let args = build_freerdp_args(&config);
+
+        assert!(!args.contains(&"/dynamic-resolution".to_string()));
+        assert!(!args.contains(&"+smart-sizing".to_string()));
+    }
+
+    #[test]
+    fn smart_sizing_emits_flag_form_and_suppresses_dynamic_resolution() {
+        // Both requested: smart-sizing wins, dynamic-resolution is dropped so
+        // FreeRDP does not reject the mutually exclusive pair (issue #341).
+        let config = FreeRdpConfig::new("server.example.com")
+            .with_dynamic_resolution(true)
+            .with_smart_sizing(true);
+        let args = build_freerdp_args(&config);
+
+        assert!(args.contains(&"+smart-sizing".to_string()));
+        assert!(!args.contains(&"/dynamic-resolution".to_string()));
+        // The bare `/smart-sizing` (no value) is the parse error the reporter
+        // hit; it must never be emitted.
+        assert!(!args.contains(&"/smart-sizing".to_string()));
+    }
+
+    #[test]
+    fn smart_sizing_alone_still_drops_dynamic_resolution() {
+        let config = FreeRdpConfig::new("server.example.com")
+            .with_dynamic_resolution(false)
+            .with_smart_sizing(true);
+        let args = build_freerdp_args(&config);
+
+        assert!(args.contains(&"+smart-sizing".to_string()));
+        assert!(!args.contains(&"/dynamic-resolution".to_string()));
     }
 }
 

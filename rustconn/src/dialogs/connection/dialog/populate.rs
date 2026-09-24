@@ -1300,6 +1300,9 @@ impl ConnectionDialog {
             .set_value(f64::from(rdp.autotype_delay_ms));
         self.rdp_autotype_initial_delay_spin
             .set_value(f64::from(rdp.autotype_initial_delay_ms));
+        self.rdp_dynamic_resolution_check
+            .set_active(rdp.dynamic_resolution);
+        self.rdp_smart_sizing_check.set_active(rdp.smart_sizing);
         self.rdp_reconnect_on_resize_check
             .set_active(rdp.reconnect_on_resize);
         self.rdp_mptcp_check.set_active(rdp.mptcp);
