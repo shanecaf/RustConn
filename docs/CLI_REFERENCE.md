@@ -217,6 +217,10 @@ Options:
 | `--serial-custom-arg` | — | Custom serial client argument (repeatable) |
 | `--rdp-display-mode` | — | How an external RDP window is sized: `fit` (default, fills the monitor), `fullscreen`, `custom` (needs `--rdp-resolution`), `multimon` (span all monitors). Also governs the window an embedded session falls back to |
 | `--rdp-resolution` | — | Fixed RDP resolution as `WIDTHxHEIGHT`, e.g. `2560x1440`. Implies `--rdp-display-mode custom` |
+| `--rdp-no-dynamic-resolution` | — | Disable dynamic desktop resizing on the external client (RDP only, `add`). For legacy servers (e.g. Windows 2008 R2) that do not support MS-RDPEDISP |
+| `--rdp-dynamic-resolution` | — | Dynamic desktop resizing on the external client: `true` (default) or `false`; bare flag = `true` (RDP only, `update`) |
+| `--rdp-smart-sizing` | — | Scale the remote screen to the window on the external client (RDP only). Mutually exclusive with dynamic resolution; when both are set, smart sizing wins. On `update` takes an optional `true`/`false` |
+| `--rdp-freerdp-client` | — | Explicit FreeRDP client binary for the external client, e.g. `sdl-freerdp3`, `xfreerdp3` (RDP only). Default: auto-detect. An unavailable choice falls back to auto-detection; pass an empty string on `update` to clear it |
 | `--browser-mode` | — | Web browser mode: `embedded` (default on Linux), `system`, `custom` |
 | `--javascript` | — | Enable/disable JavaScript: `true` (default) or `false`; bare `--javascript` = `false` |
 | `--user-agent` | — | Custom user agent string (max 512 Unicode characters) |

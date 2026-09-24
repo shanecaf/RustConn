@@ -592,6 +592,10 @@ fn start_embedded_rdp_session(
     embedded_config.dynamic_resolution = rdp_config.dynamic_resolution;
     embedded_config.smart_sizing = rdp_config.smart_sizing;
 
+    // Pass the explicit FreeRDP client choice (issue #340). Only the external
+    // launch path reads it; auto-detection covers None.
+    embedded_config.freerdp_client_override = rdp_config.freerdp_client_override.clone();
+
     // Pass RemoteApp configuration (forces FreeRDP fallback — RAIL not supported by IronRDP)
     embedded_config.remote_app_program = rdp_config.remote_app_program.clone();
     embedded_config.remote_app_args = rdp_config.remote_app_args.clone();
@@ -966,6 +970,7 @@ fn start_external_rdp_session(
         remember_window_position: false,
         ignore_certificate: rdp_config.ignore_certificate,
         fido2_enabled: rdp_config.fido2_enabled,
+        client_override: rdp_config.freerdp_client_override.clone(),
     };
 
     // A tunnelled session's SshTunnel must outlive every launch attempt: a

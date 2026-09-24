@@ -2513,6 +2513,7 @@ impl TemplateDialog {
             shared_folders: Vec::new(),
             custom_args,
             keyboard_layout: None,
+            freerdp_client_override: None,
             scale_override: ScaleOverride::default(),
             disable_nla: false,
             security_layer: RdpSecurityLayer::default(),

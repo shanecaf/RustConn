@@ -489,6 +489,11 @@ pub enum Commands {
         #[arg(long, value_name = "WxH")]
         rdp_resolution: Option<String>,
 
+        /// Explicit FreeRDP client binary for external RDP (e.g. sdl-freerdp3, xfreerdp3).
+        /// Default: auto-detect. An unavailable choice falls back to auto-detection.
+        #[arg(long, value_name = "NAME")]
+        rdp_freerdp_client: Option<String>,
+
         // --- Web-specific flags ---
         /// Web browser mode: embedded (default on Linux), system, or custom
         #[arg(long, value_name = "MODE", value_parser = ["embedded", "system", "custom"])]
@@ -1023,6 +1028,11 @@ pub enum Commands {
         /// Implies --rdp-display-mode custom
         #[arg(long, value_name = "WxH")]
         rdp_resolution: Option<String>,
+
+        /// Explicit FreeRDP client binary for external RDP (e.g. sdl-freerdp3, xfreerdp3).
+        /// Default: auto-detect. An unavailable choice falls back to auto-detection.
+        #[arg(long, value_name = "NAME")]
+        rdp_freerdp_client: Option<String>,
 
         // --- Web-specific flags ---
         /// Web browser mode: embedded (default on Linux), system, or custom

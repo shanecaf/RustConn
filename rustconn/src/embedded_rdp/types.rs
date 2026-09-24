@@ -152,6 +152,9 @@ pub struct RdpConfig {
     pub polling_interval_ms: u32,
     /// Keyboard layout override (Windows KLID). None = auto-detect.
     pub keyboard_layout: Option<u32>,
+    /// Explicit FreeRDP client binary for external mode. `None` auto-detects.
+    /// An unavailable choice falls back to auto-detection (issue #340).
+    pub freerdp_client_override: Option<String>,
     /// Display scale override for embedded mode
     pub scale_override: rustconn_core::models::ScaleOverride,
     /// Show local mouse cursor over embedded viewer (disable to avoid double cursor)
@@ -253,6 +256,7 @@ impl Default for RdpConfig {
             remember_window_position: true,
             polling_interval_ms: 16, // ~60 FPS
             keyboard_layout: None,
+            freerdp_client_override: None,
             scale_override: rustconn_core::models::ScaleOverride::default(),
             show_local_cursor: true,
             gateway_hostname: None,

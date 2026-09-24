@@ -220,6 +220,7 @@ pub(super) struct UpdateParams<'a> {
     // RDP
     pub rdp_display_mode: Option<&'a str>,
     pub rdp_resolution: Option<&'a str>,
+    pub rdp_freerdp_client: Option<&'a str>,
     // Web
     pub browser_mode: Option<&'a str>,
     pub javascript: Option<bool>,
@@ -630,6 +631,7 @@ pub(super) fn cmd_update(
         || params.disable_nla
         || params.rdp_dynamic_resolution.is_some()
         || params.rdp_smart_sizing.is_some()
+        || params.rdp_freerdp_client.is_some()
         || params.keyboard_layout.is_some()
         || params.audio_redirect
         || params.audio_mode.is_some()
@@ -974,6 +976,13 @@ fn apply_rdp_fields_update(
     }
     if let Some(value) = params.rdp_smart_sizing {
         cfg.smart_sizing = value;
+    }
+    if let Some(client) = params.rdp_freerdp_client {
+        cfg.freerdp_client_override = if client.is_empty() {
+            None
+        } else {
+            Some(client.to_string())
+        };
     }
 
     // Keyboard layout

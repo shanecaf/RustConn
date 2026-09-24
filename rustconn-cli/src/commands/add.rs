@@ -125,6 +125,7 @@ pub(super) struct AddParams<'a> {
     // RDP
     pub rdp_display_mode: Option<&'a str>,
     pub rdp_resolution: Option<&'a str>,
+    pub rdp_freerdp_client: Option<&'a str>,
     // Web
     pub browser_mode: Option<&'a str>,
     pub javascript: Option<bool>,
@@ -359,6 +360,7 @@ pub(super) fn cmd_add(config_path: Option<&Path>, params: AddParams<'_>) -> Resu
         || params.disable_nla
         || params.rdp_no_dynamic_resolution
         || params.rdp_smart_sizing
+        || params.rdp_freerdp_client.is_some()
         || params.keyboard_layout.is_some()
         || params.audio_redirect
         || params.audio_mode.is_some()
@@ -1116,6 +1118,9 @@ pub(super) fn apply_rdp_fields(
     }
     if params.rdp_smart_sizing {
         cfg.smart_sizing = true;
+    }
+    if let Some(client) = params.rdp_freerdp_client {
+        cfg.freerdp_client_override = Some(client.to_string());
     }
 
     // Keyboard layout

@@ -179,6 +179,7 @@ fn arb_rdp_config() -> impl Strategy<Value = RdpConfig> {
                     performance_mode: Default::default(),
                     graphics_mode: Default::default(),
                     keyboard_layout: None,
+                    freerdp_client_override: None,
                     scale_override: Default::default(),
                     disable_nla: false,
                     security_layer: Default::default(),

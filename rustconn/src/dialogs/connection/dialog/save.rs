@@ -99,6 +99,7 @@ impl ConnectionDialog {
         rdp_gateway_username_entry: &Entry,
         rdp_disable_nla_check: &adw::SwitchRow,
         rdp_security_layer_dropdown: &DropDown,
+        rdp_freerdp_client_dropdown: &DropDown,
         rdp_tls_security_level_spin: &SpinButton,
         rdp_ignore_certificate_check: &adw::SwitchRow,
         rdp_clipboard_check: &adw::SwitchRow,
@@ -115,6 +116,7 @@ impl ConnectionDialog {
         rdp_fido2_check: &adw::SwitchRow,
         rdp_jump_host_dropdown: &DropDown,
         rdp_connections_data: &Rc<RefCell<Vec<(Option<Uuid>, String)>>>,
+        rdp_freerdp_clients_data: &Rc<RefCell<Vec<String>>>,
         rdp_shared_folders: &Rc<RefCell<Vec<SharedFolder>>>,
         rdp_custom_args_entry: &Entry,
         rdp_keyboard_layout_dropdown: &DropDown,
@@ -318,6 +320,7 @@ impl ConnectionDialog {
         let rdp_gateway_username_entry = rdp_gateway_username_entry.clone();
         let rdp_disable_nla_check = rdp_disable_nla_check.clone();
         let rdp_security_layer_dropdown = rdp_security_layer_dropdown.clone();
+        let rdp_freerdp_client_dropdown = rdp_freerdp_client_dropdown.clone();
         let rdp_tls_security_level_spin = rdp_tls_security_level_spin.clone();
         let rdp_ignore_certificate_check = rdp_ignore_certificate_check.clone();
         let rdp_clipboard_check = rdp_clipboard_check.clone();
@@ -334,6 +337,7 @@ impl ConnectionDialog {
         let rdp_fido2_check = rdp_fido2_check.clone();
         let rdp_jump_host_dropdown = rdp_jump_host_dropdown.clone();
         let rdp_connections_data = rdp_connections_data.clone();
+        let rdp_freerdp_clients_data = rdp_freerdp_clients_data.clone();
         let rdp_shared_folders = rdp_shared_folders.clone();
         let rdp_custom_args_entry = rdp_custom_args_entry.clone();
         let rdp_keyboard_layout_dropdown = rdp_keyboard_layout_dropdown.clone();
@@ -552,6 +556,7 @@ impl ConnectionDialog {
                 rdp_gateway_username_entry: &rdp_gateway_username_entry,
                 rdp_disable_nla_check: &rdp_disable_nla_check,
                 rdp_security_layer_dropdown: &rdp_security_layer_dropdown,
+                rdp_freerdp_client_dropdown: &rdp_freerdp_client_dropdown,
                 rdp_tls_security_level_spin: &rdp_tls_security_level_spin,
                 rdp_ignore_certificate_check: &rdp_ignore_certificate_check,
                 rdp_clipboard_check: &rdp_clipboard_check,
@@ -568,6 +573,7 @@ impl ConnectionDialog {
                 rdp_fido2_check: &rdp_fido2_check,
                 rdp_jump_host_dropdown: &rdp_jump_host_dropdown,
                 rdp_connections_data: &rdp_connections_data,
+                rdp_freerdp_clients_data: &rdp_freerdp_clients_data,
                 rdp_shared_folders: &rdp_shared_folders,
                 rdp_custom_args_entry: &rdp_custom_args_entry,
                 rdp_keyboard_layout_dropdown: &rdp_keyboard_layout_dropdown,

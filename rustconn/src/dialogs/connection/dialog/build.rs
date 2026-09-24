@@ -167,6 +167,7 @@ impl ConnectionDialog {
             rdp_gateway_username_entry,
             rdp_disable_nla_check,
             rdp_security_layer_dropdown,
+            rdp_freerdp_client_dropdown,
             rdp_tls_security_level_spin,
             ignore_certificate_check,
             rdp_clipboard_check,
@@ -470,6 +471,9 @@ impl ConnectionDialog {
             Rc::new(RefCell::new(vec![(None, "(None)".to_string())]));
         let rdp_connections_data: Rc<RefCell<Vec<(Option<Uuid>, String)>>> =
             Rc::new(RefCell::new(vec![(None, "(None)".to_string())]));
+        let rdp_freerdp_clients_data: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(
+            crate::embedded_rdp::detect::available_freerdp_clients(),
+        ));
         let vnc_connections_data: Rc<RefCell<Vec<(Option<Uuid>, String)>>> =
             Rc::new(RefCell::new(vec![(None, "(None)".to_string())]));
         let spice_connections_data: Rc<RefCell<Vec<(Option<Uuid>, String)>>> =
@@ -544,6 +548,7 @@ impl ConnectionDialog {
             &rdp_gateway_username_entry,
             &rdp_disable_nla_check,
             &rdp_security_layer_dropdown,
+            &rdp_freerdp_client_dropdown,
             &rdp_tls_security_level_spin,
             &ignore_certificate_check,
             &rdp_clipboard_check,
@@ -560,6 +565,7 @@ impl ConnectionDialog {
             &rdp_fido2_check,
             &rdp_jump_host_dropdown,
             &rdp_connections_data,
+            &rdp_freerdp_clients_data,
             &rdp_shared_folders,
             &rdp_custom_args_entry,
             &rdp_keyboard_layout_dropdown,
@@ -791,6 +797,7 @@ impl ConnectionDialog {
             rdp_gateway_username_entry,
             rdp_disable_nla_check,
             rdp_security_layer_dropdown,
+            rdp_freerdp_client_dropdown,
             rdp_tls_security_level_spin,
             rdp_ignore_certificate_check: ignore_certificate_check,
             rdp_clipboard_check,
@@ -807,6 +814,7 @@ impl ConnectionDialog {
             rdp_fido2_check,
             rdp_jump_host_dropdown,
             rdp_connections_data,
+            rdp_freerdp_clients_data,
             rdp_shared_folders,
             rdp_shared_folders_list,
             rdp_custom_args_entry,

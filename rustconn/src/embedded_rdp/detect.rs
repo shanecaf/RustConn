@@ -405,6 +405,91 @@ pub fn detect_best_freerdp_for_remoteapp() -> Option<String> {
     detect_best_freerdp_for_remoteapp_with_cancel(None)
 }
 
+/// Every FreeRDP client binary RustConn knows how to launch, newest-first.
+///
+/// The superset of the platform-ordered candidate lists above, used to populate
+/// the connection editor's "FreeRDP client" dropdown. `wlfreerdp`/`wlfreerdp3`
+/// are deprecated upstream (issue #340) but still offered, since some setups
+/// only ship them.
+pub const KNOWN_FREERDP_CLIENTS: &[&str] = &[
+    "sdl-freerdp3",
+    "sdl-freerdp",
+    "wlfreerdp3",
+    "wlfreerdp",
+    "xfreerdp3",
+    "xfreerdp",
+    "freerdp",
+];
+
+/// Returns the known FreeRDP clients that are actually available, for the UI.
+///
+/// Probes the local `PATH` and, under Flatpak, the host. Order follows
+/// [`KNOWN_FREERDP_CLIENTS`] (newest-first). The result seeds the connection
+/// editor's client dropdown, so an unavailable choice is never offered.
+#[must_use]
+pub fn available_freerdp_clients() -> Vec<String> {
+    let flatpak = rustconn_core::flatpak::is_flatpak();
+    KNOWN_FREERDP_CLIENTS
+        .iter()
+        .filter(|name| binary_exists(name) || (flatpak && host_binary_exists(name, None)))
+        .map(|name| (*name).to_string())
+        .collect()
+}
+
+/// Resolves which FreeRDP binary to launch, honouring an explicit override.
+///
+/// When `override_name` is set and the named client is available (on the local
+/// `PATH`, or on the Flatpak host, returned then as a `host:` form), it wins.
+/// An override that is not installed — or one that names a `wl*`/`sdl*` client
+/// for a RemoteApp (RAIL) session, which those clients cannot host — is dropped
+/// with a warning and the usual auto-detection takes over (issue #340).
+#[must_use]
+pub fn resolve_freerdp_binary(
+    override_name: Option<&str>,
+    is_remote_app: bool,
+    cancellation: Option<&AtomicBool>,
+) -> Option<String> {
+    if let Some(name) = override_name.map(str::trim).filter(|name| !name.is_empty()) {
+        if is_remote_app && !is_remoteapp_capable_client(name) {
+            tracing::warn!(
+                protocol = "rdp",
+                client = %name,
+                "Ignoring FreeRDP client override for a RemoteApp session — wl/sdl clients cannot host RAIL; auto-detecting"
+            );
+        } else if binary_exists(name) {
+            return Some(name.to_string());
+        } else if rustconn_core::flatpak::is_flatpak() && host_binary_exists(name, cancellation) {
+            return Some(format!("host:{name}"));
+        } else {
+            tracing::warn!(
+                protocol = "rdp",
+                client = %name,
+                "Configured FreeRDP client is not available — falling back to auto-detection"
+            );
+        }
+    }
+
+    if is_remote_app {
+        detect_best_freerdp_for_remoteapp_with_cancel(cancellation)
+    } else {
+        detect_best_freerdp_with_cancel(cancellation)
+    }
+}
+
+/// Whether a FreeRDP client can host a RemoteApp (RAIL) session.
+///
+/// `wl*` and `sdl*` clients render a full desktop into one surface and cannot
+/// create the individual application windows RAIL needs, so only the X11 and
+/// generic clients qualify. Matches on the binary's file name so an absolute
+/// path or a `host:`-free name both classify correctly.
+fn is_remoteapp_capable_client(name: &str) -> bool {
+    let stem = std::path::Path::new(name)
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or(name);
+    !(stem.starts_with("wl") || stem.starts_with("sdl"))
+}
+
 /// Whether the *host* has `name`, asked from inside a Flatpak sandbox.
 ///
 /// `sh -lc 'command -v …'` rather than `which`: a login shell honours the user's

@@ -112,6 +112,10 @@ pub struct FreeRdpConfig {
     pub ignore_certificate: bool,
     /// Enable FIDO2/WebAuthn device redirection
     pub fido2_enabled: bool,
+    /// Explicit FreeRDP client binary. `None` auto-detects. Consumed by the
+    /// launcher when choosing which binary to spawn, not by the argument
+    /// builder (issue #340).
+    pub client_override: Option<String>,
 }
 
 /// Written by hand so that it agrees with [`FreeRdpConfig::new`].
@@ -162,6 +166,7 @@ impl FreeRdpConfig {
             remember_window_position: true,
             ignore_certificate: false,
             fido2_enabled: false,
+            client_override: None,
         }
     }
 

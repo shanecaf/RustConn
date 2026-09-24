@@ -29,7 +29,7 @@ use crate::i18n::i18n;
 
 /// Creates the RDP options panel with all protocol-specific widgets.
 ///
-/// Returns a 36-element tuple matching the fields expected by `ConnectionDialog`.
+/// Returns a 37-element tuple matching the fields expected by `ConnectionDialog`.
 pub(super) fn create_rdp_options() -> (
     GtkBox,
     DropDown,
@@ -44,6 +44,7 @@ pub(super) fn create_rdp_options() -> (
     SpinButton,
     Entry,
     adw::SwitchRow,
+    DropDown,
     DropDown,
     SpinButton,
     adw::SwitchRow,
@@ -486,6 +487,27 @@ pub(super) fn create_rdp_options() -> (
     security_layer_row.add_suffix(&security_layer_dropdown);
     features_group.add(&security_layer_row);
 
+    // FreeRDP client selection (issue #340). "Automatic" plus every installed
+    // client; only the external client reads this.
+    let freerdp_clients = crate::embedded_rdp::detect::available_freerdp_clients();
+    let mut freerdp_client_labels: Vec<String> = vec![i18n("Automatic")];
+    freerdp_client_labels.extend(freerdp_clients.iter().cloned());
+    let freerdp_client_strs: Vec<&str> = freerdp_client_labels.iter().map(String::as_str).collect();
+    let freerdp_client_list = gtk4::StringList::new(&freerdp_client_strs);
+    let freerdp_client_dropdown = DropDown::new(Some(freerdp_client_list), gtk4::Expression::NONE);
+    freerdp_client_dropdown.set_selected(0);
+    freerdp_client_dropdown.set_valign(gtk4::Align::Center);
+    freerdp_client_dropdown
+        .update_property(&[gtk4::accessible::Property::Label(&i18n("FreeRDP client"))]);
+    let freerdp_client_row = adw::ActionRow::builder()
+        .title(i18n("FreeRDP client"))
+        .subtitle(i18n(
+            "External client binary. Automatic picks the best available",
+        ))
+        .build();
+    freerdp_client_row.add_suffix(&freerdp_client_dropdown);
+    features_group.add(&freerdp_client_row);
+
     // TLS Security Level spin (0–5, default hidden)
     let tls_level_adj = gtk4::Adjustment::new(2.0, 0.0, 5.0, 1.0, 1.0, 0.0);
     let tls_security_level_spin = SpinButton::builder()
@@ -821,6 +843,7 @@ pub(super) fn create_rdp_options() -> (
         gateway_username_entry,
         disable_nla_check,
         security_layer_dropdown,
+        freerdp_client_dropdown,
         tls_security_level_spin,
         ignore_certificate_check,
         clipboard_check,

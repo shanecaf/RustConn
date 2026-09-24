@@ -2206,6 +2206,13 @@ pub struct RdpConfig {
     /// Keyboard layout override (Windows KLID). None = auto-detect.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub keyboard_layout: Option<u32>,
+    /// Explicit FreeRDP client binary for the external client. `None` (the
+    /// default) auto-detects the best available client. Set it to a binary name
+    /// (e.g. `sdl-freerdp3`, `xfreerdp3`, `wlfreerdp3`) to force that client;
+    /// an unavailable choice falls back to auto-detection with a warning
+    /// (issue #340). Only applies to the external client.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub freerdp_client_override: Option<String>,
     /// Display scale override for embedded mode
     #[serde(default)]
     pub scale_override: ScaleOverride,
@@ -2367,6 +2374,7 @@ impl Default for RdpConfig {
             shared_folders: Vec::new(),
             custom_args: Vec::new(),
             keyboard_layout: None,
+            freerdp_client_override: None,
             scale_override: ScaleOverride::default(),
             disable_nla: false,
             security_layer: RdpSecurityLayer::default(),

@@ -108,6 +108,7 @@ pub(super) struct ConnectionDialogData<'a> {
     pub rdp_gateway_username_entry: &'a Entry,
     pub rdp_disable_nla_check: &'a adw::SwitchRow,
     pub rdp_security_layer_dropdown: &'a DropDown,
+    pub rdp_freerdp_client_dropdown: &'a DropDown,
     pub rdp_tls_security_level_spin: &'a SpinButton,
     pub rdp_ignore_certificate_check: &'a adw::SwitchRow,
     pub rdp_clipboard_check: &'a adw::SwitchRow,
@@ -124,6 +125,7 @@ pub(super) struct ConnectionDialogData<'a> {
     pub rdp_fido2_check: &'a adw::SwitchRow,
     pub rdp_jump_host_dropdown: &'a DropDown,
     pub rdp_connections_data: &'a Rc<RefCell<Vec<(Option<Uuid>, String)>>>,
+    pub rdp_freerdp_clients_data: &'a Rc<RefCell<Vec<String>>>,
     pub rdp_shared_folders: &'a Rc<RefCell<Vec<SharedFolder>>>,
     pub rdp_custom_args_entry: &'a Entry,
     pub rdp_keyboard_layout_dropdown: &'a DropDown,
@@ -1642,6 +1644,14 @@ impl ConnectionDialogData<'_> {
             keyboard_layout: super::dialog::dropdown_index_to_klid(
                 self.rdp_keyboard_layout_dropdown.selected(),
             ),
+            freerdp_client_override: {
+                let idx = self.rdp_freerdp_client_dropdown.selected() as usize;
+                if idx == 0 {
+                    None
+                } else {
+                    self.rdp_freerdp_clients_data.borrow().get(idx - 1).cloned()
+                }
+            },
             scale_override: ScaleOverride::from_index(self.rdp_scale_override_dropdown.selected()),
             disable_nla: self.rdp_disable_nla_check.is_active(),
             security_layer: rustconn_core::models::RdpSecurityLayer::from_index(

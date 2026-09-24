@@ -294,32 +294,6 @@ impl EmbeddedSessionTab {
 pub struct RdpLauncher;
 
 impl RdpLauncher {
-    fn find_freerdp_binary() -> Option<String> {
-        // macOS: a FreeRDP shipped as an `.app` bundle is not on PATH; the
-        // in-bundle executable path is used as a fallback below.
-        const MACOS_BUNDLES: &[(&str, &str)] = &[
-            ("FreeRDP.app", "freerdp"),
-            ("SDL-freerdp.app", "sdl-freerdp"),
-            ("wlfreerdp.app", "wlfreerdp"),
-        ];
-        let candidates = [
-            "sdl-freerdp3", // FreeRDP 3.x SDL3 — versioned (distro packages)
-            "sdl-freerdp",  // FreeRDP 3.x SDL3 — unversioned (Flatpak / upstream)
-            "xfreerdp3",    // FreeRDP 3.x X11
-            "xfreerdp",     // FreeRDP 2.x X11
-            "freerdp",      // Generic
-        ];
-        if let Some(bin) = candidates
-            .into_iter()
-            .find(|candidate| rustconn_core::which::is_available(candidate))
-        {
-            return Some(bin.to_owned());
-        }
-
-        rustconn_core::which::find_macos_app(MACOS_BUNDLES)
-            .and_then(|p| p.into_os_string().into_string().ok())
-    }
-
     /// Starts an RDP session in an external FreeRDP window.
     ///
     /// Every connection parameter comes from `config`, and the argument list is
@@ -356,12 +330,28 @@ impl RdpLauncher {
             on_connected,
         } = callbacks;
 
-        let binary = Self::find_freerdp_binary().ok_or_else(|| {
+        // Honour the connection's explicit FreeRDP client choice, falling back
+        // to auto-detection when it is unavailable (issue #340). Shares the one
+        // resolver with the embedded-widget launcher rather than keeping this
+        // path's own candidate list.
+        let binary = crate::embedded_rdp::detect::resolve_freerdp_binary(
+            config.client_override.as_deref(),
+            config.is_remote_app(),
+            None,
+        )
+        .ok_or_else(|| {
             EmbeddingError::ProcessStartFailed(
-                "FreeRDP client not found. Install xfreerdp, sdl-freerdp3, sdl-freerdp, or xfreerdp3."
+                "FreeRDP client not found. Install sdl-freerdp3, sdl-freerdp, xfreerdp3, or xfreerdp."
                     .to_string(),
             )
         })?;
+
+        // A Flatpak host client comes back as `host:<name>`; keep the marker
+        // for logging but spawn through `flatpak-spawn --host` with the bare
+        // name (mirrors the embedded-widget launcher).
+        let (actual_binary, via_host) = binary
+            .strip_prefix("host:")
+            .map_or_else(|| (binary.clone(), false), |bare| (bare.to_string(), true));
 
         let host = config.host.as_str();
 
@@ -385,7 +375,7 @@ impl RdpLauncher {
         // callback so it behaves like xfreerdp3 (prints the report to stdout,
         // reads the answer from stdin). Shares the detection helper with the
         // embedded-widget launcher rather than repeating it. (#324)
-        if crate::embedded_rdp::launcher::is_sdl_freerdp_binary(&binary) {
+        if crate::embedded_rdp::launcher::is_sdl_freerdp_binary(&actual_binary) {
             plain_args.push("+force-console-callbacks".to_string());
         }
 
@@ -414,13 +404,21 @@ impl RdpLauncher {
         );
 
         let prepared_args = crate::embedded_rdp::SafeFreeRdpLauncher::prepare_args_file(
-            &binary,
+            &actual_binary,
             &plain_args,
             &secret_args,
         )
         .map_err(|error| EmbeddingError::ProcessStartFailed(error.to_string()))?;
 
-        let mut cmd = Command::new(&binary);
+        // Spawn directly, or via `flatpak-spawn --host` when the resolved client
+        // lives on the Flatpak host (issue #340).
+        let mut cmd = if via_host {
+            let mut c = Command::new("flatpak-spawn");
+            c.args(["--host", "--watch-bus", &actual_binary]);
+            c
+        } else {
+            Command::new(&actual_binary)
+        };
         cmd.arg(prepared_args.argument());
 
         // Never block on a prompt nobody can answer. On a changed certificate

@@ -1310,6 +1310,20 @@ impl ConnectionDialog {
         self.rdp_disable_nla_check.set_active(rdp.disable_nla);
         self.rdp_security_layer_dropdown
             .set_selected(rdp.security_layer.index());
+        // Select the stored FreeRDP client, or "Automatic" (0) if unset or the
+        // stored client is no longer available (issue #340).
+        let freerdp_idx = rdp
+            .freerdp_client_override
+            .as_deref()
+            .and_then(|name| {
+                self.rdp_freerdp_clients_data
+                    .borrow()
+                    .iter()
+                    .position(|c| c == name)
+                    .map(|i| (i + 1) as u32)
+            })
+            .unwrap_or(0);
+        self.rdp_freerdp_client_dropdown.set_selected(freerdp_idx);
         if let Some(level) = rdp.tls_security_level {
             self.rdp_tls_security_level_spin.set_value(f64::from(level));
         } else {

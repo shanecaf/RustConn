@@ -181,6 +181,12 @@ fn print_json(
                 "smart_sizing".to_string(),
                 serde_json::Value::Bool(config.smart_sizing),
             );
+            if let Some(ref client) = config.freerdp_client_override {
+                map.insert(
+                    "freerdp_client_override".to_string(),
+                    serde_json::Value::String(client.clone()),
+                );
+            }
             if let Some(jump_id) = config.jump_host_id {
                 map.insert(
                     "jump_host".to_string(),
@@ -444,6 +450,9 @@ fn print_table(connection: &Connection, connections: &[Connection]) -> Result<()
             }
             if config.smart_sizing {
                 println!("  Smart Sizing: enabled");
+            }
+            if let Some(ref client) = config.freerdp_client_override {
+                println!("  FreeRDP Client: {client}");
             }
             if !matches!(
                 config.security_layer,
