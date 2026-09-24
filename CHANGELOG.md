@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.22.5] - 2026-09-24
+
 ### Added
 
 - **The external VNC viewer can now be chosen per connection (issue #340)** — the same idea as the FreeRDP client selector, extended to VNC, the other protocol where RustConn auto-detects among several external clients. A new **VNC viewer** row in the VNC connection editor's Display group lets a connection force a specific installed viewer (`vncviewer`, `remmina`, `gvncviewer`, `xvnc4viewer`, `vinagre`, `krdc`) or keep **Automatic**. It matters because the viewers differ in capability — TigerVNC's `vncviewer` honours the encoding/quality/compression/VeNCrypt options RustConn passes, while lighter viewers ignore them. The dropdown lists only viewers present on the system; a pinned viewer that is later removed falls back to auto-detection with a log warning. Available from `rustconn-cli` (`--vnc-viewer NAME`). Stored as `vnc_viewer_override` on the VNC config; unset means auto-detect, so existing profiles are unaffected. The other protocols with an external client (SPICE, Telnet, Serial) launch a single fixed binary with no candidate list, so a selector there would offer nothing to choose — they were deliberately left unchanged.
@@ -22,6 +24,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **The external RDP client now prefers the SDL3 FreeRDP client over the deprecated wlfreerdp (issue #340)** — FreeRDP upstream has deprecated the `wlfreerdp`/`wlfreerdp3` client in favour of its SDL3 client, and RustConn's launcher already auto-detected `sdl-freerdp3` ahead of `wlfreerdp3`. The informational client-detection helper (used to report which FreeRDP is installed) still listed `wlfreerdp3` first, so the reported client could differ from the one actually launched; its order now matches the launcher (`sdl-freerdp3` > `sdl-freerdp` > `wlfreerdp3` > `xfreerdp3`). The embedded viewer still uses `wlfreerdp` deliberately, since only a Wayland-native client embeds as a subsurface.
+
+### Dependencies
+
+- **Updated**: thiserror 2.0.20 → 2.0.21, zerocopy 0.8.57 → 0.8.58.
 
 ## [0.22.4] - 2026-09-23
 
