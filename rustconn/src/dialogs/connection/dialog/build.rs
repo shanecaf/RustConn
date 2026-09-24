@@ -199,6 +199,7 @@ impl ConnectionDialog {
         let (
             vnc_box,
             vnc_client_mode_dropdown,
+            vnc_viewer_dropdown,
             vnc_performance_mode_dropdown,
             vnc_encoding_dropdown,
             vnc_compression_spin,
@@ -476,6 +477,9 @@ impl ConnectionDialog {
         ));
         let vnc_connections_data: Rc<RefCell<Vec<(Option<Uuid>, String)>>> =
             Rc::new(RefCell::new(vec![(None, "(None)".to_string())]));
+        let vnc_viewers_data: Rc<RefCell<Vec<String>>> = Rc::new(RefCell::new(
+            rustconn_core::protocol::available_vnc_viewers(),
+        ));
         let spice_connections_data: Rc<RefCell<Vec<(Option<Uuid>, String)>>> =
             Rc::new(RefCell::new(vec![(None, "(None)".to_string())]));
         let web_connections_data: Rc<RefCell<Vec<(Option<Uuid>, String)>>> =
@@ -574,6 +578,7 @@ impl ConnectionDialog {
             &rdp_remote_app_name_entry,
             &rdp_graphics_mode_dropdown,
             &vnc_client_mode_dropdown,
+            &vnc_viewer_dropdown,
             &vnc_performance_mode_dropdown,
             &vnc_encoding_dropdown,
             &vnc_compression_spin,
@@ -589,6 +594,7 @@ impl ConnectionDialog {
             &vnc_accept_certificate_check,
             &vnc_mptcp_check,
             &vnc_connections_data,
+            &vnc_viewers_data,
             &spice_tls_check,
             &spice_ca_cert_entry,
             &spice_skip_verify_check,
@@ -824,6 +830,7 @@ impl ConnectionDialog {
             rdp_remote_app_name_entry,
             rdp_graphics_mode_dropdown,
             vnc_client_mode_dropdown,
+            vnc_viewer_dropdown,
             vnc_performance_mode_dropdown,
             vnc_encoding_dropdown,
             vnc_compression_spin,
@@ -839,6 +846,7 @@ impl ConnectionDialog {
             vnc_accept_certificate_check,
             vnc_mptcp_check,
             vnc_connections_data,
+            vnc_viewers_data,
             spice_tls_check,
             variables_list,
             variables_rows,

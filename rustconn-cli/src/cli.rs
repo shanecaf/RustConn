@@ -403,6 +403,11 @@ pub enum Commands {
         #[arg(long, value_name = "ARG")]
         vnc_custom_arg: Vec<String>,
 
+        /// Explicit VNC viewer binary for external mode (e.g. vncviewer, remmina, gvncviewer).
+        /// Default: auto-detect. An unavailable choice falls back to auto-detection.
+        #[arg(long, value_name = "NAME")]
+        vnc_viewer: Option<String>,
+
         // --- SPICE-specific flags ---
         /// Enable SPICE TLS encryption
         #[arg(long)]
@@ -942,6 +947,11 @@ pub enum Commands {
         /// Custom VNC client argument (repeatable)
         #[arg(long, value_name = "ARG")]
         vnc_custom_arg: Vec<String>,
+
+        /// Explicit VNC viewer binary for external mode (e.g. vncviewer, remmina, gvncviewer).
+        /// Default: auto-detect. An unavailable choice falls back to auto-detection.
+        #[arg(long, value_name = "NAME")]
+        vnc_viewer: Option<String>,
 
         // --- SPICE-specific flags ---
         /// Enable SPICE TLS encryption

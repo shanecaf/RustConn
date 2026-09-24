@@ -2593,6 +2593,7 @@ impl TemplateDialog {
             scaling: scaling_check.is_active(),
             clipboard_enabled: clipboard_check.is_active(),
             custom_args,
+            vnc_viewer_override: None,
             scale_override: ScaleOverride::default(),
             show_local_cursor: true,
             // ponytail: not exposed in the template editor; see the RDP builder.

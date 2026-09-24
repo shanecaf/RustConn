@@ -1447,6 +1447,21 @@ impl ConnectionDialog {
         self.vnc_scale_override_dropdown
             .set_selected(vnc.scale_override.index());
 
+        // Select the stored VNC viewer, or "Automatic" (0) if unset or the stored
+        // viewer is no longer available (issue #340).
+        let vnc_viewer_idx = vnc
+            .vnc_viewer_override
+            .as_deref()
+            .and_then(|name| {
+                self.vnc_viewers_data
+                    .borrow()
+                    .iter()
+                    .position(|v| v == name)
+                    .map(|i| (i + 1) as u32)
+            })
+            .unwrap_or(0);
+        self.vnc_viewer_dropdown.set_selected(vnc_viewer_idx);
+
         if !vnc.custom_args.is_empty() {
             self.vnc_custom_args_entry
                 .set_text(&vnc.custom_args.join(" "));

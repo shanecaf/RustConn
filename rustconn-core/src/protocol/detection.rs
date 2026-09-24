@@ -446,6 +446,41 @@ pub fn detect_vnc_viewer_name() -> Option<String> {
         })
 }
 
+/// Returns the VNC viewers that are actually installed, in preference order.
+///
+/// Seeds the connection editor's "VNC viewer" dropdown, so an unavailable
+/// choice is never offered. Only local `PATH` binaries are listed — the macOS
+/// `.app` bundles are resolved by name at launch, not enumerated here.
+#[must_use]
+pub fn available_vnc_viewers() -> Vec<String> {
+    VNC_VIEWERS
+        .iter()
+        .filter(|viewer| which_binary(viewer).is_some())
+        .map(|viewer| (*viewer).to_string())
+        .collect()
+}
+
+/// Resolves which VNC viewer to launch, honouring an explicit override.
+///
+/// When `override_name` is set and the named viewer is on the local `PATH`, it
+/// wins. An override that is not installed is dropped with a warning and the
+/// usual auto-detection ([`detect_vnc_viewer_name`]) takes over — mirroring the
+/// FreeRDP client override (issue #340).
+#[must_use]
+pub fn resolve_vnc_viewer(override_name: Option<&str>) -> Option<String> {
+    if let Some(name) = override_name.map(str::trim).filter(|name| !name.is_empty()) {
+        if which_binary(name).is_some() {
+            return Some(name.to_string());
+        }
+        tracing::warn!(
+            protocol = "vnc",
+            viewer = %name,
+            "Configured VNC viewer is not available — falling back to auto-detection"
+        );
+    }
+    detect_vnc_viewer_name()
+}
+
 // ============================================================================
 // Zero Trust CLI Detection
 // ============================================================================

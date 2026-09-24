@@ -26,6 +26,7 @@ pub(super) fn create_vnc_options() -> (
     DropDown,
     DropDown,
     DropDown,
+    DropDown,
     SpinButton,
     SpinButton,
     adw::SwitchRow,
@@ -81,6 +82,28 @@ pub(super) fn create_vnc_options() -> (
         .build();
     client_mode_row.add_suffix(&client_mode_dropdown);
     display_group.add(&client_mode_row);
+
+    // VNC viewer selection (issue #340). "Automatic" plus every installed
+    // viewer; only the external client reads this.
+    let vnc_viewers = rustconn_core::protocol::available_vnc_viewers();
+    let mut vnc_viewer_labels: Vec<String> = vec![i18n("Automatic")];
+    vnc_viewer_labels.extend(vnc_viewers.iter().cloned());
+    let vnc_viewer_strs: Vec<&str> = vnc_viewer_labels.iter().map(String::as_str).collect();
+    let vnc_viewer_list = StringList::new(&vnc_viewer_strs);
+    let vnc_viewer_dropdown = DropDown::builder()
+        .model(&vnc_viewer_list)
+        .valign(gtk4::Align::Center)
+        .build();
+    vnc_viewer_dropdown.set_selected(0);
+    vnc_viewer_dropdown.update_property(&[gtk4::accessible::Property::Label(&i18n("VNC viewer"))]);
+    let vnc_viewer_row = adw::ActionRow::builder()
+        .title(i18n("VNC viewer"))
+        .subtitle(i18n(
+            "External viewer binary. Automatic picks the best available",
+        ))
+        .build();
+    vnc_viewer_row.add_suffix(&vnc_viewer_dropdown);
+    display_group.add(&vnc_viewer_row);
 
     // Performance mode dropdown
     let vnc_perf_items: Vec<String> = vec![
@@ -342,6 +365,7 @@ pub(super) fn create_vnc_options() -> (
     (
         vbox,
         client_mode_dropdown,
+        vnc_viewer_dropdown,
         performance_mode_dropdown,
         encoding_dropdown,
         compression_spin,

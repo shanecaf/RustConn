@@ -134,6 +134,7 @@ pub(super) struct ConnectionDialogData<'a> {
     pub rdp_remote_app_name_entry: &'a Entry,
     pub rdp_graphics_mode_dropdown: &'a DropDown,
     pub vnc_client_mode_dropdown: &'a DropDown,
+    pub vnc_viewer_dropdown: &'a DropDown,
     pub vnc_performance_mode_dropdown: &'a DropDown,
     pub vnc_encoding_dropdown: &'a DropDown,
     pub vnc_compression_spin: &'a SpinButton,
@@ -149,6 +150,7 @@ pub(super) struct ConnectionDialogData<'a> {
     pub vnc_accept_certificate_check: &'a adw::SwitchRow,
     pub vnc_mptcp_check: &'a adw::SwitchRow,
     pub vnc_connections_data: &'a Rc<RefCell<Vec<(Option<Uuid>, String)>>>,
+    pub vnc_viewers_data: &'a Rc<RefCell<Vec<String>>>,
     pub spice_tls_check: &'a adw::SwitchRow,
     pub spice_ca_cert_entry: &'a Entry,
     pub spice_skip_verify_check: &'a adw::SwitchRow,
@@ -1753,6 +1755,14 @@ impl ConnectionDialogData<'_> {
             scaling: self.vnc_scaling_check.is_active(),
             clipboard_enabled: self.vnc_clipboard_check.is_active(),
             custom_args,
+            vnc_viewer_override: {
+                let idx = self.vnc_viewer_dropdown.selected() as usize;
+                if idx == 0 {
+                    None
+                } else {
+                    self.vnc_viewers_data.borrow().get(idx - 1).cloned()
+                }
+            },
             scale_override: ScaleOverride::from_index(self.vnc_scale_override_dropdown.selected()),
             show_local_cursor: self.vnc_show_local_cursor_check.is_active(),
             hide_floating_toolbar: !self.vnc_floating_toolbar_check.is_active(),

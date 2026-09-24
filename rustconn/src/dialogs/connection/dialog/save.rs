@@ -125,6 +125,7 @@ impl ConnectionDialog {
         rdp_remote_app_name_entry: &Entry,
         rdp_graphics_mode_dropdown: &DropDown,
         vnc_client_mode_dropdown: &DropDown,
+        vnc_viewer_dropdown: &DropDown,
         vnc_performance_mode_dropdown: &DropDown,
         vnc_encoding_dropdown: &DropDown,
         vnc_compression_spin: &SpinButton,
@@ -140,6 +141,7 @@ impl ConnectionDialog {
         vnc_accept_certificate_check: &adw::SwitchRow,
         vnc_mptcp_check: &adw::SwitchRow,
         vnc_connections_data: &Rc<RefCell<Vec<(Option<Uuid>, String)>>>,
+        vnc_viewers_data: &Rc<RefCell<Vec<String>>>,
         spice_tls_check: &adw::SwitchRow,
         spice_ca_cert_entry: &Entry,
         spice_skip_verify_check: &adw::SwitchRow,
@@ -347,6 +349,7 @@ impl ConnectionDialog {
         let rdp_performance_mode_dropdown = rdp_performance_mode_dropdown.clone();
         let rdp_graphics_mode_dropdown = rdp_graphics_mode_dropdown.clone();
         let vnc_client_mode_dropdown = vnc_client_mode_dropdown.clone();
+        let vnc_viewer_dropdown = vnc_viewer_dropdown.clone();
         let vnc_encoding_dropdown = vnc_encoding_dropdown.clone();
         let vnc_compression_spin = vnc_compression_spin.clone();
         let vnc_quality_spin = vnc_quality_spin.clone();
@@ -362,6 +365,7 @@ impl ConnectionDialog {
         let vnc_accept_certificate_check = vnc_accept_certificate_check.clone();
         let vnc_mptcp_check = vnc_mptcp_check.clone();
         let vnc_connections_data = vnc_connections_data.clone();
+        let vnc_viewers_data = vnc_viewers_data.clone();
         let spice_tls_check = spice_tls_check.clone();
         let spice_ca_cert_entry = spice_ca_cert_entry.clone();
         let spice_skip_verify_check = spice_skip_verify_check.clone();
@@ -582,6 +586,7 @@ impl ConnectionDialog {
                 rdp_remote_app_name_entry: &rdp_remote_app_name_entry,
                 rdp_graphics_mode_dropdown: &rdp_graphics_mode_dropdown,
                 vnc_client_mode_dropdown: &vnc_client_mode_dropdown,
+                vnc_viewer_dropdown: &vnc_viewer_dropdown,
                 vnc_encoding_dropdown: &vnc_encoding_dropdown,
                 vnc_compression_spin: &vnc_compression_spin,
                 vnc_quality_spin: &vnc_quality_spin,
@@ -596,6 +601,7 @@ impl ConnectionDialog {
                 vnc_accept_certificate_check: &vnc_accept_certificate_check,
                 vnc_mptcp_check: &vnc_mptcp_check,
                 vnc_connections_data: &vnc_connections_data,
+                vnc_viewers_data: &vnc_viewers_data,
                 spice_tls_check: &spice_tls_check,
                 spice_ca_cert_entry: &spice_ca_cert_entry,
                 spice_skip_verify_check: &spice_skip_verify_check,

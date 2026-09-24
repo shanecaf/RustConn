@@ -213,6 +213,12 @@ fn print_json(
             if config.mptcp {
                 map.insert("mptcp".to_string(), serde_json::Value::Bool(true));
             }
+            if let Some(ref viewer) = config.vnc_viewer_override {
+                map.insert(
+                    "vnc_viewer_override".to_string(),
+                    serde_json::Value::String(viewer.clone()),
+                );
+            }
         }
         ProtocolConfig::Spice(config) => {
             if let Some(jump_id) = config.jump_host_id {
@@ -541,6 +547,9 @@ fn print_table(connection: &Connection, connections: &[Connection]) -> Result<()
             }
             if config.mptcp {
                 println!("  MPTCP:    enabled");
+            }
+            if let Some(ref viewer) = config.vnc_viewer_override {
+                println!("  VNC Viewer: {viewer}");
             }
         }
         ProtocolConfig::Spice(ref config) => {

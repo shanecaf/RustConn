@@ -2651,6 +2651,13 @@ pub struct VncConfig {
     /// Custom command-line arguments (for external client)
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub custom_args: Vec<String>,
+    /// Explicit VNC viewer binary for the external client. `None` (the default)
+    /// auto-detects the best available viewer. Set it to a binary name (e.g.
+    /// `vncviewer`, `remmina`, `gvncviewer`) to force that viewer; an
+    /// unavailable choice falls back to auto-detection with a warning
+    /// (issue #340). Only applies to the external client.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub vnc_viewer_override: Option<String>,
     /// Display scale override for embedded mode
     #[serde(default)]
     pub scale_override: ScaleOverride,
@@ -2700,6 +2707,7 @@ impl Default for VncConfig {
             scaling: default_true(),
             clipboard_enabled: default_true(),
             custom_args: Vec::new(),
+            vnc_viewer_override: None,
             scale_override: ScaleOverride::default(),
             show_local_cursor: default_true(),
             hide_floating_toolbar: false,

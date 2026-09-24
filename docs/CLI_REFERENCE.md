@@ -197,6 +197,7 @@ Options:
 | `--vnc-no-clipboard` | — | Disable VNC clipboard sharing |
 | `--vnc-toolbar` | — | Floating session toolbar in the embedded viewer: `true` (default) or `false`; bare `--vnc-toolbar` = `false`. Off removes the toolbar, its reveal arrow and the split panel's corner buttons |
 | `--vnc-custom-arg` | — | Custom VNC client argument (repeatable) |
+| `--vnc-viewer` | — | Explicit VNC viewer binary for the external client, e.g. `vncviewer`, `remmina`, `gvncviewer` (VNC only). Default: auto-detect. An unavailable choice falls back to auto-detection; pass an empty string on `update` to clear it |
 | `--spice-tls` | — | Enable SPICE TLS encryption |
 | `--spice-ca-cert` | — | SPICE CA certificate path for TLS verification |
 | `--spice-skip-cert-verify` | — | Skip SPICE certificate verification (insecure) |

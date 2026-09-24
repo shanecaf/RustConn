@@ -263,6 +263,9 @@ impl VncSessionWidget {
             embedded_config.scale_override = config.scale_override;
             embedded_config.show_local_cursor = config.show_local_cursor;
             embedded_config.accept_certificate = config.accept_certificate;
+            embedded_config
+                .vnc_viewer_override
+                .clone_from(&config.vnc_viewer_override);
             // A connection can opt out of the floating toolbar entirely
             // (issue #260). Applied before `connect`, which is what first
             // reveals it, and before the split view can wrap this session in
@@ -308,13 +311,15 @@ impl VncSessionWidget {
         password: Option<&str>,
         config: &VncConfig,
     ) -> Result<(), SessionError> {
-        let viewer = Self::detect_vnc_viewer().ok_or_else(|| {
-            let client_info = Self::get_vnc_client_info();
-            let hint = client_info.install_hint.unwrap_or_else(|| {
-                "Install TigerVNC: sudo apt install tigervnc-viewer".to_string()
-            });
-            SessionError::connection_failed(format!("No VNC viewer installed. {hint}"))
-        })?;
+        let viewer =
+            rustconn_core::protocol::resolve_vnc_viewer(config.vnc_viewer_override.as_deref())
+                .ok_or_else(|| {
+                    let client_info = Self::get_vnc_client_info();
+                    let hint = client_info.install_hint.unwrap_or_else(|| {
+                        "Install TigerVNC: sudo apt install tigervnc-viewer".to_string()
+                    });
+                    SessionError::connection_failed(format!("No VNC viewer installed. {hint}"))
+                })?;
 
         // Try to spawn external VNC viewer with config
         match self.spawn_external_viewer_with_config(&viewer, host, port, password, config) {

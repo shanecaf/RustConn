@@ -578,7 +578,9 @@ impl EmbeddedVncWidget {
                                 .borrow()
                                 .as_ref()
                                 .and_then(|cfg| {
-                                    let viewer = Self::detect_vnc_viewer()?;
+                                    let viewer = rustconn_core::protocol::resolve_vnc_viewer(
+                                        cfg.vnc_viewer_override.as_deref(),
+                                    )?;
                                     let server = if cfg.port == 5900 {
                                         format!("{}:0", cfg.host)
                                     } else if cfg.port > 5900 && cfg.port < 6000 {
@@ -760,11 +762,14 @@ impl EmbeddedVncWidget {
 
     /// Connects using external mode (vncviewer)
     fn connect_external(&self, config: &VncConfig) -> Result<(), EmbeddedVncError> {
-        let binary = Self::detect_vnc_viewer().ok_or_else(|| {
-            EmbeddedVncError::VncClientInit(
-                "No VNC viewer found. Install vncviewer, gvncviewer, or remmina.".to_string(),
-            )
-        })?;
+        let binary =
+            rustconn_core::protocol::resolve_vnc_viewer(config.vnc_viewer_override.as_deref())
+                .ok_or_else(|| {
+                    EmbeddedVncError::VncClientInit(
+                        "No VNC viewer found. Install vncviewer, gvncviewer, or remmina."
+                            .to_string(),
+                    )
+                })?;
 
         // Build server address based on port.
         let server = if config.port == 5900 {

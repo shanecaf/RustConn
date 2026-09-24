@@ -222,6 +222,7 @@ pub struct ConnectionDialog {
     rdp_graphics_mode_dropdown: DropDown,
     // VNC fields
     vnc_client_mode_dropdown: DropDown,
+    vnc_viewer_dropdown: DropDown,
     vnc_performance_mode_dropdown: DropDown,
     vnc_encoding_dropdown: DropDown,
     vnc_compression_spin: SpinButton,
@@ -237,6 +238,7 @@ pub struct ConnectionDialog {
     vnc_accept_certificate_check: adw::SwitchRow,
     vnc_mptcp_check: adw::SwitchRow,
     vnc_connections_data: Rc<RefCell<Vec<(Option<Uuid>, String)>>>,
+    vnc_viewers_data: Rc<RefCell<Vec<String>>>,
     // SPICE fields
     spice_tls_check: adw::SwitchRow,
     spice_ca_cert_entry: Entry,

@@ -268,6 +268,7 @@ fn arb_vnc_config() -> impl Strategy<Value = VncConfig> {
             scaling: true,
             clipboard_enabled: true,
             custom_args,
+            vnc_viewer_override: None,
             scale_override: Default::default(),
             show_local_cursor: true,
             hide_floating_toolbar: false,

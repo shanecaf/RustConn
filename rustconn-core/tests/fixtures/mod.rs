@@ -215,6 +215,7 @@ pub fn sample_vnc_connection_custom_port() -> Connection {
         scaling: true,
         clipboard_enabled: true,
         custom_args: Vec::new(),
+        vnc_viewer_override: None,
         scale_override: Default::default(),
         show_local_cursor: true,
         hide_floating_toolbar: false,

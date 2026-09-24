@@ -1398,9 +1398,24 @@ Create the `freerdp` directory first if it does not exist, make sure the JSON is
 
 ### VNC
 
-VNC connections support embedded (vnc-rs) or external (TigerVNC) client modes. Configure encoding (Auto/Tight/ZRLE/Hextile/Raw/CopyRect), compression level, quality level, display scale override, view-only mode, scaling, and clipboard sharing in the VNC protocol tab.
+VNC connections support embedded (vnc-rs) or external (TigerVNC) client modes. Configure the external VNC viewer, encoding (Auto/Tight/ZRLE/Hextile/Raw/CopyRect), compression level, quality level, display scale override, view-only mode, scaling, and clipboard sharing in the VNC protocol tab.
 
 An embedded VNC session carries the same floating toolbar as RDP — Copy, Paste and Ctrl+Alt+Del behind an arrow indicator at the top centre — with the same **Session Toolbar** switch in the Features section to remove it entirely. See [Session Toolbar](#session-toolbar) under RDP for how the reveal works and what becomes unreachable when it is off.
+
+#### Choosing the VNC Viewer
+
+*New in 0.22.5.* When a VNC session opens in an external viewer, RustConn
+auto-detects one in order of preference: `vncviewer` (TigerVNC/TightVNC),
+`tigervnc`, `gvncviewer`, `xvnc4viewer`, `vinagre`, `remmina`, `krdc`. The
+**VNC viewer** row in the Display group lets a connection pin a specific viewer
+instead: **Automatic** keeps auto-detection, and the list below it shows every
+VNC viewer installed on the system. This matters because the viewers differ in
+capability — TigerVNC's `vncviewer` accepts the encoding, quality, compression
+and VeNCrypt options RustConn passes, while a lighter viewer ignores them.
+
+A pinned viewer that is later uninstalled falls back to auto-detection with a
+warning in the log rather than failing the connection. From the CLI:
+`--vnc-viewer NAME` (pass an empty string on `update` to clear it).
 
 ### SPICE
 

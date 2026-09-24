@@ -196,6 +196,7 @@ pub(super) struct UpdateParams<'a> {
     pub vnc_no_clipboard: bool,
     pub vnc_toolbar: Option<bool>,
     pub vnc_custom_arg: &'a [String],
+    pub vnc_viewer: Option<&'a str>,
     // SPICE
     pub spice_tls: bool,
     pub spice_ca_cert: Option<&'a str>,
@@ -661,6 +662,7 @@ pub(super) fn cmd_update(
         || params.vnc_no_clipboard
         || params.vnc_toolbar.is_some()
         || !params.vnc_custom_arg.is_empty()
+        || params.vnc_viewer.is_some()
     {
         if let rustconn_core::models::ProtocolConfig::Vnc(ref mut cfg) = connection.protocol_config
         {
@@ -1058,6 +1060,13 @@ fn apply_vnc_fields_update(
     }
     for arg in params.vnc_custom_arg {
         cfg.custom_args.push(arg.clone());
+    }
+    if let Some(viewer) = params.vnc_viewer {
+        cfg.vnc_viewer_override = if viewer.is_empty() {
+            None
+        } else {
+            Some(viewer.to_string())
+        };
     }
     Ok(())
 }

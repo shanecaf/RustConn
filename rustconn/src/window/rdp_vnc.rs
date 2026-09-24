@@ -1498,7 +1498,9 @@ fn start_vnc_session_internal(
     if let Some(ref conn_hist) = conn_for_history
         && conn_hist.uses_external_viewer()
     {
-        let Some(viewer) = crate::session::VncSessionWidget::detect_vnc_viewer() else {
+        let Some(viewer) =
+            rustconn_core::protocol::resolve_vnc_viewer(vnc_config.vnc_viewer_override.as_deref())
+        else {
             tracing::error!(connection = %conn_name, "No external VNC viewer installed");
             crate::toast::show_error_toast_on_active_window(&crate::i18n::i18n(
                 "No VNC viewer found. Install TigerVNC or Remmina.",
