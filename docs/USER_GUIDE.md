@@ -1,6 +1,6 @@
 # RustConn User Guide
 
-**Version 0.22.5** | GTK4/libadwaita Connection Manager for Linux
+**Version 0.22.6** | GTK4/libadwaita Connection Manager for Linux
 
 RustConn is a modern connection manager designed for Linux with Wayland-first approach. It supports SSH, RDP, VNC, SPICE, MOSH, SFTP, Telnet, Serial, Kubernetes, Web protocols and Zero Trust integrations through a native GTK4/libadwaita interface.
 
@@ -4021,7 +4021,7 @@ RustConn opens the KeePass database directly by file (`.kdbx`); it does not use 
 
 1. Check IronRDP/vnc-rs features enabled
 2. For external: verify FreeRDP/TigerVNC installed
-3. Flatpak: FreeRDP (SDL3) is bundled; TigerVNC via Flatpak Components
+3. Flatpak: FreeRDP (SDL3) is bundled; VNC uses the embedded vnc-rs client (an external TigerVNC needs host display access and is not downloadable in the sandbox)
 4. HiDPI: use Scale Override in connection dialog
 5. Clipboard not syncing: ensure "Clipboard" is enabled in RDP settings
 6. RDP Gateway: IronRDP doesn't support RD Gateway; falls back to external FreeRDP

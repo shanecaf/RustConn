@@ -55,6 +55,18 @@ pub struct AppSettings {
     /// Global highlight rules for regex-based text highlighting
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub highlight_rules: Vec<HighlightRule>,
+    /// Whether to suppress the built-in ERROR/WARNING/CRITICAL/FATAL highlight
+    /// rules.
+    ///
+    /// Off by default (the built-ins apply), matching the historical
+    /// behaviour and the derived `Default`. When `true` the four built-in
+    /// log-level rules are dropped from the compiled set, so a user who wants
+    /// no automatic highlighting (issue #343) can turn them off without the
+    /// built-ins re-adding a coloured underline on every restart. Phrased as
+    /// "disabled" so both a fresh install (`AppSettings::default()`) and a
+    /// config predating this field keep the built-ins on.
+    #[serde(default)]
+    pub highlight_builtin_defaults_disabled: bool,
     /// Saved smart folders for dynamic connection grouping
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub smart_folders: Vec<SmartFolder>,

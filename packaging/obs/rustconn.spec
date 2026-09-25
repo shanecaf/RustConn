@@ -6,7 +6,7 @@
 #
 
 Name:           rustconn
-Version:        0.22.5
+Version:        0.22.6
 Release:        0
 # rpmlint caps Summary at 79 characters (summary-too-long, badness 200); the
 # protocol list belongs in %description, which has room for all of it. Kept in
@@ -389,6 +389,12 @@ done
 %{_datadir}/icons/hicolor/*/apps/io.github.totoshko88.RustConn.*
 
 %changelog
+* Fri Sep 25 2026 Anton Isaiev <totoshko88@gmail.com> - 0.22.6-0
+- Version bump to 0.22.6
+- Fixed: terminal highlight rules could not be coloured — both rule editors now have Text and Background colour fields; a foreground colour is drawn as a colour wash plus underline; the built-in ERROR/WARNING/CRITICAL/FATAL rules can be turned off (issue #343)
+- Changed: the Snap now declares the network-status interface so the desktop portal network monitor works under strict confinement (issue #342)
+- Documentation: corrected the FreeRDP/VNC fallback claims for the Snap and the SDL-first FreeRDP detection order (issues #342, #340)
+
 * Thu Sep 24 2026 Anton Isaiev <totoshko88@gmail.com> - 0.22.5-0
 - Version bump to 0.22.5
 - Added: the external VNC viewer can now be chosen per connection (issue #340)

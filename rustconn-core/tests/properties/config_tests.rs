@@ -577,6 +577,7 @@ fn arb_full_settings() -> impl Strategy<Value = AppSettings> {
                     monitoring: rustconn_core::MonitoringSettings::default(),
                     activity_monitor: rustconn_core::ActivityMonitorDefaults::default(),
                     highlight_rules: Vec::new(),
+                    highlight_builtin_defaults_disabled: false,
                     smart_folders: Vec::new(),
                     ssh_agent_socket: None,
                     sync: SyncSettings::default(),

@@ -146,8 +146,11 @@ sudo snap connect rustconn:kube-credentials
 | Midnight Commander | SFTP file browser |
 | waypipe | Wayland forwarding |
 
-External CLIs (Zero Trust providers, password managers, kubectl, FreeRDP, VNC viewer)
-are downloaded on demand via the Components dialog (Menu → Components) inside the sandbox.
+External CLIs (Zero Trust providers, password managers, kubectl) are downloaded on
+demand via the Components dialog (Menu → Components) inside the sandbox. RDP and VNC
+use the embedded clients (IronRDP and vnc-rs); the snap does not bundle or download
+an external FreeRDP or TigerVNC fallback, so those two protocols rely on the
+embedded implementations only.
 
 ### CLI in Snap
 
@@ -428,7 +431,7 @@ RustConn uses embedded Rust implementations for RDP and VNC by default.
 External clients serve as fallbacks when the embedded client fails (e.g., RD Gateway).
 SPICE always uses an external viewer (remote-viewer / virt-viewer).
 
-FreeRDP detection priority: `wlfreerdp3` > `wlfreerdp` > `sdl-freerdp3` > `sdl-freerdp` > `xfreerdp3` > `xfreerdp`
+FreeRDP detection priority (Wayland session): `sdl-freerdp3` > `sdl-freerdp` > `wlfreerdp3` > `xfreerdp3` > `wlfreerdp` > `xfreerdp`. The SDL3 client is preferred because FreeRDP upstream has deprecated the `wlfreerdp` client (issue #340); on an X11 session the `xfreerdp*` clients come first instead.
 
 | Protocol | Client | Package |
 |----------|--------|---------|

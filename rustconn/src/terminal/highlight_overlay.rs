@@ -5,6 +5,12 @@
 //! rectangles and underlines on a transparent `gtk4::DrawingArea` layered
 //! on top of the terminal via `gtk4::Overlay`.
 //!
+//! A background rule tints the whole cell behind the match; a foreground rule
+//! paints a lighter translucent wash over the match plus a solid underline.
+//! The overlay cannot recolour VTE's own glyphs, so a foreground colour cannot
+//! literally recolour the text — the wash is the closest visible equivalent
+//! that keeps the text legible (issue #343).
+//!
 //! ## Architecture
 //!
 //! 1. [`HighlightOverlay::new`] creates a `DrawingArea` and attaches it as
@@ -170,7 +176,8 @@ impl HighlightOverlay {
                         let x = col_start as f64 * cell_w;
                         let w = (col_end - col_start) as f64 * cell_w;
 
-                        // Draw background highlight rectangle (colour pre-parsed)
+                        // Draw background highlight rectangle (colour pre-parsed).
+                        // A background rule tints the whole cell behind the match.
                         if let Some((r, g, b)) = m.background_rgb {
                             cr.set_source_rgba(r, g, b, 0.35);
                             cr.rectangle(x, y, w, cell_h);
@@ -179,8 +186,25 @@ impl HighlightOverlay {
                             }
                         }
 
-                        // Draw foreground colored underline (2px thick)
+                        // Draw the foreground highlight (colour pre-parsed).
+                        //
+                        // The overlay cannot recolour VTE's own glyphs — it only
+                        // paints on a transparent layer above the terminal — so a
+                        // foreground rule is shown as a translucent wash over the
+                        // matched text plus a solid underline. Earlier this was a
+                        // 2px underline alone (issue #343): with most rules only
+                        // setting a foreground colour, the sole visible effect was
+                        // a thin line a user did not read as "highlighting". The
+                        // wash keeps the underlying text legible (low alpha) while
+                        // making the match unmistakably coloured; the underline
+                        // stays as a crisp anchor and to distinguish a foreground
+                        // rule from a background one.
                         if let Some((r, g, b)) = m.foreground_rgb {
+                            cr.set_source_rgba(r, g, b, 0.25);
+                            cr.rectangle(x, y, w, cell_h);
+                            if cr.fill().is_err() {
+                                return;
+                            }
                             cr.set_source_rgba(r, g, b, 0.9);
                             cr.set_line_width(2.0);
                             cr.move_to(x, y + cell_h - 1.0);

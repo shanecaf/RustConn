@@ -89,9 +89,9 @@ The snap includes all core protocol clients — no separate installation needed:
 | Protocol | Implementation | Notes |
 |----------|----------------|-------|
 | SSH | VTE terminal | Always embedded |
-| RDP | IronRDP | Embedded; FreeRDP fallback via Components |
-| VNC | vnc-rs | Embedded; TigerVNC fallback via Components |
-| SPICE | remote-viewer (Components) | External viewer; no embedded client |
+| RDP | IronRDP | Embedded only — no external FreeRDP fallback in the snap |
+| VNC | vnc-rs | Embedded only — no external TigerVNC fallback in the snap |
+| SPICE | remote-viewer | Needs a host `remote-viewer`/`virt-viewer`; not bundled or downloadable |
 | Telnet | Bundled inetutils | VTE terminal session |
 | Serial | Bundled picocom | VTE terminal session; requires `serial-port` interface |
 | Kubernetes | Components kubectl | Requires `kube-credentials` |
@@ -114,10 +114,15 @@ sudo usermod -aG dialout $USER
 
 ## External CLIs (On-Demand Download)
 
-External CLIs (Zero Trust providers, password managers, kubectl, FreeRDP, VNC viewer)
-are downloaded on demand via the Components dialog (Menu → Components) inside the
-sandbox. CLIs install into `$SNAP_USER_DATA/cli/` and are available for connections
-automatically — no host access is required.
+External CLIs (Zero Trust providers, password managers, kubectl) are downloaded on
+demand via the Components dialog (Menu → Components) inside the sandbox. CLIs install
+into `$SNAP_USER_DATA/cli/` and are available for connections automatically — no host
+access is required.
+
+RDP and VNC do not appear here: the snap uses the embedded IronRDP and vnc-rs clients
+and does not download an external FreeRDP or TigerVNC fallback (those viewers need
+host display access that a strictly-confined snap cannot grant). The Components dialog
+therefore shows only the sandbox-compatible CLIs below.
 
 ### Available CLIs
 
@@ -136,9 +141,6 @@ automatically — no host access is required.
 | `op` | 1Password CLI |
 | `passbolt` | Passbolt CLI |
 | `keepassxc-proxy` | KeePassXC proxy |
-| `remote-viewer` | SPICE fallback |
-| `xfreerdp` | RDP fallback |
-| `vncviewer` | VNC fallback |
 
 ### Zero Trust CLIs
 
@@ -255,7 +257,9 @@ snap connections rustconn
 | CLI downloads | Components dialog | Components dialog | — |
 
 **Flatpak Components** — Flatpak users can download additional CLI tools (Zero Trust,
-password managers, TigerVNC) directly within the sandbox via Menu → Components.
+password managers, kubectl) directly within the sandbox via Menu → Components. The
+Flatpak bundles the SDL3 FreeRDP client for the external RDP fallback; the snap does
+not (its RDP path is the embedded IronRDP client).
 See [User Guide — Flatpak Components](USER_GUIDE.md#flatpak-components) for details.
 
 **Recommendation:**
