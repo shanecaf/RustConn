@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.22.6] - 2026-09-25
+
+### Fixed
+
+- **Terminal highlight rules never coloured anything, and the built-in rules underlined ERROR/WARNING with no way to stop them (issue #343)** — a highlight rule is a regular expression plus a colour, but the rule editors (both the global one in Settings and the per-connection one in the connection editor) only offered a name and a pattern — there was no field to set a colour at all, so every rule a user created stored no colour and drew nothing. Both editors now have **Text colour** and **Background colour** fields that take a hex value (`#RRGGBB`); an empty field means no colour. The pattern field's tooltip now says it expects a regular expression such as `(?i)\bINFO\b` (not a `'INFO'[r,g,b]`-style literal from another tool) with the colour set separately. Separately, a foreground colour was drawn as a thin 2px underline that a user did not read as highlighting — it is now a translucent colour wash over the matched text plus the underline, so the match is visibly coloured while the text stays legible. Finally, the built-in ERROR/WARNING/CRITICAL/FATAL rules were always on and could not be turned off, which is the automatic underline a user saw with no rules configured; a new **Highlight ERROR, WARNING, CRITICAL and FATAL** switch in Settings turns them off, leaving only the user's own rules.
+
+### Changed
+
+- **The Snap now grants the desktop portal network-monitor access (issue #342)** — under strict confinement the snap could not answer GIO's network-status query (`org.freedesktop.portal.NetworkMonitor`), which the sandbox refused with "not available inside the sandbox" and a `GLib-GIO-WARNING` on every check. The snap now declares the `network-status` interface (auto-connected on the store), so the network monitor works and the warning is gone.
+
+### Documentation
+
+- **Corrected the packaging docs about FreeRDP and VNC fallbacks in the sandboxed builds (issues #342, #340)** — the docs claimed the Snap downloads an external FreeRDP and TigerVNC on demand through the Components dialog, which was never true: FreeRDP is not a downloadable component (no pre-built Linux binaries) and the TigerVNC viewer needs host display access a strict snap cannot grant, so neither ever appeared in the snap's dialog. `docs/SNAP.md`, `docs/INSTALL.md` and `docs/USER_GUIDE.md` now state plainly that the snap uses the embedded IronRDP and vnc-rs clients for RDP and VNC with no external fallback, that only the sandbox-compatible CLIs (Zero Trust, password managers, kubectl) are downloadable, and that the Flatpak (not the snap) bundles the SDL3 FreeRDP client. The stale FreeRDP detection-priority line in `INSTALL.md` was also updated to the SDL-first order the launcher has used since 0.22.5 (`sdl-freerdp3` first, `wlfreerdp3` deprecated), so the docs no longer list the deprecated client first.
+
+### Dependencies
+
+- **Updated**: cc 1.4.7 → 1.5.1, hyper-util 0.1.20 → 0.1.21, js-sys 0.3.105 → 0.3.106, siphasher 1.0.3 → 1.0.4, smallvec 1.16.1 → 1.16.2, wasm-bindgen 0.2.128 → 0.2.129 (with the matching `wasm-bindgen-futures`/`-macro`/`-shared` and `find-msvc-tools` 0.1.13 → 0.1.14), web-sys 0.3.105 → 0.3.106, zerocopy 0.8.58 → 0.8.59. Both `cargo-sources.json` (Flatpak and Flathub) were regenerated from the refreshed `Cargo.lock`.
+
 ## [0.22.5] - 2026-09-24
 
 ### Added

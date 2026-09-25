@@ -1462,12 +1462,22 @@ fn start_ssh_connection_internal(
 
     // Apply highlight rules (built-in defaults + global + per-connection)
     {
-        let global_rules = state
+        let (global_rules, include_builtin_defaults) = state
             .try_borrow()
             .ok()
-            .map(|s| s.settings().highlight_rules.clone())
-            .unwrap_or_default();
-        notebook.set_highlight_rules(session_id, &global_rules, &conn.highlight_rules);
+            .map(|s| {
+                (
+                    s.settings().highlight_rules.clone(),
+                    !s.settings().highlight_builtin_defaults_disabled,
+                )
+            })
+            .unwrap_or((Vec::new(), true));
+        notebook.set_highlight_rules(
+            session_id,
+            &global_rules,
+            &conn.highlight_rules,
+            include_builtin_defaults,
+        );
     }
 
     // Record connection start in history
@@ -1865,12 +1875,22 @@ pub fn reconnect_ssh_in_place(
 
     // Re-apply highlight rules
     {
-        let global_rules = state
+        let (global_rules, include_builtin_defaults) = state
             .try_borrow()
             .ok()
-            .map(|s| s.settings().highlight_rules.clone())
-            .unwrap_or_default();
-        notebook.set_highlight_rules(session_id, &global_rules, &conn.highlight_rules);
+            .map(|s| {
+                (
+                    s.settings().highlight_rules.clone(),
+                    !s.settings().highlight_builtin_defaults_disabled,
+                )
+            })
+            .unwrap_or((Vec::new(), true));
+        notebook.set_highlight_rules(
+            session_id,
+            &global_rules,
+            &conn.highlight_rules,
+            include_builtin_defaults,
+        );
     }
 
     // Re-register the output filter from the connection as it stands now: it is

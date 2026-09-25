@@ -167,6 +167,7 @@ pub struct SettingsDialog {
     // Global highlight rules
     highlight_rules_list: gtk4::ListBox,
     highlight_rules: Rc<RefCell<Vec<rustconn_core::models::HighlightRule>>>,
+    highlight_builtin_row: adw::SwitchRow,
     // Global network settings (outermost bastion tier)
     network_widgets: network_tab::NetworkPageWidgets,
     // Cloud Sync settings
@@ -362,6 +363,19 @@ impl SettingsDialog {
             .valign(gtk4::Align::Center)
             .build();
         hl_group.set_header_suffix(Some(&add_hl_button));
+
+        // Toggle for the built-in ERROR/WARNING/CRITICAL/FATAL rules. On by
+        // default; turning it off stops the automatic coloured underline a user
+        // never configured (issue #343). Phrased positively for the user, stored
+        // inverted as `highlight_builtin_defaults_disabled`.
+        let highlight_builtin_row = adw::SwitchRow::builder()
+            .title(i18n("Highlight ERROR, WARNING, CRITICAL and FATAL"))
+            .subtitle(i18n(
+                "Built-in rules that colour common log levels. Turn off to use only your own rules.",
+            ))
+            .active(true)
+            .build();
+        hl_group.add(&highlight_builtin_row);
 
         let highlight_rules_list = gtk4::ListBox::builder()
             .selection_mode(gtk4::SelectionMode::None)
@@ -729,6 +743,7 @@ impl SettingsDialog {
             keybindings_page,
             highlight_rules_list,
             highlight_rules,
+            highlight_builtin_row,
             network_widgets,
             cloud_sync_widgets,
             settings,
@@ -1270,6 +1285,8 @@ impl SettingsDialog {
 
         // Load global highlight rules
         self.load_highlight_rules(&settings.highlight_rules);
+        self.highlight_builtin_row
+            .set_active(!settings.highlight_builtin_defaults_disabled);
 
         // Load Cloud Sync settings
         if let Some(ref sync_dir) = settings.sync.sync_dir {
@@ -1396,6 +1413,7 @@ impl SettingsDialog {
 
         // Highlight rules
         let highlight_rules_clone = self.highlight_rules.clone();
+        let highlight_builtin_row_clone = self.highlight_builtin_row.clone();
 
         // SSH agent custom socket entry
         let ssh_agent_custom_socket_entry_clone = self.ssh_agent_custom_socket_entry.clone();
@@ -1666,6 +1684,7 @@ impl SettingsDialog {
                     .filter(|r| !r.pattern.is_empty())
                     .cloned()
                     .collect(),
+                highlight_builtin_defaults_disabled: !highlight_builtin_row_clone.is_active(),
                 smart_folders: settings_clone.borrow().smart_folders.clone(),
                 ssh_agent_socket: {
                     let text = ssh_agent_custom_socket_entry_clone.text();
@@ -1847,6 +1866,12 @@ fn build_highlight_rule_row(
         .title(i18n("Pattern (regex)"))
         .build();
     pattern_row.set_text(&rule.pattern);
+    // The pattern is a regular expression, e.g. (?i)\bINFO\b — not a
+    // "'INFO'[r,g,b]"-style literal from another tool (issue #343). The colour
+    // is set separately below.
+    pattern_row.set_tooltip_text(Some(&i18n(
+        "Regular expression, for example (?i)\\bINFO\\b. Set the colour in the fields below.",
+    )));
     {
         let rules_clone = rules.clone();
         let row_weak = row.downgrade();
@@ -1863,5 +1888,58 @@ fn build_highlight_rule_row(
     }
     row.add_row(&pattern_row);
 
+    let foreground_row = adw::EntryRow::builder()
+        .title(i18n("Text colour (#RRGGBB)"))
+        .build();
+    foreground_row.set_text(rule.foreground_color.as_deref().unwrap_or_default());
+    foreground_row.set_tooltip_text(Some(&i18n(
+        "Hexadecimal colour such as #00AAFF. Leave empty for no text colour.",
+    )));
+    {
+        let rules_clone = rules.clone();
+        foreground_row.connect_changed(move |e| {
+            let text = e.text().to_string();
+            let mut r = rules_clone.borrow_mut();
+            if let Some(rule) = r.iter_mut().find(|r| r.id == rule_id) {
+                rule.foreground_color = normalize_color_input(&text);
+            }
+        });
+    }
+    row.add_row(&foreground_row);
+
+    let background_row = adw::EntryRow::builder()
+        .title(i18n("Background colour (#RRGGBB)"))
+        .build();
+    background_row.set_text(rule.background_color.as_deref().unwrap_or_default());
+    background_row.set_tooltip_text(Some(&i18n(
+        "Hexadecimal colour such as #402020. Leave empty for no background.",
+    )));
+    {
+        let rules_clone = rules.clone();
+        background_row.connect_changed(move |e| {
+            let text = e.text().to_string();
+            let mut r = rules_clone.borrow_mut();
+            if let Some(rule) = r.iter_mut().find(|r| r.id == rule_id) {
+                rule.background_color = normalize_color_input(&text);
+            }
+        });
+    }
+    row.add_row(&background_row);
+
     row
+}
+
+/// Normalises a hex-colour text field into the stored `Option<String>`.
+///
+/// An empty (or whitespace-only) field clears the colour. Otherwise the trimmed
+/// value is kept verbatim — validation happens at compile time in
+/// [`rustconn_core::highlight::parse_hex_color`], which simply ignores a value
+/// that is not `#RRGGBB`, so a half-typed `#00A` never crashes anything.
+fn normalize_color_input(text: &str) -> Option<String> {
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed.to_string())
+    }
 }

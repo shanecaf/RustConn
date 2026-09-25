@@ -2926,10 +2926,13 @@ impl TerminalNotebook {
     /// Sets up highlight rules for a terminal session.
     ///
     /// Compiles global and per-connection [`HighlightRule`]s using
-    /// [`CompiledHighlightRules::compile`], creates a transparent
+    /// [`CompiledHighlightRules::compile_with_options`], creates a transparent
     /// [`HighlightOverlay`] that draws colored backgrounds and foreground
     /// text on top of the VTE terminal, and wires `contents-changed` so
     /// the overlay repaints automatically.
+    ///
+    /// When `include_builtin_defaults` is `false` the built-in
+    /// ERROR/WARNING/CRITICAL/FATAL rules are not applied (issue #343).
     ///
     /// VTE's `match_add_regex()` is still registered for hover-underline
     /// feedback, but the actual colored rendering is done by the overlay.
@@ -2938,8 +2941,13 @@ impl TerminalNotebook {
         session_id: Uuid,
         global_rules: &[HighlightRule],
         per_conn_rules: &[HighlightRule],
+        include_builtin_defaults: bool,
     ) {
-        let compiled = CompiledHighlightRules::compile(global_rules, per_conn_rules);
+        let compiled = CompiledHighlightRules::compile_with_options(
+            global_rules,
+            per_conn_rules,
+            include_builtin_defaults,
+        );
 
         if let Some(terminal) = self.terminals.borrow().get(&session_id) {
             // Still register with VTE for hover-underline feedback

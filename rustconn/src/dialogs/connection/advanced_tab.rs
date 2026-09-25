@@ -822,6 +822,10 @@ pub(super) struct HighlightRuleRow {
     pub name_entry: Entry,
     /// Entry for regex pattern
     pub pattern_entry: Entry,
+    /// Entry for the foreground (text) colour, `#RRGGBB`
+    pub foreground_entry: Entry,
+    /// Entry for the background colour, `#RRGGBB`
+    pub background_entry: Entry,
     /// Enabled switch
     pub enabled_check: CheckButton,
     /// Delete button
@@ -857,10 +861,38 @@ pub(super) fn create_highlight_rule_row(
     let pattern_entry = Entry::builder()
         .placeholder_text(i18n("Pattern (regex)"))
         .hexpand(true)
-        .tooltip_text(i18n("Regex pattern to match"))
+        .tooltip_text(i18n(
+            "Regular expression, for example (?i)\\bINFO\\b. Set the colour in the fields to the right.",
+        ))
         .build();
     if let Some(r) = rule {
         pattern_entry.set_text(&r.pattern);
+    }
+
+    let foreground_entry = Entry::builder()
+        .placeholder_text(i18n("Text #RRGGBB"))
+        .width_chars(9)
+        .tooltip_text(i18n(
+            "Text colour as a hex value such as #00AAFF. Leave empty for none.",
+        ))
+        .build();
+    if let Some(r) = rule
+        && let Some(fg) = r.foreground_color.as_deref()
+    {
+        foreground_entry.set_text(fg);
+    }
+
+    let background_entry = Entry::builder()
+        .placeholder_text(i18n("Bg #RRGGBB"))
+        .width_chars(9)
+        .tooltip_text(i18n(
+            "Background colour as a hex value such as #402020. Leave empty for none.",
+        ))
+        .build();
+    if let Some(r) = rule
+        && let Some(bg) = r.background_color.as_deref()
+    {
+        background_entry.set_text(bg);
     }
 
     let enabled_check = CheckButton::builder()
@@ -881,6 +913,8 @@ pub(super) fn create_highlight_rule_row(
 
     hbox.append(&name_entry);
     hbox.append(&pattern_entry);
+    hbox.append(&foreground_entry);
+    hbox.append(&background_entry);
     hbox.append(&enabled_check);
     hbox.append(&delete_button);
 
@@ -891,6 +925,8 @@ pub(super) fn create_highlight_rule_row(
         id,
         name_entry,
         pattern_entry,
+        foreground_entry,
+        background_entry,
         enabled_check,
         delete_button,
     }

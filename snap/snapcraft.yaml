@@ -1,6 +1,6 @@
 name: rustconn
 base: core24
-version: '0.22.5'
+version: '0.22.6'
 title: RustConn
 summary: Manage remote connections easily
 description: |
@@ -133,6 +133,14 @@ plugs:
     interface: personal-files
     read:
       - $HOME/.kube
+  # The GTK/GIO network monitor asks the desktop portal
+  # (org.freedesktop.portal.NetworkMonitor) whether the network is up. Under
+  # strict confinement that call is refused ("not available inside the sandbox",
+  # issue #342) without this interface, and GIO logs a GLib-GIO-WARNING on every
+  # query. `network-status` grants the portal NetworkMonitor access. It is
+  # auto-connected on the store, so no manual `snap connect` is needed.
+  network-status:
+    interface: network-status
 
 # The GTK application owns its well-known D-Bus name (matching the app ID /
 # desktop file) on the session bus via `g_application_register`. Under strict
@@ -159,6 +167,7 @@ apps:
       - audio-playback
       - network
       - network-bind
+      - network-status
       - home
       - ssh-keys
       - serial-port

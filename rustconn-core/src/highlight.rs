@@ -95,16 +95,36 @@ impl CompiledHighlightRules {
     /// Disabled rules and rules with invalid regex patterns are silently
     /// skipped (invalid patterns produce a `tracing::warn!`).
     ///
-    /// Built-in default rules (ERROR, WARNING, CRITICAL, FATAL) are always
-    /// prepended to the global set so they apply unless overridden.
+    /// Built-in default rules (ERROR, WARNING, CRITICAL, FATAL) are prepended
+    /// to the global set so they apply unless overridden. Use
+    /// [`compile_with_options`](Self::compile_with_options) to omit them.
     #[must_use]
     pub fn compile(global_rules: &[HighlightRule], per_conn_rules: &[HighlightRule]) -> Self {
-        // Start with built-in defaults, then append user-supplied globals.
+        Self::compile_with_options(global_rules, per_conn_rules, true)
+    }
+
+    /// Compiles highlight rules, optionally including the built-in defaults.
+    ///
+    /// Identical to [`compile`](Self::compile) except that when
+    /// `include_builtin_defaults` is `false` the built-in
+    /// ERROR/WARNING/CRITICAL/FATAL rules are not prepended, so a user who has
+    /// turned automatic highlighting off (issue #343) sees only their own
+    /// rules. Per-connection rules still override globals by matching `id`.
+    #[must_use]
+    pub fn compile_with_options(
+        global_rules: &[HighlightRule],
+        per_conn_rules: &[HighlightRule],
+        include_builtin_defaults: bool,
+    ) -> Self {
+        // Start with built-in defaults (unless suppressed), then append
+        // user-supplied globals.
         let mut merged: Vec<&HighlightRule> = Vec::new();
 
         let defaults = builtin_defaults();
-        for rule in &defaults {
-            merged.push(rule);
+        if include_builtin_defaults {
+            for rule in &defaults {
+                merged.push(rule);
+            }
         }
         for rule in global_rules {
             merged.push(rule);

@@ -229,3 +229,95 @@ fn invalid_regex_rule_is_skipped_in_compile() {
     assert_eq!(matches[0].start, 0);
     assert_eq!(matches[0].end, 2);
 }
+
+#[test]
+fn foreground_hex_color_resolves_to_rgb() {
+    // A #RRGGBB foreground colour must round-trip into a parsed RGB on the
+    // match, otherwise the overlay has nothing to draw (issue #343).
+    let rule = HighlightRule {
+        id: Uuid::new_v4(),
+        name: "info".to_string(),
+        pattern: r"(?i)\bINFO\b".to_string(),
+        foreground_color: Some("#0000FF".to_string()),
+        background_color: None,
+        enabled: true,
+    };
+    let compiled = CompiledHighlightRules::compile(&[], &[rule]);
+    let matches = compiled.find_matches("service INFO ready");
+    let info = matches
+        .iter()
+        .find(|m| m.foreground_rgb.is_some())
+        .expect("the INFO rule should produce a foreground match");
+    assert_eq!(info.foreground_rgb, Some((0.0, 0.0, 1.0)));
+    assert_eq!(info.background_rgb, None);
+}
+
+#[test]
+fn background_hex_color_resolves_to_rgb() {
+    let rule = HighlightRule {
+        id: Uuid::new_v4(),
+        name: "hit".to_string(),
+        pattern: "HIT".to_string(),
+        foreground_color: None,
+        background_color: Some("#FF0000".to_string()),
+        enabled: true,
+    };
+    let compiled = CompiledHighlightRules::compile(&[], &[rule]);
+    let m = compiled
+        .find_matches("a HIT here")
+        .into_iter()
+        .find(|m| m.background_rgb.is_some())
+        .expect("the HIT rule should produce a background match");
+    assert_eq!(m.background_rgb, Some((1.0, 0.0, 0.0)));
+}
+
+#[test]
+fn invalid_color_leaves_rgb_unset_but_still_matches() {
+    // A bracket-RGB literal from another tool ("[0,0,255]") is not a valid
+    // #RRGGBB colour, so no RGB is produced — but the rule still matches its
+    // pattern rather than crashing (issue #343).
+    let rule = HighlightRule {
+        id: Uuid::new_v4(),
+        name: "bad-color".to_string(),
+        pattern: "INFO".to_string(),
+        foreground_color: Some("[0,0,255]".to_string()),
+        background_color: None,
+        enabled: true,
+    };
+    let compiled = CompiledHighlightRules::compile(&[], &[rule]);
+    let m = compiled
+        .find_matches("INFO line")
+        .into_iter()
+        .find(|m| {
+            // The literal "INFO" match, not a built-in default.
+            m.start == 0 && m.end == 4
+        })
+        .expect("the pattern should still match");
+    assert_eq!(m.foreground_rgb, None);
+}
+
+#[test]
+fn compile_without_builtin_defaults_drops_error_and_warning() {
+    // With built-ins suppressed and no user rules, nothing matches ERROR /
+    // WARNING (issue #343).
+    let compiled = CompiledHighlightRules::compile_with_options(&[], &[], false);
+    let matches = compiled.find_matches("ERROR and WARNING here");
+    assert!(
+        matches.is_empty(),
+        "no built-in defaults should apply when suppressed, got {matches:?}"
+    );
+}
+
+#[test]
+fn compile_with_builtin_defaults_still_matches_error() {
+    let compiled = CompiledHighlightRules::compile_with_options(&[], &[], true);
+    let matches = compiled.find_matches("ERROR here");
+    assert!(
+        !matches.is_empty(),
+        "the built-in ERROR default should match when enabled"
+    );
+    // And the built-in ERROR rule carries a red foreground.
+    assert!(matches.iter().any(|m| m.foreground_rgb.is_some()));
+    // Sanity: builtin_defaults still exposes four rules.
+    assert_eq!(builtin_defaults().len(), 4);
+}
